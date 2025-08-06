@@ -3,6 +3,15 @@ spring:
     name: basic-face-detection
   profiles:
     active: dev
+  # Thymeleaf Configuration
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    servlet:
+      content-type: text/html
 
 # Vision Framework Configuration
 vision:
@@ -10,11 +19,11 @@ vision:
   backend: opencv
   opencv:
     enabled: true
-    confidence-threshold: 0.8
-    min-face-size-ratio: 0.1
-    max-face-size-ratio: 0.8
+    confidence-threshold: 0.5  # Lower threshold for better detection
+    min-face-size-ratio: 0.02  # Very small minimum face size for crowd detection
+    max-face-size-ratio: 0.95  # Very large maximum face size
     gpu-acceleration: false
-    max-image-size: 10485760  # 10MB
+    max-image-size: 52428800  # 50MB
   health:
     enabled: true
     check-interval: 30000     # 30 seconds
@@ -24,6 +33,9 @@ vision:
     collection-interval: 60000 # 1 minute
     detailed: false
 
+  main:
+    allow-bean-definition-overriding: true
+
 # Server Configuration
 server:
   port: 8080
@@ -32,8 +44,8 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 50MB
       file-size-threshold: 2KB
 
 # Logging Configuration
@@ -45,10 +57,10 @@ logging:
     org.bytedeco: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
   file:
-    name: logs/basic-face-detection.log
-    max-size: 100MB
+    name: application.log
+    max-size: 1000MB
     max-history: 30
 
 # Management Endpoints
@@ -68,17 +80,6 @@ management:
     tags:
       application: basic-face-detection
       environment: development
-
-# Thymeleaf Configuration
-spring:
-  thymeleaf:
-    cache: false
-    prefix: classpath:/templates/
-    suffix: .html
-    encoding: UTF-8
-    mode: HTML
-    servlet:
-      content-type: text/html
 
 # Development Profile
 ---
@@ -147,3 +148,5 @@ management:
     web:
       exposure:
         include: health
+
+

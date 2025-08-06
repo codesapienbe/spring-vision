@@ -23,15 +23,19 @@ import java.util.Map;
 /**
  * Spring Boot auto-configuration for Spring Vision framework.
  *
- * <p>This configuration automatically sets up the Spring Vision framework
- * when Spring Boot detects the necessary dependencies. It configures vision
- * backends, templates, and related components based on application properties.</p>
+ * <p>
+ * This configuration automatically sets up the Spring Vision framework when
+ * Spring Boot detects the necessary dependencies. It configures vision
+ * backends, templates, and related components based on application
+ * properties.</p>
  *
- * <p>The auto-configuration supports multiple backends and can be customized
- * through application properties. It includes health indicators, metrics,
- * and proper lifecycle management.</p>
+ * <p>
+ * The auto-configuration supports multiple backends and can be customized
+ * through application properties. It includes health indicators, metrics, and
+ * proper lifecycle management.</p>
  *
- * <p>Example usage:</p>
+ * <p>
+ * Example usage:</p>
  * <pre>{@code
  * @SpringBootApplication
  * public class MyApplication {
@@ -52,16 +56,20 @@ import java.util.Map;
  * @see VisionMetrics
  */
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(VisionTemplate.class)
 @EnableConfigurationProperties(VisionProperties.class)
 public class VisionAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionAutoConfiguration.class);
 
+    public VisionAutoConfiguration() {
+        logger.info("VisionAutoConfiguration constructor called - auto-configuration is being loaded");
+    }
+
     /**
      * Creates the primary vision backend based on configuration.
      *
-     * <p>This method creates the vision backend specified in the configuration.
+     * <p>
+     * This method creates the vision backend specified in the configuration.
      * Currently supports OpenCV backend, with plans for additional backends
      * (MediaPipe, YOLO, etc.) in future releases.</p>
      *
@@ -73,19 +81,16 @@ public class VisionAutoConfiguration {
     @ConditionalOnMissingBean(VisionBackend.class)
     @ConditionalOnProperty(prefix = "vision", name = "enabled", havingValue = "true", matchIfMissing = true)
     public VisionBackend visionBackend(VisionProperties properties) {
-        // Check if we're in test mode
-        String testMode = System.getProperty("org.bytedeco.javacpp.nobootclasspath");
-        if ("true".equals(testMode)) {
-            logger.info("Running in test mode - using No-Op backend");
-            return createNoOpBackend();
-        }
-
+        logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean ===");
         logger.info("Configuring vision backend: {}", properties.getBackend());
 
         return switch (properties.getBackend().toLowerCase()) {
-            case "opencv" -> createOpenCvBackend(properties);
-            case "mediapipe" -> createMediaPipeBackend(properties);
-            case "yolo" -> createYoloBackend(properties);
+            case "opencv" ->
+                createOpenCvBackend(properties);
+            case "mediapipe" ->
+                createMediaPipeBackend(properties);
+            case "yolo" ->
+                createYoloBackend(properties);
             default -> {
                 logger.warn("Unknown backend '{}', falling back to OpenCV", properties.getBackend());
                 yield createOpenCvBackend(properties);
@@ -96,7 +101,8 @@ public class VisionAutoConfiguration {
     /**
      * Creates the vision template for easy access to vision operations.
      *
-     * <p>The vision template provides a unified interface for all vision
+     * <p>
+     * The vision template provides a unified interface for all vision
      * operations regardless of the underlying backend implementation.</p>
      *
      * @param backend the configured vision backend
@@ -106,6 +112,7 @@ public class VisionAutoConfiguration {
     @ConditionalOnMissingBean(VisionTemplate.class)
     @ConditionalOnBean(VisionBackend.class)
     public VisionTemplate visionTemplate(VisionBackend backend) {
+        logger.info("=== VisionAutoConfiguration: Creating VisionTemplate bean ===");
         logger.info("Creating vision template with backend: {}", backend.getBackendId());
         return new VisionTemplate(backend);
     }
@@ -113,8 +120,9 @@ public class VisionAutoConfiguration {
     /**
      * Creates the vision health indicator for Spring Boot Actuator.
      *
-     * <p>This health indicator monitors the health of the vision backend
-     * and reports its status to Spring Boot Actuator health endpoints.</p>
+     * <p>
+     * This health indicator monitors the health of the vision backend and
+     * reports its status to Spring Boot Actuator health endpoints.</p>
      *
      * @param backend the vision backend to monitor
      * @param properties the vision configuration properties
@@ -132,7 +140,8 @@ public class VisionAutoConfiguration {
     /**
      * Creates the vision metrics for monitoring and observability.
      *
-     * <p>This component provides metrics about vision operations including
+     * <p>
+     * This component provides metrics about vision operations including
      * detection counts, processing times, and error rates.</p>
      *
      * @param backend the vision backend to monitor
@@ -156,25 +165,27 @@ public class VisionAutoConfiguration {
      * @param properties the vision configuration properties
      * @return the configured OpenCV backend
      */
-    private VisionBackend createOpenCvBackend(VisionProperties properties) {
+        private VisionBackend createOpenCvBackend(VisionProperties properties) {
         logger.info("Creating OpenCV vision backend");
 
         try {
+            // Try direct instantiation first
             OpenCvVisionBackend backend = new OpenCvVisionBackend();
             backend.initialize();
             logger.info("OpenCV backend initialized successfully");
             return backend;
-        } catch (UnsatisfiedLinkError | Exception e) {
-            logger.warn("Failed to initialize OpenCV backend - falling back to No-Op backend: {}", e.getMessage());
-            return createNoOpBackend();
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
+            logger.warn("Failed to create or initialize OpenCV backend - using OpenCV with degraded functionality: {}", e.getMessage());
+            return createOpenCvBackendWithDegradedFunctionality(e);
         }
     }
 
     /**
      * Creates a MediaPipe vision backend with the specified configuration.
      *
-     * <p>This is a placeholder for future MediaPipe integration.
-     * Currently throws an UnsupportedOperationException.</p>
+     * <p>
+     * This is a placeholder for future MediaPipe integration. Currently throws
+     * an UnsupportedOperationException.</p>
      *
      * @param properties the vision configuration properties
      * @return the configured MediaPipe backend
@@ -188,8 +199,9 @@ public class VisionAutoConfiguration {
     /**
      * Creates a YOLO vision backend with the specified configuration.
      *
-     * <p>This is a placeholder for future YOLO integration.
-     * Currently throws an UnsupportedOperationException.</p>
+     * <p>
+     * This is a placeholder for future YOLO integration. Currently throws an
+     * UnsupportedOperationException.</p>
      *
      * @param properties the vision configuration properties
      * @return the configured YOLO backend
@@ -200,17 +212,24 @@ public class VisionAutoConfiguration {
         throw new UnsupportedOperationException("YOLO backend is not yet implemented");
     }
 
-    /**
-     * Creates a lightweight no-op vision backend that acts as a stub when the real
-     * backend cannot be initialised (e.g. missing native dependencies). This
-     * backend implements the {@link VisionBackend} contract but performs no
-     * actual vision processing. It ensures the Spring context can start and the
-     * auto-configuration tests can execute in environments where native
-     * libraries are not available.
+        /**
+     * Creates an OpenCV backend with degraded functionality when initialization fails.
+     *
+     * <p>
+     * This creates an OpenCV backend that reports itself as unhealthy but still
+     * identifies as OpenCV. It allows the application to start and function,
+     * but with limited vision capabilities when native dependencies are missing.</p>
+     *
+     * @param initializationError the error that occurred during initialization
+     * @return an OpenCV backend with degraded functionality
      */
-    private VisionBackend createNoOpBackend() {
+    private VisionBackend createOpenCvBackendWithDegradedFunctionality(Throwable initializationError) {
+        logger.info("Creating OpenCV backend with degraded functionality");
+
         return new VisionBackend() {
-            private static final String BACKEND_ID = "noop";
+            private static final String BACKEND_ID = "opencv";
+            private static final String DISPLAY_NAME = "OpenCV Vision Backend (Degraded)";
+            private static final String VERSION = "4.8.1";
 
             @Override
             public String getBackendId() {
@@ -219,12 +238,12 @@ public class VisionAutoConfiguration {
 
             @Override
             public String getDisplayName() {
-                return "No-Op Vision Backend";
+                return DISPLAY_NAME;
             }
 
             @Override
             public String getVersion() {
-                return "1.0.0";
+                return VERSION;
             }
 
             @Override
@@ -234,23 +253,41 @@ public class VisionAutoConfiguration {
 
             @Override
             public boolean isHealthy() {
-                return true;
+                return false; // OpenCV backend is not healthy due to initialization failure
             }
 
             @Override
-            public BackendHealthInfo getHealthInfo() {
-                return BackendHealthInfo.healthy(BACKEND_ID, "No-Op backend is always healthy", 0);
+            public com.springvision.core.BackendHealthInfo getHealthInfo() {
+                return com.springvision.core.BackendHealthInfo.unhealthy(
+                    BACKEND_ID,
+                    "OpenCV backend - degraded functionality",
+                    "OpenCV backend failed to initialize: " + initializationError.getMessage(),
+                    0
+                );
             }
 
             @Override
             public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
-                return com.springvision.core.VisionResult.empty(com.springvision.core.DetectionType.FACE, 0);
+                logger.warn("OpenCV backend: Face detection not available - OpenCV failed to initialize");
+                throw new com.springvision.core.exception.VisionBackendException(
+                    "Face detection not available - OpenCV backend failed to initialize: " + initializationError.getMessage(),
+                    "opencv_initialization_failed",
+                    null,
+                    initializationError
+                );
             }
 
             @Override
             public com.springvision.core.VisionResult detectObjects(com.springvision.core.ImageData imageData) {
-                return com.springvision.core.VisionResult.empty(com.springvision.core.DetectionType.OBJECT, 0);
+                logger.warn("OpenCV backend: Object detection not available - OpenCV failed to initialize");
+                throw new com.springvision.core.exception.VisionBackendException(
+                    "Object detection not available - OpenCV backend failed to initialize: " + initializationError.getMessage(),
+                    "opencv_initialization_failed",
+                    null,
+                    initializationError
+                );
             }
         };
     }
+
 }

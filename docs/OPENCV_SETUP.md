@@ -4,7 +4,13 @@ This guide explains how to set up OpenCV dependencies for the Spring Vision fram
 
 ## Overview
 
-Spring Vision uses OpenCV through JavaCV bindings to provide computer vision capabilities. The OpenCV backend supports face detection, object detection, and basic image processing operations.
+Spring Vision uses OpenCV through JavaCV bindings with **embedded native libraries** to provide computer vision capabilities. The OpenCV backend supports face detection, object detection, and basic image processing operations.
+
+**Key Benefits of Embedded OpenCV:**
+- **No manual installation required** - all native libraries are included in the JAR
+- **Cross-platform compatibility** - works on Windows, macOS, and Linux without additional setup
+- **Simplified deployment** - no need to manage native library paths or system dependencies
+- **Consistent behavior** - same OpenCV version across all environments
 
 ## Dependencies
 
@@ -16,27 +22,27 @@ The following dependencies are automatically included when using the Spring Visi
 <dependency>
     <groupId>org.bytedeco</groupId>
     <artifactId>javacv</artifactId>
-    <version>1.5.9</version>
+    <version>1.5.10</version>
 </dependency>
 <dependency>
     <groupId>org.bytedeco</groupId>
-    <artifactId>javacv-platform</artifactId>
-    <version>1.5.9</version>
+    <artifactId>opencv-platform</artifactId>
+    <version>4.9.0-1.5.10</version>
 </dependency>
 ```
 
 ### System Requirements
 
 - **Java**: JDK 21 or later
-- **Operating System**: Windows, macOS, or Linux
+- **Operating System**: Windows, macOS, or Linux (no additional system dependencies)
 - **Memory**: Minimum 2GB RAM (4GB recommended)
-- **Storage**: 500MB free space for OpenCV libraries
+- **Storage**: ~200MB for embedded libraries (included in JAR)
 
 ## Installation
 
 ### Automatic Installation (Recommended)
 
-The easiest way to get started is to use the Spring Vision starter, which automatically includes all necessary OpenCV dependencies:
+The easiest way to get started is to use the Spring Vision starter, which automatically includes all necessary OpenCV dependencies with embedded native libraries:
 
 ```xml
 <dependency>
@@ -46,9 +52,13 @@ The easiest way to get started is to use the Spring Vision starter, which automa
 </dependency>
 ```
 
-### Manual Installation
+**That's it!** No additional installation steps required. The embedded OpenCV libraries are automatically extracted and loaded at runtime.
 
-If you need to install OpenCV manually:
+### Manual Installation (Legacy)
+
+**Note**: Manual installation is no longer required with embedded OpenCV. This section is kept for reference only.
+
+If you need to install OpenCV manually (not recommended):
 
 #### Windows
 
@@ -173,7 +183,7 @@ backend.shutdown();
 
 **Error**: `OpenCV is not available on this system`
 
-**Solution**: Ensure OpenCV is properly installed and the native libraries are in your system PATH.
+**Solution**: This error should not occur with embedded OpenCV. If it does, check that the `opencv-platform` dependency is included in your project. The embedded libraries are automatically extracted and loaded by JavaCV.
 
 #### 2. Face Cascade Not Found
 
@@ -328,7 +338,7 @@ For issues and questions:
 
 | Spring Vision | OpenCV | JavaCV | Java |
 |---------------|--------|--------|------|
-| 1.0.0-SNAPSHOT | 4.8.1 | 1.5.9 | 21+ |
+| 1.0.0-SNAPSHOT | 4.9.0 | 1.5.10 | 21+ |
 
 ## License
 

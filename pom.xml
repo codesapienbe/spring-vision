@@ -12,7 +12,7 @@
 
     <name>Spring Vision</name>
     <description>The seamless, idiomatic Computer Vision starter for the Spring Boot ecosystem</description>
-    <url>https://github.com/spring-vision/spring-vision</url>
+    <url>https://github.com/codesapienbe/spring-vision</url>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -32,10 +32,11 @@
         <checkstyle.version>10.12.5</checkstyle.version>
         <spotless.version>2.43.0</spotless.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
     </properties>
 
     <modules>
-        <module>spring-vision-opencv-installer</module>
         <module>spring-vision-core</module>
         <module>spring-vision-autoconfigure</module>
         <module>spring-vision-starter</module>
@@ -67,14 +68,10 @@
                 <artifactId>javacv</artifactId>
                 <version>${javacv.version}</version>
             </dependency>
+            <!-- Embedded OpenCV Platform with all native libraries -->
             <dependency>
                 <groupId>org.bytedeco</groupId>
-                <artifactId>javacv-platform</artifactId>
-                <version>${javacv.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.bytedeco</groupId>
-                <artifactId>opencv</artifactId>
+                <artifactId>opencv-platform</artifactId>
                 <version>4.9.0-${javacv.version}</version>
             </dependency>
 

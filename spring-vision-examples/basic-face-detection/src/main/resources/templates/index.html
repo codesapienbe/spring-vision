@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Vision - Face Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-form {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .file-input {
+            margin: 20px 0;
+        }
+        .submit-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-btn:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .detection-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 3px;
+            border-left: 4px solid #007bff;
+        }
+        .confidence {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .health-status {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #d4edda;
+            border-radius: 5px;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spring Vision - Face Detection</h1>
+
+        <div class="upload-form">
+            <form th:action="@{/detect}" method="post" enctype="multipart/form-data">
+                <div class="file-input">
+                    <label for="file">Select an image to detect faces:</label><br>
+                    <input type="file" id="file" name="file" accept="image/*" required>
+                </div>
+                <button type="submit" class="submit-btn">Detect Faces</button>
+            </form>
+        </div>
+
+        <div th:if="${error}" class="error">
+            <strong>Error:</strong> <span th:text="${error}"></span>
+        </div>
+
+        <div th:if="${detections}" class="results">
+            <h3>Detection Results</h3>
+            <p th:text="${detections.size()} + ' face(s) detected'"></p>
+
+            <div th:each="detection, iterStat : ${detections}" class="detection-item">
+                <strong>Face #<span th:text="${iterStat.count}"></span></strong><br>
+                <span class="confidence">Confidence: <span th:text="${#numbers.formatDecimal(detection.confidence, 1, 2)} + '%'"></span></span><br>
+                <span>Location: (<span th:text="${detection.boundingBox.x}"></span>, <span th:text="${detection.boundingBox.y}"></span>)</span><br>
+                <span>Size: <span th:text="${detection.boundingBox.width}"></span> x <span th:text="${detection.boundingBox.height}"></span></span>
+            </div>
+        </div>
+
+        <div class="health-status">
+            <strong>Application Status:</strong> Running successfully on port 8080
+        </div>
+    </div>
+</body>
+</html>

@@ -82,6 +82,8 @@ public void runDetection(InputStream image) {
 | InsightFace| Python API   | Planned   | ⏳         |
 | Custom     | SPI/Plugin   | JVM/API   | ✅ Ready   |
 
+> **Note:** OpenCV backend gracefully handles missing native libraries by operating in fallback mode, ensuring application startup even when OpenCV native dependencies are not available.
+
 ---
 
 ## Documentation & Community

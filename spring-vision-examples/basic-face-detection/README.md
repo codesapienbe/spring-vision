@@ -87,6 +87,27 @@ basic-face-detection/
 
 The application uses the following key configuration:
 
+## Troubleshooting
+
+### OpenCV Native Library Issues
+
+If you encounter errors related to OpenCV native libraries (e.g., `no jniopenblas_nolapack in java.library.path`), the application is designed to handle this gracefully:
+
+1. **Fallback Mode**: The application will automatically operate in fallback mode when OpenCV native libraries are not available
+2. **Health Status**: The backend will still report as healthy but will return empty detection results
+3. **Logging**: Check `application.log` for detailed information about the OpenCV status
+
+### Logs
+
+- **Application Log**: `application.log` - Contains structured JSON logging with correlation IDs
+- **Console Output**: Real-time application status and error messages
+
+### Common Issues
+
+1. **OpenCV Not Available**: The application will start successfully but face detection will return empty results
+2. **Memory Issues**: Ensure sufficient heap memory for image processing (recommended: 2GB+)
+3. **File Upload Size**: Default maximum file size is 50MB, configurable in `application.yml`
+
 ```yaml
 vision:
   enabled: true

@@ -263,28 +263,83 @@ public class OpenCvDemo {
     }
 
     /**
+     * Tests OpenCV functionality with embedded libraries.
+     *
+     * <p>This method performs basic tests to verify that OpenCV is working
+     * correctly with the embedded native libraries.</p>
+     */
+    public void testOpenCvFunctionality() {
+        logger.info("Testing OpenCV functionality with embedded libraries...");
+
+        try {
+            // Test 1: Basic Mat creation
+            logger.info("Test 1: Creating Mat instance...");
+            Mat testMat = new Mat();
+            testMat.releaseReference();
+            logger.info("✓ Mat creation successful");
+
+            // Test 2: Basic image processing
+            logger.info("Test 2: Basic image processing...");
+            Mat image = new Mat(100, 100, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
+            Mat gray = new Mat();
+            org.bytedeco.opencv.global.opencv_imgproc.cvtColor(image, gray, org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY);
+            logger.info("✓ Image processing successful");
+
+            // Test 3: Backend initialization
+            logger.info("Test 3: Backend initialization...");
+            backend.initialize();
+            logger.info("✓ Backend initialization successful");
+
+            logger.info("All OpenCV tests passed! Embedded libraries are working correctly.");
+
+        } catch (Exception e) {
+            logger.error("✗ OpenCV test failed: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Main method for running the demo.
      *
      * @param args command line arguments (image path)
      */
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Usage: OpenCvDemo <image-path>");
+            System.out.println("Usage: OpenCvDemo <command> [image-path]");
+            System.out.println("Commands:");
+            System.out.println("  test     - Test OpenCV functionality");
+            System.out.println("  demo     - Run face detection demo (requires image path)");
             System.exit(1);
         }
 
-        String imagePath = args[0];
+        String command = args[0];
         OpenCvDemo demo = new OpenCvDemo();
 
         try {
-            // Load and display the image
-            demo.loadAndDisplayImage(imagePath);
+            if ("test".equals(command)) {
+                // Run OpenCV functionality test
+                demo.testOpenCvFunctionality();
+            } else if ("demo".equals(command)) {
+                if (args.length < 2) {
+                    System.out.println("Demo command requires image path: OpenCvDemo demo <image-path>");
+                    System.exit(1);
+                }
 
-            // Wait a bit, then perform face detection
-            Thread.sleep(2000);
+                String imagePath = args[1];
 
-            // Detect faces
-            demo.detectAndShowFaces(imagePath);
+                // Load and display the image
+                demo.loadAndDisplayImage(imagePath);
+
+                // Wait a bit, then perform face detection
+                Thread.sleep(2000);
+
+                // Detect faces
+                demo.detectAndShowFaces(imagePath);
+            } else {
+                System.out.println("Unknown command: " + command);
+                System.out.println("Use 'test' to test OpenCV functionality or 'demo' to run face detection");
+                System.exit(1);
+            }
 
         } catch (Exception e) {
             logger.error("Demo failed", e);
