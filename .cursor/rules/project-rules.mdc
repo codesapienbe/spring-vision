@@ -1,0 +1,92 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# CURSOR IDE RULES for `spring-vision`
+
+## 1. General Style & Seniority
+
+- **Professionalism**: All code must embody the standards of a senior Spring/Java engineer.
+- **Explicit, Expressive Names**: Always use descriptive names, even at the cost of length.
+- **Zero Surprises**: No magic behaviors; prefer explicit over implicit.
+
+## 2. Documentation & Comments
+
+- **Javadoc Required**:
+  Every class, interface, public/protected method must start with a Javadoc block including purpose, parameter/return/exception detail, and context for non-trivial logic.
+- **Private Method Clarity**: Use inline comments to clarify intent, especially for complex or non-obvious code.
+- **TODOs**: Must have clear rationale, owner (when non-obvious), and business justification.
+- **Diagrams**: Use ASCII diagrams in code comments/docs for complex data flows or class relationships.
+
+## 3. Naming Conventions
+
+- **Classes/Interfaces**: PascalCase nouns, domain-specific (e.g., `VisionTemplate`, `OpenCVBackendFactory`).
+- **Methods**: camelCase verbs or action phrases (`detectFaces`, `transformImage`).
+- **Variables**: Meaningful, domain-accurate; prefer `inputImage` over `img`.
+- **Constants**: UPPER_SNAKE_CASE, meaningful and context-rich.
+- **Abbreviations**: Only widely accepted ones (`YOLO`, `API`, `URL`), otherwise spell out.
+
+## 4. Modern Java Practices (JDK 21+)
+
+- **Leverage JDK 21/24 Features:**
+  - Use **records** for data carriers.
+  - Employ **sealed interfaces and classes** for well-bounded hierarchies.
+  - Use **pattern matching** and modern `instanceof` where appropriate.
+  - Utilize **switch expressions** and **text blocks** for clarity.
+- **Concurrency:**
+  - Default to **Virtual Threads** (Project Loom) for I/O or concurrent inference.
+  - Avoid legacy thread pools unless necessary.
+- **Collections**:
+  - Use factory methods (`List.of`, etc.) for immutable structures.
+  - Prefer readability over one-line stream tricks.
+
+## 5. Architecture & Code Organization
+
+- **SOLID**:
+  - Each module/class has a single, focused responsibility.
+  - Dependencies injected via interfaces; inversion of control whenever possible.
+- **KISS**:
+  - Avoid overengineering; use the simplest approach that enables future scaling.
+  - Favor composition over inheritance except where polymorphism is natural to the domain.
+- **Package by Domain**:
+  - Structure by core entity/function, not by technical layer.
+  - Add a `package-info.java` to explain the package’s intent and contents.
+- **Public API Discipline**:
+  - Minimize mutable state exposure.
+  - Public methods must be idempotent unless documented otherwise.
+
+## 6. Testing & Quality
+
+- **Coverage**:
+  Every public method must be covered by unit or integration tests, using JUnit 5 and Testcontainers for environment dependencies.
+- **Test Documentation**:
+  Each test method must state what is being tested _and_ why.
+- **Minimum 80% Coverage**:
+  Except for trivial/generated code; exceptions must be documented.
+
+## 7. Linting, Formatting, and Static Analysis
+
+- **Spotless** and **Checkstyle** enforced on every commit or CI run.
+- **SonarQube** (or similar, e.g. CodeQL) required for static analysis, security, and code smell detection.
+
+## 8. Continuous Improvement
+
+- Contributors must keep Javadocs up to date with logic changes.
+- Refactors must not cross module boundaries without a clearly documented rationale.
+- Project lead (you, or delegate) can veto code that decreases clarity or architectural soundness.
+
+## 9. AI/Cursor/CoPilot Usage
+
+- All AI-suggested code must be:
+  - Thoroughly reviewed and rewritten to match these rules if necessary.
+  - Not merged unless naming, doc, and logic meet the standards.
+  - Accompanied by full Javadoc/class-level commentary before acceptance.
+
+**How to use these rules:**
+- Place in `CURSOR_IDE_RULES.md` at the project root.
+- Reference in `CONTRIBUTING.md` and PR templates.
+- Share with all new collaborators, and periodically review/adapt as the project grows.
+
+
+

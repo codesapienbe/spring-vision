@@ -1,0 +1,149 @@
+spring:
+  application:
+    name: basic-face-detection
+  profiles:
+    active: dev
+
+# Vision Framework Configuration
+vision:
+  enabled: true
+  backend: opencv
+  opencv:
+    enabled: true
+    confidence-threshold: 0.8
+    min-face-size-ratio: 0.1
+    max-face-size-ratio: 0.8
+    gpu-acceleration: false
+    max-image-size: 10485760  # 10MB
+  health:
+    enabled: true
+    check-interval: 30000     # 30 seconds
+    max-response-time: 5000   # 5 seconds
+  metrics:
+    enabled: true
+    collection-interval: 60000 # 1 minute
+    detailed: false
+
+# Server Configuration
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+
+# Logging Configuration
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.examples: DEBUG
+    org.springframework.web: INFO
+    org.bytedeco: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/basic-face-detection.log
+    max-size: 100MB
+    max-history: 30
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: basic-face-detection
+      environment: development
+
+# Thymeleaf Configuration
+spring:
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    servlet:
+      content-type: text/html
+
+# Development Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    com.springvision: DEBUG
+    com.springvision.examples: DEBUG
+    org.springframework.web: DEBUG
+
+vision:
+  opencv:
+    confidence-threshold: 0.7
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+# Production Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.examples: INFO
+    org.springframework.web: WARN
+
+vision:
+  opencv:
+    confidence-threshold: 0.8
+    gpu-acceleration: true
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Test Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+logging:
+  level:
+    com.springvision: WARN
+    com.springvision.examples: WARN
+    root: WARN
+
+vision:
+  opencv:
+    confidence-threshold: 0.6
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
