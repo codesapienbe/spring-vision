@@ -68,6 +68,13 @@ public class OpenCvVisionBackend implements VisionBackend {
      * Default face detection model path.
      */
     private static final String DEFAULT_FACE_CASCADE_PATH = "/haarcascade_frontalface_default.xml";
+    /**
+     * Remote URL used as a secure fallback location for the Haar cascade file. The
+     * download is performed only when the classifier cannot be found locally to
+     * keep start-up fast and avoid unnecessary network access.
+     */
+    private static final String CASCADE_DOWNLOAD_URL =
+            "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml";
 
     /**
      * Default confidence threshold for detections.
@@ -645,6 +652,42 @@ public class OpenCvVisionBackend implements VisionBackend {
             if (loaded) {
                 logger.info("Face cascade classifier loaded successfully from: {}", DEFAULT_FACE_CASCADE_PATH);
                 return;
+            }
+
+            /*
+             * As a final fallback, attempt to download the cascade directly from the
+             * OpenCV GitHub repository. This guarantees the application still works
+             * in fresh environments (e.g. containers) without bundling the large XML
+             * file. The operation is executed with short time-outs to avoid blocking
+             * the application if the network is unavailable.
+             */
+            try {
+                logger.info("Attempting to download face cascade classifier from {}", CASCADE_DOWNLOAD_URL);
+
+                java.net.URL url = new java.net.URL(CASCADE_DOWNLOAD_URL);
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5_000); // 5 seconds
+                connection.setReadTimeout(5_000);    // 5 seconds
+
+                try (java.io.InputStream inputStream = connection.getInputStream()) {
+                    byte[] cascadeData = inputStream.readAllBytes();
+
+                    java.io.File tempFile = java.io.File.createTempFile("haarcascade", ".xml");
+                    tempFile.deleteOnExit();
+
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+                        fos.write(cascadeData);
+                    }
+
+                    if (faceCascade.load(tempFile.getAbsolutePath())) {
+                        logger.info("Face cascade classifier downloaded and loaded successfully");
+                        return;
+                    }
+                    logger.warn("Failed to load cascade from downloaded file");
+                }
+            } catch (Exception ex) {
+                logger.warn("Could not download cascade file: {}", ex.getMessage());
             }
 
             // If all else fails, create a basic classifier that will still work
