@@ -1,17 +1,8 @@
 spring:
   application:
-    name: basic-face-detection
+    name: gwt-application
   profiles:
     active: dev
-  # Thymeleaf Configuration
-  thymeleaf:
-    cache: false
-    prefix: classpath:/templates/
-    suffix: .html
-    encoding: UTF-8
-    mode: HTML
-    servlet:
-      content-type: text/html
 
 # Vision Framework Configuration
 vision:
@@ -35,6 +26,29 @@ vision:
 
   main:
     allow-bean-definition-overriding: true
+
+# GWT Configuration
+gwt:
+  enabled: true
+  module-name: com.springvision.examples.gwtapplication.GwtApplication
+  compile-on-startup: true
+  source-path: src/main/java
+  style: DETAILED  # Options: OBFUSCATED, PRETTY, DETAILED
+  dev-mode:
+    enabled: true
+    code-server-port: 9876
+    auto-reload: true
+  production:
+    optimize: true
+    compress-javascript: true
+  rpc:
+    enabled: true
+    endpoint-base-path: /gwt/rpc
+    validation-enabled: true
+  ui:
+    theme: standard
+    locale: en_US
+    default-encoding: UTF-8
 
 # Server Configuration
 server:
@@ -78,7 +92,7 @@ management:
       prometheus:
         enabled: true
     tags:
-      application: basic-face-detection
+      application: gwt-application
       environment: development
 
 # Development Profile
@@ -97,6 +111,12 @@ logging:
 vision:
   opencv:
     confidence-threshold: 0.7
+
+gwt:
+  dev-mode:
+    enabled: true
+    auto-reload: true
+  style: DETAILED
 
 management:
   endpoint:
@@ -121,6 +141,14 @@ vision:
     confidence-threshold: 0.8
     gpu-acceleration: true
 
+gwt:
+  dev-mode:
+    enabled: false
+  style: OBFUSCATED
+  production:
+    optimize: true
+    compress-javascript: true
+
 management:
   endpoint:
     health:
@@ -143,10 +171,13 @@ vision:
   opencv:
     confidence-threshold: 0.6
 
+gwt:
+  dev-mode:
+    enabled: false
+  compile-on-startup: false
+
 management:
   endpoints:
     web:
       exposure:
         include: health
-
-

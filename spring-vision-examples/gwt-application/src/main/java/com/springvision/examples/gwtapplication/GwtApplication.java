@@ -2,6 +2,7 @@ package com.springvision.examples.gwtapplication;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 /**
  * GWT-Based GUI Example Application.
@@ -34,14 +35,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@SpringBootApplication(
-        scanBasePackages = {
-                "com.springvision.autoconfigure",  // auto-config beans & props
-                "com.springvision.core",          // core domain + backend
-                "com.springvision.starter",        // REST API (VisionController)
-                "com.springvision.examples.gwtapplication" // local GWT code
-        }
-)
+@SpringBootApplication
 public class GwtApplication {
 
     /**
