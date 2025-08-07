@@ -1,4 +1,4 @@
-package com.springvision.examples.basicfacedetection.config;
+package com.springvision.examples.gwtapplication.config;
 
 import com.springvision.core.VisionTemplate;
 import com.springvision.core.backend.OpenCvVisionBackend;
