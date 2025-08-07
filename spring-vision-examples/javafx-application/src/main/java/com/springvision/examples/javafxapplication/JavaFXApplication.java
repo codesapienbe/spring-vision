@@ -67,6 +67,8 @@ public class JavaFXApplication {
      */
     public static class FaceDetectionApp extends Application {
 
+        private static volatile VisionTemplate providedVisionTemplate;
+
         private VisionTemplate visionTemplate;
         private Stage primaryStage;
         private ImageView imageView;
@@ -75,6 +77,11 @@ public class JavaFXApplication {
         private Label statusLabel;
         private Button detectButton;
         private Button clearButton;
+        private Pane overlayPane;
+
+        public static void provideVisionTemplate(VisionTemplate template) {
+            providedVisionTemplate = template;
+        }
 
         @Override
         public void start(Stage primaryStage) {
@@ -96,9 +103,10 @@ public class JavaFXApplication {
          * This is a simplified approach - in a real application, you'd use proper dependency injection.
          */
         private VisionTemplate getVisionTemplate() {
-            // This is a placeholder - in a real implementation, you'd get this from Spring context
-            // For now, we'll return null and handle it in the detection logic
-            return null;
+            if (providedVisionTemplate == null) {
+                logger.warn("VisionTemplate was not provided before launching JavaFX UI. Detection will not work.");
+            }
+            return providedVisionTemplate;
         }
 
         /**
@@ -171,14 +179,21 @@ public class JavaFXApplication {
             Label titleLabel = new Label("Image Preview");
             titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-            // Image view with scroll pane
+            // Image view with overlay and scroll pane
             imageView = new ImageView();
             imageView.setPreserveRatio(true);
             imageView.setFitWidth(600);
             imageView.setFitHeight(400);
             imageView.setStyle("-fx-border-color: #cccccc; -fx-border-width: 1; -fx-border-radius: 3;");
 
-            ScrollPane scrollPane = new ScrollPane(imageView);
+            overlayPane = new Pane();
+            overlayPane.setPickOnBounds(false);
+            overlayPane.setMouseTransparent(true);
+
+            StackPane imageStack = new StackPane(imageView, overlayPane);
+            imageStack.setStyle("-fx-background-color: transparent;");
+
+            ScrollPane scrollPane = new ScrollPane(imageStack);
             scrollPane.setFitToWidth(true);
             scrollPane.setFitToHeight(true);
             scrollPane.setStyle("-fx-background-color: transparent;");
@@ -232,7 +247,7 @@ public class JavaFXApplication {
          */
         private HBox createStatusBar() {
             HBox statusBar = new HBox(10);
-            statusBar.setPadding(new Insets(5, 10));
+            statusBar.setPadding(new Insets(5, 10, 5, 10));
             statusBar.setAlignment(Pos.CENTER_LEFT);
             statusBar.setStyle("-fx-background-color: #f0f0f0; -fx-border-color: #e0e0e0; -fx-border-width: 1 0 0 0;");
 
@@ -330,6 +345,11 @@ public class JavaFXApplication {
                 return;
             }
 
+            if (visionTemplate == null) {
+                showError("Configuration Error", "Vision engine is not initialized. Please restart the application.");
+                return;
+            }
+
             // Show progress
             progressIndicator.setVisible(true);
             detectButton.setDisable(true);
@@ -343,12 +363,12 @@ public class JavaFXApplication {
 
                     // Read image data
                     byte[] imageData = Files.readAllBytes(imageFile.toPath());
-                    ImageData image = new ImageData(imageData, imageFile.getName());
+                    ImageData image = ImageData.fromBytes(imageData);
 
                     // Perform detection
                     VisionResult result = visionTemplate.detectFaces(image);
 
-                    logger.info("Face detection completed. Found {} faces", result.getDetections().size());
+                    logger.info("Face detection completed. Found {} faces", result.detections().size());
                     return result;
 
                 } catch (VisionProcessingException e) {
@@ -377,7 +397,7 @@ public class JavaFXApplication {
          * Display detection results in the UI.
          */
         private void displayResults(VisionResult result) {
-            List<Detection> detections = result.getDetections();
+            List<Detection> detections = result.detections();
 
             // Update status
             statusLabel.setText(String.format("Detection completed: %d faces found", detections.size()));
@@ -420,14 +440,14 @@ public class JavaFXApplication {
             Label titleLabel = new Label(String.format("Face %d", index));
             titleLabel.setStyle("-fx-font-weight: bold;");
 
-            Label confidenceLabel = new Label(String.format("Confidence: %.2f%%", detection.getConfidence() * 100));
+            Label confidenceLabel = new Label(String.format("Confidence: %.2f%%", detection.confidence() * 100));
             confidenceLabel.setStyle("-fx-text-fill: #1976d2;");
 
-            Label bboxLabel = new Label(String.format("Position: (%d, %d) Size: %d×%d",
-                detection.getBoundingBox().getX(),
-                detection.getBoundingBox().getY(),
-                detection.getBoundingBox().getWidth(),
-                detection.getBoundingBox().getHeight()));
+            int pctX = (int) Math.round(detection.boundingBox().x() * 100);
+            int pctY = (int) Math.round(detection.boundingBox().y() * 100);
+            int pctW = (int) Math.round(detection.boundingBox().width() * 100);
+            int pctH = (int) Math.round(detection.boundingBox().height() * 100);
+            Label bboxLabel = new Label(String.format("Position: %d%%, %d%%  Size: %d%% × %d%%", pctX, pctY, pctW, pctH));
             bboxLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 12px;");
 
             box.getChildren().addAll(titleLabel, confidenceLabel, bboxLabel);
@@ -439,21 +459,27 @@ public class JavaFXApplication {
          */
         private void drawBoundingBoxes(List<Detection> detections) {
             // Clear existing overlays
-            imageView.getChildren().clear();
+            overlayPane.getChildren().clear();
 
-            // Add bounding box rectangles
-            for (Detection detection : detections) {
-                Rectangle rect = new Rectangle(
-                    detection.getBoundingBox().getX(),
-                    detection.getBoundingBox().getY(),
-                    detection.getBoundingBox().getWidth(),
-                    detection.getBoundingBox().getHeight()
-                );
-                rect.setFill(Color.TRANSPARENT);
-                rect.setStroke(Color.RED);
-                rect.setStrokeWidth(2);
-
-                imageView.getChildren().add(rect);
+            // Add bounding box rectangles scaled to displayed image size
+            double[] displayedSize = getDisplayedImageSize();
+            double displayedWidth = displayedSize[0];
+            double displayedHeight = displayedSize[1];
+            if (displayedWidth > 0 && displayedHeight > 0) {
+                overlayPane.setPrefSize(displayedWidth, displayedHeight);
+                for (Detection detection : detections) {
+                    var bb = detection.boundingBox();
+                    Rectangle rect = new Rectangle(
+                        bb.x() * displayedWidth,
+                        bb.y() * displayedHeight,
+                        bb.width() * displayedWidth,
+                        bb.height() * displayedHeight
+                    );
+                    rect.setFill(Color.TRANSPARENT);
+                    rect.setStroke(Color.RED);
+                    rect.setStrokeWidth(2);
+                    overlayPane.getChildren().add(rect);
+                }
             }
         }
 
@@ -462,8 +488,24 @@ public class JavaFXApplication {
          */
         private void clearResults() {
             resultArea.getChildren().clear();
-            imageView.getChildren().clear();
+            overlayPane.getChildren().clear();
             statusLabel.setText("Ready to detect faces");
+        }
+
+        /**
+         * Calculates the displayed image dimensions based on fit size and aspect ratio.
+         */
+        private double[] getDisplayedImageSize() {
+            Image img = imageView.getImage();
+            if (img == null) {
+                return new double[]{0, 0};
+            }
+            double imageWidth = img.getWidth();
+            double imageHeight = img.getHeight();
+            double fitWidth = imageView.getFitWidth();
+            double fitHeight = imageView.getFitHeight();
+            double scale = Math.min(fitWidth / imageWidth, fitHeight / imageHeight);
+            return new double[]{imageWidth * scale, imageHeight * scale};
         }
 
         /**
@@ -504,6 +546,9 @@ public class JavaFXApplication {
         @Override
         public void run(String... args) throws Exception {
             logger.info("Launching JavaFX application");
+
+            // Provide VisionTemplate to JavaFX UI before launching
+            FaceDetectionApp.provideVisionTemplate(visionTemplate);
 
             // Launch JavaFX application
             Application.launch(FaceDetectionApp.class, args);
