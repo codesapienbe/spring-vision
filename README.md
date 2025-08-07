@@ -90,9 +90,9 @@ public void runDetection(InputStream image) {
 
 | Backend    | Tech         | Mode      | Status     |
 |------------|--------------|-----------|------------|
-| 🎯 OpenCV     | Native       | JVM       | ✅ Stable  |
-| 🤖 MediaPipe  | Python API   | Webhook   | 🚧 Beta    |
-| 🎯 YOLO       | Python API   | Webhook   | 🚧 Alpha   |
+| 🎯 OpenCV     | Native       | JVM       | 🚧 Beta    |
+| 🤖 MediaPipe  | Python API   | Webhook   | ⏳         |
+| 🎯 YOLO       | Python API   | Webhook   | ⏳         |
 | 👤 DeepFace   | Python API   | Planned   | ⏳         |
 | 🔍 InsightFace| Python API   | Planned   | ⏳         |
 | 🔌 Custom     | SPI/Plugin   | JVM/API   | ✅ Ready   |
