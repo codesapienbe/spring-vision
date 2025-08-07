@@ -1,5 +1,11 @@
 # Spring-Vision
 
+<div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+  <img src="logo.png" alt="Centered Image" />
+</div>
+
+---
+
 **The seamless, idiomatic Computer Vision starter for the Spring Boot ecosystem.
 Bring AI-powered image, object, and face detection to your modern Java apps—professionally, cleanly, and extensibly.**
 
