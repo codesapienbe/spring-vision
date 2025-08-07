@@ -1,433 +1,348 @@
-# JavaFX Application
+# Spring Vision JavaFX Application
 
-A simple Spring Boot application demonstrating basic face detection capabilities using the Spring Vision framework.
+A desktop GUI application for face detection using the Spring Vision framework and JavaFX.
 
 ## Overview
 
-This example showcases how to integrate the Spring Vision framework into a Spring Boot application to perform face detection on uploaded images. It provides a web interface for uploading images and viewing detection results.
+The JavaFX Application provides a modern, user-friendly desktop interface for performing face detection on image files. It leverages the Spring Vision framework and JavaFX to deliver a rich desktop experience with drag-and-drop support, real-time processing, and visual result display.
 
 ## Features
 
-- **Web Interface**: Simple HTML form for image upload
-- **Face Detection**: Automatic face detection using OpenCV
-- **Result Visualization**: Display detection results with confidence scores
-- **Health Monitoring**: Built-in health checks and metrics
-- **Error Handling**: Comprehensive error handling and validation
-- **Performance Metrics**: Processing time and detection statistics
+- **Modern Desktop GUI**: Clean, intuitive interface built with JavaFX
+- **Drag-and-Drop Support**: Easy image loading with drag-and-drop functionality
+- **Real-Time Processing**: Asynchronous face detection with progress indicators
+- **Visual Result Display**: Bounding boxes drawn directly on images
+- **Multiple Image Formats**: Support for JPG, JPEG, PNG, BMP, and GIF
+- **File Browser Integration**: Native file chooser for image selection
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Structured Logging**: JSON-formatted logs for monitoring and debugging
 
 ## Prerequisites
 
-- Java 21 or later
-- Maven 3.6 or later
-- Spring Vision framework (automatically included)
+- Java 21 or higher
+- Maven 3.6 or higher
+- Spring Vision framework dependencies
+- OpenCV backend (automatically configured)
+- JavaFX runtime (included in dependencies)
 
-## Quick Start
+## Installation
 
-### 1. Build and Run
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd spring-vision-examples/javafx-application
+   ```
 
+2. Build the application:
+   ```bash
+   mvn clean package
+   ```
+
+3. Run the application:
+   ```bash
+   ./run.sh
+   ```
+
+## Usage
+
+### Starting the Application
+
+The application can be started in several ways:
+
+#### Using the Run Script (Recommended)
 ```bash
-# Navigate to the example directory
-cd examples/basic-face-detection
-
-# Build the application
-mvn clean package
-
-# Run the application
-mvn spring-boot:run
+./run.sh
 ```
 
-### 2. Access the Application
-
-- **Main Application**: http://localhost:8080
-- **Health Check**: http://localhost:8080/actuator/health
-- **API Endpoint**: http://localhost:8080/api/vision/health
-
-### 3. Upload an Image
-
-1. Open your browser and go to http://localhost:8080
-2. Click "Choose File" and select an image containing faces
-3. Click "Detect Faces" to process the image
-4. View the detection results
-
-## Project Structure
-
+#### Using Maven
+```bash
+mvn javafx:run
 ```
-basic-face-detection/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/springvision/examples/basicfacedetection/
-│   │   │       ├── BasicFaceDetectionApplication.java
-│   │   │       ├── controller/
-│   │   │       │   └── FaceDetectionController.java
-│   │   │       ├── service/
-│   │   │       │   └── FaceDetectionService.java
-│   │   │       └── model/
-│   │   │           └── DetectionResult.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       ├── templates/
-│   │       │   ├── index.html
-│   │       │   └── result.html
-│   │       └── static/
-│   │           ├── css/
-│   │           └── js/
-│   └── test/
-│       └── java/
-│           └── com/springvision/examples/basicfacedetection/
-│               ├── controller/
-│               └── service/
-├── pom.xml
-└── README.md
+
+#### Using Java Directly
+```bash
+java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
+     --add-modules javafx.controls,javafx.fxml,javafx.graphics \
+     -jar target/javafx-application-1.0.0-SNAPSHOT.jar
 ```
+
+### Using the Application
+
+1. **Load an Image**:
+   - Click the "Open Image" button to browse for an image file
+   - Or drag and drop an image file onto the application window
+
+2. **Detect Faces**:
+   - Once an image is loaded, click the "Detect Faces" button
+   - The application will process the image asynchronously
+   - A progress indicator will show the processing status
+
+3. **View Results**:
+   - Detection results are displayed in the right panel
+   - Bounding boxes are drawn directly on the image
+   - Each detection shows confidence score and position information
+
+4. **Clear Results**:
+   - Use the "Clear" button to reset the display and load a new image
+
+## User Interface
+
+### Main Window Layout
+
+The application features a modern, responsive layout:
+
+- **Top Toolbar**: Contains main action buttons (Open Image, Detect Faces, Clear)
+- **Image Display Area**: Shows the loaded image with detection overlays
+- **Results Panel**: Displays detection results and statistics
+- **Status Bar**: Shows current application status and version information
+
+### Controls
+
+| Control | Description |
+|---------|-------------|
+| **Open Image** | Opens file browser to select an image |
+| **Detect Faces** | Performs face detection on loaded image |
+| **Clear** | Clears current results and resets display |
+
+### Supported Image Formats
+
+- **JPEG** (.jpg, .jpeg)
+- **PNG** (.png)
+- **BMP** (.bmp)
+- **GIF** (.gif)
+
+### Result Display
+
+Detection results include:
+
+- **Face Count**: Total number of faces detected
+- **Confidence Score**: Detection confidence percentage
+- **Bounding Box**: Position and size of detected faces
+- **Visual Overlay**: Red rectangles drawn on the image
 
 ## Configuration
 
-### Application Properties
-
-The application uses the following key configuration:
-
-## Troubleshooting
-
-### OpenCV Native Library Issues
-
-If you encounter errors related to OpenCV native libraries (e.g., `no jniopenblas_nolapack in java.library.path`), the application is designed to handle this gracefully:
-
-1. **Fallback Mode**: The application will automatically operate in fallback mode when OpenCV native libraries are not available
-2. **Health Status**: The backend will still report as healthy but will return empty detection results
-3. **Logging**: Check `application.log` for detailed information about the OpenCV status
-
-### Logs
-
-- **Application Log**: `application.log` - Contains structured JSON logging with correlation IDs
-- **Console Output**: Real-time application status and error messages
-
-### Common Issues
-
-1. **OpenCV Not Available**: The application will start successfully but face detection will return empty results
-2. **Memory Issues**: Ensure sufficient heap memory for image processing (recommended: 2GB+)
-3. **File Upload Size**: Default maximum file size is 50MB, configurable in `application.yml`
+The application uses Spring Boot's autoconfiguration and can be customized through `application.yml`:
 
 ```yaml
+# Vision configuration
 vision:
-  enabled: true
-  backend: opencv
-  opencv:
-    confidence-threshold: 0.8
-    max-image-size: 10485760  # 10MB
+  backend:
+    type: opencv
+    enabled: true
+  logging:
+    level: INFO
+    format: structured
 
-server:
-  port: 8080
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+# Application-specific settings
+app:
+  javafx:
+    window:
+      title: "Spring Vision - Face Detection"
+      min-width: 800
+      min-height: 600
+      default-width: 1000
+      default-height: 700
+    image:
+      max-file-size: 50MB
+      supported-formats:
+        - jpg
+        - jpeg
+        - png
+        - bmp
+        - gif
+    ui:
+      theme: light
+      enable-drag-drop: true
+      show-progress: true
 ```
 
-### Environment Profiles
+## Logging
 
-- **Development** (`dev`): Debug logging, lower confidence threshold
-- **Production** (`prod`): Info logging, higher confidence threshold, GPU acceleration
-- **Test** (`test`): Minimal logging, lower confidence threshold
+The application provides comprehensive logging with multiple output formats:
 
-## Usage Examples
+- **Console Output**: Real-time logging during application execution
+- **File Logging**: Persistent logs in `logs/javafx-application.log`
+- **JSON Logging**: Structured logs in `logs/javafx-application.json` for monitoring systems
 
-### Web Interface
+### Log Levels
 
-1. **Upload Image**: Use the web form to upload an image file
-2. **View Results**: See detected faces with confidence scores
-3. **Download Results**: Save detection results as JSON
+- `ERROR`: Critical errors that prevent operation
+- `WARN`: Warning conditions that may affect performance
+- `INFO`: General information about application operation
+- `DEBUG`: Detailed debugging information
 
-### API Usage
+## Error Handling
+
+The application provides comprehensive error handling:
+
+- **File Loading Errors**: Clear error messages for invalid or missing files
+- **Processing Errors**: Detailed error messages from the vision backend
+- **UI Errors**: Graceful handling of interface-related issues
+- **System Errors**: Proper error reporting for system-level problems
+
+## Examples
+
+### Example 1: Basic Face Detection
+
+1. Launch the application
+2. Click "Open Image" and select a photo
+3. Click "Detect Faces"
+4. View results in the right panel
+5. See bounding boxes drawn on the image
+
+### Example 2: Drag-and-Drop Workflow
+
+1. Launch the application
+2. Drag an image file from your file manager
+3. Drop it onto the application window
+4. The image loads automatically
+5. Click "Detect Faces" to process
+
+### Example 3: Batch Processing Workflow
+
+1. Load an image with multiple faces
+2. Perform detection
+3. Review all detected faces in the results panel
+4. Clear and load another image for comparison
+
+## Development
+
+### Project Structure
+
+```
+src/
+├── main/
+│   ├── java/
+│   │   └── com/springvision/examples/javafxapplication/
+│   │       └── JavaFXApplication.java
+│   └── resources/
+│       ├── application.yml
+│       └── logback-spring.xml
+└── test/
+    └── java/
+        └── com/springvision/examples/javafxapplication/
+```
+
+### Building from Source
 
 ```bash
-# Health check
-curl http://localhost:8080/actuator/health
+# Clean and compile
+mvn clean compile
 
-# Face detection via API
-curl -X POST http://localhost:8080/api/vision/detect/faces \
-  -F "file=@image.jpg"
-
-# Get application info
-curl http://localhost:8080/api/vision/info
-```
-
-### Programmatic Usage
-
-```java
-@Service
-public class MyService {
-    @Autowired
-    private VisionTemplate visionTemplate;
-    
-    public void detectFaces(byte[] imageData) {
-        VisionResult result = visionTemplate.detectFaces(imageData);
-        
-        if (result.hasDetections()) {
-            result.detections().forEach(detection -> {
-                System.out.println("Face detected: " + detection.confidence());
-            });
-        }
-    }
-}
-```
-
-## API Endpoints
-
-### Web Endpoints
-
-- `GET /` - Main application page
-- `POST /detect` - Face detection form submission
-- `GET /result` - Display detection results
-
-### REST API Endpoints
-
-- `GET /api/vision/health` - Health check
-- `GET /api/vision/info` - Application information
-- `POST /api/vision/detect/faces` - Face detection (multipart)
-
-### Management Endpoints
-
-- `GET /actuator/health` - Health status
-- `GET /actuator/info` - Application info
-- `GET /actuator/metrics` - Performance metrics
-- `GET /actuator/prometheus` - Prometheus metrics
-
-## Testing
-
-### Unit Tests
-
-```bash
-# Run unit tests
+# Run tests
 mvn test
 
-# Run specific test
-mvn test -Dtest=FaceDetectionServiceTest
+# Package application
+mvn package
+
+# Run with Maven
+mvn javafx:run
 ```
 
-### Integration Tests
+### Key Components
 
-```bash
-# Run integration tests
-mvn verify
-
-# Run with specific profile
-mvn verify -Dspring.profiles.active=test
-```
-
-### Manual Testing
-
-1. **Test with Sample Images**:
-   - Use images with clear faces
-   - Test with multiple faces
-   - Test with different image formats
-
-2. **Test Error Handling**:
-   - Upload invalid files
-   - Test with very large images
-   - Test with images without faces
-
-3. **Test Performance**:
-   - Monitor processing time
-   - Check memory usage
-   - Test concurrent uploads
-
-## Performance Considerations
-
-### Optimization Tips
-
-1. **Image Size**: Keep images under 5MB for optimal performance
-2. **Image Format**: Use JPEG for photos, PNG for graphics
-3. **Resolution**: Higher resolution doesn't always improve accuracy
-4. **Confidence Threshold**: Adjust based on your needs
-
-### Monitoring
-
-- **Processing Time**: Monitor via `/actuator/metrics/vision.processing.time`
-- **Detection Count**: Track via `/actuator/metrics/vision.detections.total`
-- **Error Rate**: Monitor via `/actuator/metrics/vision.errors.total`
+- **JavaFXApplication**: Main application class with Spring Boot integration
+- **FaceDetectionApp**: JavaFX application class handling the GUI
+- **VisionTemplate**: Spring Vision integration for face detection
+- **Async Processing**: CompletableFuture-based asynchronous image processing
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **No Faces Detected**
-   - Check image quality and lighting
-   - Lower confidence threshold
-   - Verify image contains faces
+1. **"JavaFX module not found"**
+   - Ensure JavaFX dependencies are properly included
+   - Check that Java 21+ is being used
+   - Verify Maven dependencies are resolved
 
-2. **Slow Performance**
-   - Reduce image size
-   - Check system resources
-   - Enable GPU acceleration (if available)
+2. **"Image not loading"**
+   - Verify the image file exists and is readable
+   - Check that the image format is supported
+   - Ensure the file is not corrupted
 
-3. **Upload Errors**
-   - Check file size limits
-   - Verify supported formats
-   - Check disk space
+3. **"Face detection not working"**
+   - Check that OpenCV is properly installed
+   - Verify the image contains visible faces
+   - Check application logs for error details
+
+4. **"Application won't start"**
+   - Ensure Java 21+ is installed and in PATH
+   - Check that Maven is properly configured
+   - Verify all dependencies are available
 
 ### Debug Mode
 
-Enable debug logging:
+Enable verbose logging for detailed debugging:
 
 ```yaml
 logging:
   level:
-    com.springvision: DEBUG
-    com.springvision.examples: DEBUG
+    com.springvision.examples.javafxapplication: DEBUG
 ```
 
-### Health Checks
+### Log Files
 
-Monitor application health:
+Check the log files for detailed error information:
+- `logs/javafx-application.log` - Human-readable logs
+- `logs/javafx-application.json` - Structured JSON logs
 
-```bash
-curl http://localhost:8080/actuator/health
-```
+### Performance Issues
 
-## Customization
+1. **Slow Processing**:
+   - Reduce image size before processing
+   - Check system resources (CPU, memory)
+   - Ensure OpenCV is properly optimized
 
-### Adding New Features
+2. **Memory Issues**:
+   - Close other applications to free memory
+   - Process smaller images
+   - Restart the application if needed
 
-1. **Additional Detection Types**:
-   ```java
-   VisionResult result = visionTemplate.detectObjects(imageData);
-   ```
+## Platform Support
 
-2. **Custom Processing**:
-   ```java
-   // Add image preprocessing
-   // Add result post-processing
-   // Add custom validation
-   ```
+### Supported Operating Systems
 
-3. **Enhanced UI**:
-   - Add result visualization
-   - Add progress indicators
-   - Add batch processing
+- **Windows**: Windows 10/11 (64-bit)
+- **macOS**: macOS 10.15+ (Catalina and later)
+- **Linux**: Ubuntu 18.04+, CentOS 7+, and other modern distributions
 
-### Configuration Customization
+### System Requirements
 
-```yaml
-vision:
-  opencv:
-    confidence-threshold: 0.9  # Higher accuracy
-    gpu-acceleration: true     # Enable GPU
-    max-image-size: 20971520   # 20MB limit
-```
-
-## Security Considerations
-
-### Production Deployment
-
-1. **File Validation**: Validate uploaded files
-2. **Size Limits**: Enforce file size restrictions
-3. **Authentication**: Add user authentication
-4. **HTTPS**: Use HTTPS in production
-
-### Security Configuration
-
-```yaml
-server:
-  ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: ${KEYSTORE_PASSWORD}
-
-spring:
-  security:
-    user:
-      name: admin
-      password: ${ADMIN_PASSWORD}
-```
-
-## Deployment
-
-### Local Development
-
-```bash
-mvn spring-boot:run
-```
-
-### Production
-
-```bash
-# Build JAR
-mvn clean package
-
-# Run with production profile
-java -jar target/basic-face-detection-1.0.0-SNAPSHOT.jar \
-  --spring.profiles.active=prod
-```
-
-### Docker
-
-```bash
-# Build image
-docker build -t basic-face-detection .
-
-# Run container
-docker run -p 8080:8080 basic-face-detection
-```
+- **Minimum**: 4GB RAM, 2GB free disk space
+- **Recommended**: 8GB RAM, 4GB free disk space
+- **Display**: 1024x768 minimum resolution
 
 ## Contributing
 
-### Adding Features
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
 
-1. **Create Feature Branch**:
-   ```bash
-   git checkout -b feature/new-feature
-   ```
+### Development Guidelines
 
-2. **Add Tests**:
-   - Unit tests for new functionality
-   - Integration tests for API changes
-   - Update existing tests
-
-3. **Update Documentation**:
-   - Update README.md
-   - Add API documentation
-   - Update configuration examples
-
-4. **Submit Pull Request**:
-   - Follow contribution guidelines
-   - Include tests and documentation
-   - Provide clear description
-
-### Code Standards
-
-- Follow Java coding conventions
-- Add Javadoc for public methods
-- Use meaningful variable names
-- Include error handling
-- Add logging for debugging
-
-## Support
-
-### Getting Help
-
-1. **Check Documentation**:
-   - Review this README
-   - Check framework documentation
-   - Look at example code
-
-2. **Debug Issues**:
-   - Enable debug logging
-   - Check application logs
-   - Use health endpoints
-
-3. **Report Issues**:
-   - Open GitHub issue
-   - Include error details
-   - Provide reproduction steps
-
-### Resources
-
-- [Spring Vision Documentation](../../docs/)
-- [API Documentation](../../docs/API_DOCUMENTATION.md)
-- [User Guide](../../docs/USER_GUIDE.md)
-- [Deployment Guide](../../docs/DEPLOYMENT_GUIDE.md)
+- Follow JavaFX best practices for UI development
+- Use proper async patterns for long-running operations
+- Maintain responsive UI during processing
+- Add comprehensive error handling
+- Include proper logging for debugging
 
 ## License
 
-This example is licensed under the Apache License, Version 2.0. See the [LICENSE](../../LICENSE) file for details. 
+This project is licensed under the same license as the Spring Vision framework.
+
+## Support
+
+For issues and questions:
+1. Check the troubleshooting section
+2. Review the application logs
+3. Create an issue in the project repository
+4. Contact the development team
+
+---
+
+*Last Updated: 2025-08-07*
+*Version: 1.0.0-SNAPSHOT* 

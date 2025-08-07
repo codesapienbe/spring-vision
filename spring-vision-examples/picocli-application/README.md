@@ -1,433 +1,322 @@
-# PicoCLI Applicaiton
+# Spring Vision PicoCLI Application
 
-A simple Spring Boot application demonstrating basic face detection capabilities using the Spring Vision framework.
+A command-line interface application for face detection using the Spring Vision framework.
 
 ## Overview
 
-This example showcases how to integrate the Spring Vision framework into a Spring Boot application to perform face detection on uploaded images. It provides a web interface for uploading images and viewing detection results.
+The PicoCLI Application provides a powerful command-line interface for performing face detection on image files. It leverages the Spring Vision framework and PicoCLI library to deliver a robust, user-friendly CLI experience.
 
 ## Features
 
-- **Web Interface**: Simple HTML form for image upload
-- **Face Detection**: Automatic face detection using OpenCV
-- **Result Visualization**: Display detection results with confidence scores
-- **Health Monitoring**: Built-in health checks and metrics
-- **Error Handling**: Comprehensive error handling and validation
-- **Performance Metrics**: Processing time and detection statistics
+- **Single File Processing**: Detect faces in individual image files
+- **Multiple Output Formats**: Support for text, JSON, and CSV output formats
+- **Batch Processing**: Process multiple files in a directory (planned)
+- **Health Monitoring**: Check the status of the vision backend
+- **Verbose Logging**: Detailed logging for debugging and monitoring
+- **File Validation**: Comprehensive input validation and error handling
+- **Structured Logging**: JSON-formatted logs for monitoring systems
 
 ## Prerequisites
 
-- Java 21 or later
-- Maven 3.6 or later
-- Spring Vision framework (automatically included)
+- Java 21 or higher
+- Maven 3.6 or higher
+- Spring Vision framework dependencies
+- OpenCV backend (automatically configured)
 
-## Quick Start
+## Installation
 
-### 1. Build and Run
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd spring-vision-examples/picocli-application
+   ```
 
+2. Build the application:
+   ```bash
+   mvn clean package
+   ```
+
+3. Run the application:
+   ```bash
+   ./run.sh
+   ```
+
+## Usage
+
+### Basic Commands
+
+#### Show Help
 ```bash
-# Navigate to the example directory
-cd examples/basic-face-detection
-
-# Build the application
-mvn clean package
-
-# Run the application
-mvn spring-boot:run
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --help
 ```
 
-### 2. Access the Application
-
-- **Main Application**: http://localhost:8080
-- **Health Check**: http://localhost:8080/actuator/health
-- **API Endpoint**: http://localhost:8080/api/vision/health
-
-### 3. Upload an Image
-
-1. Open your browser and go to http://localhost:8080
-2. Click "Choose File" and select an image containing faces
-3. Click "Detect Faces" to process the image
-4. View the detection results
-
-## Project Structure
-
+#### Detect Faces in a Single Image
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg
 ```
-basic-face-detection/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/springvision/examples/basicfacedetection/
-│   │   │       ├── BasicFaceDetectionApplication.java
-│   │   │       ├── controller/
-│   │   │       │   └── FaceDetectionController.java
-│   │   │       ├── service/
-│   │   │       │   └── FaceDetectionService.java
-│   │   │       └── model/
-│   │   │           └── DetectionResult.java
-│   │   └── resources/
-│   │       ├── application.yml
-│   │       ├── templates/
-│   │       │   ├── index.html
-│   │       │   └── result.html
-│   │       └── static/
-│   │           ├── css/
-│   │           └── js/
-│   └── test/
-│       └── java/
-│           └── com/springvision/examples/basicfacedetection/
-│               ├── controller/
-│               └── service/
-├── pom.xml
-└── README.md
+
+#### Detect Faces with JSON Output
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg -o json
+```
+
+#### Detect Faces with Verbose Output
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg -v
+```
+
+#### Save Results to File
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg --save-results results.txt
+```
+
+#### Check Health Status
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar health
+```
+
+### Command Options
+
+#### Detect Command Options
+
+| Option | Long Option | Description | Default |
+|--------|-------------|-------------|---------|
+| `-o` | `--output` | Output format: json, text, csv | text |
+| `-v` | `--verbose` | Enable verbose output | false |
+| | `--save-results` | Save results to output file | null |
+
+#### Batch Command Options (Planned)
+
+| Option | Long Option | Description | Default |
+|--------|-------------|-------------|---------|
+| `-p` | `--pattern` | File pattern to match | `*.{jpg,jpeg,png}` |
+| `-o` | `--output` | Output format: json, text, csv | text |
+| `-v` | `--verbose` | Enable verbose output | false |
+| | `--save-results` | Save results to output file | null |
+
+## Output Formats
+
+### Text Format (Default)
+```
+Face Detection Results for: sample.jpg
+==================================================
+Total faces detected: 3
+
+Detected faces:
+  Face 1: Confidence=95.67%, BoundingBox=(120,80,150,180)
+  Face 2: Confidence=87.23%, BoundingBox=(320,90,140,170)
+  Face 3: Confidence=92.45%, BoundingBox=(520,85,145,175)
+```
+
+### JSON Format
+```json
+{
+  "filename": "sample.jpg",
+  "totalFaces": 3,
+  "detections": [
+    {
+      "index": 1,
+      "confidence": 0.9567,
+      "boundingBox": {
+        "x": 120,
+        "y": 80,
+        "width": 150,
+        "height": 180
+      }
+    }
+  ]
+}
+```
+
+### CSV Format
+```csv
+filename,face_index,confidence,x,y,width,height
+"sample.jpg",1,0.9567,120,80,150,180
+"sample.jpg",2,0.8723,320,90,140,170
+"sample.jpg",3,0.9245,520,85,145,175
 ```
 
 ## Configuration
 
-### Application Properties
-
-The application uses the following key configuration:
-
-## Troubleshooting
-
-### OpenCV Native Library Issues
-
-If you encounter errors related to OpenCV native libraries (e.g., `no jniopenblas_nolapack in java.library.path`), the application is designed to handle this gracefully:
-
-1. **Fallback Mode**: The application will automatically operate in fallback mode when OpenCV native libraries are not available
-2. **Health Status**: The backend will still report as healthy but will return empty detection results
-3. **Logging**: Check `application.log` for detailed information about the OpenCV status
-
-### Logs
-
-- **Application Log**: `application.log` - Contains structured JSON logging with correlation IDs
-- **Console Output**: Real-time application status and error messages
-
-### Common Issues
-
-1. **OpenCV Not Available**: The application will start successfully but face detection will return empty results
-2. **Memory Issues**: Ensure sufficient heap memory for image processing (recommended: 2GB+)
-3. **File Upload Size**: Default maximum file size is 50MB, configurable in `application.yml`
+The application uses Spring Boot's autoconfiguration and can be customized through `application.yml`:
 
 ```yaml
+# Vision configuration
 vision:
-  enabled: true
-  backend: opencv
-  opencv:
-    confidence-threshold: 0.8
-    max-image-size: 10485760  # 10MB
+  backend:
+    type: opencv
+    enabled: true
+  logging:
+    level: INFO
+    format: structured
 
-server:
-  port: 8080
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+# Application-specific settings
+app:
+  cli:
+    default-output-format: text
+    enable-verbose-logging: false
+    max-file-size: 50MB
+    supported-formats:
+      - jpg
+      - jpeg
+      - png
+      - bmp
+      - tiff
 ```
 
-### Environment Profiles
+## Logging
 
-- **Development** (`dev`): Debug logging, lower confidence threshold
-- **Production** (`prod`): Info logging, higher confidence threshold, GPU acceleration
-- **Test** (`test`): Minimal logging, lower confidence threshold
+The application provides comprehensive logging with multiple output formats:
 
-## Usage Examples
+- **Console Output**: Human-readable format for CLI users
+- **File Logging**: Persistent logs in `logs/picocli-application.log`
+- **JSON Logging**: Structured logs in `logs/picocli-application.json` for monitoring systems
 
-### Web Interface
+### Log Levels
 
-1. **Upload Image**: Use the web form to upload an image file
-2. **View Results**: See detected faces with confidence scores
-3. **Download Results**: Save detection results as JSON
+- `ERROR`: Critical errors that prevent operation
+- `WARN`: Warning conditions that may affect performance
+- `INFO`: General information about application operation
+- `DEBUG`: Detailed debugging information (when verbose mode is enabled)
 
-### API Usage
+## Error Handling
 
+The application provides comprehensive error handling:
+
+- **File Not Found**: Clear error messages for missing files
+- **Permission Errors**: Validation of file read permissions
+- **Vision Processing Errors**: Detailed error messages from the vision backend
+- **Invalid Input**: Validation of command-line arguments and file formats
+
+## Examples
+
+### Example 1: Basic Face Detection
 ```bash
-# Health check
-curl http://localhost:8080/actuator/health
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect family-photo.jpg
+Face Detection Results for: family-photo.jpg
+==================================================
+Total faces detected: 4
 
-# Face detection via API
-curl -X POST http://localhost:8080/api/vision/detect/faces \
-  -F "file=@image.jpg"
-
-# Get application info
-curl http://localhost:8080/api/vision/info
+Detected faces:
+  Face 1: Confidence=96.23%, BoundingBox=(45,120,180,220)
+  Face 2: Confidence=94.67%, BoundingBox=(280,110,175,210)
+  Face 3: Confidence=91.45%, BoundingBox=(520,125,170,205)
+  Face 4: Confidence=89.12%, BoundingBox=(750,115,185,215)
 ```
 
-### Programmatic Usage
-
-```java
-@Service
-public class MyService {
-    @Autowired
-    private VisionTemplate visionTemplate;
-    
-    public void detectFaces(byte[] imageData) {
-        VisionResult result = visionTemplate.detectFaces(imageData);
-        
-        if (result.hasDetections()) {
-            result.detections().forEach(detection -> {
-                System.out.println("Face detected: " + detection.confidence());
-            });
-        }
+### Example 2: JSON Output for Scripting
+```bash
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect image.jpg -o json
+{
+  "filename": "image.jpg",
+  "totalFaces": 1,
+  "detections": [
+    {
+      "index": 1,
+      "confidence": 0.9234,
+      "boundingBox": {
+        "x": 150,
+        "y": 100,
+        "width": 200,
+        "height": 250
+      }
     }
+  ]
 }
 ```
 
-## API Endpoints
-
-### Web Endpoints
-
-- `GET /` - Main application page
-- `POST /detect` - Face detection form submission
-- `GET /result` - Display detection results
-
-### REST API Endpoints
-
-- `GET /api/vision/health` - Health check
-- `GET /api/vision/info` - Application information
-- `POST /api/vision/detect/faces` - Face detection (multipart)
-
-### Management Endpoints
-
-- `GET /actuator/health` - Health status
-- `GET /actuator/info` - Application info
-- `GET /actuator/metrics` - Performance metrics
-- `GET /actuator/prometheus` - Prometheus metrics
-
-## Testing
-
-### Unit Tests
-
+### Example 3: Batch Processing (Planned)
 ```bash
-# Run unit tests
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar batch /path/to/images/ -o csv --save-results results.csv
+Processing 15 images...
+Completed: 15/15 (100%)
+Results saved to: results.csv
+```
+
+## Development
+
+### Project Structure
+```
+src/
+├── main/
+│   ├── java/
+│   │   └── com/springvision/examples/picocliapplication/
+│   │       └── PicoCLIApplication.java
+│   └── resources/
+│       ├── application.yml
+│       └── logback-spring.xml
+└── test/
+    └── java/
+        └── com/springvision/examples/picocliapplication/
+```
+
+### Building from Source
+```bash
+# Clean and compile
+mvn clean compile
+
+# Run tests
 mvn test
 
-# Run specific test
-mvn test -Dtest=FaceDetectionServiceTest
+# Package application
+mvn package
+
+# Run with Maven
+mvn spring-boot:run -- detect /path/to/image.jpg
 ```
-
-### Integration Tests
-
-```bash
-# Run integration tests
-mvn verify
-
-# Run with specific profile
-mvn verify -Dspring.profiles.active=test
-```
-
-### Manual Testing
-
-1. **Test with Sample Images**:
-   - Use images with clear faces
-   - Test with multiple faces
-   - Test with different image formats
-
-2. **Test Error Handling**:
-   - Upload invalid files
-   - Test with very large images
-   - Test with images without faces
-
-3. **Test Performance**:
-   - Monitor processing time
-   - Check memory usage
-   - Test concurrent uploads
-
-## Performance Considerations
-
-### Optimization Tips
-
-1. **Image Size**: Keep images under 5MB for optimal performance
-2. **Image Format**: Use JPEG for photos, PNG for graphics
-3. **Resolution**: Higher resolution doesn't always improve accuracy
-4. **Confidence Threshold**: Adjust based on your needs
-
-### Monitoring
-
-- **Processing Time**: Monitor via `/actuator/metrics/vision.processing.time`
-- **Detection Count**: Track via `/actuator/metrics/vision.detections.total`
-- **Error Rate**: Monitor via `/actuator/metrics/vision.errors.total`
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **No Faces Detected**
-   - Check image quality and lighting
-   - Lower confidence threshold
-   - Verify image contains faces
+1. **"Image file not found"**
+   - Verify the file path is correct
+   - Ensure the file exists and is readable
 
-2. **Slow Performance**
-   - Reduce image size
-   - Check system resources
-   - Enable GPU acceleration (if available)
+2. **"Vision processing error"**
+   - Check that OpenCV is properly installed
+   - Verify the image format is supported
+   - Check application logs for detailed error information
 
-3. **Upload Errors**
-   - Check file size limits
-   - Verify supported formats
-   - Check disk space
+3. **"Permission denied"**
+   - Ensure the application has read access to the image file
+   - Check file permissions and ownership
 
 ### Debug Mode
 
-Enable debug logging:
-
-```yaml
-logging:
-  level:
-    com.springvision: DEBUG
-    com.springvision.examples: DEBUG
-```
-
-### Health Checks
-
-Monitor application health:
-
+Enable verbose logging for detailed debugging:
 ```bash
-curl http://localhost:8080/actuator/health
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect image.jpg -v
 ```
 
-## Customization
+### Log Files
 
-### Adding New Features
-
-1. **Additional Detection Types**:
-   ```java
-   VisionResult result = visionTemplate.detectObjects(imageData);
-   ```
-
-2. **Custom Processing**:
-   ```java
-   // Add image preprocessing
-   // Add result post-processing
-   // Add custom validation
-   ```
-
-3. **Enhanced UI**:
-   - Add result visualization
-   - Add progress indicators
-   - Add batch processing
-
-### Configuration Customization
-
-```yaml
-vision:
-  opencv:
-    confidence-threshold: 0.9  # Higher accuracy
-    gpu-acceleration: true     # Enable GPU
-    max-image-size: 20971520   # 20MB limit
-```
-
-## Security Considerations
-
-### Production Deployment
-
-1. **File Validation**: Validate uploaded files
-2. **Size Limits**: Enforce file size restrictions
-3. **Authentication**: Add user authentication
-4. **HTTPS**: Use HTTPS in production
-
-### Security Configuration
-
-```yaml
-server:
-  ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: ${KEYSTORE_PASSWORD}
-
-spring:
-  security:
-    user:
-      name: admin
-      password: ${ADMIN_PASSWORD}
-```
-
-## Deployment
-
-### Local Development
-
-```bash
-mvn spring-boot:run
-```
-
-### Production
-
-```bash
-# Build JAR
-mvn clean package
-
-# Run with production profile
-java -jar target/basic-face-detection-1.0.0-SNAPSHOT.jar \
-  --spring.profiles.active=prod
-```
-
-### Docker
-
-```bash
-# Build image
-docker build -t basic-face-detection .
-
-# Run container
-docker run -p 8080:8080 basic-face-detection
-```
+Check the log files for detailed error information:
+- `logs/picocli-application.log` - Human-readable logs
+- `logs/picocli-application.json` - Structured JSON logs
 
 ## Contributing
 
-### Adding Features
-
-1. **Create Feature Branch**:
-   ```bash
-   git checkout -b feature/new-feature
-   ```
-
-2. **Add Tests**:
-   - Unit tests for new functionality
-   - Integration tests for API changes
-   - Update existing tests
-
-3. **Update Documentation**:
-   - Update README.md
-   - Add API documentation
-   - Update configuration examples
-
-4. **Submit Pull Request**:
-   - Follow contribution guidelines
-   - Include tests and documentation
-   - Provide clear description
-
-### Code Standards
-
-- Follow Java coding conventions
-- Add Javadoc for public methods
-- Use meaningful variable names
-- Include error handling
-- Add logging for debugging
-
-## Support
-
-### Getting Help
-
-1. **Check Documentation**:
-   - Review this README
-   - Check framework documentation
-   - Look at example code
-
-2. **Debug Issues**:
-   - Enable debug logging
-   - Check application logs
-   - Use health endpoints
-
-3. **Report Issues**:
-   - Open GitHub issue
-   - Include error details
-   - Provide reproduction steps
-
-### Resources
-
-- [Spring Vision Documentation](../../docs/)
-- [API Documentation](../../docs/API_DOCUMENTATION.md)
-- [User Guide](../../docs/USER_GUIDE.md)
-- [Deployment Guide](../../docs/DEPLOYMENT_GUIDE.md)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
 
 ## License
 
-This example is licensed under the Apache License, Version 2.0. See the [LICENSE](../../LICENSE) file for details. 
+This project is licensed under the same license as the Spring Vision framework.
+
+## Support
+
+For issues and questions:
+1. Check the troubleshooting section
+2. Review the application logs
+3. Create an issue in the project repository
+4. Contact the development team
+
+---
+
+*Last Updated: 2025-08-07*
+*Version: 1.0.0-SNAPSHOT* 
