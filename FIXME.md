@@ -82,9 +82,11 @@ Error: 404 : {"timestamp":"2025-08-07T00:28:58.259+00:00","status":404,"error":"
 2. **Vaadin Application Implementation** - RESOLVED
    - Created comprehensive Vaadin interface with file upload and result display
    - Implemented FaceDetectionController for REST API endpoints
-   - Added VisionConfig for proper Spring Vision integration
+   - Added VisionConfig for proper Spring Vision integration (using autoconfiguration)
    - Created application.yml and logback-spring.xml configurations
    - Added package documentation and proper component structure
+   - Fixed bean definition conflict by removing duplicate VisionTemplate bean
+   - Fixed HTTP request URLs to use absolute URLs with correct scheme
 
 ### 🔄 Remaining Issues
 

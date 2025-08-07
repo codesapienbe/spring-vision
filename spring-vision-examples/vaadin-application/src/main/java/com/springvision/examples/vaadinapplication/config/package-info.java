@@ -1,22 +1,24 @@
 /**
  * Configuration classes for the Vaadin application.
  *
- * <p>This package contains configuration classes that set up the Spring Vision framework
- * and other application components for the Vaadin frontend.</p>
+ * <p>This package contains configuration classes that set up the Vaadin application
+ * and ensure proper integration with the Spring Vision framework.</p>
  *
  * <p>Key components:</p>
  * <ul>
  *   <li>{@link com.springvision.examples.vaadinapplication.config.VisionConfig} -
- *       Configures VisionTemplate with OpenCV backend for face detection</li>
+ *       Provides Vaadin-specific configuration and logging</li>
  * </ul>
  *
  * <p>All configurations follow enterprise standards including:</p>
  * <ul>
- *   <li>Proper bean configuration and dependency injection</li>
- *   <li>Fallback mechanisms for robustness</li>
+ *   <li>Proper integration with Spring Vision autoconfiguration</li>
  *   <li>Comprehensive logging and error handling</li>
- *   <li>Integration with Spring Vision framework</li>
+ *   <li>Consistent behavior across different frontend technologies</li>
  * </ul>
+ *
+ * <p>Note: The VisionTemplate bean is automatically configured by the Spring Vision
+ * autoconfiguration module, so no manual bean definition is required.</p>
  *
  * @author Spring Vision Team
  * @since 1.0.0

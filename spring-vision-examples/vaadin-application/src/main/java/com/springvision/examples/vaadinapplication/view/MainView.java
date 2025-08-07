@@ -35,7 +35,8 @@ import java.util.UUID;
 @Route("")
 public class MainView extends VerticalLayout {
 
-    private static final String API_BASE_URL = "/api/vision";
+    private static final String BASE_URL = "http://localhost:8080";
+    private static final String API_BASE_URL = BASE_URL + "/api/vision";
     private static final String FACE_DETECTION_ENDPOINT = API_BASE_URL + "/detect/faces";
     private static final String HEALTH_ENDPOINT = API_BASE_URL + "/health";
 
@@ -167,10 +168,10 @@ public class MainView extends VerticalLayout {
             if (response.statusCode() == 200) {
                 updateStatus("✅ Application Status: Vaadin Application running successfully on port 8080", "success");
             } else {
-                updateStatus("⚠️ Application Status: Health check failed", "warning");
+                updateStatus("⚠️ Application Status: Health check failed - Status: " + response.statusCode(), "warning");
             }
         } catch (Exception e) {
-            updateStatus("❌ Application Status: Unable to connect to backend", "error");
+            updateStatus("❌ Application Status: Unable to connect to backend - " + e.getMessage(), "error");
         }
     }
 
