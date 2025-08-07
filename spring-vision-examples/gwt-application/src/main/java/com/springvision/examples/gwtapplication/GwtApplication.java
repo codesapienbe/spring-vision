@@ -11,8 +11,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@SpringBootApplication
-@org.springframework.context.annotation.ComponentScan(basePackages = "com.springvision")
+@SpringBootApplication(
+        scanBasePackages = {
+                "com.springvision.autoconfigure",  // auto-config beans & props
+                "com.springvision.core",          // core domain + backend
+                "com.springvision.starter",        // REST API (VisionController)
+                "com.springvision.examples.gwtapplication" // local GUI code
+        }
+)
 public class GwtApplication {
     public static void main(String[] args) {
         SpringApplication.run(GwtApplication.class, args);
