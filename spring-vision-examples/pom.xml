@@ -23,6 +23,8 @@
         <module>batch-processing-example</module>
         <module>gwt-application</module>
         <module>vaadin-application</module>
+        <module>picocli-application</module>
+        <module>javafx-application</module>
     </modules>
 
     <properties>

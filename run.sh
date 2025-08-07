@@ -6,6 +6,8 @@
 #          ./run.sh example batch
 #          ./run.sh example gwt
 #          ./run.sh example vaadin
+#          ./run.sh example picocli
+#          ./run.sh example javafx
 
 set -e
 
@@ -51,12 +53,16 @@ show_usage() {
     echo "  batch             Batch Processing Example"
     echo "  gwt               GWT Application Example"
     echo "  vaadin            Vaadin Application Example"
+    echo "  picocli           PicoCLI Command-Line Application"
+    echo "  javafx            JavaFX Desktop Application"
     echo ""
     echo "Examples:"
     echo "  $0 example basic"
     echo "  $0 example batch"
     echo "  $0 example gwt"
     echo "  $0 example vaadin"
+    echo "  $0 example picocli"
+    echo "  $0 example javafx"
     echo "  $0 list"
     echo "  $0 build"
     echo "  $0 clean"
@@ -121,6 +127,18 @@ list_examples() {
     echo "   - Modern web interface using Vaadin"
     echo "   - Runs on http://localhost:8080"
     echo ""
+    echo "5. picocli-application"
+    echo "   - Command-line interface application"
+    echo "   - Uses PicoCLI framework for CLI operations"
+    echo "   - Supports multiple output formats (text, JSON, CSV)"
+    echo "   - File-based processing with batch capabilities"
+    echo ""
+    echo "6. javafx-application"
+    echo "   - Desktop GUI application using JavaFX"
+    echo "   - Modern desktop interface with drag-and-drop"
+    echo "   - Visual result display with bounding boxes"
+    echo "   - Asynchronous processing with progress indicators"
+    echo ""
     echo "Usage: $0 example <name>"
     echo "Example: $0 example basic"
 }
@@ -146,6 +164,14 @@ run_example() {
         "vaadin")
             EXAMPLE_DIR="vaadin-application"
             EXAMPLE_DESC="Vaadin Application Example"
+            ;;
+        "picocli")
+            EXAMPLE_DIR="picocli-application"
+            EXAMPLE_DESC="PicoCLI Command-Line Application"
+            ;;
+        "javafx")
+            EXAMPLE_DIR="javafx-application"
+            EXAMPLE_DESC="JavaFX Desktop Application"
             ;;
         *)
             print_error "Unknown example: $example_name"
@@ -186,8 +212,58 @@ run_example() {
         exit 1
     fi
 
-    # Build and run the example
-    mvn clean package spring-boot:run
+    # Special handling for different application types
+    case $example_name in
+        "picocli")
+            # For PicoCLI, build the JAR and show usage instructions
+            print_info "Building PicoCLI application..."
+            mvn clean package -DskipTests
+            print_success "PicoCLI application built successfully"
+            print_info ""
+            print_info "PicoCLI Application Usage:"
+            print_info "=========================="
+            print_info ""
+            print_info "1. Show help:"
+            print_info "   java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --help"
+            print_info ""
+            print_info "2. Detect faces in a single image:"
+            print_info "   java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg"
+            print_info ""
+            print_info "3. Detect faces with JSON output:"
+            print_info "   java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg -o json"
+            print_info ""
+            print_info "4. Check health status:"
+            print_info "   java -jar target/picocli-application-1.0.0-SNAPSHOT.jar health"
+            print_info ""
+            print_info "Note: Replace /path/to/image.jpg with the actual path to your image file."
+            print_info "Supported formats: JPG, JPEG, PNG, BMP, TIFF"
+            ;;
+        "javafx")
+            # For JavaFX, build and run with proper module path
+            print_info "Building JavaFX application..."
+            mvn clean package -DskipTests
+            print_success "JavaFX application built successfully"
+            print_info ""
+            print_info "Launching JavaFX application..."
+            print_info "Note: JavaFX requires proper module configuration"
+            print_info ""
+
+            # Try to run with Maven first
+            if mvn javafx:run 2>/dev/null; then
+                print_success "JavaFX application launched successfully"
+            else
+                print_warning "Maven JavaFX plugin not available, trying direct Java execution..."
+                # Fallback to direct Java execution
+                java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
+                     --add-modules javafx.controls,javafx.fxml,javafx.graphics \
+                     -jar target/javafx-application-1.0.0-SNAPSHOT.jar
+            fi
+            ;;
+        *)
+            # Default behavior for web applications
+            mvn clean package spring-boot:run
+            ;;
+    esac
 }
 
 # Function to build all examples
