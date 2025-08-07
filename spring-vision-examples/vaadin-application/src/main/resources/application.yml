@@ -1,0 +1,173 @@
+spring:
+  application:
+    name: vaadin-application
+  profiles:
+    active: dev
+
+# Vision Framework Configuration
+vision:
+  enabled: true
+  backend: opencv
+  opencv:
+    enabled: true
+    confidence-threshold: 0.5  # Lower threshold for better detection
+    min-face-size-ratio: 0.02  # Very small minimum face size for crowd detection
+    max-face-size-ratio: 0.95  # Very large maximum face size
+    gpu-acceleration: false
+    max-image-size: 52428800  # 50MB
+  health:
+    enabled: true
+    check-interval: 30000     # 30 seconds
+    max-response-time: 5000   # 5 seconds
+  metrics:
+    enabled: true
+    collection-interval: 60000 # 1 minute
+    detailed: false
+
+  main:
+    allow-bean-definition-overriding: true
+
+# Vaadin Configuration
+vaadin:
+  production-mode: false
+  pnpm:
+    enabled: true
+  frontend:
+    hot-reload:
+      enabled: true
+  whitelisted-packages:
+    - com.springvision.examples.vaadinapplication
+
+# Server Configuration
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+
+# Logging Configuration
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.examples: DEBUG
+    org.springframework.web: INFO
+    org.bytedeco: WARN
+    com.vaadin: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
+  file:
+    name: application.log
+    max-size: 1000MB
+    max-history: 30
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: vaadin-application
+      environment: development
+
+# Development Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    com.springvision: DEBUG
+    com.springvision.examples: DEBUG
+    org.springframework.web: DEBUG
+    com.vaadin: DEBUG
+
+vision:
+  opencv:
+    confidence-threshold: 0.7
+
+vaadin:
+  production-mode: false
+  frontend:
+    hot-reload:
+      enabled: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+# Production Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.examples: INFO
+    org.springframework.web: WARN
+    com.vaadin: WARN
+
+vision:
+  opencv:
+    confidence-threshold: 0.8
+    gpu-acceleration: true
+
+vaadin:
+  production-mode: true
+  frontend:
+    hot-reload:
+      enabled: false
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Test Profile
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+logging:
+  level:
+    com.springvision: WARN
+    com.springvision.examples: WARN
+    root: WARN
+
+vision:
+  opencv:
+    confidence-threshold: 0.6
+
+vaadin:
+  production-mode: false
+  frontend:
+    hot-reload:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
