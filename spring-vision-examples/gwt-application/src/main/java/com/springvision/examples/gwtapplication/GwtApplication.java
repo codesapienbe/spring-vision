@@ -35,7 +35,14 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@SpringBootApplication
+@SpringBootApplication(
+    scanBasePackages = {
+        "com.springvision.autoconfigure",  // auto-config beans & props
+        "com.springvision.core",          // core domain + backend
+        "com.springvision.starter",        // REST API (VisionController)
+        "com.springvision.examples.gwtapplication" // local GWT code
+    }
+)
 public class GwtApplication {
 
     /**
