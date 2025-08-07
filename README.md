@@ -1,7 +1,7 @@
 # 🤖 Spring-Vision
 
 <div align="center">
-  <img src="./assets/logo.png" alt="Spring-Vision Logo" width="300" height="200" />
+  <img src="./assets/logo.png" alt="Spring-Vision Logo" width="256" height="256" />
 </div>
 
 <div align="center">
