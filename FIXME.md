@@ -67,6 +67,25 @@ Error: 404 : {"timestamp":"2025-08-07T00:28:58.259+00:00","status":404,"error":"
 3. **Medium-term:** Add security measures
 4. **Long-term:** Comprehensive testing and documentation
 
+## Implementation Roadmap
+
+### Phase 1: Core Applications (COMPLETED)
+- ✅ GWT Application - Functional with REST API
+- ✅ Vaadin Application - Functional with modern UI
+- ✅ Basic Face Detection - Reference implementation
+
+### Phase 2: CLI Application (PENDING)
+- **Priority**: Medium
+- **Effort**: 2-3 days
+- **Dependencies**: PicoCLI framework, file I/O operations
+- **Deliverables**: Command-line tool for batch face detection
+
+### Phase 3: Desktop Application (PENDING)
+- **Priority**: Low
+- **Effort**: 3-4 days
+- **Dependencies**: JavaFX framework, desktop packaging
+- **Deliverables**: Desktop GUI application with image preview
+
 ---
 
 ## Resolution Summary
@@ -113,6 +132,31 @@ The following issues from the original FIXME remain to be addressed:
    - Add image preview functionality
    - Implement real-time processing status updates
    - Add detection result visualization with bounding boxes
+
+5. **PicoCLI Application Implementation** - PENDING
+   - **Current State**: Copied basic-face-detection code, needs complete restructuring for CLI interface
+   - **Required Changes**:
+     - Remove web dependencies (Thymeleaf, web controllers)
+     - Add PicoCLI dependency and proper CLI command structure
+     - Create command-line interface for face detection operations
+     - Implement file path-based image processing instead of web uploads
+     - Add CLI-specific configuration and help documentation
+     - Create proper CLI command classes with options and arguments
+     - Add batch processing capabilities for multiple files
+     - Implement CLI-specific logging and output formatting
+
+6. **JavaFX Application Implementation** - PENDING
+   - **Current State**: Copied basic-face-detection code, needs complete restructuring for desktop GUI
+   - **Required Changes**:
+     - Remove web dependencies (Thymeleaf, web controllers)
+     - Add JavaFX dependencies and proper desktop application structure
+     - Create JavaFX main application class with proper startup
+     - Implement desktop GUI with file chooser and image display
+     - Add JavaFX controllers and FXML layouts for face detection interface
+     - Create image preview and result visualization components
+     - Implement drag-and-drop file handling for desktop UX
+     - Add JavaFX-specific configuration and styling
+     - Create proper desktop application packaging and distribution
 
 ---
 
