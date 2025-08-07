@@ -186,48 +186,87 @@ public class MainView extends VerticalLayout {
             // Read the image data
             byte[] imageData = inputStream.readAllBytes();
 
-            // Create multipart request
+            // Log request details for debugging
+            System.out.println("Performing face detection for file: " + fileName);
+            System.out.println("Image data size: " + imageData.length + " bytes");
+            System.out.println("Request URL: " + FACE_DETECTION_ENDPOINT);
+
+            // Create multipart request with proper binary data encoding
             String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().substring(0, 8);
-            String multipartBody = createMultipartBody(imageData, fileName, boundary);
+            byte[] multipartBody = createMultipartBody(imageData, fileName, boundary);
+
+            System.out.println("Multipart body size: " + multipartBody.length + " bytes");
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(java.net.URI.create(FACE_DETECTION_ENDPOINT))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofString(multipartBody, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
                 .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
+            System.out.println("Response status: " + response.statusCode());
+            System.out.println("Response body: " + response.body());
+
             if (response.statusCode() == 200) {
                 displayResults(response.body());
             } else {
-                displayError("Detection failed: " + response.body());
+                displayError("Detection failed (Status " + response.statusCode() + "): " + response.body());
             }
 
         } catch (Exception e) {
+            System.err.println("Exception during face detection: " + e.getMessage());
+            e.printStackTrace();
             displayError("Error during face detection: " + e.getMessage());
         }
     }
 
     /**
-     * Creates a multipart form body for file upload.
+     * Creates a multipart form body for file upload with proper binary data encoding.
      *
      * @param imageData the image data
      * @param fileName the file name
      * @param boundary the multipart boundary
-     * @return the multipart body string
+     * @return the multipart body as byte array
      */
-    private String createMultipartBody(byte[] imageData, String fileName, String boundary) {
-        StringBuilder body = new StringBuilder();
-        body.append("--").append(boundary).append("\r\n");
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"\r\n");
-        body.append("Content-Type: image/jpeg\r\n\r\n");
+    private byte[] createMultipartBody(byte[] imageData, String fileName, String boundary) {
+        try {
+            // Determine content type based on file extension
+            String contentType = "image/jpeg"; // default
+            if (fileName.toLowerCase().endsWith(".png")) {
+                contentType = "image/png";
+            } else if (fileName.toLowerCase().endsWith(".gif")) {
+                contentType = "image/gif";
+            } else if (fileName.toLowerCase().endsWith(".bmp")) {
+                contentType = "image/bmp";
+            } else if (fileName.toLowerCase().endsWith(".webp")) {
+                contentType = "image/webp";
+            }
 
-        // Note: In a real implementation, you would need to properly encode the binary data
-        // This is a simplified version for demonstration
-        body.append("--").append(boundary).append("--\r\n");
+            // Build multipart body
+            StringBuilder header = new StringBuilder();
+            header.append("--").append(boundary).append("\r\n");
+            header.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"\r\n");
+            header.append("Content-Type: ").append(contentType).append("\r\n\r\n");
 
-        return body.toString();
+            String footer = "\r\n--" + boundary + "--\r\n";
+
+            // Convert header and footer to bytes
+            byte[] headerBytes = header.toString().getBytes(StandardCharsets.UTF_8);
+            byte[] footerBytes = footer.getBytes(StandardCharsets.UTF_8);
+
+            // Combine all parts
+            byte[] multipartBody = new byte[headerBytes.length + imageData.length + footerBytes.length];
+
+            System.arraycopy(headerBytes, 0, multipartBody, 0, headerBytes.length);
+            System.arraycopy(imageData, 0, multipartBody, headerBytes.length, imageData.length);
+            System.arraycopy(footerBytes, 0, multipartBody, headerBytes.length + imageData.length, footerBytes.length);
+
+            return multipartBody;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create multipart body: " + e.getMessage(), e);
+        }
     }
 
     /**

@@ -87,6 +87,8 @@ Error: 404 : {"timestamp":"2025-08-07T00:28:58.259+00:00","status":404,"error":"
    - Added package documentation and proper component structure
    - Fixed bean definition conflict by removing duplicate VisionTemplate bean
    - Fixed HTTP request URLs to use absolute URLs with correct scheme
+   - Fixed multipart form data encoding to properly handle binary image data
+   - Added debugging information for troubleshooting HTTP requests
 
 ### 🔄 Remaining Issues
 
