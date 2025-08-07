@@ -2,11 +2,56 @@
 <html>
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GWT-Based GUI Example</title>
 </head>
 <body>
-    <h1>GWT-Based GUI Example</h1>
-    <p>Placeholder for GWT application. Implement GWT modules here.</p>
-    <!-- TODO: Add compiled GWT scripts -->
+    <h1>Spring Vision – Face Detection (GWT Skeleton)</h1>
+
+    <!-- Simple face-detection test form -->
+    <div style="margin-top: 20px;">
+        <label for="fileInput">Select image:</label>
+        <input type="file" id="fileInput" accept="image/*" title="Choose image for face detection" />
+        <button id="detectBtn">Detect Faces</button>
+    </div>
+
+    <pre id="result" style="margin-top: 20px; background: #f5f5f5; padding: 15px; border-radius: 6px;"></pre>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const detectBtn  = document.getElementById('detectBtn');
+        const resultBox = document.getElementById('result');
+
+        detectBtn.addEventListener('click', async () => {
+            if (!fileInput.files.length) {
+                alert('Please choose an image first.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            resultBox.textContent = 'Detecting…';
+
+            try {
+                const response = await fetch('/api/vision/detect/faces', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`${response.status} ${response.statusText}: ${errText}`);
+                }
+
+                const json = await response.json();
+                resultBox.textContent = JSON.stringify(json, null, 2);
+            } catch (err) {
+                console.error(err);
+                resultBox.textContent = `Error: ${err.message}`;
+            }
+        });
+    </script>
 </body>
 </html>

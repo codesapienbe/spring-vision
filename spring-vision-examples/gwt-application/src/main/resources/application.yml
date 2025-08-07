@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: gwt-application
+
+# Enable and configure Spring Vision
+vision:
+  enabled: true
+  backend: opencv  # Ensure OpenCV backend is selected
+  max-batch-size: 1000 # 1000MB
+  opencv:
+    enabled: true
+    confidence-threshold: 0.7  # Default confidence threshold for detections
+    gpu-acceleration: false    # GPU acceleration disabled by default for portability
+
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.examples: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
+  file:
+    name: application.log

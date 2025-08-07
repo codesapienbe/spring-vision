@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @since 1.0.0
  */
 @SpringBootApplication
+@org.springframework.context.annotation.ComponentScan(basePackages = "com.springvision")
 public class GwtApplication {
     public static void main(String[] args) {
         SpringApplication.run(GwtApplication.class, args);
