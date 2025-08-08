@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacv.OpenCVFrameConverter;
 import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
+import static org.bytedeco.opencv.global.opencv_core.flip;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imdecode;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
@@ -112,6 +113,11 @@ public class OpenCvVisionBackend implements VisionBackend {
     private static final String EYE_CASCADE_DOWNLOAD_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml";
 
+    /** Profile-face cascade to detect side-view faces. */
+    private static final String DEFAULT_PROFILE_FACE_CASCADE_PATH = "/haarcascade_profileface.xml";
+    private static final String PROFILE_FACE_CASCADE_DOWNLOAD_URL =
+        "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml";
+
     /**
      * Default confidence threshold for detections.
      */
@@ -132,6 +138,7 @@ public class OpenCvVisionBackend implements VisionBackend {
     private CascadeClassifier faceCascade;
     private Net dnnFaceNet;
     private CascadeClassifier eyeCascade;
+    private CascadeClassifier profileCascade;
 
     /**
      * Frame converter for OpenCV operations.
@@ -175,6 +182,7 @@ public class OpenCvVisionBackend implements VisionBackend {
         this.healthErrorMessage = "Backend not initialized";
         this.dnnFaceNet = null;
         this.eyeCascade = null;
+        this.profileCascade = null;
     }
 
     @Override
@@ -402,6 +410,15 @@ public class OpenCvVisionBackend implements VisionBackend {
                 }
             }
 
+            // 3) Profile-face detection (left profile and mirrored right profile)
+            try {
+                if (profileCascade != null && !profileCascade.empty()) {
+                    addProfileDetections(grayImage, image.cols(), image.rows(), detections, totalConfidence);
+                }
+            } catch (Exception e) {
+                logger.debug("Profile-face detection skipped due to error: {}", e.getMessage());
+            }
+
             long processingTime = System.currentTimeMillis() - startTime;
             double averageConfidence = detections.isEmpty() ? 0.0 : totalConfidence / detections.size();
 
@@ -584,6 +601,7 @@ public class OpenCvVisionBackend implements VisionBackend {
                 loadFaceCascade();
                 loadDnnFaceDetector();
                 loadEyeCascade();
+                loadProfileCascade();
             } else {
                 logger.debug("Skipping face cascade loading - OpenCV not available");
             }
@@ -1198,6 +1216,132 @@ public class OpenCvVisionBackend implements VisionBackend {
         } catch (Exception e) {
             logger.warn("Error loading eye cascade: {}", e.getMessage());
             eyeCascade = null;
+        }
+    }
+
+    /**
+     * Detect profile faces on original and horizontally flipped images.
+     */
+    private void addProfileDetections(Mat grayImage, int cols, int rows,
+                                      List<Detection> detections, double totalConfidenceAccumulator) {
+        // Detect on original (typically left-profile)
+        RectVector profiles = new RectVector();
+        int minDim = Math.min(cols, rows);
+        Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
+        Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
+
+        profileCascade.detectMultiScale(grayImage, profiles, 1.1, 3, 0, minSize, maxSize);
+        for (long i = 0; i < profiles.size(); i++) {
+            Rect r = profiles.get(i);
+            if (!isFaceLikely(grayImage, r)) continue;
+            if (isOverlappingExisting(detections, r, cols, rows)) continue;
+            double nx = (double) r.x() / cols;
+            double ny = (double) r.y() / rows;
+            double nw = (double) r.width() / cols;
+            double nh = (double) r.height() / rows;
+            double conf = Math.min(0.9, 0.8 + (r.width() * r.height()) / (double) (cols * rows));
+            detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+        }
+        profiles.deallocate();
+
+        // Detect on horizontally flipped image for right-profile faces
+        Mat flipped = new Mat();
+        flip(grayImage, flipped, 1);
+        RectVector profilesFlipped = new RectVector();
+        profileCascade.detectMultiScale(flipped, profilesFlipped, 1.1, 3, 0, minSize, maxSize);
+        for (long i = 0; i < profilesFlipped.size(); i++) {
+            Rect r = profilesFlipped.get(i);
+            // Map back to original coordinates
+            int xMapped = cols - r.x() - r.width();
+            Rect mapped = new Rect(Math.max(0, xMapped), r.y(), r.width(), r.height());
+            if (!isFaceLikely(grayImage, mapped)) continue;
+            if (isOverlappingExisting(detections, mapped, cols, rows)) continue;
+            double nx = (double) mapped.x() / cols;
+            double ny = (double) mapped.y() / rows;
+            double nw = (double) mapped.width() / cols;
+            double nh = (double) mapped.height() / rows;
+            double conf = Math.min(0.9, 0.8 + (mapped.width() * mapped.height()) / (double) (cols * rows));
+            detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+        }
+        profilesFlipped.deallocate();
+        flipped.releaseReference();
+    }
+
+    /** Check if a new rect overlaps sufficiently with an existing detection; if so, skip. */
+    private boolean isOverlappingExisting(List<Detection> detections, Rect r, int cols, int rows) {
+        double rx1 = r.x();
+        double ry1 = r.y();
+        double rx2 = r.x() + r.width();
+        double ry2 = r.y() + r.height();
+        for (Detection d : detections) {
+            Rect e = new Rect((int) Math.round(d.boundingBox().x() * cols),
+                              (int) Math.round(d.boundingBox().y() * rows),
+                              (int) Math.round(d.boundingBox().width() * cols),
+                              (int) Math.round(d.boundingBox().height() * rows));
+            double ex1 = e.x();
+            double ey1 = e.y();
+            double ex2 = e.x() + e.width();
+            double ey2 = e.y() + e.height();
+            double interX1 = Math.max(rx1, ex1);
+            double interY1 = Math.max(ry1, ey1);
+            double interX2 = Math.min(rx2, ex2);
+            double interY2 = Math.min(ry2, ey2);
+            double interW = Math.max(0, interX2 - interX1);
+            double interH = Math.max(0, interY2 - interY1);
+            double inter = interW * interH;
+            double union = (r.width() * r.height()) + (e.width() * e.height()) - inter;
+            double iou = union <= 0 ? 0 : inter / union;
+            if (iou > 0.4) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Load the profile-face cascade with classpath-first, then remote fallback. */
+    private void loadProfileCascade() {
+        try {
+            profileCascade = new CascadeClassifier();
+            // Try classpath
+            try (java.io.InputStream is = getClass().getResourceAsStream(DEFAULT_PROFILE_FACE_CASCADE_PATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("haarcascade_profileface", ".xml");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    if (profileCascade.load(tmp.getAbsolutePath())) {
+                        logger.info("Profile-face cascade loaded from classpath");
+                        return;
+                    }
+                }
+            } catch (Exception ignore) {}
+
+            // Try system path
+            if (profileCascade.load(DEFAULT_PROFILE_FACE_CASCADE_PATH)) {
+                logger.info("Profile-face cascade loaded from system path");
+                return;
+            }
+
+            // Download fallback
+            try {
+                logger.info("Attempting to download profile-face cascade...");
+                java.net.URL url = new java.net.URL(PROFILE_FACE_CASCADE_DOWNLOAD_URL);
+                java.io.File tmp = java.io.File.createTempFile("haarcascade_profileface", ".xml");
+                tmp.deleteOnExit();
+                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                     java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
+                if (profileCascade.load(tmp.getAbsolutePath())) {
+                    logger.info("Profile-face cascade downloaded and loaded successfully");
+                    return;
+                }
+            } catch (Exception ex) {
+                logger.warn("Could not download profile-face cascade: {}", ex.getMessage());
+            }
+
+            logger.warn("Profile-face cascade unavailable; side-view detection will be limited to DNN");
+        } catch (Exception e) {
+            logger.warn("Error loading profile-face cascade: {}", e.getMessage());
+            profileCascade = null;
         }
     }
 }
