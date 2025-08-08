@@ -1,11 +1,12 @@
-package com.springvision.examples.basicfacedetection.config;
+package com.springvision.examples.picocliapplication.config;
 
-import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.OpenCvVisionBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.backend.OpenCvVisionBackend;
 
 /**
  * Configuration to ensure VisionTemplate bean is available with real OpenCV backend.
