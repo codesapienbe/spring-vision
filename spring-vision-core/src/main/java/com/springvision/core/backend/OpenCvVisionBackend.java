@@ -1,24 +1,43 @@
 package com.springvision.core.backend;
 
-import com.springvision.core.*;
-import com.springvision.core.exception.BaseVisionException;
-import com.springvision.core.exception.VisionProcessingException;
-import com.springvision.core.exception.VisionBackendException;
-import com.springvision.core.exception.VisionConfigurationException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacv.OpenCVFrameConverter;
-import org.bytedeco.opencv.opencv_core.*;
+import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR;
+import static org.bytedeco.opencv.global.opencv_imgcodecs.imdecode;
+import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
+import static org.bytedeco.opencv.global.opencv_imgproc.HOUGH_GRADIENT;
+import static org.bytedeco.opencv.global.opencv_imgproc.HoughCircles;
+import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
+import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Rect;
+import org.bytedeco.opencv.opencv_core.RectVector;
+import org.bytedeco.opencv.opencv_core.Scalar;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.bytedeco.opencv.opencv_dnn.Net;
 import org.bytedeco.opencv.opencv_imgproc.Vec3fVector;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
-import org.bytedeco.javacpp.FloatPointer;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-
-import static org.bytedeco.opencv.global.opencv_core.*;
-import static org.bytedeco.opencv.global.opencv_imgcodecs.*;
-import static org.bytedeco.opencv.global.opencv_imgproc.*;
+import com.springvision.core.BackendHealthInfo;
+import com.springvision.core.BoundingBox;
+import com.springvision.core.Detection;
+import com.springvision.core.DetectionType;
+import com.springvision.core.ImageData;
+import com.springvision.core.VisionBackend;
+import com.springvision.core.VisionResult;
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.exception.BaseVisionException;
+import com.springvision.core.exception.VisionBackendException;
+import com.springvision.core.exception.VisionProcessingException;
 
 /**
  * OpenCV-based implementation of the VisionBackend interface.
@@ -77,15 +96,31 @@ public class OpenCvVisionBackend implements VisionBackend {
             "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml";
 
     /**
+     * DNN face detector (ResNet-SSD) resources. We prefer these over Haar cascades to reduce
+     * false positives on rectangular patterns. Files are loaded from classpath if present,
+     * otherwise downloaded on first use with short timeouts.
+     */
+    private static final String DNN_CAFFE_PROTO_TXT_CLASSPATH = "/models/deploy.prototxt";
+    private static final String DNN_CAFFE_MODEL_CLASSPATH = "/models/res10_300x300_ssd_iter_140000_fp16.caffemodel";
+    private static final String DNN_CAFFE_PROTO_TXT_URL =
+        "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt";
+    private static final String DNN_CAFFE_MODEL_URL =
+        "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
+
+    /** Eye cascade to validate candidate faces (reduces rectangular false positives). */
+    private static final String DEFAULT_EYE_CASCADE_PATH = "/haarcascade_eye.xml";
+    private static final String EYE_CASCADE_DOWNLOAD_URL =
+        "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml";
+
+    /**
      * Default confidence threshold for detections.
      */
     private static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.8;
-
     /**
-     * Minimum face size for detection (relative to image size).
+     * Minimum face size for detection (relative to the smaller image dimension).
+     * Reduced to support group photos and small faces farther from the camera.
      */
-    private static final double MIN_FACE_SIZE_RATIO = 0.1;
-
+    private static final double MIN_FACE_SIZE_RATIO = 0.03;
     /**
      * Maximum face size for detection (relative to image size).
      */
@@ -95,6 +130,8 @@ public class OpenCvVisionBackend implements VisionBackend {
      * Face detection cascade classifier.
      */
     private CascadeClassifier faceCascade;
+    private Net dnnFaceNet;
+    private CascadeClassifier eyeCascade;
 
     /**
      * Frame converter for OpenCV operations.
@@ -136,6 +173,8 @@ public class OpenCvVisionBackend implements VisionBackend {
         this.initialized = false;
         this.healthStatus = BackendHealthInfo.HealthStatus.UNKNOWN;
         this.healthErrorMessage = "Backend not initialized";
+        this.dnnFaceNet = null;
+        this.eyeCascade = null;
     }
 
     @Override
@@ -208,28 +247,102 @@ public class OpenCvVisionBackend implements VisionBackend {
             Mat image = loadImageToMat(imageData);
             logger.debug("Image loaded successfully: {}x{}", image.cols(), image.rows());
 
-            // Convert to grayscale for face detection
+            // Convert to grayscale for face detection and normalize contrast
             Mat grayImage = new Mat();
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
+            // Improve robustness for multiple/smaller faces
+            equalizeHist(grayImage, grayImage);
 
             // Detect faces using cascade classifier if available
             List<Detection> detections = new ArrayList<>();
             double totalConfidence = 0.0;
 
+            // 1) Prefer DNN-based detector if available
+            if (dnnFaceNet != null && !dnnFaceNet.empty()) {
+                try {
+                    // Prepare blob (mean subtraction for ResNet SSD)
+                    Mat blob = org.bytedeco.opencv.global.opencv_dnn.blobFromImage(image, 1.0, new Size(300, 300), new Scalar(104, 177, 123, 0), false, false, org.bytedeco.opencv.global.opencv_core.CV_32F);
+                    dnnFaceNet.setInput(blob);
+                    Mat detectionsMat = dnnFaceNet.forward();
+
+                    int cols = image.cols();
+                    int rows = image.rows();
+                    int numDetections = (int) detectionsMat.size(2);
+                    int step = (int) detectionsMat.size(3); // should be 7
+
+                    FloatPointer data = new FloatPointer(detectionsMat.data());
+                    List<Rect> candidateRects = new ArrayList<>();
+                    List<Float> candidateScores = new ArrayList<>();
+                    for (int i = 0; i < numDetections; i++) {
+                        float confidence = data.get((long) i * step + 2);
+                        if (confidence < 0.7f) { // tighten threshold to reduce false positives
+                            continue;
+                        }
+
+                        float x1 = data.get((long) i * step + 3) * cols;
+                        float y1 = data.get((long) i * step + 4) * rows;
+                        float x2 = data.get((long) i * step + 5) * cols;
+                        float y2 = data.get((long) i * step + 6) * rows;
+
+                        // Clamp to image bounds
+                        int left = (int) Math.max(0, Math.min(cols - 1, Math.round(x1)));
+                        int top = (int) Math.max(0, Math.min(rows - 1, Math.round(y1)));
+                        int right = (int) Math.max(0, Math.min(cols - 1, Math.round(x2)));
+                        int bottom = (int) Math.max(0, Math.min(rows - 1, Math.round(y2)));
+
+                        int widthPx = Math.max(1, right - left);
+                        int heightPx = Math.max(1, bottom - top);
+
+                        // Additional sanity filter: typical human face aspect ratio (roughly square)
+                        double aspect = (double) widthPx / heightPx;
+                        if (aspect < 0.6 || aspect > 1.6) {
+                            continue;
+                        }
+                        candidateRects.add(new Rect(left, top, widthPx, heightPx));
+                        candidateScores.add(confidence);
+                    }
+
+                    // Apply simple NMS to reduce overlaps
+                    List<Integer> keep = nonMaximumSuppression(candidateRects, candidateScores, 0.4f);
+                    for (int idx : keep) {
+                        Rect r = candidateRects.get(idx);
+                        float conf = candidateScores.get(idx);
+                        if (isFaceLikely(grayImage, r)) {
+                            double nx = (double) r.x() / cols;
+                            double ny = (double) r.y() / rows;
+                            double nw = (double) r.width() / cols;
+                            double nh = (double) r.height() / rows;
+                            BoundingBox bb = new BoundingBox(nx, ny, nw, nh);
+                            detections.add(Detection.of("face", conf, bb));
+                            totalConfidence += conf;
+                        }
+                    }
+
+                    blob.releaseReference();
+                    detectionsMat.releaseReference();
+                } catch (Exception dnnEx) {
+                    logger.warn("DNN face detection failed, falling back to cascade: {}", dnnEx.getMessage());
+                }
+            }
+
             if (faceCascade != null && faceCascade.empty() == false) {
                 try {
                     // Detect faces using cascade classifier
                     RectVector faces = new RectVector();
-                    faceCascade.detectMultiScale(grayImage, faces, 1.1, 3, 0,
-                        new Size((int) (image.cols() * MIN_FACE_SIZE_RATIO),
-                                 (int) (image.rows() * MIN_FACE_SIZE_RATIO)),
-                        new Size((int) (image.cols() * MAX_FACE_SIZE_RATIO),
-                                 (int) (image.rows() * MAX_FACE_SIZE_RATIO)));
+                    int minDim = Math.min(image.cols(), image.rows());
+                    Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
+                    Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
+                    if (detections.isEmpty()) {
+                        faceCascade.detectMultiScale(grayImage, faces, 1.1, 3, 0, minSize, maxSize);
+                    }
 
                     logger.debug("Cascade classifier detected {} faces", faces.size());
 
                     for (long i = 0; i < faces.size(); i++) {
                         Rect faceRect = faces.get(i);
+                        if (!isFaceLikely(grayImage, faceRect)) {
+                            continue;
+                        }
 
                         // Convert OpenCV coordinates to normalized coordinates
                         double x = (double) faceRect.x() / image.cols();
@@ -469,6 +582,8 @@ public class OpenCvVisionBackend implements VisionBackend {
             // Load face cascade classifier only if OpenCV is available
             if (opencvAvailable) {
                 loadFaceCascade();
+                loadDnnFaceDetector();
+                loadEyeCascade();
             } else {
                 logger.debug("Skipping face cascade loading - OpenCV not available");
             }
@@ -704,6 +819,87 @@ public class OpenCvVisionBackend implements VisionBackend {
     }
 
     /**
+     * Loads the DNN face detector (ResNet-SSD). Tries classpath first and
+     * falls back to a short, timeboxed download to a temporary file.
+     */
+    private void loadDnnFaceDetector() {
+        try {
+            logger.info("Loading DNN face detector...");
+
+            String protoPath = null;
+            String modelPath = null;
+
+            try (java.io.InputStream is = getClass().getResourceAsStream(DNN_CAFFE_PROTO_TXT_CLASSPATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("deploy", ".prototxt");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    protoPath = tmp.getAbsolutePath();
+                }
+            } catch (Exception ignore) {}
+
+            try (java.io.InputStream is = getClass().getResourceAsStream(DNN_CAFFE_MODEL_CLASSPATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("res10_300x300", ".caffemodel");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    modelPath = tmp.getAbsolutePath();
+                }
+            } catch (Exception ignore) {}
+
+            if (protoPath == null || modelPath == null) {
+                // Attempt short download if not packaged
+                try {
+                    logger.info("Downloading DNN face model (short timeout)...");
+                    java.net.URL urlProto = new java.net.URL(DNN_CAFFE_PROTO_TXT_URL);
+                    java.net.URL urlModel = new java.net.URL(DNN_CAFFE_MODEL_URL);
+
+                    java.io.File tmpProto = java.io.File.createTempFile("deploy", ".prototxt");
+                    java.io.File tmpModel = java.io.File.createTempFile("res10_300x300", ".caffemodel");
+                    tmpProto.deleteOnExit();
+                    tmpModel.deleteOnExit();
+
+                    try (java.io.InputStream in = openWithTimeout(urlProto, 4000, 5000);
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpProto)) { fos.write(in.readAllBytes()); }
+                    try (java.io.InputStream in = openWithTimeout(urlModel, 4000, 7000);
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpModel)) { fos.write(in.readAllBytes()); }
+
+                    protoPath = tmpProto.getAbsolutePath();
+                    modelPath = tmpModel.getAbsolutePath();
+                } catch (Exception dlEx) {
+                    logger.warn("Could not download DNN face model: {}", dlEx.getMessage());
+                }
+            }
+
+            if (protoPath != null && modelPath != null) {
+                dnnFaceNet = org.bytedeco.opencv.global.opencv_dnn.readNetFromCaffe(protoPath, modelPath);
+                if (dnnFaceNet != null && !dnnFaceNet.empty()) {
+                    logger.info("DNN face detector loaded successfully");
+                } else {
+                    logger.warn("Failed to initialize DNN face detector");
+                    dnnFaceNet = null;
+                }
+            } else {
+                logger.warn("DNN face detector resources unavailable; will use cascade only");
+                dnnFaceNet = null;
+            }
+        } catch (Exception e) {
+            logger.warn("Error loading DNN face detector: {}", e.getMessage());
+            dnnFaceNet = null;
+        }
+    }
+
+    private static java.io.InputStream openWithTimeout(java.net.URL url, int connectTimeoutMs, int readTimeoutMs) throws java.io.IOException {
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
+        c.setRequestMethod("GET");
+        c.setConnectTimeout(connectTimeoutMs);
+        c.setReadTimeout(readTimeoutMs);
+        return c.getInputStream();
+    }
+
+    /**
      * Loads image data into an OpenCV Mat.
      *
      * @param imageData the image data to load
@@ -890,5 +1086,118 @@ public class OpenCvVisionBackend implements VisionBackend {
      */
     public boolean isOpenCvAvailable() {
         return opencvAvailable;
+    }
+
+    /**
+     * Validate a candidate face region using eye detection within the ROI.
+     */
+    private boolean isFaceLikely(Mat grayImage, Rect rect) {
+        try {
+            if (eyeCascade == null || eyeCascade.empty()) {
+                return true; // cannot validate, accept
+            }
+            // Create ROI inside the face rectangle (clip to image bounds)
+            int x = Math.max(0, rect.x());
+            int y = Math.max(0, rect.y());
+            int w = Math.min(grayImage.cols() - x, rect.width());
+            int h = Math.min(grayImage.rows() - y, rect.height());
+            if (w <= 0 || h <= 0) {
+                return false;
+            }
+            Mat roi = new Mat(grayImage, new Rect(x, y, w, h));
+            RectVector eyes = new RectVector();
+            eyeCascade.detectMultiScale(roi, eyes, 1.1, 3, 0, new Size(Math.max(8, w / 10), Math.max(8, h / 10)), new Size());
+            boolean ok = eyes.size() >= 1; // at least one eye to allow profiles
+            eyes.deallocate();
+            roi.releaseReference();
+            return ok;
+        } catch (Exception e) {
+            return true; // fail open to avoid dropping all detections
+        }
+    }
+
+    /**
+     * Non-Maximum Suppression for rectangles.
+     */
+    private List<Integer> nonMaximumSuppression(List<Rect> rects, List<Float> scores, float iouThreshold) {
+        List<Integer> indices = new ArrayList<>();
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < rects.size(); i++) order.add(i);
+        order.sort((a, b) -> Float.compare(scores.get(b), scores.get(a)));
+
+        boolean[] suppressed = new boolean[rects.size()];
+        for (int i = 0; i < order.size(); i++) {
+            int idx = order.get(i);
+            if (suppressed[idx]) continue;
+            indices.add(idx);
+            Rect a = rects.get(idx);
+            double areaA = (double) a.width() * a.height();
+            for (int j = i + 1; j < order.size(); j++) {
+                int idxB = order.get(j);
+                if (suppressed[idxB]) continue;
+                Rect b = rects.get(idxB);
+                double interX1 = Math.max(a.x(), b.x());
+                double interY1 = Math.max(a.y(), b.y());
+                double interX2 = Math.min(a.x() + a.width(), b.x() + b.width());
+                double interY2 = Math.min(a.y() + a.height(), b.y() + b.height());
+                double interW = Math.max(0, interX2 - interX1);
+                double interH = Math.max(0, interY2 - interY1);
+                double inter = interW * interH;
+                double union = areaA + (double) b.width() * b.height() - inter;
+                double iou = union <= 0 ? 0 : inter / union;
+                if (iou > iouThreshold) {
+                    suppressed[idxB] = true;
+                }
+            }
+        }
+        return indices;
+    }
+
+    /** Load the eye cascade with classpath-first, then remote fallback. */
+    private void loadEyeCascade() {
+        try {
+            eyeCascade = new CascadeClassifier();
+            // Try classpath
+            try (java.io.InputStream is = getClass().getResourceAsStream(DEFAULT_EYE_CASCADE_PATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("haarcascade_eye", ".xml");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    if (eyeCascade.load(tmp.getAbsolutePath())) {
+                        logger.info("Eye cascade loaded from classpath");
+                        return;
+                    }
+                }
+            } catch (Exception ignore) {}
+
+            // Try system path
+            if (eyeCascade.load(DEFAULT_EYE_CASCADE_PATH)) {
+                logger.info("Eye cascade loaded from system path");
+                return;
+            }
+
+            // Download fallback
+            try {
+                logger.info("Attempting to download eye cascade...");
+                java.net.URL url = new java.net.URL(EYE_CASCADE_DOWNLOAD_URL);
+                java.io.File tmp = java.io.File.createTempFile("haarcascade_eye", ".xml");
+                tmp.deleteOnExit();
+                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                     java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
+                if (eyeCascade.load(tmp.getAbsolutePath())) {
+                    logger.info("Eye cascade downloaded and loaded successfully");
+                    return;
+                }
+            } catch (Exception ex) {
+                logger.warn("Could not download eye cascade: {}", ex.getMessage());
+            }
+
+            // If all fails, set to empty to avoid NPE
+            logger.warn("Eye cascade unavailable; face verification will be skipped");
+        } catch (Exception e) {
+            logger.warn("Error loading eye cascade: {}", e.getMessage());
+            eyeCascade = null;
+        }
     }
 }
