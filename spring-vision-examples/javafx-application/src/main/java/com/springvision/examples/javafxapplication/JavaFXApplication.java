@@ -1,37 +1,54 @@
 package com.springvision.examples.javafxapplication;
 
-import com.springvision.core.VisionTemplate;
-import com.springvision.core.VisionResult;
-import com.springvision.core.Detection;
-import com.springvision.core.ImageData;
-import com.springvision.core.exception.VisionProcessingException;
-import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.*;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import com.springvision.autoconfigure.VisionProperties;
+import com.springvision.core.Detection;
+import com.springvision.core.ImageData;
+import com.springvision.core.VisionBackend;
+import com.springvision.core.VisionResult;
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.backend.DeepFaceVisionBackend;
+import com.springvision.core.backend.OpenCvVisionBackend;
+import com.springvision.core.exception.VisionProcessingException;
+
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SplitPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 /**
  * JavaFX Application for Spring Vision face detection.
@@ -68,8 +85,10 @@ public class JavaFXApplication {
     public static class FaceDetectionApp extends Application {
 
         private static volatile VisionTemplate providedVisionTemplate;
+        private static volatile VisionProperties providedVisionProperties;
 
         private VisionTemplate visionTemplate;
+        private VisionProperties visionProperties;
         private Stage primaryStage;
         private ImageView imageView;
         private VBox resultArea;
@@ -78,15 +97,21 @@ public class JavaFXApplication {
         private Button detectButton;
         private Button clearButton;
         private Pane overlayPane;
+        private ComboBox<String> backendComboBox;
 
         public static void provideVisionTemplate(VisionTemplate template) {
             providedVisionTemplate = template;
+        }
+
+        public static void provideVisionProperties(VisionProperties properties) {
+            providedVisionProperties = properties;
         }
 
         @Override
         public void start(Stage primaryStage) {
             this.primaryStage = primaryStage;
             this.visionTemplate = getVisionTemplate();
+            this.visionProperties = providedVisionProperties; // may be null if autoconfig not used
 
             setupUI();
             setupEventHandlers();
@@ -164,8 +189,81 @@ public class JavaFXApplication {
             clearButton.setStyle("-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-weight: bold;");
             clearButton.setOnAction(e -> clearResults());
 
-            toolbar.getChildren().addAll(openButton, detectButton, clearButton);
+            // Backend selector
+            backendComboBox = new ComboBox<>();
+            backendComboBox.getItems().addAll("opencv", "deepface");
+            String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
+            backendComboBox.getSelectionModel().select(currentBackend);
+            backendComboBox.setOnAction(e -> onBackendChanged());
+
+            toolbar.getChildren().addAll(openButton, detectButton, clearButton, new Label("Backend:"), backendComboBox);
             return toolbar;
+        }
+
+        private void onBackendChanged() {
+            String selected = backendComboBox.getSelectionModel().getSelectedItem();
+            if (selected == null || selected.isBlank()) {
+                return;
+            }
+            try {
+                switchBackend(selected.trim().toLowerCase());
+                statusLabel.setText("Backend switched to: " + visionTemplate.getBackendId());
+            } catch (Exception ex) {
+                logger.error("Failed to switch backend: {}", ex.getMessage(), ex);
+                showError("Backend Switch Failed", "Could not switch backend: " + ex.getMessage());
+                // Revert selection to current
+                backendComboBox.getSelectionModel().select(visionTemplate.getBackendId());
+            }
+        }
+
+        private void switchBackend(String backendId) throws Exception {
+            VisionBackend backend;
+            switch (backendId) {
+                case "deepface": {
+                    DeepFaceVisionBackend df;
+                    if (visionProperties != null) {
+                        VisionProperties.DeepFace cfg = visionProperties.getDeepface();
+                        df = new DeepFaceVisionBackend()
+                            .setPythonExecutable(cfg.getPythonExecutable())
+                            .setDetectorBackend(cfg.getDetectorBackend())
+                            .setEnforceDetection(cfg.isEnforceDetection())
+                            .setProcessTimeout(java.time.Duration.ofSeconds(cfg.getProcessTimeoutSeconds()))
+                            .setAnalyzeAge(cfg.isAnalyzeAge())
+                            .setAnalyzeGender(cfg.isAnalyzeGender())
+                            .setAnalyzeEmotion(cfg.isAnalyzeEmotion())
+                            .setAnalyzeRace(cfg.isAnalyzeRace())
+                            .setGenerateEmbeddings(cfg.isGenerateEmbeddings())
+                            .setEmbeddingModel(cfg.getEmbeddingModel())
+                            .setNormalizeEmbeddings(cfg.isNormalizeEmbeddings())
+                            .setRecognition(cfg.isRecognitionEnabled(), cfg.getRecognitionGalleryDir(), cfg.getRecognitionMetric(), cfg.getRecognitionTopK());
+                    } else {
+                        // Fallback defaults when VisionProperties is not available
+                        df = new DeepFaceVisionBackend()
+                            .setPythonExecutable("python")
+                            .setDetectorBackend("retinaface")
+                            .setEnforceDetection(false)
+                            .setProcessTimeout(java.time.Duration.ofSeconds(20))
+                            .setAnalyzeAge(false)
+                            .setAnalyzeGender(false)
+                            .setAnalyzeEmotion(false)
+                            .setAnalyzeRace(false)
+                            .setGenerateEmbeddings(false)
+                            .setEmbeddingModel("ArcFace")
+                            .setNormalizeEmbeddings(true);
+                    }
+                    df.initialize();
+                    backend = df;
+                    break;
+                }
+                case "opencv":
+                default: {
+                    OpenCvVisionBackend ocv = new OpenCvVisionBackend();
+                    ocv.initialize();
+                    backend = ocv;
+                    break;
+                }
+            }
+            this.visionTemplate = new VisionTemplate(backend);
         }
 
         /**
@@ -558,20 +656,25 @@ public class JavaFXApplication {
 
         private final VisionTemplate visionTemplate;
         private final ApplicationContext applicationContext;
+        private final VisionProperties visionProperties;
 
-        public JavaFXCommandRunner(VisionTemplate visionTemplate, ApplicationContext applicationContext) {
+        public JavaFXCommandRunner(VisionTemplate visionTemplate, ApplicationContext applicationContext,
+                                   ObjectProvider<VisionProperties> visionPropertiesProvider) {
             this.visionTemplate = visionTemplate;
             this.applicationContext = applicationContext;
+            this.visionProperties = visionPropertiesProvider.getIfAvailable();
         }
 
         @Override
         public void run(String... args) throws Exception {
             logger.info("Launching JavaFX application");
 
-            // Provide VisionTemplate to JavaFX UI before launching
+            // Provide VisionTemplate and (optional) VisionProperties to JavaFX UI before launching
             FaceDetectionApp.provideVisionTemplate(visionTemplate);
+            if (visionProperties != null) {
+                FaceDetectionApp.provideVisionProperties(visionProperties);
+            }
 
-            // Launch JavaFX application
             Application.launch(FaceDetectionApp.class, args);
         }
     }

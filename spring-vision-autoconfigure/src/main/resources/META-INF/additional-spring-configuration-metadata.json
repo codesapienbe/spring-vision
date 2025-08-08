@@ -9,7 +9,7 @@
     {
       "name": "vision.backend",
       "type": "java.lang.String",
-      "description": "The vision backend to use (opencv, mediapipe, yolo).",
+      "description": "The vision backend to use (opencv, deepface, mediapipe, yolo).",
       "defaultValue": "opencv"
     },
     {
@@ -55,6 +55,102 @@
       "defaultValue": 10485760
     },
     {
+      "name": "vision.deepface.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Whether DeepFace backend is enabled.",
+      "defaultValue": true
+    },
+    {
+      "name": "vision.deepface.python-executable",
+      "type": "java.lang.String",
+      "description": "Python executable to invoke for DeepFace.",
+      "defaultValue": "python"
+    },
+    {
+      "name": "vision.deepface.detector-backend",
+      "type": "java.lang.String",
+      "description": "DeepFace detector backend (retinaface, opencv, mtcnn, mediapipe).",
+      "defaultValue": "retinaface"
+    },
+    {
+      "name": "vision.deepface.enforce-detection",
+      "type": "java.lang.Boolean",
+      "description": "Whether to enforce detection (DeepFace enforce_detection flag).",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.process-timeout-seconds",
+      "type": "java.lang.Long",
+      "description": "Subprocess timeout in seconds for DeepFace detection.",
+      "defaultValue": 20
+    },
+    {
+      "name": "vision.deepface.analyze-age",
+      "type": "java.lang.Boolean",
+      "description": "Whether to analyze age per detected face.",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.analyze-gender",
+      "type": "java.lang.Boolean",
+      "description": "Whether to analyze gender per detected face.",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.analyze-emotion",
+      "type": "java.lang.Boolean",
+      "description": "Whether to analyze dominant emotion per detected face.",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.analyze-race",
+      "type": "java.lang.Boolean",
+      "description": "Whether to analyze dominant race per detected face.",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.generate-embeddings",
+      "type": "java.lang.Boolean",
+      "description": "Whether to generate face embeddings per detected face.",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.embedding-model",
+      "type": "java.lang.String",
+      "description": "Embedding model to use (ArcFace, VGG-Face, Facenet, OpenFace, DeepFace, SFace).",
+      "defaultValue": "ArcFace"
+    },
+    {
+      "name": "vision.deepface.normalize-embeddings",
+      "type": "java.lang.Boolean",
+      "description": "Whether to L2-normalize generated embeddings before comparison.",
+      "defaultValue": true
+    },
+    {
+      "name": "vision.deepface.recognition-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable gallery-based recognition (identity matching).",
+      "defaultValue": false
+    },
+    {
+      "name": "vision.deepface.recognition-gallery-dir",
+      "type": "java.lang.String",
+      "description": "Directory containing labeled reference images for recognition.",
+      "defaultValue": null
+    },
+    {
+      "name": "vision.deepface.recognition-metric",
+      "type": "java.lang.String",
+      "description": "Distance metric for recognition (cosine, euclidean, euclidean_l2).",
+      "defaultValue": "cosine"
+    },
+    {
+      "name": "vision.deepface.recognition-top-k",
+      "type": "java.lang.Integer",
+      "description": "Number of top candidates to consider per face during recognition.",
+      "defaultValue": 1
+    },
+    {
       "name": "vision.health.enabled",
       "type": "java.lang.Boolean",
       "description": "Whether health monitoring is enabled.",
@@ -95,18 +191,10 @@
     {
       "name": "vision.backend",
       "values": [
-        {
-          "value": "opencv",
-          "description": "OpenCV backend for computer vision operations."
-        },
-        {
-          "value": "mediapipe",
-          "description": "MediaPipe backend for ML-based vision operations (not yet implemented)."
-        },
-        {
-          "value": "yolo",
-          "description": "YOLO backend for real-time object detection (not yet implemented)."
-        }
+        {"value": "opencv", "description": "OpenCV backend for computer vision operations."},
+        {"value": "deepface", "description": "DeepFace backend (Python-based face detection via subprocess)."},
+        {"value": "mediapipe", "description": "MediaPipe backend for ML-based vision operations (not yet implemented)."},
+        {"value": "yolo", "description": "YOLO backend for real-time object detection (not yet implemented)."}
       ]
     },
     {
@@ -116,21 +204,24 @@
           "name": "any",
           "parameters": {
             "values": [
-              {
-                "value": 0.5,
-                "description": "Low confidence threshold (more detections, lower accuracy)."
-              },
-              {
-                "value": 0.8,
-                "description": "Medium confidence threshold (balanced accuracy and recall)."
-              },
-              {
-                "value": 0.95,
-                "description": "High confidence threshold (fewer detections, higher accuracy)."
-              }
+              {"value": 0.5, "description": "Low confidence threshold (more detections, lower accuracy)."},
+              {"value": 0.8, "description": "Medium confidence threshold (balanced accuracy and recall)."},
+              {"value": 0.95, "description": "High confidence threshold (fewer detections, higher accuracy)."}
             ]
           }
         }
+      ]
+    },
+    {
+      "name": "vision.deepface.embedding-model",
+      "values": [
+        {"value": "ArcFace"}, {"value": "VGG-Face"}, {"value": "Facenet"}, {"value": "OpenFace"}, {"value": "DeepFace"}, {"value": "SFace"}
+      ]
+    },
+    {
+      "name": "vision.deepface.recognition-metric",
+      "values": [
+        {"value": "cosine"}, {"value": "euclidean"}, {"value": "euclidean_l2"}
       ]
     }
   ]
