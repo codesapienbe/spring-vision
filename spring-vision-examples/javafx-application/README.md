@@ -133,28 +133,6 @@ vision:
   logging:
     level: INFO
     format: structured
-
-# Application-specific settings
-app:
-  javafx:
-    window:
-      title: "Spring Vision - Face Detection"
-      min-width: 800
-      min-height: 600
-      default-width: 1000
-      default-height: 700
-    image:
-      max-file-size: 50MB
-      supported-formats:
-        - jpg
-        - jpeg
-        - png
-        - bmp
-        - gif
-    ui:
-      theme: light
-      enable-drag-drop: true
-      show-progress: true
 ```
 
 ## Logging
@@ -198,13 +176,6 @@ The application provides comprehensive error handling:
 3. Drop it onto the application window
 4. The image loads automatically
 5. Click "Detect Faces" to process
-
-### Example 3: Batch Processing Workflow
-
-1. Load an image with multiple faces
-2. Perform detection
-3. Review all detected faces in the results panel
-4. Clear and load another image for comparison
 
 ## Development
 

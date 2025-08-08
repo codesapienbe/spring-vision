@@ -40,7 +40,7 @@ public class VisionProperties {
     private boolean enabled = true;
 
     /**
-     * The vision backend to use (opencv, deepface, mediapipe, yolo).
+     * The vision backend to use (opencv, mediapipe, yolo).
      */
     private String backend = "opencv";
 
@@ -48,11 +48,6 @@ public class VisionProperties {
      * OpenCV-specific configuration properties.
      */
     private OpenCv opencv = new OpenCv();
-
-    /**
-     * DeepFace-specific configuration properties.
-     */
-    private DeepFace deepface = new DeepFace();
 
     /**
      * Health monitoring configuration.
@@ -116,24 +111,6 @@ public class VisionProperties {
      */
     public void setOpencv(OpenCv opencv) {
         this.opencv = opencv;
-    }
-
-    /**
-     * Gets the DeepFace configuration.
-     *
-     * @return the DeepFace configuration
-     */
-    public DeepFace getDeepface() {
-        return deepface;
-    }
-
-    /**
-     * Sets the DeepFace configuration.
-     *
-     * @param deepface the DeepFace configuration
-     */
-    public void setDeepface(DeepFace deepface) {
-        this.deepface = deepface;
     }
 
     /**
@@ -336,220 +313,6 @@ public class VisionProperties {
          */
         public void setMaxImageSize(long maxImageSize) {
             this.maxImageSize = maxImageSize;
-        }
-    }
-
-    /**
-     * DeepFace-specific configuration properties.
-     */
-    public static class DeepFace {
-
-        /**
-         * Whether DeepFace backend is enabled.
-         */
-        private boolean enabled = true;
-
-        /**
-         * Python executable to invoke. Prefer a virtualenv shim on PATH.
-         */
-        private String pythonExecutable = "python";
-
-        /**
-         * DeepFace detector backend (e.g., retinaface, opencv, mtcnn, mediapipe).
-         */
-        private String detectorBackend = "retinaface";
-
-        /**
-         * Whether to enforce detection (DeepFace enforce_detection flag).
-         */
-        private boolean enforceDetection = false;
-
-        /**
-         * Subprocess timeout in seconds for DeepFace detection.
-         */
-        private long processTimeoutSeconds = 20L;
-
-        /**
-         * Whether to analyze age for each detected face.
-         */
-        private boolean analyzeAge = false;
-
-        /**
-         * Whether to analyze gender for each detected face.
-         */
-        private boolean analyzeGender = false;
-
-        /**
-         * Whether to analyze dominant emotion for each detected face.
-         */
-        private boolean analyzeEmotion = false;
-
-        /**
-         * Whether to analyze dominant race/ethnicity for each detected face.
-         */
-        private boolean analyzeRace = false;
-
-        /**
-         * Whether to generate face embeddings for each detected face.
-         */
-        private boolean generateEmbeddings = false;
-
-        /**
-         * Embedding model name to use (e.g., ArcFace, VGG-Face, Facenet, OpenFace, DeepFace, SFace).
-         */
-        private String embeddingModel = "ArcFace";
-
-        /**
-         * Whether to L2-normalize generated embeddings.
-         */
-        private boolean normalizeEmbeddings = true;
-
-        /**
-         * Enable gallery-based recognition (best identity match per face).
-         */
-        private boolean recognitionEnabled = false;
-
-        /**
-         * Directory containing labeled reference images for recognition.
-         */
-        private String recognitionGalleryDir;
-
-        /**
-         * Distance metric for recognition (cosine, euclidean, euclidean_l2).
-         */
-        private String recognitionMetric = "cosine";
-
-        /**
-         * Number of top candidates to consider per face during recognition.
-         */
-        private int recognitionTopK = 1;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getPythonExecutable() {
-            return pythonExecutable;
-        }
-
-        public void setPythonExecutable(String pythonExecutable) {
-            this.pythonExecutable = pythonExecutable;
-        }
-
-        public String getDetectorBackend() {
-            return detectorBackend;
-        }
-
-        public void setDetectorBackend(String detectorBackend) {
-            this.detectorBackend = detectorBackend;
-        }
-
-        public boolean isEnforceDetection() {
-            return enforceDetection;
-        }
-
-        public void setEnforceDetection(boolean enforceDetection) {
-            this.enforceDetection = enforceDetection;
-        }
-
-        public long getProcessTimeoutSeconds() {
-            return processTimeoutSeconds;
-        }
-
-        public void setProcessTimeoutSeconds(long processTimeoutSeconds) {
-            this.processTimeoutSeconds = processTimeoutSeconds;
-        }
-
-        public boolean isAnalyzeAge() {
-            return analyzeAge;
-        }
-
-        public void setAnalyzeAge(boolean analyzeAge) {
-            this.analyzeAge = analyzeAge;
-        }
-
-        public boolean isAnalyzeGender() {
-            return analyzeGender;
-        }
-
-        public void setAnalyzeGender(boolean analyzeGender) {
-            this.analyzeGender = analyzeGender;
-        }
-
-        public boolean isAnalyzeEmotion() {
-            return analyzeEmotion;
-        }
-
-        public void setAnalyzeEmotion(boolean analyzeEmotion) {
-            this.analyzeEmotion = analyzeEmotion;
-        }
-
-        public boolean isAnalyzeRace() {
-            return analyzeRace;
-        }
-
-        public void setAnalyzeRace(boolean analyzeRace) {
-            this.analyzeRace = analyzeRace;
-        }
-
-        public boolean isGenerateEmbeddings() {
-            return generateEmbeddings;
-        }
-
-        public void setGenerateEmbeddings(boolean generateEmbeddings) {
-            this.generateEmbeddings = generateEmbeddings;
-        }
-
-        public String getEmbeddingModel() {
-            return embeddingModel;
-        }
-
-        public void setEmbeddingModel(String embeddingModel) {
-            this.embeddingModel = embeddingModel;
-        }
-
-        public boolean isNormalizeEmbeddings() {
-            return normalizeEmbeddings;
-        }
-
-        public void setNormalizeEmbeddings(boolean normalizeEmbeddings) {
-            this.normalizeEmbeddings = normalizeEmbeddings;
-        }
-
-        public boolean isRecognitionEnabled() {
-            return recognitionEnabled;
-        }
-
-        public void setRecognitionEnabled(boolean recognitionEnabled) {
-            this.recognitionEnabled = recognitionEnabled;
-        }
-
-        public String getRecognitionGalleryDir() {
-            return recognitionGalleryDir;
-        }
-
-        public void setRecognitionGalleryDir(String recognitionGalleryDir) {
-            this.recognitionGalleryDir = recognitionGalleryDir;
-        }
-
-        public String getRecognitionMetric() {
-            return recognitionMetric;
-        }
-
-        public void setRecognitionMetric(String recognitionMetric) {
-            this.recognitionMetric = recognitionMetric;
-        }
-
-        public int getRecognitionTopK() {
-            return recognitionTopK;
-        }
-
-        public void setRecognitionTopK(int recognitionTopK) {
-            this.recognitionTopK = recognitionTopK;
         }
     }
 
