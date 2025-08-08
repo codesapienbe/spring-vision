@@ -1,24 +1,22 @@
 package com.springvision.autoconfigure;
 
-import com.springvision.core.VisionBackend;
-import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.OpenCvVisionBackend;
-import com.springvision.core.BackendHealthInfo;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.util.List;
-import java.util.Map;
+import com.springvision.core.VisionBackend;
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.backend.DeepFaceVisionBackend;
+import com.springvision.core.backend.OpenCvVisionBackend;
+
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Spring Boot auto-configuration for Spring Vision framework.
@@ -91,8 +89,10 @@ public class VisionAutoConfiguration {
                 createMediaPipeBackend(properties);
             case "yolo" ->
                 createYoloBackend(properties);
+            case "deepface" ->
+                createDeepFaceBackend(properties);
             default -> {
-                logger.warn("Unknown backend '{}', falling back to OpenCV", properties.getBackend());
+                logger.warn("Unknown backend '{}'", properties.getBackend());
                 yield createOpenCvBackend(properties);
             }
         };
@@ -212,6 +212,32 @@ public class VisionAutoConfiguration {
         throw new UnsupportedOperationException("YOLO backend is not yet implemented");
     }
 
+    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
+        logger.info("Creating DeepFace vision backend");
+        try {
+            VisionProperties.DeepFace cfg = properties.getDeepface();
+            DeepFaceVisionBackend backend = new DeepFaceVisionBackend()
+                .setPythonExecutable(cfg.getPythonExecutable())
+                .setDetectorBackend(cfg.getDetectorBackend())
+                .setEnforceDetection(cfg.isEnforceDetection())
+                .setProcessTimeout(java.time.Duration.ofSeconds(cfg.getProcessTimeoutSeconds()))
+                .setAnalyzeAge(cfg.isAnalyzeAge())
+                .setAnalyzeGender(cfg.isAnalyzeGender())
+                .setAnalyzeEmotion(cfg.isAnalyzeEmotion())
+                .setGenerateEmbeddings(cfg.isGenerateEmbeddings())
+                .setEmbeddingModel(cfg.getEmbeddingModel())
+                .setAnalyzeRace(cfg.isAnalyzeRace())
+                .setNormalizeEmbeddings(cfg.isNormalizeEmbeddings())
+                .setRecognition(cfg.isRecognitionEnabled(), cfg.getRecognitionGalleryDir(), cfg.getRecognitionMetric(), cfg.getRecognitionTopK());
+            backend.initialize();
+            logger.info("DeepFace backend initialized successfully");
+            return backend;
+        } catch (Exception e) {
+            logger.warn("Failed to create or initialize DeepFace backend - degraded functionality: {}", e.getMessage());
+            return createDeepFaceBackendWithDegradedFunctionality(e);
+        }
+    }
+
         /**
      * Creates an OpenCV backend with degraded functionality when initialization fails.
      *
@@ -290,4 +316,61 @@ public class VisionAutoConfiguration {
         };
     }
 
+    private VisionBackend createDeepFaceBackendWithDegradedFunctionality(Throwable initializationError) {
+        logger.info("Creating DeepFace backend with degraded functionality");
+        return new VisionBackend() {
+            private static final String BACKEND_ID = "deepface";
+            private static final String DISPLAY_NAME = "DeepFace Vision Backend (Degraded)";
+            private static final String VERSION = "0.1.0";
+
+            @Override
+            public String getBackendId() { return BACKEND_ID; }
+
+            @Override
+            public String getDisplayName() { return DISPLAY_NAME; }
+
+            @Override
+            public String getVersion() { return VERSION; }
+
+            @Override
+            public java.util.Set<com.springvision.core.DetectionType> getSupportedDetectionTypes() {
+                return java.util.Set.of(com.springvision.core.DetectionType.FACE);
+            }
+
+            @Override
+            public boolean isHealthy() { return false; }
+
+            @Override
+            public com.springvision.core.BackendHealthInfo getHealthInfo() {
+                return com.springvision.core.BackendHealthInfo.unhealthy(
+                    BACKEND_ID,
+                    "DeepFace backend - degraded functionality",
+                    "DeepFace backend failed to initialize: " + initializationError.getMessage(),
+                    0
+                );
+            }
+
+            @Override
+            public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
+                logger.warn("DeepFace backend: Face detection not available - initialization failed");
+                throw new com.springvision.core.exception.VisionBackendException(
+                    "Face detection not available - DeepFace backend failed to initialize: " + initializationError.getMessage(),
+                    "deepface_initialization_failed",
+                    null,
+                    initializationError
+                );
+            }
+
+            @Override
+            public com.springvision.core.VisionResult detectObjects(com.springvision.core.ImageData imageData) {
+                logger.warn("DeepFace backend: Object detection not supported");
+                throw new com.springvision.core.exception.VisionBackendException(
+                    "Object detection not supported by DeepFace backend",
+                    "deepface_not_supported",
+                    null,
+                    initializationError
+                );
+            }
+        };
+    }
 }
