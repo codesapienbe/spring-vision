@@ -60,6 +60,13 @@
             <version>${javafx.version}</version>
         </dependency>
 
+        <!-- Logback JSON encoder for structured logging -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+
         <!-- Spring Boot DevTools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
