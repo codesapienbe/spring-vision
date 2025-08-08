@@ -134,12 +134,21 @@ public class OpenCvVisionBackend implements VisionBackend {
     private static final double MAX_FACE_SIZE_RATIO = 0.8;
 
     /**
+     * Fail-safe guardrail for incoming image payload to avoid memory/DoS issues.
+     */
+    private static final long MAX_SAFE_IMAGE_BYTES = 50L * 1024 * 1024; // 50MB
+
+    /**
      * Face detection cascade classifier.
      */
     private CascadeClassifier faceCascade;
-    private Net dnnFaceNet;
+    private ThreadLocal<Net> dnnFaceNet;
     private CascadeClassifier eyeCascade;
     private CascadeClassifier profileCascade;
+
+    // Cached DNN resource paths for ThreadLocal initialization
+    private String dnnProtoPath;
+    private String dnnModelPath;
 
     /**
      * Frame converter for OpenCV operations.
@@ -244,6 +253,11 @@ public class OpenCvVisionBackend implements VisionBackend {
         ));
 
         try {
+            // Guard against overly large images
+            if (imageData.getSizeInBytes() > MAX_SAFE_IMAGE_BYTES) {
+                throw new VisionProcessingException(
+                    "Image exceeds maximum allowed size", "image_too_large", DetectionType.FACE.getCode());
+            }
             // Check if OpenCV is available
             if (!opencvAvailable) {
                 logger.warn("OpenCV not available - returning empty face detection result");
@@ -261,40 +275,52 @@ public class OpenCvVisionBackend implements VisionBackend {
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
             // Improve robustness for multiple/smaller faces
             equalizeHist(grayImage, grayImage);
+            // Apply CLAHE for low-light/contrast images
+            try {
+                org.bytedeco.opencv.opencv_imgproc.CLAHE clahe =
+                    org.bytedeco.opencv.global.opencv_imgproc.createCLAHE(3.0, new Size(8, 8));
+                Mat claheOut = new Mat();
+                clahe.apply(grayImage, claheOut);
+                grayImage.releaseReference();
+                grayImage = claheOut;
+                clahe.close();
+            } catch (Throwable t) {
+                logger.debug("CLAHE not applied: {}", t.getMessage());
+            }
 
-            // Detect faces using cascade classifier if available
+            // Collect candidates from all detectors for unified NMS
+            List<Rect> allRects = new ArrayList<>();
+            List<Float> allScores = new ArrayList<>();
             List<Detection> detections = new ArrayList<>();
             double totalConfidence = 0.0;
 
             // 1) Prefer DNN-based detector if available
-            if (dnnFaceNet != null && !dnnFaceNet.empty()) {
+            Net dnn = (dnnFaceNet != null) ? dnnFaceNet.get() : null;
+            if (dnn != null && !dnn.empty()) {
                 try {
                     List<Rect> candidateRects = new ArrayList<>();
                     List<Float> candidateScores = new ArrayList<>();
 
                     // Multi-scale: original and upscaled (for small faces)
-                    collectDnnCandidates(image, 1.0, candidateRects, candidateScores);
+                    collectDnnCandidates(image, 1.0, dnn, candidateRects, candidateScores);
                     double minDim = Math.min(image.cols(), image.rows());
-                    double upscale = minDim < 800 ? Math.min(2.0, 800.0 / minDim) : 1.0;
-                    if (upscale > 1.05) {
-                        collectDnnCandidates(image, upscale, candidateRects, candidateScores);
+                    // Prefer two upscales to improve small-face recall, capped for performance
+                    double upscale1 = minDim < 900 ? Math.min(2.0, 900.0 / minDim) : 1.0;
+                    double upscale2 = minDim < 1200 ? Math.min(3.0, 1200.0 / minDim) : 1.0;
+                    if (upscale1 > 1.05) {
+                        collectDnnCandidates(image, upscale1, dnn, candidateRects, candidateScores);
+                    }
+                    if (upscale2 > 1.2) {
+                        collectDnnCandidates(image, upscale2, dnn, candidateRects, candidateScores);
                     }
 
-                    // NMS + eye verification
-                    List<Integer> keep = nonMaximumSuppression(candidateRects, candidateScores, 0.4f);
-                    int cols = image.cols();
-                    int rows = image.rows();
-                    for (int idx : keep) {
-                        Rect r = candidateRects.get(idx);
-                        float conf = candidateScores.get(idx);
-                        if (!isFaceLikely(grayImage, r)) continue;
-                        double nx = (double) r.x() / cols;
-                        double ny = (double) r.y() / rows;
-                        double nw = (double) r.width() / cols;
-                        double nh = (double) r.height() / rows;
-                        detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
-                        totalConfidence += conf;
-                    }
+                    allRects.addAll(candidateRects);
+                    allScores.addAll(candidateScores);
+                    logger.debug("DNN stage completed", Map.of(
+                        "correlationId", correlationId,
+                        "candidates", candidateRects.size(),
+                        "kept", candidateRects.size()
+                    ));
                 } catch (Exception dnnEx) {
                     logger.warn("DNN face detection failed, falling back to cascade: {}", dnnEx.getMessage());
                 }
@@ -307,32 +333,17 @@ public class OpenCvVisionBackend implements VisionBackend {
                     int minDim = Math.min(image.cols(), image.rows());
                     Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
                     Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
-                    if (detections.isEmpty()) {
-                        faceCascade.detectMultiScale(grayImage, faces, 1.1, 3, 0, minSize, maxSize);
-                    }
+                    // More sensitive parameters to improve recall in crowded scenes
+                    faceCascade.detectMultiScale(grayImage, faces, 1.05, 2, 0, minSize, maxSize);
 
                     logger.debug("Cascade classifier detected {} faces", faces.size());
 
                     for (long i = 0; i < faces.size(); i++) {
                         Rect faceRect = faces.get(i);
-                        if (!isFaceLikely(grayImage, faceRect)) {
-                            continue;
-                        }
-
-                        // Convert OpenCV coordinates to normalized coordinates
-                        double x = (double) faceRect.x() / image.cols();
-                        double y = (double) faceRect.y() / image.rows();
-                        double width = (double) faceRect.width() / image.cols();
-                        double height = (double) faceRect.height() / image.rows();
-
-                        BoundingBox boundingBox = new BoundingBox(x, y, width, height);
-
-                        // Calculate confidence based on face size and position
-                        double confidence = calculateFaceConfidence(faceRect, image.cols(), image.rows());
-                        totalConfidence += confidence;
-
-                        Detection detection = Detection.of("face", confidence, boundingBox);
-                        detections.add(detection);
+                        // Score cascades with size-based confidence
+                        float c = (float) Math.min(0.95, Math.max(0.5, calculateFaceConfidence(faceRect, image.cols(), image.rows())));
+                        allRects.add(new Rect(faceRect.x(), faceRect.y(), faceRect.width(), faceRect.height()));
+                        allScores.add(c);
                     }
 
                     faces.deallocate();
@@ -341,6 +352,56 @@ public class OpenCvVisionBackend implements VisionBackend {
                 }
             } else {
                 logger.debug("Cascade classifier not available, using basic detection");
+            }
+
+            // 3) Profile-face detection (left profile and mirrored right profile) -> add as candidates
+            try {
+                if (profileCascade != null && !profileCascade.empty()) {
+                    RectVector profiles = new RectVector();
+                    int minDim = Math.min(image.cols(), image.rows());
+                    Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
+                    Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
+                    profileCascade.detectMultiScale(grayImage, profiles, 1.1, 3, 0, minSize, maxSize);
+                    for (long i = 0; i < profiles.size(); i++) {
+                        Rect r = profiles.get(i);
+                        allRects.add(new Rect(r.x(), r.y(), r.width(), r.height()));
+                        allScores.add(0.7f);
+                    }
+                    profiles.deallocate();
+
+                    Mat flipped = new Mat();
+                    flip(grayImage, flipped, 1);
+                    RectVector profilesFlipped = new RectVector();
+                    profileCascade.detectMultiScale(flipped, profilesFlipped, 1.1, 3, 0, minSize, maxSize);
+                    for (long i = 0; i < profilesFlipped.size(); i++) {
+                        Rect r = profilesFlipped.get(i);
+                        int xMapped = image.cols() - r.x() - r.width();
+                        Rect mapped = new Rect(Math.max(0, xMapped), r.y(), r.width(), r.height());
+                        allRects.add(mapped);
+                        allScores.add(0.7f);
+                    }
+                    profilesFlipped.deallocate();
+                    flipped.releaseReference();
+                }
+            } catch (Exception e) {
+                logger.debug("Profile-face detection skipped due to error: {}", e.getMessage());
+            }
+
+            // Final NMS over all candidates
+            List<Integer> kept = nonMaximumSuppression(allRects, allScores, 0.5f);
+            int cols = image.cols();
+            int rows = image.rows();
+            for (int idx : kept) {
+                Rect r = allRects.get(idx);
+                float conf = allScores.get(idx);
+                boolean requireEye = Math.min(r.width(), r.height()) >= 24;
+                if (requireEye && !isFaceLikely(grayImage, r)) continue;
+                double nx = (double) r.x() / cols;
+                double ny = (double) r.y() / rows;
+                double nw = (double) r.width() / cols;
+                double nh = (double) r.height() / rows;
+                detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+                totalConfidence += conf;
             }
 
             // If no faces detected with cascade, use basic detection
@@ -378,13 +439,7 @@ public class OpenCvVisionBackend implements VisionBackend {
             }
 
             // 3) Profile-face detection (left profile and mirrored right profile)
-            try {
-                if (profileCascade != null && !profileCascade.empty()) {
-                    addProfileDetections(grayImage, image.cols(), image.rows(), detections, totalConfidence);
-                }
-            } catch (Exception e) {
-                logger.debug("Profile-face detection skipped due to error: {}", e.getMessage());
-            }
+            // moved earlier into candidate fusion
 
             long processingTime = System.currentTimeMillis() - startTime;
             double averageConfidence = detections.isEmpty() ? 0.0 : totalConfidence / detections.size();
@@ -448,6 +503,10 @@ public class OpenCvVisionBackend implements VisionBackend {
         ));
 
         try {
+            if (imageData.getSizeInBytes() > MAX_SAFE_IMAGE_BYTES) {
+                throw new VisionProcessingException(
+                    "Image exceeds maximum allowed size", "image_too_large", DetectionType.OBJECT.getCode());
+            }
             // Check if OpenCV is available
             if (!opencvAvailable) {
                 logger.warn("OpenCV not available - returning empty object detection result");
@@ -859,12 +918,23 @@ public class OpenCvVisionBackend implements VisionBackend {
             }
 
             if (protoPath != null && modelPath != null) {
-                dnnFaceNet = org.bytedeco.opencv.global.opencv_dnn.readNetFromCaffe(protoPath, modelPath);
-                if (dnnFaceNet != null && !dnnFaceNet.empty()) {
-                    logger.info("DNN face detector loaded successfully");
+                // cache paths and provide thread-local networks for thread safety
+                this.dnnProtoPath = protoPath;
+                this.dnnModelPath = modelPath;
+                this.dnnFaceNet = ThreadLocal.withInitial(() -> {
+                    Net net = org.bytedeco.opencv.global.opencv_dnn.readNetFromCaffe(dnnProtoPath, dnnModelPath);
+                    try {
+                        net.setPreferableBackend(org.bytedeco.opencv.global.opencv_dnn.DNN_BACKEND_OPENCV);
+                        net.setPreferableTarget(org.bytedeco.opencv.global.opencv_dnn.DNN_TARGET_CPU);
+                    } catch (Throwable ignore) {}
+                    return net;
+                });
+                Net test = this.dnnFaceNet.get();
+                if (test != null && !test.empty()) {
+                    logger.info("DNN face detector loaded successfully (thread-local)");
                 } else {
                     logger.warn("Failed to initialize DNN face detector");
-                    dnnFaceNet = null;
+                    this.dnnFaceNet = null;
                 }
             } else {
                 logger.warn("DNN face detector resources unavailable; will use cascade only");
@@ -1139,7 +1209,7 @@ public class OpenCvVisionBackend implements VisionBackend {
     }
 
     /** Collect DNN candidates at a given scale; map rectangles back to original coordinates. */
-    private void collectDnnCandidates(Mat image, double scale,
+    private void collectDnnCandidates(Mat image, double scale, Net net,
                                       List<Rect> outRects, List<Float> outScores) {
         int cols = image.cols();
         int rows = image.rows();
@@ -1155,8 +1225,10 @@ public class OpenCvVisionBackend implements VisionBackend {
         }
 
         Mat blob = org.bytedeco.opencv.global.opencv_dnn.blobFromImage(src, 1.0, new Size(300, 300), new Scalar(104, 177, 123, 0), false, false, org.bytedeco.opencv.global.opencv_core.CV_32F);
-        dnnFaceNet.setInput(blob);
-        Mat detectionsMat = dnnFaceNet.forward();
+        synchronized (net) { // Net is not thread-safe
+            net.setInput(blob);
+        }
+        Mat detectionsMat = net.forward();
 
         int sCols = src.cols();
         int sRows = src.rows();
@@ -1166,7 +1238,7 @@ public class OpenCvVisionBackend implements VisionBackend {
 
         for (int i = 0; i < numDetections; i++) {
             float confidence = data.get((long) i * step + 2);
-            if (confidence < 0.7f) continue;
+            if (confidence < 0.5f) continue;
             float x1 = data.get((long) i * step + 3) * sCols;
             float y1 = data.get((long) i * step + 4) * sRows;
             float x2 = data.get((long) i * step + 5) * sCols;
@@ -1185,7 +1257,7 @@ public class OpenCvVisionBackend implements VisionBackend {
             int heightPx = Math.max(1, bottom - top);
 
             double aspect = (double) widthPx / heightPx;
-            if (aspect < 0.6 || aspect > 1.6) continue;
+            if (aspect < 0.5 || aspect > 1.8) continue;
             outRects.add(new Rect(left, top, widthPx, heightPx));
             outScores.add(confidence);
         }
