@@ -461,25 +461,24 @@ public class JavaFXApplication {
             // Clear existing overlays
             overlayPane.getChildren().clear();
 
-            // Add bounding box rectangles scaled to displayed image size
-            double[] displayedSize = getDisplayedImageSize();
-            double displayedWidth = displayedSize[0];
-            double displayedHeight = displayedSize[1];
-            if (displayedWidth > 0 && displayedHeight > 0) {
-                overlayPane.setPrefSize(displayedWidth, displayedHeight);
-                for (Detection detection : detections) {
-                    var bb = detection.boundingBox();
-                    Rectangle rect = new Rectangle(
-                        bb.x() * displayedWidth,
-                        bb.y() * displayedHeight,
-                        bb.width() * displayedWidth,
-                        bb.height() * displayedHeight
-                    );
-                    rect.setFill(Color.TRANSPARENT);
-                    rect.setStroke(Color.RED);
-                    rect.setStrokeWidth(2);
-                    overlayPane.getChildren().add(rect);
-                }
+            // Compute displayed image metrics and letterbox offsets
+            DisplayMetrics metrics = computeDisplayMetrics();
+            if (metrics.displayedWidth <= 0 || metrics.displayedHeight <= 0) {
+                return;
+            }
+
+            for (Detection detection : detections) {
+                var bb = detection.boundingBox();
+                double x = metrics.offsetX + (bb.x() * metrics.displayedWidth);
+                double y = metrics.offsetY + (bb.y() * metrics.displayedHeight);
+                double w = bb.width() * metrics.displayedWidth;
+                double h = bb.height() * metrics.displayedHeight;
+
+                Rectangle rect = new Rectangle(x, y, w, h);
+                rect.setFill(Color.TRANSPARENT);
+                rect.setStroke(Color.RED);
+                rect.setStrokeWidth(2);
+                overlayPane.getChildren().add(rect);
             }
         }
 
@@ -493,19 +492,41 @@ public class JavaFXApplication {
         }
 
         /**
-         * Calculates the displayed image dimensions based on fit size and aspect ratio.
+         * Calculates displayed image size and letterbox offsets within the overlay container.
          */
-        private double[] getDisplayedImageSize() {
+        private DisplayMetrics computeDisplayMetrics() {
             Image img = imageView.getImage();
             if (img == null) {
-                return new double[]{0, 0};
+                return new DisplayMetrics(0, 0, 0, 0);
             }
-            double imageWidth = img.getWidth();
-            double imageHeight = img.getHeight();
-            double fitWidth = imageView.getFitWidth();
-            double fitHeight = imageView.getFitHeight();
-            double scale = Math.min(fitWidth / imageWidth, fitHeight / imageHeight);
-            return new double[]{imageWidth * scale, imageHeight * scale};
+
+            // Actual displayed size of the ImageView (after preserveRatio scaling)
+            double displayedWidth = imageView.getBoundsInParent().getWidth();
+            double displayedHeight = imageView.getBoundsInParent().getHeight();
+
+            // Overlay/container size (StackPane layer)
+            double containerWidth = overlayPane.getWidth() > 0 ? overlayPane.getWidth() : overlayPane.getBoundsInParent().getWidth();
+            double containerHeight = overlayPane.getHeight() > 0 ? overlayPane.getHeight() : overlayPane.getBoundsInParent().getHeight();
+
+            // Compute letterbox offsets to center the image within the container
+            double offsetX = Math.max(0, (containerWidth - displayedWidth) / 2.0);
+            double offsetY = Math.max(0, (containerHeight - displayedHeight) / 2.0);
+
+            return new DisplayMetrics(displayedWidth, displayedHeight, offsetX, offsetY);
+        }
+
+        private static final class DisplayMetrics {
+            final double displayedWidth;
+            final double displayedHeight;
+            final double offsetX;
+            final double offsetY;
+
+            DisplayMetrics(double displayedWidth, double displayedHeight, double offsetX, double offsetY) {
+                this.displayedWidth = displayedWidth;
+                this.displayedHeight = displayedHeight;
+                this.offsetX = offsetX;
+                this.offsetY = offsetY;
+            }
         }
 
         /**
