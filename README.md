@@ -20,7 +20,7 @@
 
 ## 📋 Overview
 
-Spring-Vision is an open source project designed to empower Spring Boot developers with production-ready computer vision capabilities—starting with OpenCV, MediaPipe, and YOLO, and set up for easy plug-in of deeper Python AI models such as DeepFace, InsightFace, and more.
+Spring-Vision is an open source project designed to empower Spring Boot developers with production-ready computer vision capabilities—starting with OpenCV, and set up for easy plug-in of additional backends such as MediaPipe, YOLO, InsightFace, and more.
 
 ### ✨ Key Highlights
 
@@ -34,7 +34,7 @@ Spring-Vision is an open source project designed to empower Spring Boot develope
 ## 🚀 Features
 
 - 🔌 **Plug-and-play** computer vision for Spring Boot apps
-- 🎯 **Built-in support:** OpenCV, MediaPipe (via webhook), YOLO (object detection), more coming
+- 🎯 **Built-in support:** OpenCV; placeholders for MediaPipe and YOLO
 - ⚙️ **Spring autoconfig**, metrics/actuator endpoints, SPI for adding custom vision providers
 - ⚡ **Async, scalable I/O** (virtual threads)
 - ☁️ **Ready for cloud native** deployments and GraalVM builds
@@ -88,14 +88,13 @@ public void runDetection(InputStream image) {
 
 ## 🔧 Supported Backends
 
-| Backend    | Tech         | Mode      | Status     |
-|------------|--------------|-----------|------------|
-| 🎯 OpenCV     | Native       | JVM       | 🚧 Beta    |
-| 🤖 MediaPipe  | Python API   | Webhook   | ⏳         |
-| 🎯 YOLO       | Python API   | Webhook   | ⏳         |
-| 👤 DeepFace   | Python API   | Planned   | ⏳         |
-| 🔍 InsightFace| Python API   | Planned   | ⏳         |
-| 🔌 Custom     | SPI/Plugin   | JVM/API   | ✅ Ready   |
+| Backend     | Tech         | Mode      | Status     |
+|-------------|--------------|-----------|------------|
+| 🎯 OpenCV      | Native       | JVM       | 🚧 Beta    |
+| 🤖 MediaPipe   | Python API   | Webhook   | ⏳         |
+| 🎯 YOLO        | Python API   | Webhook   | ⏳         |
+| 🔍 InsightFace | Python API   | Planned   | ⏳         |
+| 🔌 Custom      | SPI/Plugin   | JVM/API   | ✅ Ready   |
 
 > **💡 Note:** OpenCV backend gracefully handles missing native libraries by operating in fallback mode, ensuring application startup even when OpenCV native dependencies are not available.
 
@@ -117,7 +116,7 @@ public void runDetection(InputStream image) {
 
 - **🎯 Q3–Q4 2025:** Project bootstrap, OpenCV integration, first demos, metrics
 - **🚀 Q1–Q2 2026:** MediaPipe & YOLO support, backend SPI, sample web clients
-- **🤖 Q3–Q4 2026:** Advanced AI (DeepFace, InsightFace), asynchrony, cloud readiness
+- **🤖 Q3–Q4 2026:** Advanced AI (InsightFace and others), asynchrony, cloud readiness
 - **📦 Q1 2027+:** Docs, Spring Initializr, Maven Central, first official release
 
 ---

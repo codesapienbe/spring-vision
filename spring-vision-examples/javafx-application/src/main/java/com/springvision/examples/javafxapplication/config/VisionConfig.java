@@ -22,6 +22,7 @@ public class VisionConfig {
      * This ensures the application starts and provides actual face detection.
      */
     @Bean
+    @Deprecated(since = "1.0.0", forRemoval = false)
     public VisionTemplate visionTemplate() {
         logger.info("Creating VisionTemplate with real OpenCV backend");
 

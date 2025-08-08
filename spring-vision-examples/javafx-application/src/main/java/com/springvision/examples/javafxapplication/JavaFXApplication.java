@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
@@ -21,7 +22,6 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.DeepFaceVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.exception.VisionProcessingException;
 
@@ -191,7 +191,7 @@ public class JavaFXApplication {
 
             // Backend selector
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv", "deepface");
+            backendComboBox.getItems().addAll("opencv");
             String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
@@ -217,53 +217,25 @@ public class JavaFXApplication {
         }
 
         private void switchBackend(String backendId) throws Exception {
+            logger.info("Switching vision backend", Map.of("component", "JavaFXApplication", "backendId", backendId));
+
             VisionBackend backend;
             switch (backendId) {
-                case "deepface": {
-                    DeepFaceVisionBackend df;
-                    if (visionProperties != null) {
-                        VisionProperties.DeepFace cfg = visionProperties.getDeepface();
-                        df = new DeepFaceVisionBackend()
-                            .setPythonExecutable(cfg.getPythonExecutable())
-                            .setDetectorBackend(cfg.getDetectorBackend())
-                            .setEnforceDetection(cfg.isEnforceDetection())
-                            .setProcessTimeout(java.time.Duration.ofSeconds(cfg.getProcessTimeoutSeconds()))
-                            .setAnalyzeAge(cfg.isAnalyzeAge())
-                            .setAnalyzeGender(cfg.isAnalyzeGender())
-                            .setAnalyzeEmotion(cfg.isAnalyzeEmotion())
-                            .setAnalyzeRace(cfg.isAnalyzeRace())
-                            .setGenerateEmbeddings(cfg.isGenerateEmbeddings())
-                            .setEmbeddingModel(cfg.getEmbeddingModel())
-                            .setNormalizeEmbeddings(cfg.isNormalizeEmbeddings())
-                            .setRecognition(cfg.isRecognitionEnabled(), cfg.getRecognitionGalleryDir(), cfg.getRecognitionMetric(), cfg.getRecognitionTopK());
-                    } else {
-                        // Fallback defaults when VisionProperties is not available
-                        df = new DeepFaceVisionBackend()
-                            .setPythonExecutable("python")
-                            .setDetectorBackend("retinaface")
-                            .setEnforceDetection(false)
-                            .setProcessTimeout(java.time.Duration.ofSeconds(20))
-                            .setAnalyzeAge(false)
-                            .setAnalyzeGender(false)
-                            .setAnalyzeEmotion(false)
-                            .setAnalyzeRace(false)
-                            .setGenerateEmbeddings(false)
-                            .setEmbeddingModel("ArcFace")
-                            .setNormalizeEmbeddings(true);
-                    }
-                    df.initialize();
-                    backend = df;
-                    break;
-                }
                 case "opencv":
                 default: {
                     OpenCvVisionBackend ocv = new OpenCvVisionBackend();
                     ocv.initialize();
+                    logger.info("OpenCV backend initialized successfully", Map.of("component", "JavaFXApplication"));
                     backend = ocv;
                     break;
                 }
             }
             this.visionTemplate = new VisionTemplate(backend);
+            logger.info("Vision template created with backend", Map.of(
+                "component", "JavaFXApplication",
+                "backendId", backend.getBackendId(),
+                "backendName", backend.getDisplayName()
+            ));
         }
 
         /**
@@ -428,7 +400,13 @@ public class JavaFXApplication {
                 clearResults();
 
             } catch (Exception e) {
-                logger.error("Error loading image: {}", e.getMessage(), e);
+                logger.error("Error loading image", Map.of(
+                    "component", "JavaFXApplication",
+                    "fileName", file.getName(),
+                    "fileSize", file.length(),
+                    "errorType", e.getClass().getSimpleName(),
+                    "errorMessage", e.getMessage()
+                ), e);
                 showError("Error loading image", "Could not load the selected image file: " + e.getMessage());
             }
         }
@@ -454,10 +432,20 @@ public class JavaFXApplication {
             statusLabel.setText("Detecting faces...");
             clearResults();
 
+            // Generate correlation ID for this detection request
+            String correlationId = java.util.UUID.randomUUID().toString();
+
             // Perform detection asynchronously
             CompletableFuture.supplyAsync(() -> {
+                long startTime = System.currentTimeMillis();
                 try {
-                    logger.info("Starting face detection for file: {}", imageFile.getName());
+                    logger.info("Starting face detection", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "fileName", imageFile.getName(),
+                        "fileSize", imageFile.length(),
+                        "backendId", visionTemplate.getBackend().getBackendId()
+                    ));
 
                     // Read image data
                     byte[] imageData = Files.readAllBytes(imageFile.toPath());
@@ -465,25 +453,53 @@ public class JavaFXApplication {
 
                     // Perform detection
                     VisionResult result = visionTemplate.detectFaces(image);
+                    long processingTime = System.currentTimeMillis() - startTime;
 
-                    logger.info("Face detection completed. Found {} faces", result.detections().size());
+                    logger.info("Face detection completed", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "detectionCount", result.detections().size(),
+                        "processingTimeMs", processingTime,
+                        "backendId", visionTemplate.getBackend().getBackendId()
+                    ));
                     return result;
 
                 } catch (VisionProcessingException e) {
-                    logger.error("Vision processing error: {}", e.getMessage(), e);
+                    logger.error("Vision processing error", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "errorType", "VisionProcessingException",
+                        "errorMessage", e.getMessage()
+                    ), e);
                     throw new RuntimeException("Vision processing failed: " + e.getMessage(), e);
                 } catch (IOException e) {
-                    logger.error("I/O error: {}", e.getMessage(), e);
+                    logger.error("I/O error during face detection", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "errorType", "IOException",
+                        "errorMessage", e.getMessage(),
+                        "fileName", imageFile.getName()
+                    ), e);
                     throw new RuntimeException("Could not read image file: " + e.getMessage(), e);
                 } catch (Exception e) {
-                    logger.error("Unexpected error: {}", e.getMessage(), e);
+                    logger.error("Unexpected error during face detection", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "errorType", e.getClass().getSimpleName(),
+                        "errorMessage", e.getMessage()
+                    ), e);
                     throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
                 }
             }).thenAcceptAsync(result -> {
                 Platform.runLater(() -> displayResults(result));
             }).exceptionally(throwable -> {
                 Platform.runLater(() -> {
-                    logger.error("Detection failed: {}", throwable.getMessage(), throwable);
+                    logger.error("Detection failed in UI thread", Map.of(
+                        "component", "JavaFXApplication",
+                        "correlationId", correlationId,
+                        "errorType", throwable.getClass().getSimpleName(),
+                        "errorMessage", throwable.getMessage()
+                    ), throwable);
                     showError("Detection Failed", throwable.getMessage());
                     resetUI();
                 });

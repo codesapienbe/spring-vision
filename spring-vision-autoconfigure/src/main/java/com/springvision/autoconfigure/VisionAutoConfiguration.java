@@ -10,10 +10,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.DeepFaceVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -89,8 +90,6 @@ public class VisionAutoConfiguration {
                 createMediaPipeBackend(properties);
             case "yolo" ->
                 createYoloBackend(properties);
-            case "deepface" ->
-                createDeepFaceBackend(properties);
             default -> {
                 logger.warn("Unknown backend '{}'", properties.getBackend());
                 yield createOpenCvBackend(properties);
@@ -160,6 +159,13 @@ public class VisionAutoConfiguration {
     }
 
     /**
+     * Application context shutdown hook.
+     */
+    @EventListener
+    public void onContextClosed(ContextClosedEvent event) {
+    }
+
+    /**
      * Creates an OpenCV vision backend with the specified configuration.
      *
      * @param properties the vision configuration properties
@@ -181,73 +187,14 @@ public class VisionAutoConfiguration {
     }
 
     /**
-     * Creates a MediaPipe vision backend with the specified configuration.
+     * Creates an OpenCV vision backend with degraded functionality.
      *
      * <p>
-     * This is a placeholder for future MediaPipe integration. Currently throws
-     * an UnsupportedOperationException.</p>
+     * This method creates a VisionBackend implementation that provides
+     * minimal functionality due to a failed initialization attempt.</p>
      *
-     * @param properties the vision configuration properties
-     * @return the configured MediaPipe backend
-     * @throws UnsupportedOperationException as MediaPipe is not yet implemented
-     */
-    private VisionBackend createMediaPipeBackend(VisionProperties properties) {
-        logger.warn("MediaPipe backend is not yet implemented");
-        throw new UnsupportedOperationException("MediaPipe backend is not yet implemented");
-    }
-
-    /**
-     * Creates a YOLO vision backend with the specified configuration.
-     *
-     * <p>
-     * This is a placeholder for future YOLO integration. Currently throws an
-     * UnsupportedOperationException.</p>
-     *
-     * @param properties the vision configuration properties
-     * @return the configured YOLO backend
-     * @throws UnsupportedOperationException as YOLO is not yet implemented
-     */
-    private VisionBackend createYoloBackend(VisionProperties properties) {
-        logger.warn("YOLO backend is not yet implemented");
-        throw new UnsupportedOperationException("YOLO backend is not yet implemented");
-    }
-
-    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
-        logger.info("Creating DeepFace vision backend");
-        try {
-            VisionProperties.DeepFace cfg = properties.getDeepface();
-            DeepFaceVisionBackend backend = new DeepFaceVisionBackend()
-                .setPythonExecutable(cfg.getPythonExecutable())
-                .setDetectorBackend(cfg.getDetectorBackend())
-                .setEnforceDetection(cfg.isEnforceDetection())
-                .setProcessTimeout(java.time.Duration.ofSeconds(cfg.getProcessTimeoutSeconds()))
-                .setAnalyzeAge(cfg.isAnalyzeAge())
-                .setAnalyzeGender(cfg.isAnalyzeGender())
-                .setAnalyzeEmotion(cfg.isAnalyzeEmotion())
-                .setGenerateEmbeddings(cfg.isGenerateEmbeddings())
-                .setEmbeddingModel(cfg.getEmbeddingModel())
-                .setAnalyzeRace(cfg.isAnalyzeRace())
-                .setNormalizeEmbeddings(cfg.isNormalizeEmbeddings())
-                .setRecognition(cfg.isRecognitionEnabled(), cfg.getRecognitionGalleryDir(), cfg.getRecognitionMetric(), cfg.getRecognitionTopK());
-            backend.initialize();
-            logger.info("DeepFace backend initialized successfully");
-            return backend;
-        } catch (Exception e) {
-            logger.warn("Failed to create or initialize DeepFace backend - degraded functionality: {}", e.getMessage());
-            return createDeepFaceBackendWithDegradedFunctionality(e);
-        }
-    }
-
-        /**
-     * Creates an OpenCV backend with degraded functionality when initialization fails.
-     *
-     * <p>
-     * This creates an OpenCV backend that reports itself as unhealthy but still
-     * identifies as OpenCV. It allows the application to start and function,
-     * but with limited vision capabilities when native dependencies are missing.</p>
-     *
-     * @param initializationError the error that occurred during initialization
-     * @return an OpenCV backend with degraded functionality
+     * @param initializationError the error that occurred during OpenCV initialization
+     * @return a VisionBackend implementation with degraded functionality
      */
     private VisionBackend createOpenCvBackendWithDegradedFunctionality(Throwable initializationError) {
         logger.info("Creating OpenCV backend with degraded functionality");
@@ -316,61 +263,35 @@ public class VisionAutoConfiguration {
         };
     }
 
-    private VisionBackend createDeepFaceBackendWithDegradedFunctionality(Throwable initializationError) {
-        logger.info("Creating DeepFace backend with degraded functionality");
-        return new VisionBackend() {
-            private static final String BACKEND_ID = "deepface";
-            private static final String DISPLAY_NAME = "DeepFace Vision Backend (Degraded)";
-            private static final String VERSION = "0.1.0";
+    /**
+     * Creates a MediaPipe vision backend with the specified configuration.
+     *
+     * <p>
+     * This is a placeholder for future MediaPipe integration. Currently throws
+     * an UnsupportedOperationException.</p>
+     *
+     * @param properties the vision configuration properties
+     * @return the configured MediaPipe backend
+     * @throws UnsupportedOperationException as MediaPipe is not yet implemented
+     */
+    private VisionBackend createMediaPipeBackend(VisionProperties properties) {
+        logger.warn("MediaPipe backend is not yet implemented");
+        throw new UnsupportedOperationException("MediaPipe backend is not yet implemented");
+    }
 
-            @Override
-            public String getBackendId() { return BACKEND_ID; }
-
-            @Override
-            public String getDisplayName() { return DISPLAY_NAME; }
-
-            @Override
-            public String getVersion() { return VERSION; }
-
-            @Override
-            public java.util.Set<com.springvision.core.DetectionType> getSupportedDetectionTypes() {
-                return java.util.Set.of(com.springvision.core.DetectionType.FACE);
-            }
-
-            @Override
-            public boolean isHealthy() { return false; }
-
-            @Override
-            public com.springvision.core.BackendHealthInfo getHealthInfo() {
-                return com.springvision.core.BackendHealthInfo.unhealthy(
-                    BACKEND_ID,
-                    "DeepFace backend - degraded functionality",
-                    "DeepFace backend failed to initialize: " + initializationError.getMessage(),
-                    0
-                );
-            }
-
-            @Override
-            public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
-                logger.warn("DeepFace backend: Face detection not available - initialization failed");
-                throw new com.springvision.core.exception.VisionBackendException(
-                    "Face detection not available - DeepFace backend failed to initialize: " + initializationError.getMessage(),
-                    "deepface_initialization_failed",
-                    null,
-                    initializationError
-                );
-            }
-
-            @Override
-            public com.springvision.core.VisionResult detectObjects(com.springvision.core.ImageData imageData) {
-                logger.warn("DeepFace backend: Object detection not supported");
-                throw new com.springvision.core.exception.VisionBackendException(
-                    "Object detection not supported by DeepFace backend",
-                    "deepface_not_supported",
-                    null,
-                    initializationError
-                );
-            }
-        };
+    /**
+     * Creates a YOLO vision backend with the specified configuration.
+     *
+     * <p>
+     * This is a placeholder for future YOLO integration. Currently throws an
+     * UnsupportedOperationException.</p>
+     *
+     * @param properties the vision configuration properties
+     * @return the configured YOLO backend
+     * @throws UnsupportedOperationException as YOLO is not yet implemented
+     */
+    private VisionBackend createYoloBackend(VisionProperties properties) {
+        logger.warn("YOLO backend is not yet implemented");
+        throw new UnsupportedOperationException("YOLO backend is not yet implemented");
     }
 }

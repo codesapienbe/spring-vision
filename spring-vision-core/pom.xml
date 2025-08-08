@@ -41,6 +41,12 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <!-- Jackson Databind for JSON parsing in REST client -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- JUnit 5 for testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

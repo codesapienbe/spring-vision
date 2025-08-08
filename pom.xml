@@ -237,16 +237,16 @@
 
     <developers>
         <developer>
-            <name>Spring Vision Team</name>
-            <email>team@spring-vision.org</email>
-            <organization>Spring Vision</organization>
-            <organizationUrl>https://github.com/spring-vision</organizationUrl>
+            <name>Codesapien Team</name>
+            <email>spring-vision@codesapien.net</email>
+            <organization>Codesapiens</organization>
+            <organizationUrl>https://github.com/codesapienbe</organizationUrl>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/spring-vision/spring-vision.git</connection>
-        <developerConnection>scm:git:ssh://github.com:spring-vision/spring-vision.git</developerConnection>
-        <url>https://github.com/spring-vision/spring-vision/tree/main</url>
+        <connection>scm:git:git://github.com/codesapienbe/spring-vision.git</connection>
+        <developerConnection>scm:git:ssh://github.com:codesapienbe/spring-vision.git</developerConnection>
+        <url>https://github.com/codesapienbe/spring-vision/tree/main</url>
     </scm>
 </project>
