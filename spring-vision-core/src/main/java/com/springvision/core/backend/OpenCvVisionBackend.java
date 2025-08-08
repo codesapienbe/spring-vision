@@ -17,6 +17,7 @@ import static org.bytedeco.opencv.global.opencv_imgproc.HOUGH_GRADIENT;
 import static org.bytedeco.opencv.global.opencv_imgproc.HoughCircles;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Rect;
 import org.bytedeco.opencv.opencv_core.RectVector;
@@ -268,66 +269,32 @@ public class OpenCvVisionBackend implements VisionBackend {
             // 1) Prefer DNN-based detector if available
             if (dnnFaceNet != null && !dnnFaceNet.empty()) {
                 try {
-                    // Prepare blob (mean subtraction for ResNet SSD)
-                    Mat blob = org.bytedeco.opencv.global.opencv_dnn.blobFromImage(image, 1.0, new Size(300, 300), new Scalar(104, 177, 123, 0), false, false, org.bytedeco.opencv.global.opencv_core.CV_32F);
-                    dnnFaceNet.setInput(blob);
-                    Mat detectionsMat = dnnFaceNet.forward();
-
-                    int cols = image.cols();
-                    int rows = image.rows();
-                    int numDetections = (int) detectionsMat.size(2);
-                    int step = (int) detectionsMat.size(3); // should be 7
-
-                    FloatPointer data = new FloatPointer(detectionsMat.data());
                     List<Rect> candidateRects = new ArrayList<>();
                     List<Float> candidateScores = new ArrayList<>();
-                    for (int i = 0; i < numDetections; i++) {
-                        float confidence = data.get((long) i * step + 2);
-                        if (confidence < 0.7f) { // tighten threshold to reduce false positives
-                            continue;
-                        }
 
-                        float x1 = data.get((long) i * step + 3) * cols;
-                        float y1 = data.get((long) i * step + 4) * rows;
-                        float x2 = data.get((long) i * step + 5) * cols;
-                        float y2 = data.get((long) i * step + 6) * rows;
-
-                        // Clamp to image bounds
-                        int left = (int) Math.max(0, Math.min(cols - 1, Math.round(x1)));
-                        int top = (int) Math.max(0, Math.min(rows - 1, Math.round(y1)));
-                        int right = (int) Math.max(0, Math.min(cols - 1, Math.round(x2)));
-                        int bottom = (int) Math.max(0, Math.min(rows - 1, Math.round(y2)));
-
-                        int widthPx = Math.max(1, right - left);
-                        int heightPx = Math.max(1, bottom - top);
-
-                        // Additional sanity filter: typical human face aspect ratio (roughly square)
-                        double aspect = (double) widthPx / heightPx;
-                        if (aspect < 0.6 || aspect > 1.6) {
-                            continue;
-                        }
-                        candidateRects.add(new Rect(left, top, widthPx, heightPx));
-                        candidateScores.add(confidence);
+                    // Multi-scale: original and upscaled (for small faces)
+                    collectDnnCandidates(image, 1.0, candidateRects, candidateScores);
+                    double minDim = Math.min(image.cols(), image.rows());
+                    double upscale = minDim < 800 ? Math.min(2.0, 800.0 / minDim) : 1.0;
+                    if (upscale > 1.05) {
+                        collectDnnCandidates(image, upscale, candidateRects, candidateScores);
                     }
 
-                    // Apply simple NMS to reduce overlaps
+                    // NMS + eye verification
                     List<Integer> keep = nonMaximumSuppression(candidateRects, candidateScores, 0.4f);
+                    int cols = image.cols();
+                    int rows = image.rows();
                     for (int idx : keep) {
                         Rect r = candidateRects.get(idx);
                         float conf = candidateScores.get(idx);
-                        if (isFaceLikely(grayImage, r)) {
-                            double nx = (double) r.x() / cols;
-                            double ny = (double) r.y() / rows;
-                            double nw = (double) r.width() / cols;
-                            double nh = (double) r.height() / rows;
-                            BoundingBox bb = new BoundingBox(nx, ny, nw, nh);
-                            detections.add(Detection.of("face", conf, bb));
-                            totalConfidence += conf;
-                        }
+                        if (!isFaceLikely(grayImage, r)) continue;
+                        double nx = (double) r.x() / cols;
+                        double ny = (double) r.y() / rows;
+                        double nw = (double) r.width() / cols;
+                        double nh = (double) r.height() / rows;
+                        detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+                        totalConfidence += conf;
                     }
-
-                    blob.releaseReference();
-                    detectionsMat.releaseReference();
                 } catch (Exception dnnEx) {
                     logger.warn("DNN face detection failed, falling back to cascade: {}", dnnEx.getMessage());
                 }
@@ -1169,6 +1136,63 @@ public class OpenCvVisionBackend implements VisionBackend {
             }
         }
         return indices;
+    }
+
+    /** Collect DNN candidates at a given scale; map rectangles back to original coordinates. */
+    private void collectDnnCandidates(Mat image, double scale,
+                                      List<Rect> outRects, List<Float> outScores) {
+        int cols = image.cols();
+        int rows = image.rows();
+        Mat src = image;
+        Mat resized = new Mat();
+        boolean usedResize = false;
+        if (Math.abs(scale - 1.0) > 1e-3) {
+            int newW = (int) Math.round(cols * scale);
+            int newH = (int) Math.round(rows * scale);
+            resize(image, resized, new Size(newW, newH));
+            src = resized;
+            usedResize = true;
+        }
+
+        Mat blob = org.bytedeco.opencv.global.opencv_dnn.blobFromImage(src, 1.0, new Size(300, 300), new Scalar(104, 177, 123, 0), false, false, org.bytedeco.opencv.global.opencv_core.CV_32F);
+        dnnFaceNet.setInput(blob);
+        Mat detectionsMat = dnnFaceNet.forward();
+
+        int sCols = src.cols();
+        int sRows = src.rows();
+        int numDetections = (int) detectionsMat.size(2);
+        int step = (int) detectionsMat.size(3);
+        FloatPointer data = new FloatPointer(detectionsMat.data());
+
+        for (int i = 0; i < numDetections; i++) {
+            float confidence = data.get((long) i * step + 2);
+            if (confidence < 0.7f) continue;
+            float x1 = data.get((long) i * step + 3) * sCols;
+            float y1 = data.get((long) i * step + 4) * sRows;
+            float x2 = data.get((long) i * step + 5) * sCols;
+            float y2 = data.get((long) i * step + 6) * sRows;
+
+            // Map back to original if resized
+            if (usedResize) {
+                x1 /= scale; y1 /= scale; x2 /= scale; y2 /= scale;
+            }
+
+            int left = (int) Math.max(0, Math.min(cols - 1, Math.round(x1)));
+            int top = (int) Math.max(0, Math.min(rows - 1, Math.round(y1)));
+            int right = (int) Math.max(0, Math.min(cols - 1, Math.round(x2)));
+            int bottom = (int) Math.max(0, Math.min(rows - 1, Math.round(y2)));
+            int widthPx = Math.max(1, right - left);
+            int heightPx = Math.max(1, bottom - top);
+
+            double aspect = (double) widthPx / heightPx;
+            if (aspect < 0.6 || aspect > 1.6) continue;
+            outRects.add(new Rect(left, top, widthPx, heightPx));
+            outScores.add(confidence);
+        }
+
+        blob.releaseReference();
+        detectionsMat.releaseReference();
+        if (usedResize) resized.releaseReference();
     }
 
     /** Load the eye cascade with classpath-first, then remote fallback. */
