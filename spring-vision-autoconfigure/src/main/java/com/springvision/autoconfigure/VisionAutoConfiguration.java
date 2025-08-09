@@ -16,6 +16,8 @@ import org.springframework.context.event.EventListener;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
 import com.springvision.core.backend.OpenCvVisionBackend;
+import com.springvision.core.backend.StableOpenCvVisionBackend;
+import com.springvision.core.backend.MediaPipeVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -175,10 +177,10 @@ public class VisionAutoConfiguration {
         logger.info("Creating OpenCV vision backend");
 
         try {
-            // Try direct instantiation first
-            OpenCvVisionBackend backend = new OpenCvVisionBackend();
+            // Try direct instantiation first with stability wrapper
+            StableOpenCvVisionBackend backend = new StableOpenCvVisionBackend(new OpenCvVisionBackend());
             backend.initialize();
-            logger.info("OpenCV backend initialized successfully");
+            logger.info("OpenCV backend initialized successfully (stable wrapper)");
             return backend;
         } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
             logger.warn("Failed to create or initialize OpenCV backend - using OpenCV with degraded functionality: {}", e.getMessage());
@@ -275,8 +277,21 @@ public class VisionAutoConfiguration {
      * @throws UnsupportedOperationException as MediaPipe is not yet implemented
      */
     private VisionBackend createMediaPipeBackend(VisionProperties properties) {
-        logger.warn("MediaPipe backend is not yet implemented");
-        throw new UnsupportedOperationException("MediaPipe backend is not yet implemented");
+        logger.info("Creating MediaPipe vision backend");
+        try {
+            MediaPipeVisionBackend backend = new MediaPipeVisionBackend();
+            backend.initialize();
+            if (!backend.isHealthy()) {
+                logger.warn("MediaPipe backend initialized but unhealthy: {}", backend.getHealthInfo().errorMessage());
+            }
+            return backend;
+        } catch (UnsupportedOperationException e) {
+            logger.warn("MediaPipe backend is not yet implemented");
+            throw e;
+        } catch (Exception e) {
+            logger.error("Failed to create or initialize MediaPipe backend: {}", e.getMessage(), e);
+            throw new UnsupportedOperationException("MediaPipe backend initialization failed: " + e.getMessage(), e);
+        }
     }
 
     /**
