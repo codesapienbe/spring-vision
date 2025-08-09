@@ -21,27 +21,32 @@ Thank you for your interest in contributing to Spring-Vision! This document prov
 ## 🔧 Development Setup
 
 ### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/your-username/spring-vision.git
+git clone https://github.com/codesapienbe/spring-vision.git
 cd spring-vision
 ```
 
 ### 2. Build the Project
+
 ```bash
 mvn clean install
 ```
 
 ### 3. Run Tests
+
 ```bash
 mvn test
 ```
 
 ### 4. Format Code
+
 ```bash
 mvn spotless:apply
 ```
 
 ### 5. Check Code Style
+
 ```bash
 mvn checkstyle:check
 ```
@@ -50,7 +55,8 @@ mvn checkstyle:check
 
 **IMPORTANT**: All contributors must read and follow our comprehensive [Cursor IDE Rules](CURSOR_IDE_RULES.md) before submitting any code.
 
-### Key Requirements:
+### Key Requirements
+
 - **Security-first approach**: All code must address OWASP Top-10 vulnerabilities
 - **Comprehensive Javadoc**: Every public class and method must be documented
 - **90%+ test coverage**: All public methods must have unit tests
@@ -60,6 +66,7 @@ mvn checkstyle:check
 ## 🧪 Testing Guidelines
 
 ### Running Tests
+
 ```bash
 # Run all tests
 mvn test
@@ -72,12 +79,14 @@ mvn jacoco:report
 ```
 
 ### Test Structure
+
 - **Unit Tests**: Test individual components in isolation
 - **Integration Tests**: Test component interactions
 - **Security Tests**: Test input validation and security measures
 - **Performance Tests**: Benchmark critical operations
 
 ### Test Naming Convention
+
 ```java
 @Test
 @DisplayName("Should detect faces successfully")
@@ -89,11 +98,13 @@ void shouldDetectFacesSuccessfully() {
 ## 🔒 Security Guidelines
 
 ### Input Validation
+
 - Validate all inputs, especially image data
 - Implement proper size and format restrictions
 - Use secure error handling without information leakage
 
 ### Example Security Test
+
 ```java
 @Test
 @DisplayName("Should reject oversized images")
@@ -109,6 +120,7 @@ void shouldRejectOversizedImages() {
 ## 📊 Logging Standards
 
 ### Structured Logging
+
 ```java
 logger.info("Processing image", Map.of(
     "imageSize", imageData.length,
@@ -118,6 +130,7 @@ logger.info("Processing image", Map.of(
 ```
 
 ### Log Levels
+
 - **ERROR**: Actionable errors requiring immediate attention
 - **WARN**: Concerning situations needing investigation
 - **INFO**: Business events and important operations
@@ -126,12 +139,14 @@ logger.info("Processing image", Map.of(
 ## 🔧 Configuration Guidelines
 
 ### Configuration Properties
+
 - Use `@ConfigurationProperties` for externalized configuration
 - Provide sensible defaults
 - Include validation annotations
 - Document all properties
 
 ### Example Configuration
+
 ```java
 @ConfigurationProperties(prefix = "vision")
 public record VisionProperties(
@@ -149,6 +164,7 @@ public record VisionProperties(
 ## 📋 Pull Request Process
 
 ### Before Submitting
+
 1. **Read the rules**: Ensure you've read [Cursor IDE Rules](CURSOR_IDE_RULES.md)
 2. **Test thoroughly**: Run all tests and ensure they pass
 3. **Format code**: Apply Spotless formatting
@@ -156,6 +172,7 @@ public record VisionProperties(
 5. **Update docs**: Update documentation if needed
 
 ### Pull Request Template
+
 ```markdown
 ## Description
 Brief description of changes
@@ -191,7 +208,9 @@ Brief description of changes
 ## 🐛 Issue Reporting
 
 ### Bug Reports
+
 When reporting bugs, please include:
+
 - **Environment**: OS, Java version, Maven version
 - **Steps to reproduce**: Clear, step-by-step instructions
 - **Expected behavior**: What should happen
@@ -200,7 +219,9 @@ When reporting bugs, please include:
 - **Screenshots**: If applicable
 
 ### Feature Requests
+
 When requesting features, please include:
+
 - **Use case**: Why this feature is needed
 - **Proposed solution**: How you envision it working
 - **Alternatives considered**: Other approaches you've thought about
@@ -209,6 +230,7 @@ When requesting features, please include:
 ## 🏷️ Commit Message Guidelines
 
 ### Format
+
 ```
 <type>(<scope>): <description>
 
@@ -218,6 +240,7 @@ When requesting features, please include:
 ```
 
 ### Types
+
 - **feat**: New feature
 - **fix**: Bug fix
 - **docs**: Documentation changes
@@ -227,6 +250,7 @@ When requesting features, please include:
 - **chore**: Build process or auxiliary tool changes
 
 ### Examples
+
 ```
 feat(core): add face detection support
 
@@ -247,6 +271,7 @@ Fixes #456
 ## 🤝 Code Review Process
 
 ### Review Criteria
+
 - **Functionality**: Does the code work as intended?
 - **Security**: Are there any security vulnerabilities?
 - **Performance**: Is the code efficient?
@@ -255,6 +280,7 @@ Fixes #456
 - **Documentation**: Is the code properly documented?
 
 ### Review Process
+
 1. **Automated checks** must pass (tests, style, security)
 2. **At least one maintainer** must approve
 3. **All conversations** must be resolved
@@ -276,10 +302,11 @@ Fixes #456
 ## 🎯 Recognition
 
 Contributors will be recognized in:
+
 - **README.md**: For significant contributions
 - **Release notes**: For each release
 - **Contributors list**: On GitHub
 
 ---
 
-Thank you for contributing to Spring-Vision! Your contributions help make computer vision accessible to every Spring Boot developer. 
+Thank you for contributing to Spring-Vision! Your contributions help make computer vision accessible to every Spring Boot developer.
