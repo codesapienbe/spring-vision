@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacv.OpenCVFrameConverter;
@@ -200,6 +204,9 @@ public class OpenCvVisionBackend implements VisionBackend {
      * Error message if backend is unhealthy.
      */
     private String healthErrorMessage;
+
+    private boolean dnnDownloadWarnLogged = false;
+    private boolean sfaceInitWarnLogged = false;
 
     /**
      * Constructs a new OpenCV vision backend.
@@ -953,72 +960,14 @@ public class OpenCvVisionBackend implements VisionBackend {
         try {
             logger.info("Loading DNN face detector...");
 
-            String protoPath = null;
-            String modelPath = null;
-
-            try (java.io.InputStream is = getClass().getResourceAsStream(DNN_CAFFE_PROTO_TXT_CLASSPATH)) {
-                if (is != null) {
-                    byte[] data = is.readAllBytes();
-                    java.io.File tmp = java.io.File.createTempFile("deploy", ".prototxt");
-                    tmp.deleteOnExit();
-                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
-                    protoPath = tmp.getAbsolutePath();
-                }
-            } catch (Exception ignore) {}
-
-            try (java.io.InputStream is = getClass().getResourceAsStream(DNN_CAFFE_MODEL_CLASSPATH)) {
-                if (is != null) {
-                    byte[] data = is.readAllBytes();
-                    java.io.File tmp = java.io.File.createTempFile("res10_300x300", ".caffemodel");
-                    tmp.deleteOnExit();
-                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
-                    modelPath = tmp.getAbsolutePath();
-                }
-            } catch (Exception ignore) {}
-
-            if (protoPath == null || modelPath == null) {
-                // Attempt short download if not packaged
-                try {
-                    logger.info("Downloading DNN face model (short timeout)...");
-                    java.net.URL urlProto = new java.net.URL(DNN_CAFFE_PROTO_TXT_URL);
-                    java.net.URL urlModel = new java.net.URL(DNN_CAFFE_MODEL_URL);
-
-                    java.io.File tmpProto = java.io.File.createTempFile("deploy", ".prototxt");
-                    java.io.File tmpModel = java.io.File.createTempFile("res10_300x300", ".caffemodel");
-                    tmpProto.deleteOnExit();
-                    tmpModel.deleteOnExit();
-
-                    try (java.io.InputStream in = openWithTimeout(urlProto, 4000, 5000);
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpProto)) { fos.write(in.readAllBytes()); }
-                    try (java.io.InputStream in = openWithTimeout(urlModel, 4000, 10000);
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpModel)) { fos.write(in.readAllBytes()); }
-
-                    protoPath = tmpProto.getAbsolutePath();
-                    modelPath = tmpModel.getAbsolutePath();
-                } catch (Exception dlEx) {
-                    logger.warn("Primary DNN model download failed: {}", dlEx.getMessage());
-                    // Try alternate mirror for the caffemodel
-                    try {
-                        java.net.URL urlModelAlt = new java.net.URL(DNN_CAFFE_MODEL_URL_ALT);
-                        java.io.File tmpModelAlt = java.io.File.createTempFile("res10_300x300", ".caffemodel");
-                        tmpModelAlt.deleteOnExit();
-                        try (java.io.InputStream in = openWithTimeout(urlModelAlt, 4000, 12000);
-                             java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpModelAlt)) { fos.write(in.readAllBytes()); }
-                        modelPath = tmpModelAlt.getAbsolutePath();
-                        // Ensure we have the prototxt as well (download if missing)
-                        if (protoPath == null) {
-                            java.net.URL urlProto = new java.net.URL(DNN_CAFFE_PROTO_TXT_URL);
-                            java.io.File tmpProto = java.io.File.createTempFile("deploy", ".prototxt");
-                            tmpProto.deleteOnExit();
-                            try (java.io.InputStream in = openWithTimeout(urlProto, 4000, 6000);
-                                 java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpProto)) { fos.write(in.readAllBytes()); }
-                            protoPath = tmpProto.getAbsolutePath();
-                        }
-                    } catch (Exception altEx) {
-                        logger.warn("Alternate DNN model download failed: {}", altEx.getMessage());
-                    }
-                }
-            }
+            String protoPath = resolveModel(
+                DNN_CAFFE_PROTO_TXT_CLASSPATH,
+                new String[] { DNN_CAFFE_PROTO_TXT_URL },
+                "deploy.prototxt");
+            String modelPath = resolveModel(
+                DNN_CAFFE_MODEL_CLASSPATH,
+                new String[] { DNN_CAFFE_MODEL_URL, DNN_CAFFE_MODEL_URL_ALT },
+                "res10_300x300_ssd_iter_140000_fp16.caffemodel");
 
             if (protoPath != null && modelPath != null) {
                 // cache paths and provide thread-local networks for thread safety
@@ -1040,11 +989,17 @@ public class OpenCvVisionBackend implements VisionBackend {
                     this.dnnFaceNet = null;
                 }
             } else {
-                logger.warn("DNN face detector resources unavailable; alternative detectors will be used");
+                if (!dnnDownloadWarnLogged) {
+                    logger.info("DNN face detector resources unavailable; using YuNet/cascades only");
+                    dnnDownloadWarnLogged = true;
+                }
                 dnnFaceNet = null;
             }
         } catch (Exception e) {
-            logger.warn("Error loading DNN face detector: {}", e.getMessage());
+            if (!dnnDownloadWarnLogged) {
+                logger.info("Error loading DNN face detector; using YuNet/cascades only: {}", e.getMessage());
+                dnnDownloadWarnLogged = true;
+            }
             dnnFaceNet = null;
         }
     }
@@ -1611,28 +1566,10 @@ public class OpenCvVisionBackend implements VisionBackend {
     private void loadYuNetDetector() {
         try {
             logger.info("Loading YuNet face detector...");
-            String modelPath = null;
-            try (java.io.InputStream is = getClass().getResourceAsStream(YUNET_ONNX_CLASSPATH)) {
-                if (is != null) {
-                    byte[] data = is.readAllBytes();
-                    java.io.File tmp = java.io.File.createTempFile("yunet", ".onnx");
-                    tmp.deleteOnExit();
-                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
-                    modelPath = tmp.getAbsolutePath();
-                }
-            } catch (Exception ignore) {}
-
-            if (modelPath == null) {
-                try {
-                    logger.info("Downloading YuNet model (short timeout)...");
-                    java.net.URL url = new java.net.URL(YUNET_ONNX_URL);
-                    java.io.File tmp = java.io.File.createTempFile("yunet", ".onnx");
-                    tmp.deleteOnExit();
-                    try (java.io.InputStream in = openWithTimeout(url, 5000, 10000);
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
-                    modelPath = tmp.getAbsolutePath();
-                } catch (Exception ignore) { logger.warn("YuNet download failed: {}", ignore.getMessage()); }
-            }
+            String modelPath = resolveModel(
+                YUNET_ONNX_CLASSPATH,
+                new String[] { YUNET_ONNX_URL },
+                "face_detection_yunet_2023mar.onnx");
 
             if (modelPath != null) {
                 this.yuNetModelPath = modelPath;
@@ -1660,28 +1597,10 @@ public class OpenCvVisionBackend implements VisionBackend {
     private void loadSFaceRecognizer() {
         try {
             logger.info("Loading SFace recognizer...");
-            String modelPath = null;
-            try (java.io.InputStream is = getClass().getResourceAsStream(SFACE_ONNX_CLASSPATH)) {
-                if (is != null) {
-                    byte[] data = is.readAllBytes();
-                    java.io.File tmp = java.io.File.createTempFile("sface", ".onnx");
-                    tmp.deleteOnExit();
-                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
-                    modelPath = tmp.getAbsolutePath();
-                }
-            } catch (Exception ignore) {}
-
-            if (modelPath == null) {
-                try {
-                    logger.info("Downloading SFace model (short timeout)...");
-                    java.net.URL url = new java.net.URL(SFACE_ONNX_URL);
-                    java.io.File tmp = java.io.File.createTempFile("sface", ".onnx");
-                    tmp.deleteOnExit();
-                    try (java.io.InputStream in = openWithTimeout(url, 5000, 12000);
-                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
-                    modelPath = tmp.getAbsolutePath();
-                } catch (Exception ignore) { logger.warn("SFace download failed: {}", ignore.getMessage()); }
-            }
+            String modelPath = resolveModel(
+                SFACE_ONNX_CLASSPATH,
+                new String[] { SFACE_ONNX_URL },
+                "face_recognition_sface_2021dec.onnx");
 
             if (modelPath != null) {
                 this.sFaceModelPath = modelPath;
@@ -1690,20 +1609,32 @@ public class OpenCvVisionBackend implements VisionBackend {
                     java.lang.reflect.Method create = cls.getMethod("create", String.class, String.class);
                     this.sFaceRecognizer = create.invoke(null, modelPath, "");
                 } catch (Throwable t) {
-                    logger.warn("Failed to initialize SFace recognizer: {}", t.getMessage());
+                    if (!sfaceInitWarnLogged) {
+                        logger.info("SFace recognizer not available; embedding features disabled: {}", t.getMessage());
+                        sfaceInitWarnLogged = true;
+                    }
                     this.sFaceRecognizer = null;
                 }
                 if (this.sFaceRecognizer == null) {
-                    logger.warn("Failed to initialize SFace recognizer");
+                    if (!sfaceInitWarnLogged) {
+                        logger.info("SFace recognizer initialization failed; continuing without embeddings");
+                        sfaceInitWarnLogged = true;
+                    }
                 } else {
                     logger.info("SFace recognizer loaded successfully");
                 }
             } else {
-                logger.warn("SFace model unavailable; skipping recognizer");
+                if (!sfaceInitWarnLogged) {
+                    logger.info("SFace model unavailable; skipping recognizer");
+                    sfaceInitWarnLogged = true;
+                }
                 sFaceRecognizer = null;
             }
         } catch (Throwable t) {
-            logger.warn("Error loading SFace: {}", t.getMessage());
+            if (!sfaceInitWarnLogged) {
+                logger.info("Error loading SFace; continuing without embeddings: {}", t.getMessage());
+                sfaceInitWarnLogged = true;
+            }
             sFaceRecognizer = null;
         }
     }
@@ -1767,5 +1698,45 @@ public class OpenCvVisionBackend implements VisionBackend {
             return 0.0;
         }
         return Math.max(0.0, Math.min(1.0, value));
+    }
+
+    /** Resolve model by checking classpath, then a local cache under user home, then downloading to cache from URLs. */
+    private String resolveModel(String classpathResource, String[] urls, String cacheFileName) {
+        // 1) Classpath
+        try (java.io.InputStream is = getClass().getResourceAsStream(classpathResource)) {
+            if (is != null) {
+                File tmp = File.createTempFile("sv-model-", cacheFileName);
+                tmp.deleteOnExit();
+                Files.copy(is, tmp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return tmp.getAbsolutePath();
+            }
+        } catch (Exception ignore) {}
+
+        // 2) User cache
+        try {
+            Path base = getModelsBaseDir();
+            Path cached = base.resolve(cacheFileName);
+            if (Files.exists(cached)) {
+                return cached.toAbsolutePath().toString();
+            }
+            // 3) Download to cache
+            for (String u : urls) {
+                try {
+                    java.net.URL url = new java.net.URL(u);
+                    try (java.io.InputStream in = openWithTimeout(url, 6000, 15000)) {
+                        Files.copy(in, cached, StandardCopyOption.REPLACE_EXISTING);
+                        return cached.toAbsolutePath().toString();
+                    }
+                } catch (Exception ignore) { /* try next */ }
+            }
+        } catch (Exception ignore) {}
+        return null;
+    }
+
+    private Path getModelsBaseDir() {
+        String userHome = System.getProperty("user.home", ".");
+        Path dir = Path.of(userHome, ".spring-vision/models");
+        try { Files.createDirectories(dir); } catch (Exception ignore) {}
+        return dir;
     }
 }
