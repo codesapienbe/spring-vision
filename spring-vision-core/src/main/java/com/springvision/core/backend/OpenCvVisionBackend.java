@@ -314,11 +314,34 @@ public class OpenCvVisionBackend implements VisionBackend {
                 else if (mu > 180) gamma = 1.3; // tone down overly bright images
                 if (Math.abs(gamma - 1.0) > 0.05) {
                     Mat gammaOut = applyGammaCorrection(grayImage, gamma);
-                    grayImage.releaseReference();
-                    grayImage = gammaOut;
+                    if (gammaOut != null && gammaOut != grayImage) {
+                        grayImage.releaseReference();
+                        grayImage = gammaOut;
+                    }
                 }
             } catch (Throwable t) {
                 logger.debug("Gamma correction skipped: {}", t.getMessage());
+            }
+            // Edge-preserving denoising to stabilize gradients and reduce noise before illumination normalization
+            try {
+                Mat bilateralOut = new Mat();
+                org.bytedeco.opencv.global.opencv_imgproc.bilateralFilter(grayImage, bilateralOut, 5, 80, 80);
+                if (!bilateralOut.empty() && bilateralOut != grayImage) {
+                    grayImage.releaseReference();
+                    grayImage = bilateralOut;
+                }
+            } catch (Throwable t) {
+                logger.debug("Bilateral filter skipped: {}", t.getMessage());
+            }
+            // Multi-Scale Retinex to improve illumination invariance on grayscale image
+            try {
+                Mat retinexOut = applyMultiScaleRetinexGray(grayImage);
+                if (retinexOut != null && retinexOut != grayImage) {
+                    grayImage.releaseReference();
+                    grayImage = retinexOut;
+                }
+            } catch (Throwable t) {
+                logger.debug("Retinex enhancement skipped: {}", t.getMessage());
             }
             // Improve robustness for multiple/smaller faces
             equalizeHist(grayImage, grayImage);
@@ -443,6 +466,7 @@ public class OpenCvVisionBackend implements VisionBackend {
                     profileCascade.detectMultiScale(flipped, profilesFlipped, 1.1, 3, 0, minSize, maxSize);
                     for (long i = 0; i < profilesFlipped.size(); i++) {
                         Rect r = profilesFlipped.get(i);
+                        // Map back to original coordinates
                         int xMapped = image.cols() - r.x() - r.width();
                         Rect mapped = new Rect(Math.max(0, xMapped), r.y(), r.width(), r.height());
                         allRects.add(mapped);
@@ -482,6 +506,19 @@ public class OpenCvVisionBackend implements VisionBackend {
                     ));
                 }
             } catch (Exception ignore) {}
+
+            // Quality-aware score adjustment prior to NMS (mild re-weighting; preserves overall behavior)
+            try {
+                for (int i = 0; i < allRects.size(); i++) {
+                    Rect r = allRects.get(i);
+                    double factor = computeQualityFactor(grayImage, r);
+                    float s = allScores.get(i);
+                    float sAdj = (float) clamp01(s * factor);
+                    allScores.set(i, sAdj);
+                }
+            } catch (Throwable t) {
+                logger.debug("Quality adjustment skipped: {}", t.getMessage());
+            }
 
             // Final NMS over all candidates (tighter IoU to reduce duplicates)
             List<Integer> kept = nonMaximumSuppression(allRects, allScores, 0.35f);
@@ -1824,5 +1861,124 @@ public class OpenCvVisionBackend implements VisionBackend {
         minArea = Math.max(0.00005, Math.min(minArea, 0.05));
         maxArea = Math.max(minArea * 3.0, Math.min(maxArea, 0.9));
         return new double[] { minArea, maxArea };
+    }
+
+    /**
+     * Apply a lightweight Multi-Scale Retinex on a grayscale image to normalize illumination
+     * while preserving edges. Returns an 8-bit grayscale Mat. Any failure returns the input.
+     */
+    private Mat applyMultiScaleRetinexGray(Mat grayImage) {
+        try {
+            // Convert to float in [0,1]
+            Mat inputFloat = new Mat();
+            grayImage.convertTo(inputFloat, org.bytedeco.opencv.global.opencv_core.CV_32F, 1.0 / 255.0, 0.0);
+
+            // log(I + eps)
+            double eps = 1e-6;
+            Mat epsMat = new Mat(inputFloat.size(), inputFloat.type(), new Scalar(eps));
+            org.bytedeco.opencv.global.opencv_core.add(inputFloat, epsMat, inputFloat);
+            Mat logI = new Mat();
+            org.bytedeco.opencv.global.opencv_core.log(inputFloat, logI);
+
+            // Accumulate SSR across multiple Gaussian scales
+            int[] kernelSizes = new int[] { 15, 80, 250 };
+            Mat acc = new Mat(logI.size(), logI.type(), new Scalar(0));
+            for (int k : kernelSizes) {
+                Mat blurred = new Mat();
+                org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(inputFloat, blurred, new Size(k, k), 0);
+                org.bytedeco.opencv.global.opencv_core.add(blurred, epsMat, blurred);
+                Mat logB = new Mat();
+                org.bytedeco.opencv.global.opencv_core.log(blurred, logB);
+                Mat ssr = new Mat();
+                org.bytedeco.opencv.global.opencv_core.subtract(logI, logB, ssr);
+                org.bytedeco.opencv.global.opencv_core.add(acc, ssr, acc);
+                ssr.releaseReference();
+                logB.releaseReference();
+                blurred.releaseReference();
+            }
+            epsMat.releaseReference();
+            // Average the accumulation
+            Mat scaleMat = new Mat(acc.size(), acc.type(), new Scalar(1.0 / kernelSizes.length));
+            org.bytedeco.opencv.global.opencv_core.multiply(acc, scaleMat, acc);
+            scaleMat.releaseReference();
+
+            // Normalize to 0..255 and convert to 8U
+            Mat out = new Mat();
+            org.bytedeco.opencv.global.opencv_core.normalize(
+                acc,
+                out,
+                0,
+                255,
+                org.bytedeco.opencv.global.opencv_core.NORM_MINMAX,
+                org.bytedeco.opencv.global.opencv_core.CV_8U,
+                new Mat()
+            );
+
+            // Cleanup
+            acc.releaseReference();
+            logI.releaseReference();
+            inputFloat.releaseReference();
+
+            return out;
+        } catch (Throwable t) {
+            logger.debug("Retinex processing failed: {}", t.getMessage());
+            return grayImage;
+        }
+    }
+
+    /**
+     * Compute a mild quality factor based on blur (Laplacian variance) and illumination (mean intensity).
+     * Returns a factor in approximately [0.85, 1.08] to avoid drastic behavioral changes.
+     */
+    private double computeQualityFactor(Mat grayImage, Rect rect) {
+        try {
+            if (grayImage == null || grayImage.empty() || rect == null) return 1.0;
+            int x = Math.max(0, rect.x());
+            int y = Math.max(0, rect.y());
+            int w = Math.min(grayImage.cols() - x, rect.width());
+            int h = Math.min(grayImage.rows() - y, rect.height());
+            if (w <= 0 || h <= 0) return 1.0;
+
+            Mat roi = new Mat(grayImage, new Rect(x, y, w, h));
+
+            // Blur score via Laplacian variance
+            Mat lap = new Mat();
+            org.bytedeco.opencv.global.opencv_imgproc.Laplacian(roi, lap, org.bytedeco.opencv.global.opencv_core.CV_64F);
+            Mat meanMat = new Mat();
+            Mat stddevMat = new Mat();
+            org.bytedeco.opencv.global.opencv_core.meanStdDev(lap, meanMat, stddevMat);
+            double std = 0.0;
+            if (!stddevMat.empty()) {
+                java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
+                if (db != null && db.remaining() > 0) {
+                    std = db.get(0);
+                }
+            }
+            double variance = std * std;
+
+            // Normalize variance to [0,1] with soft threshold ~100
+            double blurScore = Math.min(1.0, variance / 100.0);
+
+            // Illumination score: prefer mid-tones around ~128
+            double avg = org.bytedeco.opencv.global.opencv_core.mean(roi).get(0);
+            double illumScore = 1.0 - Math.min(1.0, Math.abs(avg - 128.0) / 128.0);
+            // Smooth floor to avoid zeroing
+            illumScore = 0.6 + 0.4 * illumScore; // maps [0,1] -> [0.6,1.0]
+
+            // Combine
+            double combined = 0.5 * blurScore + 0.5 * illumScore; // [0.3,1.0]
+            // Map to mild factor range
+            double factor = 0.85 + 0.23 * combined; // ~[0.85,1.08]
+
+            // Cleanup
+            lap.releaseReference();
+            meanMat.releaseReference();
+            stddevMat.releaseReference();
+            roi.releaseReference();
+
+            return factor;
+        } catch (Throwable t) {
+            return 1.0;
+        }
     }
 }
