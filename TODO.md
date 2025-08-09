@@ -59,6 +59,44 @@
 - [ ] **TODO: Create comprehensive documentation and user guides**
 - [ ] **TODO: Add support for additional vision backends (MediaPipe, YOLO, etc.)**
 
+#### 3.1 MediaPipe Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/MediaPipeVisionBackend.java`)
+- [ ] **Face Detector (Tasks API) integration**
+  - [ ] Implement MPImage conversion from `byte[]` safely (support JPEG/PNG/WebP; handle color space/rotation if surfaced by MediaPipe)
+  - [ ] Build `BaseOptions` and `FaceDetectorOptions` via reflection; prefer `setModelAssetPath`/`setModelPath`
+  - [ ] Map `FaceDetectorResult` to `Detection` with normalized `BoundingBox` and include keypoints in `attributes` (e.g., `left_eye`, `right_eye`, `nose_tip`)
+  - [ ] Expose confidence threshold via internal constant; consider future property binding without breaking `VisionProperties`
+  - [ ] Ensure resources are closed if the task instances implement `AutoCloseable`
+
+- [ ] **Hand Landmarker integration**
+  - [ ] Wire `HandLandmarker` and options via reflection similar to face detector
+  - [ ] Map landmarks per hand to `Detection` entries (no bounding box required); include landmark list in `attributes`
+
+- [ ] **Pose Landmarker integration**
+  - [ ] Wire `PoseLandmarker` via reflection; IMAGE running mode
+  - [ ] Map pose landmarks to one or more `Detection` items with skeletal keypoints in `attributes`
+
+- [ ] **Model management & security**
+  - [ ] Keep model auto-download with strict timeouts and HTTPS only; validate content length > 0 and handle redirects
+  - [ ] Add checksum verification (SHA-256) for downloaded artifacts; store alongside cache
+  - [ ] Provide a simple opt-out switch (environment/system property) to disable auto-download without changing public API
+
+- [ ] **Performance & stability**
+  - [ ] Add simple object pooling or memoized singletons for task instances when safe (thread-confinement documented)
+  - [ ] Warm-up path to reduce first-call latency
+  - [ ] Defensive OOM handling for large images; early-return with `VisionProcessingException`
+
+- [ ] **Structured logging & observability**
+  - [ ] Ensure JSON-structured logs with fields: `timestamp`, `level`, `component`, `message`, `correlation_id`
+  - [ ] Add fine-grained DEBUG logs around model load, MPImage creation, detect invocation, and mapping steps
+  - [ ] Add lightweight internal metrics counters (success/fail/latency) and surface via `VisionMetrics` without changing public contracts
+
+- [ ] **Graceful shutdown**
+  - [ ] Implement `shutdown()` to close/cleanup MediaPipe task instances and release native resources
+
+- [ ] **Compatibility & fallback**
+  - [ ] Keep reflection guards for missing classes; return descriptive errors without breaking `VisionTemplate`
+  - [ ] Clamp and validate all normalized coordinates to \[0,1]; sanitize attributes; no PII or raw image data in logs
+
 ### 4. Testing Strategy (Future)
 - [ ] **TODO: Design and implement advanced testing strategy using modern testing libraries**
 - [ ] **TODO: Add integration tests with proper test containers**
