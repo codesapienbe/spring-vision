@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 
 import com.springvision.core.VisionTemplate;
 import com.springvision.core.backend.OpenCvVisionBackend;
@@ -22,6 +23,7 @@ public class VisionConfig {
      * This ensures the application starts and provides actual face detection.
      */
     @Bean
+    @ConditionalOnMissingBean(VisionTemplate.class)
     @Deprecated(since = "1.0.0", forRemoval = false)
     public VisionTemplate visionTemplate() {
         logger.info("Creating VisionTemplate with real OpenCV backend");

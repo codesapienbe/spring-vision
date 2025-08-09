@@ -26,6 +26,7 @@ import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_dnn.Net;
 import org.bytedeco.opencv.opencv_imgproc.Vec3fVector;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
+import org.bytedeco.opencv.opencv_objdetect.FaceDetectorYN;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +109,16 @@ public class OpenCvVisionBackend implements VisionBackend {
         "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt";
     private static final String DNN_CAFFE_MODEL_URL =
         "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
+    private static final String DNN_CAFFE_MODEL_URL_ALT =
+        "https://github.com/opencv/opencv_3rdparty/raw/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
+
+    /** OpenCV Zoo YuNet and SFace ONNX resources. */
+    private static final String YUNET_ONNX_CLASSPATH = "/models/face_detection_yunet_2023mar.onnx";
+    private static final String YUNET_ONNX_URL =
+        "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx";
+    private static final String SFACE_ONNX_CLASSPATH = "/models/face_recognition_sface_2021dec.onnx";
+    private static final String SFACE_ONNX_URL =
+        "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx";
 
     /** Eye cascade to validate candidate faces (reduces rectangular false positives). */
     private static final String DEFAULT_EYE_CASCADE_PATH = "/haarcascade_eye.xml";
@@ -118,6 +129,11 @@ public class OpenCvVisionBackend implements VisionBackend {
     private static final String DEFAULT_PROFILE_FACE_CASCADE_PATH = "/haarcascade_profileface.xml";
     private static final String PROFILE_FACE_CASCADE_DOWNLOAD_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml";
+
+    /** LBP cascade often performs better across diverse skin tones. */
+    private static final String DEFAULT_LBP_CASCADE_PATH = "/lbpcascade_frontalface.xml";
+    private static final String LBP_CASCADE_DOWNLOAD_URL =
+        "https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml";
 
     /**
      * Default confidence threshold for detections.
@@ -145,10 +161,15 @@ public class OpenCvVisionBackend implements VisionBackend {
     private ThreadLocal<Net> dnnFaceNet;
     private CascadeClassifier eyeCascade;
     private CascadeClassifier profileCascade;
+    private CascadeClassifier lbpCascade;
+    private FaceDetectorYN yuNetDetector;
+    private Object sFaceRecognizer; // Loaded via reflection to avoid hard dependency
 
     // Cached DNN resource paths for ThreadLocal initialization
     private String dnnProtoPath;
     private String dnnModelPath;
+    private String yuNetModelPath;
+    private String sFaceModelPath;
 
     /**
      * Frame converter for OpenCV operations.
@@ -193,6 +214,9 @@ public class OpenCvVisionBackend implements VisionBackend {
         this.dnnFaceNet = null;
         this.eyeCascade = null;
         this.profileCascade = null;
+        this.lbpCascade = null;
+        this.yuNetDetector = null;
+        this.sFaceRecognizer = null;
     }
 
     @Override
@@ -273,6 +297,21 @@ public class OpenCvVisionBackend implements VisionBackend {
             // Convert to grayscale for face detection and normalize contrast
             Mat grayImage = new Mat();
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
+            // Adaptive gamma correction based on mean luminance to mitigate color/lighting bias
+            try {
+                org.bytedeco.opencv.opencv_core.Scalar m = org.bytedeco.opencv.global.opencv_core.mean(grayImage);
+                double mu = m.get(0);
+                double gamma = 1.0;
+                if (mu < 90) gamma = 0.7; // brighten darker images
+                else if (mu > 180) gamma = 1.3; // tone down overly bright images
+                if (Math.abs(gamma - 1.0) > 0.05) {
+                    Mat gammaOut = applyGammaCorrection(grayImage, gamma);
+                    grayImage.releaseReference();
+                    grayImage = gammaOut;
+                }
+            } catch (Throwable t) {
+                logger.debug("Gamma correction skipped: {}", t.getMessage());
+            }
             // Improve robustness for multiple/smaller faces
             equalizeHist(grayImage, grayImage);
             // Apply CLAHE for low-light/contrast images
@@ -294,7 +333,20 @@ public class OpenCvVisionBackend implements VisionBackend {
             List<Detection> detections = new ArrayList<>();
             double totalConfidence = 0.0;
 
-            // 1) Prefer DNN-based detector if available
+            // 1) Prefer YuNet if available (best accuracy/recall on small/crowded faces)
+            try {
+                if (yuNetDetector != null && !yuNetDetector.isNull()) {
+                    collectYuNetCandidates(image, allRects, allScores);
+                    logger.debug("YuNet stage completed", Map.of(
+                        "correlationId", correlationId,
+                        "candidates", allRects.size()
+                    ));
+                }
+            } catch (Exception e) {
+                logger.warn("YuNet detection failed: {}", e.getMessage());
+            }
+
+            // 1b) Then DNN SSD if available
             Net dnn = (dnnFaceNet != null) ? dnnFaceNet.get() : null;
             if (dnn != null && !dnn.empty()) {
                 try {
@@ -354,6 +406,25 @@ public class OpenCvVisionBackend implements VisionBackend {
                 logger.debug("Cascade classifier not available, using basic detection");
             }
 
+            // 2b) LBP cascade candidates (complementary to Haar)
+            try {
+                if (lbpCascade != null && !lbpCascade.empty()) {
+                    RectVector facesLbp = new RectVector();
+                    int minDim = Math.min(image.cols(), image.rows());
+                    Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
+                    Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
+                    lbpCascade.detectMultiScale(grayImage, facesLbp, 1.05, 2, 0, minSize, maxSize);
+                    for (long i = 0; i < facesLbp.size(); i++) {
+                        Rect r = facesLbp.get(i);
+                        allRects.add(new Rect(r.x(), r.y(), r.width(), r.height()));
+                        allScores.add(0.75f);
+                    }
+                    facesLbp.deallocate();
+                }
+            } catch (Exception e) {
+                logger.debug("LBP cascade stage skipped: {}", e.getMessage());
+            }
+
             // 3) Profile-face detection (left profile and mirrored right profile) -> add as candidates
             try {
                 if (profileCascade != null && !profileCascade.empty()) {
@@ -400,8 +471,16 @@ public class OpenCvVisionBackend implements VisionBackend {
                 double ny = (double) r.y() / rows;
                 double nw = (double) r.width() / cols;
                 double nh = (double) r.height() / rows;
-                detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
-                totalConfidence += conf;
+                double confClamped = clamp01(conf);
+                if (confClamped != conf) {
+                    logger.debug("Confidence out of range adjusted", Map.of(
+                        "original", conf,
+                        "adjusted", confClamped,
+                        "rect", r.toString()
+                    ));
+                }
+                detections.add(Detection.of("face", confClamped, new BoundingBox(nx, ny, nw, nh)));
+                totalConfidence += confClamped;
             }
 
             // If no faces detected with cascade, use basic detection
@@ -442,7 +521,7 @@ public class OpenCvVisionBackend implements VisionBackend {
             // moved earlier into candidate fusion
 
             long processingTime = System.currentTimeMillis() - startTime;
-            double averageConfidence = detections.isEmpty() ? 0.0 : totalConfidence / detections.size();
+            double averageConfidence = detections.isEmpty() ? 0.0 : clamp01(totalConfidence / Math.max(1, detections.size()));
 
             // Clean up OpenCV resources
             image.releaseReference();
@@ -625,9 +704,13 @@ public class OpenCvVisionBackend implements VisionBackend {
             // Load face cascade classifier only if OpenCV is available
             if (opencvAvailable) {
                 loadFaceCascade();
+                // Prefer loading YuNet first, then DNN SSD as secondary
+                loadYuNetDetector();
                 loadDnnFaceDetector();
                 loadEyeCascade();
                 loadProfileCascade();
+                loadLbpCascade();
+                loadSFaceRecognizer();
             } else {
                 logger.debug("Skipping face cascade loading - OpenCV not available");
             }
@@ -907,13 +990,33 @@ public class OpenCvVisionBackend implements VisionBackend {
 
                     try (java.io.InputStream in = openWithTimeout(urlProto, 4000, 5000);
                          java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpProto)) { fos.write(in.readAllBytes()); }
-                    try (java.io.InputStream in = openWithTimeout(urlModel, 4000, 7000);
+                    try (java.io.InputStream in = openWithTimeout(urlModel, 4000, 10000);
                          java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpModel)) { fos.write(in.readAllBytes()); }
 
                     protoPath = tmpProto.getAbsolutePath();
                     modelPath = tmpModel.getAbsolutePath();
                 } catch (Exception dlEx) {
-                    logger.warn("Could not download DNN face model: {}", dlEx.getMessage());
+                    logger.warn("Primary DNN model download failed: {}", dlEx.getMessage());
+                    // Try alternate mirror for the caffemodel
+                    try {
+                        java.net.URL urlModelAlt = new java.net.URL(DNN_CAFFE_MODEL_URL_ALT);
+                        java.io.File tmpModelAlt = java.io.File.createTempFile("res10_300x300", ".caffemodel");
+                        tmpModelAlt.deleteOnExit();
+                        try (java.io.InputStream in = openWithTimeout(urlModelAlt, 4000, 12000);
+                             java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpModelAlt)) { fos.write(in.readAllBytes()); }
+                        modelPath = tmpModelAlt.getAbsolutePath();
+                        // Ensure we have the prototxt as well (download if missing)
+                        if (protoPath == null) {
+                            java.net.URL urlProto = new java.net.URL(DNN_CAFFE_PROTO_TXT_URL);
+                            java.io.File tmpProto = java.io.File.createTempFile("deploy", ".prototxt");
+                            tmpProto.deleteOnExit();
+                            try (java.io.InputStream in = openWithTimeout(urlProto, 4000, 6000);
+                                 java.io.FileOutputStream fos = new java.io.FileOutputStream(tmpProto)) { fos.write(in.readAllBytes()); }
+                            protoPath = tmpProto.getAbsolutePath();
+                        }
+                    } catch (Exception altEx) {
+                        logger.warn("Alternate DNN model download failed: {}", altEx.getMessage());
+                    }
                 }
             }
 
@@ -937,12 +1040,28 @@ public class OpenCvVisionBackend implements VisionBackend {
                     this.dnnFaceNet = null;
                 }
             } else {
-                logger.warn("DNN face detector resources unavailable; will use cascade only");
+                logger.warn("DNN face detector resources unavailable; alternative detectors will be used");
                 dnnFaceNet = null;
             }
         } catch (Exception e) {
             logger.warn("Error loading DNN face detector: {}", e.getMessage());
             dnnFaceNet = null;
+        }
+    }
+
+    /** Gamma correction helper operating in normalized float space. */
+    private Mat applyGammaCorrection(Mat grayImage, double gamma) {
+        try {
+            Mat norm = new Mat();
+            grayImage.convertTo(norm, org.bytedeco.opencv.global.opencv_core.CV_32F, 1.0 / 255.0, 0.0);
+            org.bytedeco.opencv.global.opencv_core.pow(norm, gamma, norm);
+            Mat out = new Mat();
+            norm.convertTo(out, org.bytedeco.opencv.global.opencv_core.CV_8U, 255.0, 0.0);
+            norm.releaseReference();
+            return out;
+        } catch (Throwable t) {
+            logger.debug("Gamma correction failed: {}", t.getMessage());
+            return grayImage;
         }
     }
 
@@ -1315,6 +1434,53 @@ public class OpenCvVisionBackend implements VisionBackend {
         }
     }
 
+    /** Load the LBP face cascade with classpath-first, then remote fallback. */
+    private void loadLbpCascade() {
+        try {
+            lbpCascade = new CascadeClassifier();
+            // Try classpath
+            try (java.io.InputStream is = getClass().getResourceAsStream(DEFAULT_LBP_CASCADE_PATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("lbpcascade_frontalface", ".xml");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    if (lbpCascade.load(tmp.getAbsolutePath())) {
+                        logger.info("LBP cascade loaded from classpath");
+                        return;
+                    }
+                }
+            } catch (Exception ignore) {}
+
+            // Try system path
+            if (lbpCascade.load(DEFAULT_LBP_CASCADE_PATH)) {
+                logger.info("LBP cascade loaded from system path");
+                return;
+            }
+
+            // Download fallback
+            try {
+                logger.info("Attempting to download LBP face cascade...");
+                java.net.URL url = new java.net.URL(LBP_CASCADE_DOWNLOAD_URL);
+                java.io.File tmp = java.io.File.createTempFile("lbpcascade_frontalface", ".xml");
+                tmp.deleteOnExit();
+                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                     java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
+                if (lbpCascade.load(tmp.getAbsolutePath())) {
+                    logger.info("LBP cascade downloaded and loaded successfully");
+                    return;
+                }
+            } catch (Exception ex) {
+                logger.warn("Could not download LBP cascade: {}", ex.getMessage());
+            }
+
+            logger.warn("LBP cascade unavailable; fallback to Haar/DNN only");
+        } catch (Exception e) {
+            logger.warn("Error loading LBP cascade: {}", e.getMessage());
+            lbpCascade = null;
+        }
+    }
+
     /**
      * Detect profile faces on original and horizontally flipped images.
      */
@@ -1439,5 +1605,167 @@ public class OpenCvVisionBackend implements VisionBackend {
             logger.warn("Error loading profile-face cascade: {}", e.getMessage());
             profileCascade = null;
         }
+    }
+
+    /** Load YuNet ONNX-based face detector from classpath or short download. */
+    private void loadYuNetDetector() {
+        try {
+            logger.info("Loading YuNet face detector...");
+            String modelPath = null;
+            try (java.io.InputStream is = getClass().getResourceAsStream(YUNET_ONNX_CLASSPATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("yunet", ".onnx");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    modelPath = tmp.getAbsolutePath();
+                }
+            } catch (Exception ignore) {}
+
+            if (modelPath == null) {
+                try {
+                    logger.info("Downloading YuNet model (short timeout)...");
+                    java.net.URL url = new java.net.URL(YUNET_ONNX_URL);
+                    java.io.File tmp = java.io.File.createTempFile("yunet", ".onnx");
+                    tmp.deleteOnExit();
+                    try (java.io.InputStream in = openWithTimeout(url, 5000, 10000);
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
+                    modelPath = tmp.getAbsolutePath();
+                } catch (Exception ignore) { logger.warn("YuNet download failed: {}", ignore.getMessage()); }
+            }
+
+            if (modelPath != null) {
+                this.yuNetModelPath = modelPath;
+                // Create with default thresholds; input size set per image later
+                yuNetDetector = FaceDetectorYN.create(modelPath, "", new Size(320, 320), 0.6f, 0.3f, 5000,
+                    org.bytedeco.opencv.global.opencv_dnn.DNN_BACKEND_OPENCV,
+                    org.bytedeco.opencv.global.opencv_dnn.DNN_TARGET_CPU);
+                if (yuNetDetector == null || yuNetDetector.isNull()) {
+                    logger.warn("Failed to initialize YuNet detector");
+                    yuNetDetector = null;
+                } else {
+                    logger.info("YuNet face detector loaded successfully");
+                }
+            } else {
+                logger.warn("YuNet model unavailable; skipping YuNet detector");
+                yuNetDetector = null;
+            }
+        } catch (Throwable t) {
+            logger.warn("Error loading YuNet: {}", t.getMessage());
+            yuNetDetector = null;
+        }
+    }
+
+    /** Load SFace recognizer for embeddings (optional). */
+    private void loadSFaceRecognizer() {
+        try {
+            logger.info("Loading SFace recognizer...");
+            String modelPath = null;
+            try (java.io.InputStream is = getClass().getResourceAsStream(SFACE_ONNX_CLASSPATH)) {
+                if (is != null) {
+                    byte[] data = is.readAllBytes();
+                    java.io.File tmp = java.io.File.createTempFile("sface", ".onnx");
+                    tmp.deleteOnExit();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(data); }
+                    modelPath = tmp.getAbsolutePath();
+                }
+            } catch (Exception ignore) {}
+
+            if (modelPath == null) {
+                try {
+                    logger.info("Downloading SFace model (short timeout)...");
+                    java.net.URL url = new java.net.URL(SFACE_ONNX_URL);
+                    java.io.File tmp = java.io.File.createTempFile("sface", ".onnx");
+                    tmp.deleteOnExit();
+                    try (java.io.InputStream in = openWithTimeout(url, 5000, 12000);
+                         java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) { fos.write(in.readAllBytes()); }
+                    modelPath = tmp.getAbsolutePath();
+                } catch (Exception ignore) { logger.warn("SFace download failed: {}", ignore.getMessage()); }
+            }
+
+            if (modelPath != null) {
+                this.sFaceModelPath = modelPath;
+                try {
+                    Class<?> cls = Class.forName("org.bytedeco.opencv.opencv_face.FaceRecognizerSF");
+                    java.lang.reflect.Method create = cls.getMethod("create", String.class, String.class);
+                    this.sFaceRecognizer = create.invoke(null, modelPath, "");
+                } catch (Throwable t) {
+                    logger.warn("Failed to initialize SFace recognizer: {}", t.getMessage());
+                    this.sFaceRecognizer = null;
+                }
+                if (this.sFaceRecognizer == null) {
+                    logger.warn("Failed to initialize SFace recognizer");
+                } else {
+                    logger.info("SFace recognizer loaded successfully");
+                }
+            } else {
+                logger.warn("SFace model unavailable; skipping recognizer");
+                sFaceRecognizer = null;
+            }
+        } catch (Throwable t) {
+            logger.warn("Error loading SFace: {}", t.getMessage());
+            sFaceRecognizer = null;
+        }
+    }
+
+    /** Collect YuNet candidates at image size; map to rects and scores. */
+    private void collectYuNetCandidates(Mat image, List<Rect> outRects, List<Float> outScores) {
+        if (yuNetDetector == null || yuNetDetector.isNull()) return;
+        try {
+            yuNetDetector.setInputSize(new Size(image.cols(), image.rows()));
+            Mat det = new Mat();
+            yuNetDetector.detect(image, det);
+            if (!det.empty()) {
+                int rows = (int) det.size(0);
+                int step = (int) det.size(1); // expected 15
+                FloatPointer dp = new FloatPointer(det.data());
+                for (int i = 0; i < rows; i++) {
+                    float x = dp.get((long) i * step + 0);
+                    float y = dp.get((long) i * step + 1);
+                    float w = dp.get((long) i * step + 2);
+                    float h = dp.get((long) i * step + 3);
+                    float score = dp.get((long) i * step + 4);
+                    if (score < 0.5f) continue;
+                    int left = Math.max(0, Math.round(x));
+                    int top = Math.max(0, Math.round(y));
+                    int widthPx = Math.max(1, Math.round(w));
+                    int heightPx = Math.max(1, Math.round(h));
+                    outRects.add(new Rect(left, top, widthPx, heightPx));
+                    outScores.add(score);
+                }
+            }
+            det.releaseReference();
+        } catch (Throwable t) {
+            logger.debug("YuNet detect failed: {}", t.getMessage());
+        }
+    }
+
+    /** Compute SFace embedding for a face crop (112x112 BGR). */
+    private float[] computeSFaceEmbedding(Mat alignedFace112x112) {
+        if (sFaceRecognizer == null) return null;
+        try {
+            Mat embedding = new Mat();
+            Class<?> cls = Class.forName("org.bytedeco.opencv.opencv_face.FaceRecognizerSF");
+            java.lang.reflect.Method feature = cls.getMethod("feature", Mat.class, Mat.class);
+            feature.invoke(sFaceRecognizer, alignedFace112x112, embedding);
+            int len = (int) embedding.total();
+            float[] vec = new float[len];
+            embedding.data().asByteBuffer().asFloatBuffer().get(vec);
+            embedding.releaseReference();
+            // L2 normalize
+            double norm = 0.0; for (float v : vec) norm += v * v; norm = Math.sqrt(norm);
+            if (norm > 0) { for (int i = 0; i < vec.length; i++) vec[i] /= (float) norm; }
+            return vec;
+        } catch (Throwable t) {
+            logger.debug("SFace embedding failed: {}", t.getMessage());
+            return null;
+        }
+    }
+
+    private static double clamp01(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(1.0, value));
     }
 }
