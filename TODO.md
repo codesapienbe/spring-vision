@@ -3,6 +3,7 @@
 ## HIGHEST PRIORITY TODOs
 
 ### 1. Remove All Tests and Test Configurations (IMMEDIATE)
+
 - [x] ~~Remove all test files from all modules~~
 - [x] ~~Remove test dependencies from pom.xml files~~
 - [x] ~~Remove test-related build plugins (Surefire, JaCoCo)~~
@@ -15,6 +16,7 @@
 ### 2. Create Spring Vision Examples (HIGHEST PRIORITY)
 
 #### 2.1 CLI-Based Application
+
 - [ ] **TODO: Create CLI-based Spring Vision application**
   - [ ] Create `spring-vision-examples/cli-application/` module
   - [ ] Implement command-line interface for image processing
@@ -26,6 +28,7 @@
   - [ ] Include help and usage documentation
 
 #### 2.2 GWT-Based GUI Application
+
 - [ ] **TODO: Create GWT-based GUI application**
   - [ ] Create `spring-vision-examples/gwt-application/` module
   - [ ] Implement web-based GUI using Google Web Toolkit
@@ -38,6 +41,7 @@
   - [ ] Implement responsive design for different screen sizes
 
 #### 2.3 Vaadin-Based GUI Application
+
 - [ ] **TODO: Create Vaadin-based GUI application**
   - [ ] Create `spring-vision-examples/vaadin-application/` module
   - [ ] Implement modern web-based GUI using Vaadin Framework
@@ -53,6 +57,7 @@
 ## MEDIUM PRIORITY TODOs
 
 ### 3. Framework Improvements
+
 - [ ] **TODO: Add comprehensive logging throughout the framework**
 - [ ] **TODO: Implement proper error handling and recovery mechanisms**
 - [ ] **TODO: Add performance monitoring and metrics collection**
@@ -60,6 +65,7 @@
 - [ ] **TODO: Add support for additional vision backends (MediaPipe, YOLO, etc.)**
 
 #### 3.1 MediaPipe Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/MediaPipeVisionBackend.java`)
+
 - [ ] **Face Detector (Tasks API) integration**
   - [ ] Implement MPImage conversion from `byte[]` safely (support JPEG/PNG/WebP; handle color space/rotation if surfaced by MediaPipe)
   - [ ] Build `BaseOptions` and `FaceDetectorOptions` via reflection; prefer `setModelAssetPath`/`setModelPath`
@@ -97,7 +103,90 @@
   - [ ] Keep reflection guards for missing classes; return descriptive errors without breaking `VisionTemplate`
   - [ ] Clamp and validate all normalized coordinates to \[0,1]; sanitize attributes; no PII or raw image data in logs
 
+#### 3.2 YOLO Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/YoloVisionBackend.java`)
+
+- [ ] **Backend scaffolding**
+  - [ ] Create `YoloVisionBackend` implementing `VisionBackend`; initially support `DetectionType.OBJECT`
+  - [ ] Maintain strict backward compatibility; do not change public APIs or `VisionProperties`
+
+- [ ] **Inference engine integration (reflection-based, optional deps)**
+  - [ ] Primary: ONNX Runtime (`ai.onnxruntime.*`) via reflection; load `.onnx` models without hard dependency
+  - [ ] Alternative (future): TensorFlow Lite (`org.tensorflow.lite.*`) and OpenVINO, behind reflection guards
+  - [ ] Select first available engine at runtime; expose engine name/version in `BackendHealthInfo` metrics
+
+- [ ] **Pre/Post-processing pipeline**
+  - [ ] Implement letterbox resize with aspect-ratio preservation and configurable stride
+  - [ ] Normalize inputs (scale/mean/std) per model requirements; support RGB/BGR switches
+  - [ ] Decode YOLO outputs (v5/v8/v9) with anchors/grids as needed; compute boxes in original image space
+  - [ ] Implement class score filtering and NMS (Greedy/Soft-NMS configurable internally)
+  - [ ] Map results to `Detection` with normalized `BoundingBox`, `label`, `confidence`, and optional attributes (classId)
+
+- [ ] **Model management & security**
+  - [ ] Support model loading from local path and secure HTTPS auto-download (timeouts, redirects off by default)
+  - [ ] Add SHA-256 checksum verification and optional signature verification
+  - [ ] Environment/system property to disable auto-download (no public API change)
+  - [ ] Allow optional labels file; map class indices to human-readable labels
+
+- [ ] **Configuration (non-breaking)**
+  - [ ] Internal constants for `CONFIDENCE_THRESHOLD`, `IOU_THRESHOLD`, `INPUT_SIZE` (e.g., 640)
+  - [ ] Consider reading overrides from env/system properties without modifying `VisionProperties`
+
+- [ ] **Performance & stability**
+  - [ ] Warm-up inference and model caching; reuse session/execution providers
+  - [ ] Support batched inference path when feasible
+  - [ ] Prefer direct buffers (NDArray/FloatBuffer) to reduce copies; guard memory usage
+
+- [ ] **Structured logging & observability**
+  - [ ] Log inference timings, model/engine selection, NMS stats, and detection counts (JSON structured)
+  - [ ] Expose lightweight counters via `VisionMetrics` (no API change)
+
+- [ ] **Graceful shutdown**
+  - [ ] Close inference sessions/resources in `shutdown()`; handle engine-specific cleanup
+
+- [ ] **Compatibility & fallback**
+  - [ ] If engines are unavailable, return descriptive errors while keeping the app stable
+  - [ ] Clamp all normalized coordinates to \[0,1]; sanitize labels; never log image data or PII
+
+#### 3.3 DeepFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/DeepFaceVisionBackend.java`)
+
+- [ ] **Backend scaffolding**
+  - [ ] Create `DeepFaceVisionBackend` implementing `VisionBackend`; support `DetectionType.FACE` and `DetectionType.CUSTOM` (attributes)
+  - [ ] Preserve public APIs and configuration; no changes to `VisionProperties`
+
+- [ ] **Integration approach (secure and optional)**
+  - [ ] Preferred: external Python sidecar (HTTP/gRPC) exposing DeepFace endpoints (verify/analyze/detect); configure endpoint via env/system property
+  - [ ] Add resilient Java client with strict timeouts, authentication header support, and exponential backoff; sanitize requests/logs
+  - [ ] Alternative (future): embedded Python via JEP/Py4J behind reflection guards; manage interpreter/venv discovery and sandboxing
+  - [ ] Alternative (future): ONNX Runtime pipeline with RetinaFace/MobileFaceNet/ArcFace equivalents for detection/embedding/analysis
+
+- [ ] **Capabilities mapping**
+  - [ ] Map face detections (from RetinaFace/MTCNN) to `Detection` with normalized `BoundingBox` and confidence
+  - [ ] Populate `attributes` with DeepFace analysis results (e.g., `age`, `gender`, `dominant_emotion`, `race` distribution) while avoiding PII in logs
+  - [ ] Consider `CUSTOM` type for verification/embedding results; include cosine distance/thresholds in attributes
+
+- [ ] **Model management & security (sidecar)**
+  - [ ] Enforce HTTPS for sidecar communication; configurable TLS and auth token
+  - [ ] Enforce max image size and rate limits; never log raw image bytes or sensitive attributes
+  - [ ] Document model choices (RetinaFace, Facenet, VGG-Face, ArcFace) and performance trade-offs
+
+- [ ] **Performance & stability**
+  - [ ] Support request batching when sidecar enables it; reuse HTTP clients and connection pools
+  - [ ] Add warm-up call on startup; cache frequent embeddings when safe (LRU)
+  - [ ] Defensive handling for large payloads and long-running inference with timeouts and circuit breaker
+
+- [ ] **Structured logging & observability**
+  - [ ] Log operation timings, sidecar endpoint, and summarized analysis fields (JSON structured)
+  - [ ] Surface counters/latency via `VisionMetrics` without changing public contracts
+
+- [ ] **Graceful shutdown**
+  - [ ] Close HTTP clients/resources; expose health state transitions
+
+- [ ] **Compatibility & fallback**
+  - [ ] If DeepFace sidecar/unavailable, return descriptive errors while keeping app stable
+  - [ ] Clamp coordinates to \[0,1]; sanitize attributes; do not emit photos/embeddings in logs
+
 ### 4. Testing Strategy (Future)
+
 - [ ] **TODO: Design and implement advanced testing strategy using modern testing libraries**
 - [ ] **TODO: Add integration tests with proper test containers**
 - [ ] **TODO: Implement performance and load testing**
@@ -106,6 +195,7 @@
 ## COMPLETED TASKS
 
 ### ✅ Build Issue Fixes
+
 - [x] Fixed OpenCV native library loading issues
 - [x] Resolved compilation errors in starter module
 - [x] Fixed test configuration issues
@@ -115,6 +205,7 @@
 - [x] Verified no test references remain in any module
 
 ### ✅ Framework Core
+
 - [x] Implemented core vision framework
 - [x] Created OpenCV backend integration
 - [x] Added autoconfiguration support
