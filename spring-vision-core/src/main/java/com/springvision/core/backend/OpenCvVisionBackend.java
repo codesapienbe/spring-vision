@@ -309,7 +309,8 @@ public class OpenCvVisionBackend implements VisionBackend {
                 org.bytedeco.opencv.opencv_core.Scalar m = org.bytedeco.opencv.global.opencv_core.mean(grayImage);
                 double mu = m.get(0);
                 double gamma = 1.0;
-                if (mu < 90) gamma = 0.7; // brighten darker images
+                if (mu < 70) gamma = 0.6; // stronger brightening for dark scenes
+                else if (mu < 90) gamma = 0.7; // brighten darker images
                 else if (mu > 180) gamma = 1.3; // tone down overly bright images
                 if (Math.abs(gamma - 1.0) > 0.05) {
                     Mat gammaOut = applyGammaCorrection(grayImage, gamma);
@@ -324,7 +325,7 @@ public class OpenCvVisionBackend implements VisionBackend {
             // Apply CLAHE for low-light/contrast images
             try {
                 org.bytedeco.opencv.opencv_imgproc.CLAHE clahe =
-                    org.bytedeco.opencv.global.opencv_imgproc.createCLAHE(3.0, new Size(8, 8));
+                    org.bytedeco.opencv.global.opencv_imgproc.createCLAHE(4.0, new Size(8, 8));
                 Mat claheOut = new Mat();
                 clahe.apply(grayImage, claheOut);
                 grayImage.releaseReference();
@@ -343,7 +344,13 @@ public class OpenCvVisionBackend implements VisionBackend {
             // 1) Prefer YuNet if available (best accuracy/recall on small/crowded faces)
             try {
                 if (yuNetDetector != null && !yuNetDetector.isNull()) {
-                    collectYuNetCandidates(image, allRects, allScores);
+                    // Run YuNet at multiple scales to improve small/dark face recall
+                    collectYuNetCandidates(image, 1.0, allRects, allScores);
+                    double minDim = Math.min(image.cols(), image.rows());
+                    double upscale1 = minDim < 900 ? Math.min(2.0, 900.0 / minDim) : 1.0;
+                    double upscale2 = minDim < 1200 ? Math.min(3.0, 1200.0 / minDim) : 1.0;
+                    if (upscale1 > 1.05) collectYuNetCandidates(image, upscale1, allRects, allScores);
+                    if (upscale2 > 1.2) collectYuNetCandidates(image, upscale2, allRects, allScores);
                     logger.debug("YuNet stage completed", Map.of(
                         "correlationId", correlationId,
                         "candidates", allRects.size()
@@ -385,9 +392,9 @@ public class OpenCvVisionBackend implements VisionBackend {
                 }
             }
 
-            if (faceCascade != null && faceCascade.empty() == false) {
+            if (faceCascade != null && faceCascade.empty() == false && allRects.isEmpty()) {
                 try {
-                    // Detect faces using cascade classifier
+                    // Detect faces using cascade classifier only if no DNN candidates
                     RectVector faces = new RectVector();
                     int minDim = Math.min(image.cols(), image.rows());
                     Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
@@ -400,7 +407,7 @@ public class OpenCvVisionBackend implements VisionBackend {
                     for (long i = 0; i < faces.size(); i++) {
                         Rect faceRect = faces.get(i);
                         // Score cascades with size-based confidence
-                        float c = (float) Math.min(0.95, Math.max(0.5, calculateFaceConfidence(faceRect, image.cols(), image.rows())));
+                        float c = (float) Math.min(0.9, Math.max(0.5, calculateFaceConfidence(faceRect, image.cols(), image.rows())));
                         allRects.add(new Rect(faceRect.x(), faceRect.y(), faceRect.width(), faceRect.height()));
                         allScores.add(c);
                     }
@@ -409,32 +416,15 @@ public class OpenCvVisionBackend implements VisionBackend {
                 } catch (Exception e) {
                     logger.warn("Cascade classifier failed, using basic detection: {}", e.getMessage());
                 }
+            } else if (!allRects.isEmpty()) {
+                logger.debug("Skipping cascade/profile stages due to existing DNN candidates");
             } else {
                 logger.debug("Cascade classifier not available, using basic detection");
             }
 
-            // 2b) LBP cascade candidates (complementary to Haar)
+            // 3) Profile-face detection -> only when no DNN/YuNet candidates
             try {
-                if (lbpCascade != null && !lbpCascade.empty()) {
-                    RectVector facesLbp = new RectVector();
-                    int minDim = Math.min(image.cols(), image.rows());
-                    Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
-                    Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
-                    lbpCascade.detectMultiScale(grayImage, facesLbp, 1.05, 2, 0, minSize, maxSize);
-                    for (long i = 0; i < facesLbp.size(); i++) {
-                        Rect r = facesLbp.get(i);
-                        allRects.add(new Rect(r.x(), r.y(), r.width(), r.height()));
-                        allScores.add(0.75f);
-                    }
-                    facesLbp.deallocate();
-                }
-            } catch (Exception e) {
-                logger.debug("LBP cascade stage skipped: {}", e.getMessage());
-            }
-
-            // 3) Profile-face detection (left profile and mirrored right profile) -> add as candidates
-            try {
-                if (profileCascade != null && !profileCascade.empty()) {
+                if (profileCascade != null && !profileCascade.empty() && allRects.isEmpty()) {
                     RectVector profiles = new RectVector();
                     int minDim = Math.min(image.cols(), image.rows());
                     Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
@@ -465,8 +455,36 @@ public class OpenCvVisionBackend implements VisionBackend {
                 logger.debug("Profile-face detection skipped due to error: {}", e.getMessage());
             }
 
-            // Final NMS over all candidates
-            List<Integer> kept = nonMaximumSuppression(allRects, allScores, 0.5f);
+            // Dynamic size self-alignment: derive expected face area from top-scoring candidates
+            try {
+                if (!allRects.isEmpty()) {
+                    double[] bounds = computeDynamicAreaBounds(allRects, allScores, image.cols(), image.rows());
+                    double minArea = bounds[0];
+                    double maxArea = bounds[1];
+                    List<Rect> filteredRects = new ArrayList<>();
+                    List<Float> filteredScores = new ArrayList<>();
+                    for (int i = 0; i < allRects.size(); i++) {
+                        Rect r = allRects.get(i);
+                        double areaRatio = (double) r.width() * r.height() / ((double) image.cols() * image.rows());
+                        if (areaRatio >= minArea && areaRatio <= maxArea) {
+                            filteredRects.add(r);
+                            filteredScores.add(allScores.get(i));
+                        }
+                    }
+                    if (!filteredRects.isEmpty()) {
+                        allRects = filteredRects;
+                        allScores = filteredScores;
+                    }
+                    logger.debug("Dynamic size filter applied", Map.of(
+                        "minAreaRatio", minArea,
+                        "maxAreaRatio", maxArea,
+                        "remaining", allRects.size()
+                    ));
+                }
+            } catch (Exception ignore) {}
+
+            // Final NMS over all candidates (tighter IoU to reduce duplicates)
+            List<Integer> kept = nonMaximumSuppression(allRects, allScores, 0.35f);
             int cols = image.cols();
             int rows = image.rows();
             for (int idx : kept) {
@@ -486,7 +504,9 @@ public class OpenCvVisionBackend implements VisionBackend {
                         "rect", r.toString()
                     ));
                 }
-                detections.add(Detection.of("face", confClamped, new BoundingBox(nx, ny, nw, nh)));
+                BoundingBox bbox = clampAndCreateBox(nx, ny, nw, nh);
+                if (bbox == null) { continue; }
+                detections.add(Detection.of("face", confClamped, bbox));
                 totalConfidence += confClamped;
             }
 
@@ -509,7 +529,8 @@ public class OpenCvVisionBackend implements VisionBackend {
                             double normWidth = (double) step / image.cols();
                             double normHeight = (double) step / image.rows();
 
-                            BoundingBox boundingBox = new BoundingBox(normX, normY, normWidth, normHeight);
+                            BoundingBox boundingBox = clampAndCreateBox(normX, normY, normWidth, normHeight);
+                            if (boundingBox == null) { continue; }
                             double confidence = Math.min(0.8, contrast / 100.0);
 
                             Detection detection = Detection.of("face", confidence, boundingBox);
@@ -1639,13 +1660,23 @@ public class OpenCvVisionBackend implements VisionBackend {
         }
     }
 
-    /** Collect YuNet candidates at image size; map to rects and scores. */
-    private void collectYuNetCandidates(Mat image, List<Rect> outRects, List<Float> outScores) {
+    /** Collect YuNet candidates at given scale; refine boxes using landmarks and map back to original image. */
+    private void collectYuNetCandidates(Mat image, double scale, List<Rect> outRects, List<Float> outScores) {
         if (yuNetDetector == null || yuNetDetector.isNull()) return;
         try {
-            yuNetDetector.setInputSize(new Size(image.cols(), image.rows()));
+            Mat src = image;
+            Mat resized = new Mat();
+            boolean usedResize = false;
+            if (Math.abs(scale - 1.0) > 1e-3) {
+                int newW = (int) Math.round(image.cols() * scale);
+                int newH = (int) Math.round(image.rows() * scale);
+                resize(image, resized, new Size(newW, newH));
+                src = resized;
+                usedResize = true;
+            }
+            yuNetDetector.setInputSize(new Size(src.cols(), src.rows()));
             Mat det = new Mat();
-            yuNetDetector.detect(image, det);
+            yuNetDetector.detect(src, det);
             if (!det.empty()) {
                 int rows = (int) det.size(0);
                 int step = (int) det.size(1); // expected 15
@@ -1656,16 +1687,36 @@ public class OpenCvVisionBackend implements VisionBackend {
                     float w = dp.get((long) i * step + 2);
                     float h = dp.get((long) i * step + 3);
                     float score = dp.get((long) i * step + 4);
-                    if (score < 0.5f) continue;
-                    int left = Math.max(0, Math.round(x));
-                    int top = Math.max(0, Math.round(y));
-                    int widthPx = Math.max(1, Math.round(w));
-                    int heightPx = Math.max(1, Math.round(h));
-                    outRects.add(new Rect(left, top, widthPx, heightPx));
+                    if (score < 0.35f) continue; // lower threshold for recall; duplicates removed by NMS
+                    // Expand bbox moderately around center to include forehead/chin
+                    double cx = x + w / 2.0;
+                    double cy = y + h / 2.0;
+                    double padX = w * 0.08;
+                    double padY = h * 0.12;
+                    double left = Math.max(0, cx - (w / 2.0 + padX));
+                    double top = Math.max(0, cy - (h / 2.0 + padY));
+                    double right = Math.min(src.cols() - 1, cx + (w / 2.0 + padX));
+                    double bottom = Math.min(src.rows() - 1, cy + (h / 2.0 + padY));
+
+                    int leftI = (int) Math.round(left);
+                    int topI = (int) Math.round(top);
+                    int widthPx = Math.max(1, (int) Math.round(right - left));
+                    int heightPx = Math.max(1, (int) Math.round(bottom - top));
+
+                    // Map back to original if resized
+                    if (usedResize) {
+                        leftI = (int) Math.round(leftI / scale);
+                        topI = (int) Math.round(topI / scale);
+                        widthPx = (int) Math.max(1, Math.round(widthPx / scale));
+                        heightPx = (int) Math.max(1, Math.round(heightPx / scale));
+                    }
+
+                    outRects.add(new Rect(leftI, topI, widthPx, heightPx));
                     outScores.add(score);
                 }
             }
             det.releaseReference();
+            if (usedResize) resized.releaseReference();
         } catch (Throwable t) {
             logger.debug("YuNet detect failed: {}", t.getMessage());
         }
@@ -1698,6 +1749,18 @@ public class OpenCvVisionBackend implements VisionBackend {
             return 0.0;
         }
         return Math.max(0.0, Math.min(1.0, value));
+    }
+
+    /** Clamp normalized bounding box coordinates and return a valid box or null if degenerate. */
+    private static BoundingBox clampAndCreateBox(double nx, double ny, double nw, double nh) {
+        nx = clamp01(nx);
+        ny = clamp01(ny);
+        nw = Math.max(0.0, Math.min(nw, 1.0 - nx));
+        nh = Math.max(0.0, Math.min(nh, 1.0 - ny));
+        if (nw <= 0.0 || nh <= 0.0) {
+            return null;
+        }
+        return new BoundingBox(nx, ny, nw, nh);
     }
 
     /** Resolve model by checking classpath, then a local cache under user home, then downloading to cache from URLs. */
@@ -1738,5 +1801,28 @@ public class OpenCvVisionBackend implements VisionBackend {
         Path dir = Path.of(userHome, ".spring-vision/models");
         try { Files.createDirectories(dir); } catch (Exception ignore) {}
         return dir;
+    }
+
+    /** Compute dynamic min/max face area ratios from top N confident candidates; robust to outliers. */
+    private static double[] computeDynamicAreaBounds(List<Rect> rects, List<Float> scores, int cols, int rows) {
+        int n = rects.size();
+        java.util.List<Integer> order = new java.util.ArrayList<>(n);
+        for (int i = 0; i < n; i++) order.add(i);
+        order.sort((a, b) -> Float.compare(scores.get(b), scores.get(a)));
+        int top = Math.min(3, n);
+        double[] areas = new double[top];
+        for (int i = 0; i < top; i++) {
+            Rect r = rects.get(order.get(i));
+            areas[i] = (double) r.width() * r.height() / ((double) cols * rows);
+        }
+        java.util.Arrays.sort(areas);
+        double median = areas[top / 2];
+        // Derive permissive bounds that suppress extreme outliers (e.g., huge false boxes) but keep small faces
+        double minArea = Math.min(0.01, median * 0.02);    // keep very small faces
+        double maxArea = Math.max(0.06, median * 1.8);     // drop overly large boxes
+        // Clamp to safe global limits
+        minArea = Math.max(0.00005, Math.min(minArea, 0.05));
+        maxArea = Math.max(minArea * 3.0, Math.min(maxArea, 0.9));
+        return new double[] { minArea, maxArea };
     }
 }
