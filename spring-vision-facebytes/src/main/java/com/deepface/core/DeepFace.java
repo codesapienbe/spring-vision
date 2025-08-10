@@ -11,6 +11,7 @@ import com.deepface.models.AnalysisOnnxModels;
 import com.deepface.models.OnnxSimpleModel;
 import com.deepface.utils.DistanceMetrics;
 import com.deepface.utils.FacePreprocessor;
+import com.deepface.utils.Logs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestPath, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -91,7 +92,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestPath, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -117,7 +118,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestPath, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -208,7 +209,7 @@ public final class DeepFace {
             result.sort(Comparator.comparingDouble(FindMatch::distance));
             return result;
         } catch (IOException e) {
-            log.error("findTopK.load_failed", e);
+            Logs.error("DeepFace", "findTopK.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -234,7 +235,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -259,7 +260,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -284,7 +285,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, best <= thr);
         } catch (IOException e) {
-            log.error("find.load_failed", e);
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -302,7 +303,7 @@ public final class DeepFace {
         try {
             return verify(loadImage(img1), loadImage(img2));
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("verify.load_failed", e);
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             DeepFaceConfig cfg = DeepFaceConfig.current();
             return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
         }
@@ -313,7 +314,7 @@ public final class DeepFace {
         try {
             return verify(loadImage(img1), loadImage(img2));
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("verify.load_failed", e);
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             DeepFaceConfig cfg = DeepFaceConfig.current();
             return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
         }
@@ -339,7 +340,7 @@ public final class DeepFace {
             BufferedImage b = loadImage(img2);
             return verify(a, b, model, distance, detector);
         } catch (IOException e) {
-            log.error("verify.load_failed", e);
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
     }
@@ -383,7 +384,7 @@ public final class DeepFace {
         try {
             return verify(loadImage(img1), loadImage(img2), model, distance, detector);
         } catch (IOException e) {
-            log.error("verify.load_failed", e);
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
     }
@@ -396,7 +397,7 @@ public final class DeepFace {
         try {
             return verify(loadImage(img1), loadImage(img2), model, distance, detector);
         } catch (IOException e) {
-            log.error("verify.load_failed", e);
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
     }
@@ -426,7 +427,7 @@ public final class DeepFace {
             BufferedImage img = loadImage(imgPath);
             return represent(img);
         } catch (IOException e) {
-            log.error("represent.load_failed", e);
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -438,7 +439,7 @@ public final class DeepFace {
         try {
             return represent(loadImage(imageBytes));
         } catch (IOException e) {
-            log.error("represent.load_failed", e);
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -450,7 +451,7 @@ public final class DeepFace {
         try {
             return represent(loadImage(imageStream));
         } catch (IOException e) {
-            log.error("represent.load_failed", e);
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -486,7 +487,7 @@ public final class DeepFace {
         try {
             return representEmbeddings(loadImage(imgPath));
         } catch (IOException e) {
-            log.error("representEmbeddings.load_failed", e);
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -495,7 +496,7 @@ public final class DeepFace {
         try {
             return representEmbeddings(loadImage(imageBytes));
         } catch (IOException e) {
-            log.error("representEmbeddings.load_failed", e);
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -504,7 +505,7 @@ public final class DeepFace {
         try {
             return representEmbeddings(loadImage(imageStream));
         } catch (IOException e) {
-            log.error("representEmbeddings.load_failed", e);
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -533,7 +534,7 @@ public final class DeepFace {
             BufferedImage img = loadImage(imgPath);
             return extractFaces(img);
         } catch (IOException e) {
-            log.error("extractFaces.load_failed", e);
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -545,7 +546,7 @@ public final class DeepFace {
         try {
             return extractFaces(loadImage(imageBytes));
         } catch (IOException e) {
-            log.error("extractFaces.load_failed", e);
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -557,7 +558,7 @@ public final class DeepFace {
         try {
             return extractFaces(loadImage(imageStream));
         } catch (IOException e) {
-            log.error("extractFaces.load_failed", e);
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -594,7 +595,7 @@ public final class DeepFace {
         try {
             return analyze(loadImage(imageBytes), actions);
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("analyze.load_failed", e);
+            Logs.error("DeepFace", "analyze.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -604,7 +605,7 @@ public final class DeepFace {
         try {
             return analyze(loadImage(imageStream), actions);
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("analyze.load_failed", e);
+            Logs.error("DeepFace", "analyze.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -628,7 +629,7 @@ public final class DeepFace {
             BufferedImage img = loadImage(imgPath);
             return analyze(img, actions);
         } catch (IOException e) {
-            log.error("analyze.load_failed", e);
+            Logs.error("DeepFace", "analyze.load_failed", e, Map.of());
             return Collections.emptyList();
         }
     }
@@ -687,7 +688,7 @@ public final class DeepFace {
                     raceDist = mapDistribution(out, raceLabels());
                 }
             } catch (Exception e) {
-                log.error("analyze.inference_failed", e);
+                Logs.error("DeepFace", "analyze.inference_failed", e, Map.of());
             }
 
             results.add(new AnalysisResult(age, gender, dominantEmotion, emotionDist, raceDist, r));
@@ -949,7 +950,7 @@ public final class DeepFace {
                 try {
                     acc.addAll(representEmbeddings(loadImage(path)));
                 } catch (IOException ex) {
-                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddings.load_failed", ex);
+                    Logs.error("DeepFace", "computeGalleryEmbeddings.load_failed", ex, Map.of());
                 }
             }
             out.put(id, acc);
@@ -967,7 +968,7 @@ public final class DeepFace {
                 try {
                     acc.addAll(representEmbeddings(loadImage(bytes)));
                 } catch (IOException ex) {
-                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddingsFromBytes.load_failed", ex);
+                    Logs.error("DeepFace", "computeGalleryEmbeddingsFromBytes.load_failed", ex, Map.of());
                 }
             }
             out.put(id, acc);
@@ -985,7 +986,7 @@ public final class DeepFace {
                 try {
                     acc.addAll(representEmbeddings(loadImage(is)));
                 } catch (IOException ex) {
-                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddingsFromStreams.load_failed", ex);
+                    Logs.error("DeepFace", "computeGalleryEmbeddingsFromStreams.load_failed", ex, Map.of());
                 }
             }
             out.put(id, acc);
@@ -1018,7 +1019,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, bestId != null && best <= thr);
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("find.map_paths.load_failed", e);
+            Logs.error("DeepFace", "find.map_paths.load_failed", e, Map.of());
             return new FindResult(null, 1.0, DeepFaceConfig.current().threshold(metric), false);
         }
     }
@@ -1051,7 +1052,7 @@ public final class DeepFace {
             result.sort(Comparator.comparingDouble(FindMatch::distance));
             return result;
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_paths.load_failed", e);
+            Logs.error("DeepFace", "findTopK.map_paths.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -1077,7 +1078,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, bestId != null && best <= thr);
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("find.map_bytes.load_failed", e);
+            Logs.error("DeepFace", "find.map_bytes.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -1108,7 +1109,7 @@ public final class DeepFace {
             result.sort(Comparator.comparingDouble(FindMatch::distance));
             return result;
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_bytes.load_failed", e);
+            Logs.error("DeepFace", "findTopK.map_bytes.load_failed", e, Map.of());
             return List.of();
         }
     }
@@ -1134,7 +1135,7 @@ public final class DeepFace {
             double thr = cfg.threshold(metric);
             return new FindResult(bestId, best, thr, bestId != null && best <= thr);
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("find.map_streams.load_failed", e);
+            Logs.error("DeepFace", "find.map_streams.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
@@ -1165,7 +1166,7 @@ public final class DeepFace {
             result.sort(Comparator.comparingDouble(FindMatch::distance));
             return result;
         } catch (IOException e) {
-            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_streams.load_failed", e);
+            Logs.error("DeepFace", "findTopK.map_streams.load_failed", e, Map.of());
             return List.of();
         }
     }
