@@ -28,7 +28,12 @@
         <javacv.version>1.5.10</javacv.version>
         <micrometer.version>1.12.0</micrometer.version>
 
-        <!-- Code Quality -->
+        <!-- Additional shared versions -->
+        <commons-math3.version>3.6.1</commons-math3.version>
+        <onnxruntime.version>1.15.1</onnxruntime.version>
+        <djl.version>0.27.0</djl.version>
+
+        <!-- Code Quality & Plugins -->
         <checkstyle.version>10.12.5</checkstyle.version>
         <spotless.version>2.43.0</spotless.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
@@ -40,6 +45,7 @@
         <module>spring-vision-core</module>
         <module>spring-vision-autoconfigure</module>
         <module>spring-vision-starter</module>
+        <module>spring-vision-facebytes</module>
     </modules>
 
     <dependencyManagement>
@@ -80,6 +86,23 @@
                 <groupId>io.micrometer</groupId>
                 <artifactId>micrometer-core</artifactId>
                 <version>${micrometer.version}</version>
+            </dependency>
+
+            <!-- Managed versions for facebytes module -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-math3</artifactId>
+                <version>${commons-math3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.onnxruntime</groupId>
+                <artifactId>onnxruntime</artifactId>
+                <version>${onnxruntime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.djl</groupId>
+                <artifactId>api</artifactId>
+                <version>${djl.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
