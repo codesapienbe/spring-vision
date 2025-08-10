@@ -137,6 +137,20 @@ public final class DeepFace {
         return new FindResult(bestPath, best, thr, best <= thr);
     }
 
+    public static FindResult find(float[] queryEmbedding, List<float[]> galleryEmbeddings, List<String> galleryIds) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        double best = Double.POSITIVE_INFINITY; int idx = -1;
+        for (int i = 0; i < galleryEmbeddings.size(); i++) {
+            float[] g = galleryEmbeddings.get(i);
+            double d = compute(metric, queryEmbedding, g);
+            if (d < best) { best = d; idx = i; }
+        }
+        double thr = cfg.threshold(metric);
+        String bestId = (idx >= 0 && galleryIds != null && idx < galleryIds.size()) ? galleryIds.get(idx) : (idx >= 0 ? String.valueOf(idx) : null);
+        return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+    }
+
     /**
      * Finds best match for query path against gallery bytes list.
      */
@@ -213,6 +227,8 @@ public final class DeepFace {
         }
     }
 
+    // ========================= VERIFY =========================
+
     /**
      * Verifies whether two images depict the same person using default configuration.
      */
@@ -236,6 +252,13 @@ public final class DeepFace {
             log.error("verify.load_failed", e);
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
+    }
+
+    public static VerificationResult verify(float[] emb1, float[] emb2, ModelType model, DistanceMetric distanceMetric) {
+        double d = compute(distanceMetric, emb1, emb2);
+        double thr = DeepFaceConfig.current().threshold(distanceMetric);
+        boolean ok = d <= thr;
+        return new VerificationResult(ok, d, thr, model, DeepFaceConfig.current().detectorBackend(), 0L);
     }
 
     /**
@@ -287,6 +310,8 @@ public final class DeepFace {
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
     }
+
+    // ========================= REPRESENT (multiple overloads) =========================
 
     /**
      * Generates embeddings for all faces in the image located at {@code imgPath}.
@@ -350,6 +375,51 @@ public final class DeepFace {
         return out;
     }
 
+    // ========================= REPRESENT (embeddings only helpers) =========================
+
+    public static List<float[]> representEmbeddings(String imgPath) {
+        validateFile(imgPath);
+        try {
+            return representEmbeddings(loadImage(imgPath));
+        } catch (IOException e) {
+            log.error("representEmbeddings.load_failed", e);
+            return List.of();
+        }
+    }
+
+    public static List<float[]> representEmbeddings(byte[] imageBytes) {
+        try {
+            return representEmbeddings(loadImage(imageBytes));
+        } catch (IOException e) {
+            log.error("representEmbeddings.load_failed", e);
+            return List.of();
+        }
+    }
+
+    public static List<float[]> representEmbeddings(InputStream imageStream) {
+        try {
+            return representEmbeddings(loadImage(imageStream));
+        } catch (IOException e) {
+            log.error("representEmbeddings.load_failed", e);
+            return List.of();
+        }
+    }
+
+    public static List<float[]> representEmbeddings(BufferedImage image) {
+        List<EmbeddingResult> results = represent(image);
+        List<float[]> out = new ArrayList<>(results.size());
+        for (EmbeddingResult r : results) out.add(r.embedding());
+        return out;
+    }
+
+    // ========================= DISTANCE UTILITY =========================
+
+    public static double distance(float[] emb1, float[] emb2, DistanceMetric metric) {
+        return compute(metric, emb1, emb2);
+    }
+
+    // ========================= EXTRACT FACES (multiple overloads) =========================
+
     /**
      * Extracts face crops from the image located at {@code imgPath}.
      */
@@ -402,6 +472,8 @@ public final class DeepFace {
         }
         return crops;
     }
+
+    // ========================= ANALYZE =========================
 
     /**
      * Analyzes faces in the image located at {@code imgPath} using configured ONNX models.
@@ -623,3 +695,4 @@ public final class DeepFace {
         };
     }
 }
+
