@@ -79,6 +79,31 @@ public final class DeepFace {
         }
     }
 
+    /** Find with explicit metric and optional threshold override. */
+    public static FindResult find(String queryImagePath, List<String> galleryImagePaths, DistanceMetric metric, Double thresholdOverride) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImagePath));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(m), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                List<EmbeddingResult> g = represent(loadImage(p));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(m, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestPath = p; }
+                }
+            }
+            double thr = (thresholdOverride != null) ? thresholdOverride : cfg.threshold(m);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
+            return new FindResult(null, 1.0, cfg.threshold(m), false);
+        }
+    }
+
     /**
      * Finds best match for query bytes against gallery paths.
      */
@@ -105,6 +130,7 @@ public final class DeepFace {
         }
     }
 
+
     /**
      * Finds best match for query stream against gallery paths.
      */
@@ -128,6 +154,32 @@ public final class DeepFace {
         } catch (IOException e) {
             Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match for query stream against gallery paths.
+     */
+    public static FindResult find(InputStream queryImageStream, List<String> galleryImagePaths, DistanceMetric metric, Double thresholdOverride) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImageStream));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(m), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                validateFile(p);
+                List<EmbeddingResult> g = represent(loadImage(p));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(m, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestPath = p; }
+                }
+            }
+            double thr = (thresholdOverride != null) ? thresholdOverride : cfg.threshold(m);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
+            return new FindResult(null, 1.0, cfg.threshold(m), false);
         }
     }
 
@@ -222,6 +274,37 @@ public final class DeepFace {
         }
     }
 
+    /** Top-K with explicit metric. */
+    public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k, DistanceMetric metric) {
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        DistanceMetric m = (metric != null) ? metric : DeepFaceConfig.current().defaultDistanceMetric();
+        try {
+            List<float[]> qEmbeddings = representEmbeddings(loadImage(queryImagePath));
+            if (qEmbeddings.isEmpty()) return List.of();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (int i = 0; i < galleryImagePaths.size(); i++) {
+                String p = galleryImagePaths.get(i);
+                List<float[]> gEmbeddings = representEmbeddings(loadImage(p));
+                double best = Double.POSITIVE_INFINITY;
+                for (float[] qe : qEmbeddings) for (float[] ge : gEmbeddings) {
+                    double d = compute(m, qe, ge);
+                    if (d < best) best = d;
+                }
+                String id = String.valueOf(i);
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            Logs.error("DeepFace", "findTopK.load_failed", e, Map.of());
+            return List.of();
+        }
+    }
+
     /**
      * Finds best match for query path against gallery bytes list.
      */
@@ -262,16 +345,20 @@ public final class DeepFace {
                 List<EmbeddingResult> g = represent(loadImage(galleryImageBytesList.get(i)));
                 for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
                     double d = compute(metric, qe.embedding(), ge.embedding());
-                    if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+                    if (d < best) {
+                        best = d;
+                        bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i);
+                    }
                 }
             }
             double thr = cfg.threshold(metric);
-            return new FindResult(bestId, best, thr, best <= thr);
+            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
         } catch (IOException e) {
             Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
+
 
     /**
      * Finds best match for query stream against gallery streams.
@@ -287,16 +374,20 @@ public final class DeepFace {
                 List<EmbeddingResult> g = represent(loadImage(galleryStreams.get(i)));
                 for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
                     double d = compute(metric, qe.embedding(), ge.embedding());
-                    if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+                    if (d < best) {
+                        best = d;
+                        bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i);
+                    }
                 }
             }
             double thr = cfg.threshold(metric);
-            return new FindResult(bestId, best, thr, best <= thr);
+            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
         } catch (IOException e) {
             Logs.error("DeepFace", "find.load_failed", e, Map.of());
             return new FindResult(null, 1.0, cfg.threshold(metric), false);
         }
     }
+
 
     // ========================= VERIFY =========================
 
@@ -1455,6 +1546,19 @@ public final class DeepFace {
         return find(queryImagePath, gallery);
     }
 
+    /** Directory find with explicit metric and optional threshold override. */
+    public static FindResult find(String queryImagePath, String galleryDirectoryPath, DistanceMetric metric, Double thresholdOverride) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty()) {
+            Logs.warn("DeepFace", "find.dir.empty", Map.of("dir", galleryDirectoryPath));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+            return new FindResult(null, 1.0, cfg.threshold(m), false);
+        }
+        return find(queryImagePath, gallery, metric, thresholdOverride);
+    }
+
     /**
      * Returns top-K closest matches for a query image against a directory (recursively).
      */
@@ -1463,6 +1567,14 @@ public final class DeepFace {
         List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
         if (gallery.isEmpty() || k <= 0) return List.of();
         return findTopK(queryImagePath, gallery, k);
+    }
+
+    /** Directory top-K with explicit metric. */
+    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k, DistanceMetric metric) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty() || k <= 0) return List.of();
+        return findTopK(queryImagePath, gallery, k, metric);
     }
 
     private static List<String> listImageFilesSecure(String directoryPath) {
@@ -1509,6 +1621,92 @@ public final class DeepFace {
         Set<String> s = new HashSet<>();
         Collections.addAll(s, "jpg","jpeg","png","bmp","gif","webp");
         return s;
+    }
+
+    /** Find with explicit model, metric, detector, and optional threshold override. */
+    public static FindResult find(String queryImagePath, List<String> galleryImagePaths,
+                                  ModelType model, DistanceMetric metric,
+                                  DetectorBackend detector, Double thresholdOverride) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+        DetectorBackend db = (detector != null) ? detector : cfg.detectorBackend();
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImagePath), db);
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(m), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                List<EmbeddingResult> g = represent(loadImage(p), db);
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(m, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestPath = p; }
+                }
+            }
+            double thr = (thresholdOverride != null) ? thresholdOverride : cfg.threshold(m);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "find.load_failed", e, Map.of());
+            return new FindResult(null, 1.0, cfg.threshold(m), false);
+        }
+    }
+
+    /** Top-K with explicit model, metric, detector. */
+    public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k,
+                                           ModelType model, DistanceMetric metric, DetectorBackend detector) {
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+        DetectorBackend db = (detector != null) ? detector : cfg.detectorBackend();
+        try {
+            List<float[]> qEmbeddings = representEmbeddings(loadImage(queryImagePath), db);
+            if (qEmbeddings.isEmpty()) return List.of();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (int i = 0; i < galleryImagePaths.size(); i++) {
+                String p = galleryImagePaths.get(i);
+                List<float[]> gEmbeddings = representEmbeddings(loadImage(p), db);
+                double best = Double.POSITIVE_INFINITY;
+                for (float[] qe : qEmbeddings) for (float[] ge : gEmbeddings) {
+                    double d = compute(m, qe, ge);
+                    if (d < best) best = d;
+                }
+                String id = String.valueOf(i);
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            Logs.error("DeepFace", "findTopK.load_failed", e, Map.of());
+            return List.of();
+        }
+    }
+
+    /** Directory find with explicit model, metric, detector, and optional threshold override. */
+    public static FindResult find(String queryImagePath, String galleryDirectoryPath,
+                                  ModelType model, DistanceMetric metric, DetectorBackend detector,
+                                  Double thresholdOverride) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty()) {
+            Logs.warn("DeepFace", "find.dir.empty", Map.of("dir", galleryDirectoryPath));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
+            return new FindResult(null, 1.0, cfg.threshold(m), false);
+        }
+        return find(queryImagePath, gallery, model, metric, detector, thresholdOverride);
+    }
+
+    /** Directory top-K with explicit model, metric, detector. */
+    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k,
+                                           ModelType model, DistanceMetric metric, DetectorBackend detector) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty() || k <= 0) return List.of();
+        return findTopK(queryImagePath, gallery, k, model, metric, detector);
     }
 }
 
