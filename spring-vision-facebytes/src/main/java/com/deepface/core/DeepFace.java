@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
 import static com.deepface.utils.ImageUtils.loadImage;
 
@@ -149,6 +151,66 @@ public final class DeepFace {
         double thr = cfg.threshold(metric);
         String bestId = (idx >= 0 && galleryIds != null && idx < galleryIds.size()) ? galleryIds.get(idx) : (idx >= 0 ? String.valueOf(idx) : null);
         return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+    }
+
+    /**
+     * Returns top-K closest matches for a query embedding against gallery embeddings.
+     */
+    public static List<FindMatch> findTopK(float[] queryEmbedding, List<float[]> galleryEmbeddings, List<String> galleryIds, int k) {
+        if (k <= 0) return List.of();
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+        PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+        for (int i = 0; i < galleryEmbeddings.size(); i++) {
+            float[] g = galleryEmbeddings.get(i);
+            double d = compute(metric, queryEmbedding, g);
+            String id = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i);
+            if (heap.size() < k) {
+                heap.offer(new FindMatch(id, d));
+            } else if (!heap.isEmpty() && d < heap.peek().distance()) {
+                heap.poll();
+                heap.offer(new FindMatch(id, d));
+            }
+        }
+        List<FindMatch> result = new ArrayList<>(heap);
+        result.sort(Comparator.comparingDouble(FindMatch::distance));
+        return result;
+    }
+
+    /**
+     * Convenience: top-K over gallery paths by computing embeddings internally.
+     */
+    public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k) {
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        try {
+            List<float[]> qEmbeddings = representEmbeddings(loadImage(queryImagePath));
+            if (qEmbeddings.isEmpty()) return List.of();
+            // For multiple faces in query, aggregate by taking min distance per gallery item
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric metric = cfg.defaultDistanceMetric();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (int i = 0; i < galleryImagePaths.size(); i++) {
+                String p = galleryImagePaths.get(i);
+                List<float[]> gEmbeddings = representEmbeddings(loadImage(p));
+                double best = Double.POSITIVE_INFINITY;
+                for (float[] qe : qEmbeddings) for (float[] ge : gEmbeddings) {
+                    double d = compute(metric, qe, ge);
+                    if (d < best) best = d;
+                }
+                String id = String.valueOf(i);
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            log.error("findTopK.load_failed", e);
+            return List.of();
+        }
     }
 
     /**
@@ -685,6 +747,9 @@ public final class DeepFace {
     }
 
     private static double compute(DistanceMetric metric, float[] a, float[] b) {
+        if (a == null || b == null || a.length != b.length) {
+            throw new IllegalArgumentException("Embedding vectors must be non-null and have same length");
+        }
         double[] da = new double[a.length];
         double[] db = new double[b.length];
         for (int i = 0; i < a.length; i++) { da[i] = a[i]; db[i] = b[i]; }
