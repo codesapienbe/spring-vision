@@ -5,6 +5,7 @@ import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.deepface.config.DeepFaceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,6 @@ public final class ModelManager {
         try {
             ensureInitialized();
             if (vggSession != null) {
-                // Run a tiny noop by creating a zero tensor with minimal size if model permits; otherwise skip
                 log.info("VGGFace ONNX session ready for inference");
             }
         } catch (Throwable t) {
@@ -69,7 +69,10 @@ public final class ModelManager {
     private static void ensureInitialized() {
         if (initAttempted.compareAndSet(false, true)) {
             try {
-                String path = System.getProperty(VGG_ONNX_SYS);
+                String path = DeepFaceConfig.current().vggOnnxPath();
+                if (path == null || path.isBlank()) {
+                    path = System.getProperty(VGG_ONNX_SYS);
+                }
                 if (path == null || path.isBlank()) {
                     path = System.getenv(VGG_ONNX_ENV);
                 }
