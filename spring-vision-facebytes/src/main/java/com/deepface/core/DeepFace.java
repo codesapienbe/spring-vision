@@ -9,6 +9,7 @@ import com.deepface.enums.ModelType;
 import com.deepface.models.VGGFaceModel;
 import com.deepface.models.AnalysisOnnxModels;
 import com.deepface.models.OnnxSimpleModel;
+import com.deepface.models.MockAnalyzers;
 import com.deepface.utils.DistanceMetrics;
 import com.deepface.utils.FacePreprocessor;
 import com.deepface.utils.Logs;
@@ -655,6 +656,7 @@ public final class DeepFace {
         List<AnalysisResult> results = new ArrayList<>();
         for (FaceRegion r : regions) {
             BufferedImage crop = cropWithMargin(image, r, margin);
+            BufferedImage processed = (pre != null) ? pre.alignAndResize(crop, 224, 224) : resize(crop, 224, 224);
             Integer age = null;
             String gender = null;
             String dominantEmotion = null;
@@ -662,30 +664,55 @@ public final class DeepFace {
             Map<String, Double> raceDist = Map.of();
 
             try {
+                boolean usedFallback = false;
                 if (doAge) {
-                    int size = cfg.ageInputSize();
-                    float[] in = toNchw(crop, pre, size);
-                    float[] out = AnalysisOnnxModels.getAge().run(in, new long[]{1, 3, size, size});
-                    age = mapAge(out);
+                    if (cfg.ageOnnxPath() != null) {
+                        int size = cfg.ageInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getAge().run(in, new long[]{1, 3, size, size});
+                        age = mapAge(out);
+                    } else {
+                        age = MockAnalyzers.predictAge(processed);
+                        usedFallback = true;
+                    }
                 }
                 if (doGender) {
-                    int size = cfg.genderInputSize();
-                    float[] in = toNchw(crop, pre, size);
-                    float[] out = AnalysisOnnxModels.getGender().run(in, new long[]{1, 3, size, size});
-                    gender = mapGender(out);
+                    if (cfg.genderOnnxPath() != null) {
+                        int size = cfg.genderInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getGender().run(in, new long[]{1, 3, size, size});
+                        gender = mapGender(out);
+                    } else {
+                        gender = MockAnalyzers.predictGender(processed);
+                        usedFallback = true;
+                    }
                 }
                 if (doEmotion) {
-                    int size = cfg.emotionInputSize();
-                    float[] in = toNchw(crop, pre, size);
-                    float[] out = AnalysisOnnxModels.getEmotion().run(in, new long[]{1, 3, size, size});
-                    emotionDist = mapDistribution(out, emotionLabels());
-                    dominantEmotion = argmaxLabel(emotionDist);
+                    if (cfg.emotionOnnxPath() != null) {
+                        int size = cfg.emotionInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getEmotion().run(in, new long[]{1, 3, size, size});
+                        emotionDist = mapDistribution(out, emotionLabels());
+                        dominantEmotion = argmaxLabel(emotionDist);
+                    } else {
+                        emotionDist = MockAnalyzers.predictEmotionDistribution(processed);
+                        dominantEmotion = argmaxLabel(emotionDist);
+                        usedFallback = true;
+                    }
                 }
                 if (doRace) {
-                    int size = cfg.raceInputSize();
-                    float[] in = toNchw(crop, pre, size);
-                    float[] out = AnalysisOnnxModels.getRace().run(in, new long[]{1, 3, size, size});
-                    raceDist = mapDistribution(out, raceLabels());
+                    if (cfg.raceOnnxPath() != null) {
+                        int size = cfg.raceInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getRace().run(in, new long[]{1, 3, size, size});
+                        raceDist = mapDistribution(out, raceLabels());
+                    } else {
+                        raceDist = MockAnalyzers.predictRaceDistribution(processed);
+                        usedFallback = true;
+                    }
+                }
+                if (usedFallback) {
+                    Logs.info("DeepFace", "analyze.fallback_mock", Map.of("reason", "onnx_not_configured"));
                 }
             } catch (Exception e) {
                 Logs.error("DeepFace", "analyze.inference_failed", e, Map.of());
