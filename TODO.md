@@ -185,6 +185,46 @@
   - [ ] If DeepFace sidecar/unavailable, return descriptive errors while keeping app stable
   - [ ] Clamp coordinates to \[0,1]; sanitize attributes; do not emit photos/embeddings in logs
 
+#### 3.4 InsightFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/InsightFaceVisionBackend.java`)
+- [ ] **Backend scaffolding**
+  - [ ] Create `InsightFaceVisionBackend` implementing `VisionBackend`; support `DetectionType.FACE` and `DetectionType.CUSTOM` for embeddings/verification
+  - [ ] Keep public APIs/config intact; no changes to `VisionProperties`
+
+- [ ] **ONNX-based integration (reflection and optional deps)**
+  - [ ] Use ONNX Runtime via reflection to load standard InsightFace models: `RetinaFace` (detection), `ArcFace`/`Glint360K` (embedding)
+  - [ ] Allow GPU providers if present (CUDA/DirectML) with safe fallbacks to CPU
+  - [ ] Surface engine/provider info in `BackendHealthInfo` metrics
+
+- [ ] **Pre/Post-processing**
+  - [ ] Implement image normalization (RGB, mean/std), alignment (five-point landmark alignment) for embeddings
+  - [ ] Decode `RetinaFace` outputs, apply NMS, and return normalized `BoundingBox` with confidence
+  - [ ] Generate 512-D (or model-specific) embeddings; L2-normalize; map to `Detection` attributes (e.g., `embedding_checksum`, avoid raw vectors in logs)
+  - [ ] Provide cosine similarity utilities under `CUSTOM` detection flow for verification
+
+- [ ] **Model management & security**
+  - [ ] Load models from local path or secure HTTPS with timeouts; verify SHA-256 checksums
+  - [ ] Optionally support model zoo identifiers; cache under `~/.spring-vision/insightface-models`
+  - [ ] Add env/system property to disable auto-download
+
+- [ ] **Configuration (non-breaking)**
+  - [ ] Internal constants for thresholds: `FACE_CONFIDENCE`, `NMS_IOU`, `VERIFY_THRESHOLD`
+  - [ ] Optional env/system overrides; no public property changes
+
+- [ ] **Performance & stability**
+  - [ ] Reuse ONNX sessions; warm-up paths; prefer direct buffers for inputs/outputs
+  - [ ] Avoid large intermediate allocations; clamp image sizes; return `VisionProcessingException` on resource pressure
+
+- [ ] **Structured logging & observability**
+  - [ ] Log engine/provider, load/detect/embedding timings, detection counts (JSON structured)
+  - [ ] Expose counters/latency via `VisionMetrics` without public API changes
+
+- [ ] **Graceful shutdown**
+  - [ ] Close ONNX sessions/resources; update health state
+
+- [ ] **Compatibility & fallback**
+  - [ ] If ONNX Runtime missing or models unavailable, return descriptive errors; do not crash the app
+  - [ ] Clamp normalized coordinates to \[0,1]; never log raw image bytes or full embeddings; redact PII
+
 ### 4. Testing Strategy (Future)
 
 - [ ] **TODO: Design and implement advanced testing strategy using modern testing libraries**

@@ -1,0 +1,12 @@
+package com.deepface.enums;
+
+/**
+ * Supported face embedding/analysis model types.
+ */
+public enum ModelType {
+    VGG_FACE,
+    FACENET,
+    OPEN_FACE,
+    DEEP_FACE,
+    ARCFACE
+}
