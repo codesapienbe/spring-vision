@@ -291,6 +291,34 @@ public final class DeepFace {
 
     // ========================= VERIFY =========================
 
+    /** Convenience: verify with defaults using buffered images. */
+    public static VerificationResult verify(BufferedImage img1, BufferedImage img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.DEEP_FACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /** Convenience: verify with defaults using bytes. */
+    public static VerificationResult verify(byte[] img1, byte[] img2) {
+        try {
+            return verify(loadImage(img1), loadImage(img2));
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("verify.load_failed", e);
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
+        }
+    }
+
+    /** Convenience: verify with defaults using streams. */
+    public static VerificationResult verify(InputStream img1, InputStream img2) {
+        try {
+            return verify(loadImage(img1), loadImage(img2));
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("verify.load_failed", e);
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
+        }
+    }
+
     /**
      * Verifies whether two images depict the same person using default configuration.
      */
@@ -371,6 +399,20 @@ public final class DeepFace {
             log.error("verify.load_failed", e);
             return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
         }
+    }
+
+    /** Defaulted verify for two embeddings using current config. */
+    public static VerificationResult verify(float[] emb1, float[] emb2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(emb1, emb2, ModelType.DEEP_FACE, cfg.defaultDistanceMetric());
+    }
+
+    /** Verify two sets of embeddings (e.g., multiple faces) using minimum pairwise distance. */
+    public static VerificationResult verifyEmbeddings(List<float[]> setA, List<float[]> setB, ModelType model, DistanceMetric metric) {
+        double best = bestDistance(setA, setB, metric);
+        double thr = DeepFaceConfig.current().threshold(metric);
+        boolean ok = best <= thr;
+        return new VerificationResult(ok, best, thr, model, DeepFaceConfig.current().detectorBackend(), 0L);
     }
 
     // ========================= REPRESENT (multiple overloads) =========================
@@ -536,6 +578,46 @@ public final class DeepFace {
     }
 
     // ========================= ANALYZE =========================
+
+    /** Convenience: analyze with defaults (all actions) from path. */
+    public static List<AnalysisResult> analyze(String imgPath) {
+        return analyze(imgPath, null);
+    }
+
+    /** Convenience: analyze with defaults (all actions) from buffered image. */
+    public static List<AnalysisResult> analyze(BufferedImage image) {
+        return analyze(image, null);
+    }
+
+    /** Analyze from bytes with explicit actions. */
+    public static List<AnalysisResult> analyze(byte[] imageBytes, String[] actions) {
+        try {
+            return analyze(loadImage(imageBytes), actions);
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("analyze.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /** Analyze from stream with explicit actions. */
+    public static List<AnalysisResult> analyze(InputStream imageStream, String[] actions) {
+        try {
+            return analyze(loadImage(imageStream), actions);
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("analyze.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /** Convenience: analyze from bytes with defaults (all actions). */
+    public static List<AnalysisResult> analyze(byte[] imageBytes) {
+        return analyze(imageBytes, null);
+    }
+
+    /** Convenience: analyze from stream with defaults (all actions). */
+    public static List<AnalysisResult> analyze(InputStream imageStream) {
+        return analyze(imageStream, null);
+    }
 
     /**
      * Analyzes faces in the image located at {@code imgPath} using configured ONNX models.
@@ -758,6 +840,334 @@ public final class DeepFace {
             case EUCLIDEAN -> DistanceMetrics.euclideanDistance(da, db);
             case EUCLIDEAN_L2 -> DistanceMetrics.euclideanL2Distance(da, db);
         };
+    }
+
+    /**
+     * Computes the minimum pairwise distance between two embedding sets. Returns +INF if any set is empty or null.
+     */
+    private static double bestDistance(List<float[]> setA, List<float[]> setB, DistanceMetric metric) {
+        if (setA == null || setB == null || setA.isEmpty() || setB.isEmpty()) {
+            return Double.POSITIVE_INFINITY;
+        }
+        double best = Double.POSITIVE_INFINITY;
+        for (float[] a : setA) {
+            for (float[] b : setB) {
+                double d = compute(metric, a, b);
+                if (d < best) best = d;
+            }
+        }
+        return best;
+    }
+
+    // ========================= FIND (Map-based precomputed galleries) =========================
+
+    /**
+     * Finds best match for a query embedding against a precomputed gallery map id -> embeddings list.
+     */
+    public static FindResult find(float[] queryEmbedding, Map<String, List<float[]>> galleryEmbeddingsById, DistanceMetric metric, Double thresholdOverride) {
+        String bestId = null; double best = Double.POSITIVE_INFINITY;
+        for (Map.Entry<String, List<float[]>> e : galleryEmbeddingsById.entrySet()) {
+            for (float[] ge : e.getValue()) {
+                double d = compute(metric, queryEmbedding, ge);
+                if (d < best) { best = d; bestId = e.getKey(); }
+            }
+        }
+        double thr = (thresholdOverride != null) ? thresholdOverride : DeepFaceConfig.current().threshold(metric);
+        return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+    }
+
+    /**
+     * Returns top-K matches for a query embedding against a precomputed gallery map.
+     */
+    public static List<FindMatch> findTopK(float[] queryEmbedding, Map<String, List<float[]>> galleryEmbeddingsById, int k, DistanceMetric metric) {
+        if (k <= 0) return List.of();
+        Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+        PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+        for (Map.Entry<String, List<float[]>> e : galleryEmbeddingsById.entrySet()) {
+            String id = e.getKey();
+            double best = Double.POSITIVE_INFINITY;
+            for (float[] ge : e.getValue()) {
+                double d = compute(metric, queryEmbedding, ge);
+                if (d < best) best = d;
+            }
+            if (heap.size() < k) heap.offer(new FindMatch(id, best));
+            else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+        }
+        List<FindMatch> result = new ArrayList<>(heap);
+        result.sort(Comparator.comparingDouble(FindMatch::distance));
+        return result;
+    }
+
+    // ========================= FIND (multi-embedding) =========================
+
+    /** Find best gallery id for a set of query embeddings against gallery embeddings list. */
+    public static FindResult find(List<float[]> queryEmbeddings, List<float[]> galleryEmbeddings, List<String> galleryIds, DistanceMetric metric, Double thresholdOverride) {
+        String bestId = null; double best = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < galleryEmbeddings.size(); i++) {
+            double d = Double.POSITIVE_INFINITY;
+            for (float[] q : queryEmbeddings) {
+                d = Math.min(d, compute(metric, q, galleryEmbeddings.get(i)));
+            }
+            if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+        }
+        double thr = (thresholdOverride != null) ? thresholdOverride : DeepFaceConfig.current().threshold(metric);
+        return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+    }
+
+    /** Top-K results for a set of query embeddings against a map of id->embeddings list. */
+    public static List<FindMatch> findTopK(List<float[]> queryEmbeddings, Map<String, List<float[]>> galleryEmbeddingsById, int k, DistanceMetric metric) {
+        if (k <= 0) return List.of();
+        Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+        PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+        for (Map.Entry<String, List<float[]>> e : galleryEmbeddingsById.entrySet()) {
+            String id = e.getKey();
+            double best = Double.POSITIVE_INFINITY;
+            for (float[] q : queryEmbeddings) {
+                for (float[] ge : e.getValue()) {
+                    double d = compute(metric, q, ge);
+                    if (d < best) best = d;
+                }
+            }
+            if (heap.size() < k) heap.offer(new FindMatch(id, best));
+            else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+        }
+        List<FindMatch> result = new ArrayList<>(heap);
+        result.sort(Comparator.comparingDouble(FindMatch::distance));
+        return result;
+    }
+
+    // ========================= GALLERY UTILITIES =========================
+
+    /** Precompute embeddings for a gallery of paths keyed by id. */
+    public static Map<String, List<float[]>> computeGalleryEmbeddings(Map<String, List<String>> galleryPathsById) {
+        Map<String, List<float[]>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
+            String id = e.getKey();
+            List<float[]> acc = new ArrayList<>();
+            for (String path : e.getValue()) {
+                validateFile(path);
+                try {
+                    acc.addAll(representEmbeddings(loadImage(path)));
+                } catch (IOException ex) {
+                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddings.load_failed", ex);
+                }
+            }
+            out.put(id, acc);
+        }
+        return out;
+    }
+
+    /** Precompute embeddings for a gallery of byte arrays keyed by id. */
+    public static Map<String, List<float[]>> computeGalleryEmbeddingsFromBytes(Map<String, List<byte[]>> galleryBytesById) {
+        Map<String, List<float[]>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
+            String id = e.getKey();
+            List<float[]> acc = new ArrayList<>();
+            for (byte[] bytes : e.getValue()) {
+                try {
+                    acc.addAll(representEmbeddings(loadImage(bytes)));
+                } catch (IOException ex) {
+                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddingsFromBytes.load_failed", ex);
+                }
+            }
+            out.put(id, acc);
+        }
+        return out;
+    }
+
+    /** Precompute embeddings for a gallery of streams keyed by id. */
+    public static Map<String, List<float[]>> computeGalleryEmbeddingsFromStreams(Map<String, List<InputStream>> galleryStreamsById) {
+        Map<String, List<float[]>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
+            String id = e.getKey();
+            List<float[]> acc = new ArrayList<>();
+            for (InputStream is : e.getValue()) {
+                try {
+                    acc.addAll(representEmbeddings(loadImage(is)));
+                } catch (IOException ex) {
+                    LoggerFactory.getLogger(DeepFace.class).error("computeGalleryEmbeddingsFromStreams.load_failed", ex);
+                }
+            }
+            out.put(id, acc);
+        }
+        return out;
+    }
+
+    // ========================= FIND over Map<String, List<path/bytes/streams>> =========================
+
+    /** Find best id for query path against map of id->paths. */
+    public static FindResult find(String queryImagePath, Map<String, List<String>> galleryPathsById) {
+        validateFile(queryImagePath);
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImagePath));
+            String bestId = null; double best = Double.POSITIVE_INFINITY;
+            for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
+                double bestForId = Double.POSITIVE_INFINITY;
+                for (String p : e.getValue()) {
+                    validateFile(p);
+                    List<float[]> gEmb = representEmbeddings(loadImage(p));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < bestForId) bestForId = d;
+                    }
+                }
+                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("find.map_paths.load_failed", e);
+            return new FindResult(null, 1.0, DeepFaceConfig.current().threshold(metric), false);
+        }
+    }
+
+    /** Top-K for query path against map of id->paths. */
+    public static List<FindMatch> findTopK(String queryImagePath, Map<String, List<String>> galleryPathsById, int k) {
+        validateFile(queryImagePath);
+        if (k <= 0) return List.of();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImagePath));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric metric = cfg.defaultDistanceMetric();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
+                String id = e.getKey();
+                double best = Double.POSITIVE_INFINITY;
+                for (String p : e.getValue()) {
+                    validateFile(p);
+                    List<float[]> gEmb = representEmbeddings(loadImage(p));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < best) best = d;
+                    }
+                }
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_paths.load_failed", e);
+            return List.of();
+        }
+    }
+
+    /** Find best id for query bytes against map of id->bytes list. */
+    public static FindResult find(byte[] queryImageBytes, Map<String, List<byte[]>> galleryBytesById) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImageBytes));
+            String bestId = null; double best = Double.POSITIVE_INFINITY;
+            for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
+                double bestForId = Double.POSITIVE_INFINITY;
+                for (byte[] b : e.getValue()) {
+                    List<float[]> gEmb = representEmbeddings(loadImage(b));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < bestForId) bestForId = d;
+                    }
+                }
+                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("find.map_bytes.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /** Top-K for query bytes against map of id->bytes list. */
+    public static List<FindMatch> findTopK(byte[] queryImageBytes, Map<String, List<byte[]>> galleryBytesById, int k) {
+        if (k <= 0) return List.of();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImageBytes));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric metric = cfg.defaultDistanceMetric();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
+                String id = e.getKey();
+                double best = Double.POSITIVE_INFINITY;
+                for (byte[] b : e.getValue()) {
+                    List<float[]> gEmb = representEmbeddings(loadImage(b));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < best) best = d;
+                    }
+                }
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_bytes.load_failed", e);
+            return List.of();
+        }
+    }
+
+    /** Find best id for query stream against map of id->streams list. */
+    public static FindResult find(InputStream queryImageStream, Map<String, List<InputStream>> galleryStreamsById) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImageStream));
+            String bestId = null; double best = Double.POSITIVE_INFINITY;
+            for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
+                double bestForId = Double.POSITIVE_INFINITY;
+                for (InputStream is : e.getValue()) {
+                    List<float[]> gEmb = representEmbeddings(loadImage(is));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < bestForId) bestForId = d;
+                    }
+                }
+                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("find.map_streams.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /** Top-K for query stream against map of id->streams list. */
+    public static List<FindMatch> findTopK(InputStream queryImageStream, Map<String, List<InputStream>> galleryStreamsById, int k) {
+        if (k <= 0) return List.of();
+        try {
+            List<float[]> qEmb = representEmbeddings(loadImage(queryImageStream));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            DistanceMetric metric = cfg.defaultDistanceMetric();
+            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
+            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
+            for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
+                String id = e.getKey();
+                double best = Double.POSITIVE_INFINITY;
+                for (InputStream is : e.getValue()) {
+                    List<float[]> gEmb = representEmbeddings(loadImage(is));
+                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
+                        double d = compute(metric, qe, ge);
+                        if (d < best) best = d;
+                    }
+                }
+                if (heap.size() < k) heap.offer(new FindMatch(id, best));
+                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            }
+            List<FindMatch> result = new ArrayList<>(heap);
+            result.sort(Comparator.comparingDouble(FindMatch::distance));
+            return result;
+        } catch (IOException e) {
+            LoggerFactory.getLogger(DeepFace.class).error("findTopK.map_streams.load_failed", e);
+            return List.of();
+        }
     }
 }
 
