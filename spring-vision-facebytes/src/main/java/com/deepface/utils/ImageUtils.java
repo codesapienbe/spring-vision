@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 
 public final class ImageUtils {
 
@@ -12,6 +14,18 @@ public final class ImageUtils {
 
     public static BufferedImage loadImage(String path) throws IOException {
         return ImageIO.read(new File(path));
+    }
+
+    public static BufferedImage loadImage(byte[] data) throws IOException {
+        if (data == null) throw new IllegalArgumentException("image bytes must not be null");
+        try (InputStream is = new ByteArrayInputStream(data)) {
+            return ImageIO.read(is);
+        }
+    }
+
+    public static BufferedImage loadImage(InputStream is) throws IOException {
+        if (is == null) throw new IllegalArgumentException("input stream must not be null");
+        return ImageIO.read(is);
     }
 
     public static void saveImage(BufferedImage img, String path) throws IOException {
