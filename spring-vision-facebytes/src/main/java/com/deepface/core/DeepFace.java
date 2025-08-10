@@ -21,6 +21,10 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -28,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Comparator;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.deepface.utils.ImageUtils.loadImage;
 
@@ -433,6 +440,17 @@ public final class DeepFace {
         }
     }
 
+    /** Represent with explicit detector backend override. */
+    public static List<EmbeddingResult> represent(String imgPath, DetectorBackend backend) {
+        validateFile(imgPath);
+        try {
+            return represent(loadImage(imgPath), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Generates embeddings for all faces in the provided image bytes.
      */
@@ -445,12 +463,32 @@ public final class DeepFace {
         }
     }
 
+    /** Represent bytes with explicit detector backend override. */
+    public static List<EmbeddingResult> represent(byte[] imageBytes, DetectorBackend backend) {
+        try {
+            return represent(loadImage(imageBytes), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Generates embeddings for all faces in the provided image stream.
      */
     public static List<EmbeddingResult> represent(InputStream imageStream) {
         try {
             return represent(loadImage(imageStream));
+        } catch (IOException e) {
+            Logs.error("DeepFace", "represent.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
+    /** Represent stream with explicit detector backend override. */
+    public static List<EmbeddingResult> represent(InputStream imageStream, DetectorBackend backend) {
+        try {
+            return represent(loadImage(imageStream), backend);
         } catch (IOException e) {
             Logs.error("DeepFace", "represent.load_failed", e, Map.of());
             return Collections.emptyList();
@@ -481,12 +519,45 @@ public final class DeepFace {
         return out;
     }
 
+    /** Represent with explicit detector backend override. */
+    public static List<EmbeddingResult> represent(BufferedImage img, DetectorBackend backend) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
+        List<FaceRegion> regions = fd.detectFaces(img);
+        if (regions.isEmpty()) {
+            return Collections.emptyList();
+        }
+        VGGFaceModel model = new VGGFaceModel();
+        FacePreprocessor pre = cfg.align() ? new FacePreprocessor() : null;
+        int target = cfg.inputSize();
+        int margin = cfg.margin();
+        List<EmbeddingResult> out = new ArrayList<>();
+        for (FaceRegion r : regions) {
+            BufferedImage face = cropWithMargin(img, r, margin);
+            BufferedImage processed = (pre != null) ? pre.alignAndResize(face, target, target) : resize(face, target, target);
+            float[] emb = model.generateEmbedding(processed, target);
+            out.add(new EmbeddingResult(emb, r));
+        }
+        return out;
+    }
+
     // ========================= REPRESENT (embeddings only helpers) =========================
 
     public static List<float[]> representEmbeddings(String imgPath) {
         validateFile(imgPath);
         try {
             return representEmbeddings(loadImage(imgPath));
+        } catch (IOException e) {
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
+            return List.of();
+        }
+    }
+
+    /** Embeddings with explicit detector backend override. */
+    public static List<float[]> representEmbeddings(String imgPath, DetectorBackend backend) {
+        validateFile(imgPath);
+        try {
+            return representEmbeddings(loadImage(imgPath), backend);
         } catch (IOException e) {
             Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
             return List.of();
@@ -502,6 +573,16 @@ public final class DeepFace {
         }
     }
 
+    /** Embeddings with explicit detector backend override. */
+    public static List<float[]> representEmbeddings(byte[] imageBytes, DetectorBackend backend) {
+        try {
+            return representEmbeddings(loadImage(imageBytes), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
+            return List.of();
+        }
+    }
+
     public static List<float[]> representEmbeddings(InputStream imageStream) {
         try {
             return representEmbeddings(loadImage(imageStream));
@@ -511,8 +592,26 @@ public final class DeepFace {
         }
     }
 
+    /** Embeddings with explicit detector backend override. */
+    public static List<float[]> representEmbeddings(InputStream imageStream, DetectorBackend backend) {
+        try {
+            return representEmbeddings(loadImage(imageStream), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of());
+            return List.of();
+        }
+    }
+
     public static List<float[]> representEmbeddings(BufferedImage image) {
         List<EmbeddingResult> results = represent(image);
+        List<float[]> out = new ArrayList<>(results.size());
+        for (EmbeddingResult r : results) out.add(r.embedding());
+        return out;
+    }
+
+    /** Embeddings with explicit detector backend override. */
+    public static List<float[]> representEmbeddings(BufferedImage image, DetectorBackend backend) {
+        List<EmbeddingResult> results = represent(image, backend);
         List<float[]> out = new ArrayList<>(results.size());
         for (EmbeddingResult r : results) out.add(r.embedding());
         return out;
@@ -540,12 +639,33 @@ public final class DeepFace {
         }
     }
 
+    /** Extract faces with explicit detector backend override. */
+    public static List<BufferedImage> extractFaces(String imgPath, DetectorBackend backend) {
+        validateFile(imgPath);
+        try {
+            return extractFaces(loadImage(imgPath), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Extracts face crops from image bytes.
      */
     public static List<BufferedImage> extractFaces(byte[] imageBytes) {
         try {
             return extractFaces(loadImage(imageBytes));
+        } catch (IOException e) {
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
+    /** Extract faces with explicit detector backend override. */
+    public static List<BufferedImage> extractFaces(byte[] imageBytes, DetectorBackend backend) {
+        try {
+            return extractFaces(loadImage(imageBytes), backend);
         } catch (IOException e) {
             Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
             return Collections.emptyList();
@@ -564,12 +684,35 @@ public final class DeepFace {
         }
     }
 
+    /** Extract faces with explicit detector backend override. */
+    public static List<BufferedImage> extractFaces(InputStream imageStream, DetectorBackend backend) {
+        try {
+            return extractFaces(loadImage(imageStream), backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "extractFaces.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Extracts face crops from the provided buffered image.
      */
     public static List<BufferedImage> extractFaces(BufferedImage img) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
         FaceDetector fd = DetectorFactory.create(cfg.detectorBackend());
+        List<FaceRegion> regions = fd.detectFaces(img);
+        int margin = cfg.margin();
+        List<BufferedImage> crops = new ArrayList<>();
+        for (FaceRegion r : regions) {
+            crops.add(cropWithMargin(img, r, margin));
+        }
+        return crops;
+    }
+
+    /** Extract faces with explicit detector backend override. */
+    public static List<BufferedImage> extractFaces(BufferedImage img, DetectorBackend backend) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(img);
         int margin = cfg.margin();
         List<BufferedImage> crops = new ArrayList<>();
@@ -635,6 +778,17 @@ public final class DeepFace {
         }
     }
 
+    /** Analyze with explicit detector backend override. */
+    public static List<AnalysisResult> analyze(String imgPath, String[] actions, DetectorBackend backend) {
+        validateFile(imgPath);
+        try {
+            return analyze(loadImage(imgPath), actions, backend);
+        } catch (IOException e) {
+            Logs.error("DeepFace", "analyze.load_failed", e, Map.of());
+            return Collections.emptyList();
+        }
+    }
+
     /**
      * Analyzes faces in the provided image using configured ONNX models.
      * Supported actions: age, gender, emotion, race.
@@ -642,6 +796,92 @@ public final class DeepFace {
     public static List<AnalysisResult> analyze(BufferedImage image, String[] actions) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
         FaceDetector fd = DetectorFactory.create(cfg.detectorBackend());
+        List<FaceRegion> regions = fd.detectFaces(image);
+        if (regions.isEmpty()) return Collections.emptyList();
+
+        boolean doAge = containsAction(actions, "age");
+        boolean doGender = containsAction(actions, "gender");
+        boolean doEmotion = containsAction(actions, "emotion");
+        boolean doRace = containsAction(actions, "race");
+
+        FacePreprocessor pre = cfg.align() ? new FacePreprocessor() : null;
+        int margin = cfg.margin();
+
+        List<AnalysisResult> results = new ArrayList<>();
+        for (FaceRegion r : regions) {
+            BufferedImage crop = cropWithMargin(image, r, margin);
+            BufferedImage processed = (pre != null) ? pre.alignAndResize(crop, 224, 224) : resize(crop, 224, 224);
+            Integer age = null;
+            String gender = null;
+            String dominantEmotion = null;
+            Map<String, Double> emotionDist = Map.of();
+            Map<String, Double> raceDist = Map.of();
+
+            try {
+                boolean usedFallback = false;
+                if (doAge) {
+                    if (cfg.ageOnnxPath() != null) {
+                        int size = cfg.ageInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getAge().run(in, new long[]{1, 3, size, size});
+                        age = mapAge(out);
+                    } else {
+                        age = MockAnalyzers.predictAge(processed);
+                        usedFallback = true;
+                    }
+                }
+                if (doGender) {
+                    if (cfg.genderOnnxPath() != null) {
+                        int size = cfg.genderInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getGender().run(in, new long[]{1, 3, size, size});
+                        gender = mapGender(out);
+                    } else {
+                        gender = MockAnalyzers.predictGender(processed);
+                        usedFallback = true;
+                    }
+                }
+                if (doEmotion) {
+                    if (cfg.emotionOnnxPath() != null) {
+                        int size = cfg.emotionInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getEmotion().run(in, new long[]{1, 3, size, size});
+                        emotionDist = mapDistribution(out, emotionLabels());
+                        dominantEmotion = argmaxLabel(emotionDist);
+                    } else {
+                        emotionDist = MockAnalyzers.predictEmotionDistribution(processed);
+                        dominantEmotion = argmaxLabel(emotionDist);
+                        usedFallback = true;
+                    }
+                }
+                if (doRace) {
+                    if (cfg.raceOnnxPath() != null) {
+                        int size = cfg.raceInputSize();
+                        float[] in = toNchw(crop, pre, size);
+                        float[] out = AnalysisOnnxModels.getRace().run(in, new long[]{1, 3, size, size});
+                        raceDist = mapDistribution(out, raceLabels());
+                    } else {
+                        raceDist = MockAnalyzers.predictRaceDistribution(processed);
+                        usedFallback = true;
+                    }
+                }
+                if (usedFallback) {
+                    Logs.info("DeepFace", "analyze.fallback_mock", Map.of("reason", "onnx_not_configured"));
+                }
+            } catch (Exception e) {
+                Logs.error("DeepFace", "analyze.inference_failed", e, Map.of());
+            }
+
+            results.add(new AnalysisResult(age, gender, dominantEmotion, emotionDist, raceDist, r));
+        }
+
+        return results;
+    }
+
+    /** Analyze with explicit detector backend override. */
+    public static List<AnalysisResult> analyze(BufferedImage image, String[] actions, DetectorBackend backend) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(image);
         if (regions.isEmpty()) return Collections.emptyList();
 
@@ -1196,6 +1436,79 @@ public final class DeepFace {
             Logs.error("DeepFace", "findTopK.map_streams.load_failed", e, Map.of());
             return List.of();
         }
+    }
+
+    // ========================= FIND against directory (DeepFace db_path parity) =========================
+
+    /**
+     * Finds the best match for a query image against all images in a directory (recursively).
+     * Mirrors DeepFace's db_path usage in a simplified form.
+     */
+    public static FindResult find(String queryImagePath, String galleryDirectoryPath) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty()) {
+            Logs.warn("DeepFace", "find.dir.empty", Map.of("dir", galleryDirectoryPath));
+            DeepFaceConfig cfg = DeepFaceConfig.current();
+            return new FindResult(null, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), false);
+        }
+        return find(queryImagePath, gallery);
+    }
+
+    /**
+     * Returns top-K closest matches for a query image against a directory (recursively).
+     */
+    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k) {
+        validateFile(queryImagePath);
+        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
+        if (gallery.isEmpty() || k <= 0) return List.of();
+        return findTopK(queryImagePath, gallery, k);
+    }
+
+    private static List<String> listImageFilesSecure(String directoryPath) {
+        if (directoryPath == null || directoryPath.isBlank()) {
+            throw new IllegalArgumentException("Gallery directory path must not be null or blank");
+        }
+        Path dir = Paths.get(directoryPath);
+        if (!Files.isDirectory(dir)) {
+            throw new IllegalArgumentException("Gallery path is not a directory: " + directoryPath);
+        }
+        final long maxFiles = 10000L;
+        final Set<String> allowed = imageExtensions();
+        try (Stream<Path> stream = Files.walk(dir)) {
+            List<String> files = stream
+                .filter(Files::isRegularFile)
+                .filter(p -> hasAllowedExtension(p.getFileName().toString(), allowed))
+                .limit(maxFiles)
+                .map(p -> p.toAbsolutePath().toString())
+                .collect(Collectors.toList());
+            if (files.size() == maxFiles) {
+                Logs.warn("DeepFace", "find.dir.truncated", Map.of("dir", directoryPath, "max_files", maxFiles));
+            }
+            // Validate size constraints for each file
+            List<String> validated = new ArrayList<>(files.size());
+            for (String p : files) {
+                try { validateFile(p); validated.add(p); }
+                catch (Exception ex) { Logs.warn("DeepFace", "find.dir.skip_invalid", Map.of("path", p)); }
+            }
+            return validated;
+        } catch (IOException e) {
+            Logs.error("DeepFace", "find.dir.scan_failed", e, Map.of("dir", directoryPath));
+            return List.of();
+        }
+    }
+
+    private static boolean hasAllowedExtension(String name, Set<String> allowed) {
+        int idx = name.lastIndexOf('.');
+        if (idx <= 0 || idx >= name.length() - 1) return false;
+        String ext = name.substring(idx + 1).toLowerCase();
+        return allowed.contains(ext);
+    }
+
+    private static Set<String> imageExtensions() {
+        Set<String> s = new HashSet<>();
+        Collections.addAll(s, "jpg","jpeg","png","bmp","gif","webp");
+        return s;
     }
 }
 
