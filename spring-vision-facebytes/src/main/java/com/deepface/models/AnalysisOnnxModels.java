@@ -65,4 +65,25 @@ public final class AnalysisOnnxModels {
         }
         return race;
     }
+
+    /**
+     * Attempts to initialize configured models to catch errors early and warm caches.
+     * Missing model paths are ignored.
+     */
+    public static void warmupIfConfigured() {
+        try { if (DeepFaceConfig.current().emotionOnnxPath() != null) getEmotion(); } catch (Throwable ignored) {}
+        try { if (DeepFaceConfig.current().genderOnnxPath() != null) getGender(); } catch (Throwable ignored) {}
+        try { if (DeepFaceConfig.current().ageOnnxPath() != null) getAge(); } catch (Throwable ignored) {}
+        try { if (DeepFaceConfig.current().raceOnnxPath() != null) getRace(); } catch (Throwable ignored) {}
+    }
+
+    /**
+     * Closes all initialized models and releases native resources.
+     */
+    public static void shutdown() {
+        try { if (emotion != null) { emotion.close(); emotion = null; } } catch (Throwable ignored) {}
+        try { if (gender != null) { gender.close(); gender = null; } } catch (Throwable ignored) {}
+        try { if (age != null) { age.close(); age = null; } } catch (Throwable ignored) {}
+        try { if (race != null) { race.close(); race = null; } } catch (Throwable ignored) {}
+    }
 }
