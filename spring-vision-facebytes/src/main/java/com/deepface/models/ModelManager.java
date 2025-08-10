@@ -6,8 +6,7 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.deepface.config.DeepFaceConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.deepface.utils.Logs;
 
 import java.io.File;
 import java.nio.FloatBuffer;
@@ -20,8 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Loads models lazily from env/system properties and exposes a simple inference API.
  */
 public final class ModelManager {
-
-    private static final Logger log = LoggerFactory.getLogger(ModelManager.class);
 
     private static final String VGG_ONNX_SYS = "facebytes.vggface.onnx";
     private static final String VGG_ONNX_ENV = "FACEBYTES_VGGFACE_ONNX_PATH";
@@ -42,10 +39,10 @@ public final class ModelManager {
         try {
             ensureInitialized();
             if (vggSession != null) {
-                log.info("VGGFace ONNX session ready for inference");
+                Logs.info("ModelManager", "onnx.vgg.session_ready", Map.of());
             }
         } catch (Throwable t) {
-            log.warn("Warmup failed: {}", t.toString());
+            Logs.warn("ModelManager", "onnx.vgg.warmup_failed", Map.of("error", t.getClass().getSimpleName()));
         }
     }
 
@@ -77,22 +74,22 @@ public final class ModelManager {
                     path = System.getenv(VGG_ONNX_ENV);
                 }
                 if (path == null || path.isBlank()) {
-                    log.info("VGGFace ONNX path not configured; ONNX features disabled");
+                    Logs.info("ModelManager", "onnx.vgg.path_missing", Map.of("enabled", false));
                     installShutdownHook();
                     return;
                 }
                 File f = new File(path);
                 if (!f.exists() || !f.isFile()) {
-                    log.warn("VGGFace ONNX file not found at {} - ONNX features disabled", path);
+                    Logs.warn("ModelManager", "onnx.vgg.file_not_found", Map.of("path", path));
                     installShutdownHook();
                     return;
                 }
                 env = OrtEnvironment.getEnvironment();
                 vggSession = env.createSession(path, new OrtSession.SessionOptions());
-                log.info("Loaded VGGFace ONNX model", Map.of("path", path));
+                Logs.info("ModelManager", "onnx.vgg.loaded", Map.of("path", path));
                 installShutdownHook();
             } catch (Throwable t) {
-                log.warn("Failed to initialize ONNX Runtime: {} - disabling ONNX features", t.toString());
+                Logs.warn("ModelManager", "onnx.vgg.init_failed", Map.of("error", t.getClass().getSimpleName()));
                 safeClose();
                 installShutdownHook();
             }
@@ -105,7 +102,7 @@ public final class ModelManager {
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     try {
                         safeClose();
-                        log.info("FaceBytes ONNX resources closed");
+                        Logs.info("ModelManager", "onnx.resources_closed", Map.of());
                     } catch (Throwable ignored) {}
                 }, "facebytes-onnx-shutdown"));
             } catch (Throwable ignored) {
