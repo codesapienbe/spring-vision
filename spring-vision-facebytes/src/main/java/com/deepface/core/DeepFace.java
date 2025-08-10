@@ -714,6 +714,12 @@ public final class DeepFace {
         return compute(metric, emb1, emb2);
     }
 
+    /** Convenience: distance using current default metric. */
+    public static double distance(float[] emb1, float[] emb2) {
+        DistanceMetric m = DeepFaceConfig.current().defaultDistanceMetric();
+        return compute(m, emb1, emb2);
+    }
+
     // ========================= EXTRACT FACES (multiple overloads) =========================
 
     /**
@@ -1619,7 +1625,7 @@ public final class DeepFace {
 
     private static Set<String> imageExtensions() {
         Set<String> s = new HashSet<>();
-        Collections.addAll(s, "jpg","jpeg","png","bmp","gif","webp");
+        Collections.addAll(s, "jpg","jpeg","png","bmp","gif","webp","tif","tiff");
         return s;
     }
 
