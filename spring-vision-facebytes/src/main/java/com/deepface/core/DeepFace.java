@@ -18,6 +18,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -37,6 +38,180 @@ public final class DeepFace {
     private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50MB guardrail
 
     private DeepFace() {}
+
+    /**
+     * Finds the best match in gallery for the query image using the configured distance metric.
+     */
+    public static FindResult find(String queryImagePath, List<String> galleryImagePaths) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        validateFile(queryImagePath);
+        for (String p : galleryImagePaths) validateFile(p);
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImagePath));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                List<EmbeddingResult> g = represent(loadImage(p));
+                for (EmbeddingResult qe : q) {
+                    for (EmbeddingResult ge : g) {
+                        double d = compute(metric, qe.embedding(), ge.embedding());
+                        if (d < best) { best = d; bestPath = p; }
+                    }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match for query bytes against gallery paths.
+     */
+    public static FindResult find(byte[] queryImageBytes, List<String> galleryImagePaths) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImageBytes));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                validateFile(p);
+                List<EmbeddingResult> g = represent(loadImage(p));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(metric, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestPath = p; }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match for query stream against gallery paths.
+     */
+    public static FindResult find(InputStream queryImageStream, List<String> galleryImagePaths) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImageStream));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestPath = null;
+            for (String p : galleryImagePaths) {
+                validateFile(p);
+                List<EmbeddingResult> g = represent(loadImage(p));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(metric, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestPath = p; }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestPath, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match using precomputed embeddings for query and a list of gallery embeddings.
+     */
+    public static FindResult find(float[] queryEmbedding, List<float[]> galleryEmbeddings) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        double best = Double.POSITIVE_INFINITY; int idx = -1;
+        for (int i = 0; i < galleryEmbeddings.size(); i++) {
+            float[] g = galleryEmbeddings.get(i);
+            double d = compute(metric, queryEmbedding, g);
+            if (d < best) { best = d; idx = i; }
+        }
+        double thr = cfg.threshold(metric);
+        String bestPath = (idx >= 0) ? String.valueOf(idx) : null; // index-as-identifier if paths unknown
+        return new FindResult(bestPath, best, thr, best <= thr);
+    }
+
+    /**
+     * Finds best match for query path against gallery bytes list.
+     */
+    public static FindResult find(String queryImagePath, List<byte[]> galleryImageBytesList, List<String> galleryIds) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        validateFile(queryImagePath);
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImagePath));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestId = null;
+            for (int i = 0; i < galleryImageBytesList.size(); i++) {
+                List<EmbeddingResult> g = represent(loadImage(galleryImageBytesList.get(i)));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(metric, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match for query bytes against gallery bytes list.
+     */
+    public static FindResult find(byte[] queryImageBytes, List<byte[]> galleryImageBytesList, List<String> galleryIds) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImageBytes));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestId = null;
+            for (int i = 0; i < galleryImageBytesList.size(); i++) {
+                List<EmbeddingResult> g = represent(loadImage(galleryImageBytesList.get(i)));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(metric, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
+
+    /**
+     * Finds best match for query stream against gallery streams.
+     */
+    public static FindResult find(InputStream queryImageStream, List<InputStream> galleryStreams, List<String> galleryIds) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        DistanceMetric metric = cfg.defaultDistanceMetric();
+        try {
+            List<EmbeddingResult> q = represent(loadImage(queryImageStream));
+            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(metric), false);
+            double best = Double.POSITIVE_INFINITY; String bestId = null;
+            for (int i = 0; i < galleryStreams.size(); i++) {
+                List<EmbeddingResult> g = represent(loadImage(galleryStreams.get(i)));
+                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
+                    double d = compute(metric, qe.embedding(), ge.embedding());
+                    if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
+                }
+            }
+            double thr = cfg.threshold(metric);
+            return new FindResult(bestId, best, thr, best <= thr);
+        } catch (IOException e) {
+            log.error("find.load_failed", e);
+            return new FindResult(null, 1.0, cfg.threshold(metric), false);
+        }
+    }
 
     /**
      * Verifies whether two images depict the same person using default configuration.
@@ -88,6 +263,32 @@ public final class DeepFace {
     }
 
     /**
+     * Verifies two images given as bytes.
+     */
+    public static VerificationResult verify(byte[] img1, byte[] img2, ModelType model, DistanceMetric distance,
+                                            DetectorBackend detector) {
+        try {
+            return verify(loadImage(img1), loadImage(img2), model, distance, detector);
+        } catch (IOException e) {
+            log.error("verify.load_failed", e);
+            return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
+        }
+    }
+
+    /**
+     * Verifies two images given as streams.
+     */
+    public static VerificationResult verify(InputStream img1, InputStream img2, ModelType model, DistanceMetric distance,
+                                            DetectorBackend detector) {
+        try {
+            return verify(loadImage(img1), loadImage(img2), model, distance, detector);
+        } catch (IOException e) {
+            log.error("verify.load_failed", e);
+            return new VerificationResult(false, 1.0, DeepFaceConfig.current().threshold(distance), model, detector, 0L);
+        }
+    }
+
+    /**
      * Generates embeddings for all faces in the image located at {@code imgPath}.
      */
     public static List<EmbeddingResult> represent(String imgPath) {
@@ -95,6 +296,30 @@ public final class DeepFace {
         try {
             BufferedImage img = loadImage(imgPath);
             return represent(img);
+        } catch (IOException e) {
+            log.error("represent.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Generates embeddings for all faces in the provided image bytes.
+     */
+    public static List<EmbeddingResult> represent(byte[] imageBytes) {
+        try {
+            return represent(loadImage(imageBytes));
+        } catch (IOException e) {
+            log.error("represent.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Generates embeddings for all faces in the provided image stream.
+     */
+    public static List<EmbeddingResult> represent(InputStream imageStream) {
+        try {
+            return represent(loadImage(imageStream));
         } catch (IOException e) {
             log.error("represent.load_failed", e);
             return Collections.emptyList();
@@ -140,7 +365,31 @@ public final class DeepFace {
     }
 
     /**
-     * Extracts face crops from the provided image.
+     * Extracts face crops from image bytes.
+     */
+    public static List<BufferedImage> extractFaces(byte[] imageBytes) {
+        try {
+            return extractFaces(loadImage(imageBytes));
+        } catch (IOException e) {
+            log.error("extractFaces.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Extracts face crops from image stream.
+     */
+    public static List<BufferedImage> extractFaces(InputStream imageStream) {
+        try {
+            return extractFaces(loadImage(imageStream));
+        } catch (IOException e) {
+            log.error("extractFaces.load_failed", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Extracts face crops from the provided buffered image.
      */
     public static List<BufferedImage> extractFaces(BufferedImage img) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
