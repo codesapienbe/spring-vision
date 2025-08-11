@@ -318,11 +318,11 @@ test_opencv_functionality() {
 }
 
 # Function to build deepface
-build_deepface() {
-    print_info "Building deepface..."
+docker_run_deepface() {
+    print_info "Running deepface..."
     cd "$PROJECT_ROOT/spring-vision-deepface"
-    uv sync --frozen
-    print_success "Deepface built successfully"
+    docker run -p 5005:5005 spring-vision-deepface
+    print_success "Deepface running successfully"
 }
 
 # Main script logic

@@ -70,13 +70,13 @@ if [[ -d "${GIT_DIR_PATH}" ]]; then
   fi
 fi
 
-# Build the project at repository root
-if [[ -x "${SCRIPT_DIR}/mvnw" ]]; then
-  echo "[INFO] Building project with ./mvnw clean install"
-  "${SCRIPT_DIR}/mvnw" clean install
-else
-  echo "[INFO] Building project with mvn clean install"
-  mvn clean install
+# Dockerize the project
+echo "[INFO] Dockerizing project..."
+cd "${SCRIPT_DIR}/${TARGET_DIR_NAME}"
+docker build -t spring-vision-deepface .
+if [ $? -ne 0 ]; then
+  echo "Docker build failed" >&2
+  exit 1
 fi
 
 echo "[INFO] sync.sh completed successfully."
