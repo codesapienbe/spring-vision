@@ -1,28 +1,5 @@
 package com.deepface.core;
 
-import com.deepface.config.DeepFaceConfig;
-import com.deepface.detectors.DetectorFactory;
-import com.deepface.detectors.FaceDetector;
-import com.deepface.enums.DetectorBackend;
-import com.deepface.enums.DistanceMetric;
-import com.deepface.enums.ModelType;
-import com.deepface.models.VGGFaceModel;
-import com.deepface.models.AnalysisOnnxModels;
-import com.deepface.models.OnnxSimpleModel;
-import com.deepface.models.ArcFaceModel;
-import com.deepface.models.FacenetModel;
-import com.deepface.models.Facenet512Model;
-import com.deepface.models.OpenFaceModel;
-import com.deepface.models.SFaceModel;
-import com.deepface.models.DeepFaceModel;
-import com.deepface.models.DlibModel;
-import com.deepface.utils.DistanceMetrics;
-import com.deepface.utils.FacePreprocessor;
-import com.deepface.utils.Logs;
-import com.deepface.utils.FaceQualityValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -31,19 +8,41 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.deepface.config.DeepFaceConfig;
+import com.deepface.detectors.DetectorFactory;
+import com.deepface.detectors.FaceDetector;
+import com.deepface.enums.DetectorBackend;
+import com.deepface.enums.DistanceMetric;
+import com.deepface.enums.ModelType;
+import com.deepface.models.AnalysisOnnxModels;
+import com.deepface.models.ArcFaceModel;
+import com.deepface.models.DeepFaceModel;
+import com.deepface.models.DlibModel;
+import com.deepface.models.Facenet512Model;
+import com.deepface.models.FacenetModel;
+import com.deepface.models.OpenFaceModel;
+import com.deepface.models.SFaceModel;
+import com.deepface.models.VGGFaceModel;
+import com.deepface.utils.DistanceMetrics;
+import com.deepface.utils.FacePreprocessor;
+import com.deepface.utils.FaceQualityValidator;
 import static com.deepface.utils.ImageUtils.loadImage;
+import com.deepface.utils.Logs;
 
 /**
  * Core FaceBytes API providing DeepFace-like operations: verify, represent, extractFaces, analyze.
@@ -613,7 +612,12 @@ public final class DeepFace {
         int margin = cfg.margin();
         List<EmbeddingResult> out = new ArrayList<>();
         for (FaceRegion r : regions) {
+            boolean small = isTooSmall(r, img.getWidth(), img.getHeight());
             BufferedImage face = cropWithMargin(img, r, margin);
+            if (small) {
+                Logs.debug("DeepFace", "represent.enhance_small", Map.of("x", r.x(), "y", r.y(), "w", r.width(), "h", r.height()));
+                face = enhanceSmallFace(face);
+            }
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
                 processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
@@ -652,7 +656,12 @@ public final class DeepFace {
         int margin = cfg.margin();
         List<EmbeddingResult> out = new ArrayList<>();
         for (FaceRegion r : regions) {
+            boolean small = isTooSmall(r, img.getWidth(), img.getHeight());
             BufferedImage face = cropWithMargin(img, r, margin);
+            if (small) {
+                Logs.debug("DeepFace", "represent.enhance_small", Map.of("x", r.x(), "y", r.y(), "w", r.width(), "h", r.height()));
+                face = enhanceSmallFace(face);
+            }
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
                 processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
@@ -1520,5 +1529,121 @@ public final class DeepFace {
         DeepFaceConfig cfg = DeepFaceConfig.current();
         return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
     }
+
+    // Heuristic: reject faces that occupy less than a minimal fraction of the image area or have too small width/height.
+    private static boolean isTooSmall(FaceRegion r, int imgW, int imgH) {
+        // Defaults can be overridden via system properties; keep conservative safe defaults.
+        double minFrac = readDouble("facebytes.min_face_area_fraction", 0.002); // 0.2% of image area (more permissive)
+        int minSide = (int) readDouble("facebytes.min_face_side_pixels", 24);   // at least 24px on each side
+        long area = Math.max(0, r.width()) * (long) Math.max(0, r.height());
+        long imgArea = Math.max(1, imgW) * (long) Math.max(1, imgH);
+        if (r.width() < minSide || r.height() < minSide) return true;
+        return area < imgArea * minFrac;
+    }
+
+    private static double readDouble(String key, double def) {
+        try {
+            String v = System.getProperty(key);
+            if (v == null || v.isBlank()) return def;
+            return Double.parseDouble(v.trim());
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    // Enhance small face crops by upscaling and light deblurring/contrast normalization.
+    private static BufferedImage enhanceSmallFace(BufferedImage face) {
+        int w = Math.max(1, face.getWidth());
+        int h = Math.max(1, face.getHeight());
+        int upW = Math.min(w * 4, 1024);
+        int upH = Math.min(h * 4, 1024);
+        BufferedImage up = new BufferedImage(upW, upH, BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D g = up.createGraphics();
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.drawImage(face, 0, 0, upW, upH, null);
+        g.dispose();
+
+        // Mild unsharp mask: up -> blur -> subtract small amount
+        BufferedImage blurred = gaussianBlur(up, 1);
+        BufferedImage sharp = new BufferedImage(upW, upH, BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < upH; y++) {
+            for (int x = 0; x < upW; x++) {
+                int a = up.getRGB(x, y);
+                int b = blurred.getRGB(x, y);
+                int ar = (a >> 16) & 0xFF, ag = (a >> 8) & 0xFF, ab = a & 0xFF;
+                int br = (b >> 16) & 0xFF, bg = (b >> 8) & 0xFF, bb = b & 0xFF;
+                int rr = clamp8((int) Math.round(ar + 0.6 * (ar - br)));
+                int rg = clamp8((int) Math.round(ag + 0.6 * (ag - bg)));
+                int rb = clamp8((int) Math.round(ab + 0.6 * (ab - bb)));
+                sharp.setRGB(x, y, (rr << 16) | (rg << 8) | rb);
+            }
+        }
+
+        return sharp;
+    }
+
+    private static BufferedImage gaussianBlur(BufferedImage src, int radius) {
+        // Simple separable box approximation for small radius
+        int w = src.getWidth(), h = src.getHeight();
+        int[] tmp = new int[w * h];
+        int[] out = new int[w * h];
+        src.getRGB(0, 0, w, h, tmp, 0, w);
+        int r = Math.max(1, radius);
+        int size = r * 2 + 1;
+
+        // Horizontal pass
+        for (int y = 0; y < h; y++) {
+            int sumR = 0, sumG = 0, sumB = 0;
+            for (int k = -r; k <= r; k++) {
+                int x = Math.min(w - 1, Math.max(0, k));
+                int c = tmp[y * w + x];
+                sumR += (c >> 16) & 0xFF; sumG += (c >> 8) & 0xFF; sumB += c & 0xFF;
+            }
+            for (int x = 0; x < w; x++) {
+                int idx = y * w + x;
+                int xr = Math.max(0, x - r - 1);
+                int xa = Math.min(w - 1, x + r);
+                if (x > 0) {
+                    int cRemove = tmp[y * w + xr];
+                    int cAdd = tmp[y * w + xa];
+                    sumR += ((cAdd >> 16) & 0xFF) - ((cRemove >> 16) & 0xFF);
+                    sumG += ((cAdd >> 8) & 0xFF) - ((cRemove >> 8) & 0xFF);
+                    sumB += (cAdd & 0xFF) - (cRemove & 0xFF);
+                }
+                int rr = sumR / size, gg = sumG / size, bb = sumB / size;
+                out[idx] = (rr << 16) | (gg << 8) | bb;
+            }
+        }
+
+        // Vertical pass
+        int[] tmp2 = out.clone();
+        for (int x = 0; x < w; x++) {
+            int sumR = 0, sumG = 0, sumB = 0;
+            for (int k = -r; k <= r; k++) {
+                int y = Math.min(h - 1, Math.max(0, k));
+                int c = tmp2[y * w + x];
+                sumR += (c >> 16) & 0xFF; sumG += (c >> 8) & 0xFF; sumB += c & 0xFF;
+            }
+            for (int y = 0; y < h; y++) {
+                int yr = Math.max(0, y - r - 1);
+                int ya = Math.min(h - 1, y + r);
+                if (y > 0) {
+                    int cRemove = tmp2[yr * w + x];
+                    int cAdd = tmp2[ya * w + x];
+                    sumR += ((cAdd >> 16) & 0xFF) - ((cRemove >> 16) & 0xFF);
+                    sumG += ((cAdd >> 8) & 0xFF) - ((cRemove >> 8) & 0xFF);
+                    sumB += (cAdd & 0xFF) - (cRemove & 0xFF);
+                }
+                int rr = sumR / size, gg = sumG / size, bb = sumB / size;
+                out[y * w + x] = (rr << 16) | (gg << 8) | bb;
+            }
+        }
+
+        BufferedImage dst = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        dst.setRGB(0, 0, w, h, out, 0, w);
+        return dst;
+    }
+
+    private static int clamp8(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); }
 }
 
