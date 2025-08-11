@@ -7,15 +7,20 @@ public final class DetectorFactory {
     private DetectorFactory() {}
 
     public static FaceDetector createDefault() {
-        return new OpenCVDetector();
+        return new RetinaFaceDetector();
     }
 
     public static FaceDetector create(DetectorBackend backend) {
         if (backend == null) return createDefault();
-        return switch (backend) {
-            case OPENCV -> new OpenCVDetector();
-            case DLIB, MTCNN, RETINAFACE -> throw new UnsupportedOperationException(
-                "Detector backend not implemented: " + backend);
-        };
+        switch (backend) {
+            case OPENCV:
+                return new OpenCVDetector();
+            case RETINAFACE:
+                return new RetinaFaceDetector();
+            case DLIB:
+            case MTCNN:
+            default:
+                throw new UnsupportedOperationException("Detector backend not implemented: " + backend);
+        }
     }
 }

@@ -17,6 +17,12 @@
     <description>Core domain classes and interfaces for Spring Vision</description>
 
     <dependencies>
+        <!-- FaceBytes backend module -->
+        <dependency>
+            <groupId>com.springvision</groupId>
+            <artifactId>spring-vision-facebytes</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- JavaCV for OpenCV integration -->
         <dependency>
             <groupId>org.bytedeco</groupId>

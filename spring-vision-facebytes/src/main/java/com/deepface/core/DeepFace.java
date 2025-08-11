@@ -9,10 +9,17 @@ import com.deepface.enums.ModelType;
 import com.deepface.models.VGGFaceModel;
 import com.deepface.models.AnalysisOnnxModels;
 import com.deepface.models.OnnxSimpleModel;
-import com.deepface.models.MockAnalyzers;
+import com.deepface.models.ArcFaceModel;
+import com.deepface.models.FacenetModel;
+import com.deepface.models.Facenet512Model;
+import com.deepface.models.OpenFaceModel;
+import com.deepface.models.SFaceModel;
+import com.deepface.models.DeepFaceModel;
+import com.deepface.models.DlibModel;
 import com.deepface.utils.DistanceMetrics;
 import com.deepface.utils.FacePreprocessor;
 import com.deepface.utils.Logs;
+import com.deepface.utils.FaceQualityValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -394,7 +401,7 @@ public final class DeepFace {
     /** Convenience: verify with defaults using buffered images. */
     public static VerificationResult verify(BufferedImage img1, BufferedImage img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
-        return verify(img1, img2, ModelType.DEEP_FACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
     }
 
     /** Convenience: verify with defaults using bytes. */
@@ -404,7 +411,7 @@ public final class DeepFace {
         } catch (IOException e) {
             Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             DeepFaceConfig cfg = DeepFaceConfig.current();
-            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
+            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.ARCFACE, cfg.detectorBackend(), 0L);
         }
     }
 
@@ -415,7 +422,7 @@ public final class DeepFace {
         } catch (IOException e) {
             Logs.error("DeepFace", "verify.load_failed", e, Map.of());
             DeepFaceConfig cfg = DeepFaceConfig.current();
-            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.DEEP_FACE, cfg.detectorBackend(), 0L);
+            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.ARCFACE, cfg.detectorBackend(), 0L);
         }
     }
 
@@ -424,7 +431,7 @@ public final class DeepFace {
      */
     public static VerificationResult verify(String img1, String img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
-        return verify(img1, img2, ModelType.DEEP_FACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
     }
 
     /**
@@ -458,10 +465,11 @@ public final class DeepFace {
                                             DistanceMetric distance, DetectorBackend detector) {
         long start = System.currentTimeMillis();
         DeepFaceConfig cfg = DeepFaceConfig.current();
-        List<EmbeddingResult> e1 = represent(img1);
-        List<EmbeddingResult> e2 = represent(img2);
+        List<EmbeddingResult> e1 = represent(img1, model, detector);
+        List<EmbeddingResult> e2 = represent(img2, model, detector);
         if (e1.isEmpty() || e2.isEmpty()) {
-            return new VerificationResult(false, 1.0, cfg.threshold(distance), model, detector, System.currentTimeMillis() - start);
+            if (cfg.enforceDetection()) throw new IllegalArgumentException("No valid face embeddings produced");
+            return new VerificationResult(false, 1.0, cfg.threshold(model, distance), model, detector, System.currentTimeMillis() - start);
         }
         double best = Double.POSITIVE_INFINITY;
         for (EmbeddingResult a : e1) {
@@ -470,7 +478,7 @@ public final class DeepFace {
                 if (d < best) best = d;
             }
         }
-        double thr = cfg.threshold(distance);
+        double thr = cfg.threshold(model, distance);
         boolean ok = best <= thr;
         return new VerificationResult(ok, best, thr, model, detector, System.currentTimeMillis() - start);
     }
@@ -504,7 +512,7 @@ public final class DeepFace {
     /** Defaulted verify for two embeddings using current config. */
     public static VerificationResult verify(float[] emb1, float[] emb2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
-        return verify(emb1, emb2, ModelType.DEEP_FACE, cfg.defaultDistanceMetric());
+        return verify(emb1, emb2, ModelType.ARCFACE, cfg.defaultDistanceMetric());
     }
 
     /** Verify two sets of embeddings (e.g., multiple faces) using minimum pairwise distance. */
@@ -594,19 +602,35 @@ public final class DeepFace {
         FaceDetector fd = DetectorFactory.create(cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(img);
         if (regions.isEmpty()) {
+            if (cfg.enforceDetection()) throw new IllegalArgumentException("No faces detected");
             return Collections.emptyList();
         }
-        VGGFaceModel model = new VGGFaceModel();
         FacePreprocessor pre = cfg.align() ? new FacePreprocessor() : null;
+        FaceQualityValidator quality = new FaceQualityValidator();
         int target = cfg.inputSize();
         int margin = cfg.margin();
         List<EmbeddingResult> out = new ArrayList<>();
         for (FaceRegion r : regions) {
             BufferedImage face = cropWithMargin(img, r, margin);
-            BufferedImage processed = (pre != null) ? pre.alignAndResize(face, target, target) : resize(face, target, target);
-            float[] emb = model.generateEmbedding(processed, target);
+            BufferedImage processed;
+            if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+            } else if (pre != null) {
+                processed = pre.alignAndResize(face, target, target);
+            } else {
+                processed = resize(face, target, target);
+            }
+            if (!quality.isValidFace(processed)) {
+                Logs.warn("DeepFace", "represent.drop_low_quality", Map.of("x", r.x(), "y", r.y(), "w", r.width(), "h", r.height()));
+                continue;
+            }
+            float[] emb;
+            try { emb = selectModelAndEmbed(processed, ModelType.ARCFACE, cfg); }
+            catch (RuntimeException ex) { Logs.warn("DeepFace", "represent.embed_failed", Map.of("err", ex.getClass().getSimpleName())); continue; }
+            if (emb == null || emb.length == 0) continue;
             out.add(new EmbeddingResult(emb, r));
         }
+        if (out.isEmpty() && cfg.enforceDetection()) throw new IllegalArgumentException("No valid face embeddings produced");
         return out;
     }
 
@@ -616,17 +640,72 @@ public final class DeepFace {
         FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(img);
         if (regions.isEmpty()) {
+            if (cfg.enforceDetection()) throw new IllegalArgumentException("No faces detected");
             return Collections.emptyList();
         }
-        VGGFaceModel model = new VGGFaceModel();
+        FacePreprocessor pre = cfg.align() ? new FacePreprocessor() : null;
+        FaceQualityValidator quality = new FaceQualityValidator();
+        int target = cfg.inputSize();
+        int margin = cfg.margin();
+        List<EmbeddingResult> out = new ArrayList<>();
+        for (FaceRegion r : regions) {
+            BufferedImage face = cropWithMargin(img, r, margin);
+            BufferedImage processed;
+            if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+            } else if (pre != null) {
+                processed = pre.alignAndResize(face, target, target);
+            } else {
+                processed = resize(face, target, target);
+            }
+            if (!quality.isValidFace(processed)) {
+                Logs.warn("DeepFace", "represent.drop_low_quality", Map.of("x", r.x(), "y", r.y(), "w", r.width(), "h", r.height()));
+                continue;
+            }
+            float[] emb;
+            try { emb = selectModelAndEmbed(processed, ModelType.ARCFACE, cfg); }
+            catch (RuntimeException ex) { Logs.warn("DeepFace", "represent.embed_failed", Map.of("err", ex.getClass().getSimpleName())); continue; }
+            if (emb == null || emb.length == 0) continue;
+            out.add(new EmbeddingResult(emb, r));
+        }
+        if (out.isEmpty() && cfg.enforceDetection()) throw new IllegalArgumentException("No valid face embeddings produced");
+        return out;
+    }
+
+    // New: model-aware represent overloads
+    public static List<EmbeddingResult> represent(String imgPath, ModelType model, DetectorBackend backend) {
+        validateFile(imgPath);
+        try { return represent(loadImage(imgPath), model, backend); } catch (IOException e) { Logs.error("DeepFace", "represent.load_failed", e, Map.of()); return Collections.emptyList(); }
+    }
+
+    public static List<EmbeddingResult> represent(byte[] imageBytes, ModelType model, DetectorBackend backend) {
+        try { return represent(loadImage(imageBytes), model, backend); } catch (IOException e) { Logs.error("DeepFace", "represent.load_failed", e, Map.of()); return Collections.emptyList(); }
+    }
+
+    public static List<EmbeddingResult> represent(InputStream imageStream, ModelType model, DetectorBackend backend) {
+        try { return represent(loadImage(imageStream), model, backend); } catch (IOException e) { Logs.error("DeepFace", "represent.load_failed", e, Map.of()); return Collections.emptyList(); }
+    }
+
+    public static List<EmbeddingResult> represent(BufferedImage img, ModelType model, DetectorBackend backend) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
+        List<FaceRegion> regions = fd.detectFaces(img);
+        if (regions.isEmpty()) return Collections.emptyList();
         FacePreprocessor pre = cfg.align() ? new FacePreprocessor() : null;
         int target = cfg.inputSize();
         int margin = cfg.margin();
         List<EmbeddingResult> out = new ArrayList<>();
         for (FaceRegion r : regions) {
             BufferedImage face = cropWithMargin(img, r, margin);
-            BufferedImage processed = (pre != null) ? pre.alignAndResize(face, target, target) : resize(face, target, target);
-            float[] emb = model.generateEmbedding(processed, target);
+            BufferedImage processed;
+            if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+            } else if (pre != null) {
+                processed = pre.alignAndResize(face, target, target);
+            } else {
+                processed = resize(face, target, target);
+            }
+            float[] emb = selectModelAndEmbed(processed, model, cfg);
             out.add(new EmbeddingResult(emb, r));
         }
         return out;
@@ -703,6 +782,27 @@ public final class DeepFace {
     /** Embeddings with explicit detector backend override. */
     public static List<float[]> representEmbeddings(BufferedImage image, DetectorBackend backend) {
         List<EmbeddingResult> results = represent(image, backend);
+        List<float[]> out = new ArrayList<>(results.size());
+        for (EmbeddingResult r : results) out.add(r.embedding());
+        return out;
+    }
+
+    // New: model-aware embeddings helpers
+    public static List<float[]> representEmbeddings(String imgPath, ModelType model, DetectorBackend backend) {
+        validateFile(imgPath);
+        try { return representEmbeddings(loadImage(imgPath), model, backend); } catch (IOException e) { Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of()); return List.of(); }
+    }
+
+    public static List<float[]> representEmbeddings(byte[] imageBytes, ModelType model, DetectorBackend backend) {
+        try { return representEmbeddings(loadImage(imageBytes), model, backend); } catch (IOException e) { Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of()); return List.of(); }
+    }
+
+    public static List<float[]> representEmbeddings(InputStream imageStream, ModelType model, DetectorBackend backend) {
+        try { return representEmbeddings(loadImage(imageStream), model, backend); } catch (IOException e) { Logs.error("DeepFace", "representEmbeddings.load_failed", e, Map.of()); return List.of(); }
+    }
+
+    public static List<float[]> representEmbeddings(BufferedImage image, ModelType model, DetectorBackend backend) {
+        List<EmbeddingResult> results = represent(image, model, backend);
         List<float[]> out = new ArrayList<>(results.size());
         for (EmbeddingResult r : results) out.add(r.embedding());
         return out;
@@ -907,7 +1007,14 @@ public final class DeepFace {
         List<AnalysisResult> results = new ArrayList<>();
         for (FaceRegion r : regions) {
             BufferedImage crop = cropWithMargin(image, r, margin);
-            BufferedImage processed = (pre != null) ? pre.alignAndResize(crop, 224, 224) : resize(crop, 224, 224);
+            BufferedImage processed;
+            if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
+                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224);
+            } else if (pre != null) {
+                processed = pre.alignAndResize(crop, 224, 224);
+            } else {
+                processed = resize(crop, 224, 224);
+            }
             Integer age = null;
             String gender = null;
             String dominantEmotion = null;
@@ -915,16 +1022,12 @@ public final class DeepFace {
             Map<String, Double> raceDist = Map.of();
 
             try {
-                boolean usedFallback = false;
                 if (doAge) {
                     if (cfg.ageOnnxPath() != null) {
                         int size = cfg.ageInputSize();
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getAge().run(in, new long[]{1, 3, size, size});
                         age = mapAge(out);
-                    } else {
-                        age = MockAnalyzers.predictAge(processed);
-                        usedFallback = true;
                     }
                 }
                 if (doGender) {
@@ -933,9 +1036,6 @@ public final class DeepFace {
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getGender().run(in, new long[]{1, 3, size, size});
                         gender = mapGender(out);
-                    } else {
-                        gender = MockAnalyzers.predictGender(processed);
-                        usedFallback = true;
                     }
                 }
                 if (doEmotion) {
@@ -945,10 +1045,6 @@ public final class DeepFace {
                         float[] out = AnalysisOnnxModels.getEmotion().run(in, new long[]{1, 3, size, size});
                         emotionDist = mapDistribution(out, emotionLabels());
                         dominantEmotion = argmaxLabel(emotionDist);
-                    } else {
-                        emotionDist = MockAnalyzers.predictEmotionDistribution(processed);
-                        dominantEmotion = argmaxLabel(emotionDist);
-                        usedFallback = true;
                     }
                 }
                 if (doRace) {
@@ -957,14 +1053,9 @@ public final class DeepFace {
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getRace().run(in, new long[]{1, 3, size, size});
                         raceDist = mapDistribution(out, raceLabels());
-                    } else {
-                        raceDist = MockAnalyzers.predictRaceDistribution(processed);
-                        usedFallback = true;
                     }
                 }
-                if (usedFallback) {
-                    Logs.info("DeepFace", "analyze.fallback_mock", Map.of("reason", "onnx_not_configured"));
-                }
+                // If ONNX models are not configured, fields remain null/empty and no mock is used.
             } catch (Exception e) {
                 Logs.error("DeepFace", "analyze.inference_failed", e, Map.of());
             }
@@ -993,7 +1084,14 @@ public final class DeepFace {
         List<AnalysisResult> results = new ArrayList<>();
         for (FaceRegion r : regions) {
             BufferedImage crop = cropWithMargin(image, r, margin);
-            BufferedImage processed = (pre != null) ? pre.alignAndResize(crop, 224, 224) : resize(crop, 224, 224);
+            BufferedImage processed;
+            if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
+                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224);
+            } else if (pre != null) {
+                processed = pre.alignAndResize(crop, 224, 224);
+            } else {
+                processed = resize(crop, 224, 224);
+            }
             Integer age = null;
             String gender = null;
             String dominantEmotion = null;
@@ -1001,16 +1099,12 @@ public final class DeepFace {
             Map<String, Double> raceDist = Map.of();
 
             try {
-                boolean usedFallback = false;
                 if (doAge) {
                     if (cfg.ageOnnxPath() != null) {
                         int size = cfg.ageInputSize();
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getAge().run(in, new long[]{1, 3, size, size});
                         age = mapAge(out);
-                    } else {
-                        age = MockAnalyzers.predictAge(processed);
-                        usedFallback = true;
                     }
                 }
                 if (doGender) {
@@ -1019,9 +1113,6 @@ public final class DeepFace {
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getGender().run(in, new long[]{1, 3, size, size});
                         gender = mapGender(out);
-                    } else {
-                        gender = MockAnalyzers.predictGender(processed);
-                        usedFallback = true;
                     }
                 }
                 if (doEmotion) {
@@ -1031,10 +1122,6 @@ public final class DeepFace {
                         float[] out = AnalysisOnnxModels.getEmotion().run(in, new long[]{1, 3, size, size});
                         emotionDist = mapDistribution(out, emotionLabels());
                         dominantEmotion = argmaxLabel(emotionDist);
-                    } else {
-                        emotionDist = MockAnalyzers.predictEmotionDistribution(processed);
-                        dominantEmotion = argmaxLabel(emotionDist);
-                        usedFallback = true;
                     }
                 }
                 if (doRace) {
@@ -1043,14 +1130,9 @@ public final class DeepFace {
                         float[] in = toNchw(crop, pre, size);
                         float[] out = AnalysisOnnxModels.getRace().run(in, new long[]{1, 3, size, size});
                         raceDist = mapDistribution(out, raceLabels());
-                    } else {
-                        raceDist = MockAnalyzers.predictRaceDistribution(processed);
-                        usedFallback = true;
                     }
                 }
-                if (usedFallback) {
-                    Logs.info("DeepFace", "analyze.fallback_mock", Map.of("reason", "onnx_not_configured"));
-                }
+                // If ONNX models are not configured, fields remain null/empty and no mock is used.
             } catch (Exception e) {
                 Logs.error("DeepFace", "analyze.inference_failed", e, Map.of());
             }
@@ -1263,278 +1345,6 @@ public final class DeepFace {
         return result;
     }
 
-    // ========================= FIND (multi-embedding) =========================
-
-    /** Find best gallery id for a set of query embeddings against gallery embeddings list. */
-    public static FindResult find(List<float[]> queryEmbeddings, List<float[]> galleryEmbeddings, List<String> galleryIds, DistanceMetric metric, Double thresholdOverride) {
-        String bestId = null; double best = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < galleryEmbeddings.size(); i++) {
-            double d = Double.POSITIVE_INFINITY;
-            for (float[] q : queryEmbeddings) {
-                d = Math.min(d, compute(metric, q, galleryEmbeddings.get(i)));
-            }
-            if (d < best) { best = d; bestId = (galleryIds != null && i < galleryIds.size()) ? galleryIds.get(i) : String.valueOf(i); }
-        }
-        double thr = (thresholdOverride != null) ? thresholdOverride : DeepFaceConfig.current().threshold(metric);
-        return new FindResult(bestId, best, thr, bestId != null && best <= thr);
-    }
-
-    /** Top-K results for a set of query embeddings against a map of id->embeddings list. */
-    public static List<FindMatch> findTopK(List<float[]> queryEmbeddings, Map<String, List<float[]>> galleryEmbeddingsById, int k, DistanceMetric metric) {
-        if (k <= 0) return List.of();
-        Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
-        PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
-        for (Map.Entry<String, List<float[]>> e : galleryEmbeddingsById.entrySet()) {
-            String id = e.getKey();
-            double best = Double.POSITIVE_INFINITY;
-            for (float[] q : queryEmbeddings) {
-                for (float[] ge : e.getValue()) {
-                    double d = compute(metric, q, ge);
-                    if (d < best) best = d;
-                }
-            }
-            if (heap.size() < k) heap.offer(new FindMatch(id, best));
-            else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
-        }
-        List<FindMatch> result = new ArrayList<>(heap);
-        result.sort(Comparator.comparingDouble(FindMatch::distance));
-        return result;
-    }
-
-    // ========================= GALLERY UTILITIES =========================
-
-    /** Precompute embeddings for a gallery of paths keyed by id. */
-    public static Map<String, List<float[]>> computeGalleryEmbeddings(Map<String, List<String>> galleryPathsById) {
-        Map<String, List<float[]>> out = new LinkedHashMap<>();
-        for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
-            String id = e.getKey();
-            List<float[]> acc = new ArrayList<>();
-            for (String path : e.getValue()) {
-                validateFile(path);
-                try {
-                    acc.addAll(representEmbeddings(loadImage(path)));
-                } catch (IOException ex) {
-                    Logs.error("DeepFace", "computeGalleryEmbeddings.load_failed", ex, Map.of());
-                }
-            }
-            out.put(id, acc);
-        }
-        return out;
-    }
-
-    /** Precompute embeddings for a gallery of byte arrays keyed by id. */
-    public static Map<String, List<float[]>> computeGalleryEmbeddingsFromBytes(Map<String, List<byte[]>> galleryBytesById) {
-        Map<String, List<float[]>> out = new LinkedHashMap<>();
-        for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
-            String id = e.getKey();
-            List<float[]> acc = new ArrayList<>();
-            for (byte[] bytes : e.getValue()) {
-                try {
-                    acc.addAll(representEmbeddings(loadImage(bytes)));
-                } catch (IOException ex) {
-                    Logs.error("DeepFace", "computeGalleryEmbeddingsFromBytes.load_failed", ex, Map.of());
-                }
-            }
-            out.put(id, acc);
-        }
-        return out;
-    }
-
-    /** Precompute embeddings for a gallery of streams keyed by id. */
-    public static Map<String, List<float[]>> computeGalleryEmbeddingsFromStreams(Map<String, List<InputStream>> galleryStreamsById) {
-        Map<String, List<float[]>> out = new LinkedHashMap<>();
-        for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
-            String id = e.getKey();
-            List<float[]> acc = new ArrayList<>();
-            for (InputStream is : e.getValue()) {
-                try {
-                    acc.addAll(representEmbeddings(loadImage(is)));
-                } catch (IOException ex) {
-                    Logs.error("DeepFace", "computeGalleryEmbeddingsFromStreams.load_failed", ex, Map.of());
-                }
-            }
-            out.put(id, acc);
-        }
-        return out;
-    }
-
-    // ========================= FIND over Map<String, List<path/bytes/streams>> =========================
-
-    /** Find best id for query path against map of id->paths. */
-    public static FindResult find(String queryImagePath, Map<String, List<String>> galleryPathsById) {
-        validateFile(queryImagePath);
-        DeepFaceConfig cfg = DeepFaceConfig.current();
-        DistanceMetric metric = cfg.defaultDistanceMetric();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImagePath));
-            String bestId = null; double best = Double.POSITIVE_INFINITY;
-            for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
-                double bestForId = Double.POSITIVE_INFINITY;
-                for (String p : e.getValue()) {
-                    validateFile(p);
-                    List<float[]> gEmb = representEmbeddings(loadImage(p));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < bestForId) bestForId = d;
-                    }
-                }
-                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
-            }
-            double thr = cfg.threshold(metric);
-            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
-        } catch (IOException e) {
-            Logs.error("DeepFace", "find.map_paths.load_failed", e, Map.of());
-            return new FindResult(null, 1.0, DeepFaceConfig.current().threshold(metric), false);
-        }
-    }
-
-    /** Top-K for query path against map of id->paths. */
-    public static List<FindMatch> findTopK(String queryImagePath, Map<String, List<String>> galleryPathsById, int k) {
-        validateFile(queryImagePath);
-        if (k <= 0) return List.of();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImagePath));
-            DeepFaceConfig cfg = DeepFaceConfig.current();
-            DistanceMetric metric = cfg.defaultDistanceMetric();
-            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
-            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
-            for (Map.Entry<String, List<String>> e : galleryPathsById.entrySet()) {
-                String id = e.getKey();
-                double best = Double.POSITIVE_INFINITY;
-                for (String p : e.getValue()) {
-                    validateFile(p);
-                    List<float[]> gEmb = representEmbeddings(loadImage(p));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < best) best = d;
-                    }
-                }
-                if (heap.size() < k) heap.offer(new FindMatch(id, best));
-                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
-            }
-            List<FindMatch> result = new ArrayList<>(heap);
-            result.sort(Comparator.comparingDouble(FindMatch::distance));
-            return result;
-        } catch (IOException e) {
-            Logs.error("DeepFace", "findTopK.map_paths.load_failed", e, Map.of());
-            return List.of();
-        }
-    }
-
-    /** Find best id for query bytes against map of id->bytes list. */
-    public static FindResult find(byte[] queryImageBytes, Map<String, List<byte[]>> galleryBytesById) {
-        DeepFaceConfig cfg = DeepFaceConfig.current();
-        DistanceMetric metric = cfg.defaultDistanceMetric();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImageBytes));
-            String bestId = null; double best = Double.POSITIVE_INFINITY;
-            for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
-                double bestForId = Double.POSITIVE_INFINITY;
-                for (byte[] b : e.getValue()) {
-                    List<float[]> gEmb = representEmbeddings(loadImage(b));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < bestForId) bestForId = d;
-                    }
-                }
-                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
-            }
-            double thr = cfg.threshold(metric);
-            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
-        } catch (IOException e) {
-            Logs.error("DeepFace", "find.map_bytes.load_failed", e, Map.of());
-            return new FindResult(null, 1.0, cfg.threshold(metric), false);
-        }
-    }
-
-    /** Top-K for query bytes against map of id->bytes list. */
-    public static List<FindMatch> findTopK(byte[] queryImageBytes, Map<String, List<byte[]>> galleryBytesById, int k) {
-        if (k <= 0) return List.of();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImageBytes));
-            DeepFaceConfig cfg = DeepFaceConfig.current();
-            DistanceMetric metric = cfg.defaultDistanceMetric();
-            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
-            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
-            for (Map.Entry<String, List<byte[]>> e : galleryBytesById.entrySet()) {
-                String id = e.getKey();
-                double best = Double.POSITIVE_INFINITY;
-                for (byte[] b : e.getValue()) {
-                    List<float[]> gEmb = representEmbeddings(loadImage(b));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < best) best = d;
-                    }
-                }
-                if (heap.size() < k) heap.offer(new FindMatch(id, best));
-                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
-            }
-            List<FindMatch> result = new ArrayList<>(heap);
-            result.sort(Comparator.comparingDouble(FindMatch::distance));
-            return result;
-        } catch (IOException e) {
-            Logs.error("DeepFace", "findTopK.map_bytes.load_failed", e, Map.of());
-            return List.of();
-        }
-    }
-
-    /** Find best id for query stream against map of id->streams list. */
-    public static FindResult find(InputStream queryImageStream, Map<String, List<InputStream>> galleryStreamsById) {
-        DeepFaceConfig cfg = DeepFaceConfig.current();
-        DistanceMetric metric = cfg.defaultDistanceMetric();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImageStream));
-            String bestId = null; double best = Double.POSITIVE_INFINITY;
-            for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
-                double bestForId = Double.POSITIVE_INFINITY;
-                for (InputStream is : e.getValue()) {
-                    List<float[]> gEmb = representEmbeddings(loadImage(is));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < bestForId) bestForId = d;
-                    }
-                }
-                if (bestForId < best) { best = bestForId; bestId = e.getKey(); }
-            }
-            double thr = cfg.threshold(metric);
-            return new FindResult(bestId, best, thr, bestId != null && best <= thr);
-        } catch (IOException e) {
-            Logs.error("DeepFace", "find.map_streams.load_failed", e, Map.of());
-            return new FindResult(null, 1.0, cfg.threshold(metric), false);
-        }
-    }
-
-    /** Top-K for query stream against map of id->streams list. */
-    public static List<FindMatch> findTopK(InputStream queryImageStream, Map<String, List<InputStream>> galleryStreamsById, int k) {
-        if (k <= 0) return List.of();
-        try {
-            List<float[]> qEmb = representEmbeddings(loadImage(queryImageStream));
-            DeepFaceConfig cfg = DeepFaceConfig.current();
-            DistanceMetric metric = cfg.defaultDistanceMetric();
-            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
-            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
-            for (Map.Entry<String, List<InputStream>> e : galleryStreamsById.entrySet()) {
-                String id = e.getKey();
-                double best = Double.POSITIVE_INFINITY;
-                for (InputStream is : e.getValue()) {
-                    List<float[]> gEmb = representEmbeddings(loadImage(is));
-                    for (float[] qe : qEmb) for (float[] ge : gEmb) {
-                        double d = compute(metric, qe, ge);
-                        if (d < best) best = d;
-                    }
-                }
-                if (heap.size() < k) heap.offer(new FindMatch(id, best));
-                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
-            }
-            List<FindMatch> result = new ArrayList<>(heap);
-            result.sort(Comparator.comparingDouble(FindMatch::distance));
-            return result;
-        } catch (IOException e) {
-            Logs.error("DeepFace", "findTopK.map_streams.load_failed", e, Map.of());
-            return List.of();
-        }
-    }
-
     // ========================= FIND against directory (DeepFace db_path parity) =========================
 
     /**
@@ -1550,37 +1360,6 @@ public final class DeepFace {
             return new FindResult(null, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), false);
         }
         return find(queryImagePath, gallery);
-    }
-
-    /** Directory find with explicit metric and optional threshold override. */
-    public static FindResult find(String queryImagePath, String galleryDirectoryPath, DistanceMetric metric, Double thresholdOverride) {
-        validateFile(queryImagePath);
-        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
-        if (gallery.isEmpty()) {
-            Logs.warn("DeepFace", "find.dir.empty", Map.of("dir", galleryDirectoryPath));
-            DeepFaceConfig cfg = DeepFaceConfig.current();
-            DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
-            return new FindResult(null, 1.0, cfg.threshold(m), false);
-        }
-        return find(queryImagePath, gallery, metric, thresholdOverride);
-    }
-
-    /**
-     * Returns top-K closest matches for a query image against a directory (recursively).
-     */
-    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k) {
-        validateFile(queryImagePath);
-        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
-        if (gallery.isEmpty() || k <= 0) return List.of();
-        return findTopK(queryImagePath, gallery, k);
-    }
-
-    /** Directory top-K with explicit metric. */
-    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k, DistanceMetric metric) {
-        validateFile(queryImagePath);
-        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
-        if (gallery.isEmpty() || k <= 0) return List.of();
-        return findTopK(queryImagePath, gallery, k, metric);
     }
 
     private static List<String> listImageFilesSecure(String directoryPath) {
@@ -1603,7 +1382,6 @@ public final class DeepFace {
             if (files.size() == maxFiles) {
                 Logs.warn("DeepFace", "find.dir.truncated", Map.of("dir", directoryPath, "max_files", maxFiles));
             }
-            // Validate size constraints for each file
             List<String> validated = new ArrayList<>(files.size());
             for (String p : files) {
                 try { validateFile(p); validated.add(p); }
@@ -1629,90 +1407,100 @@ public final class DeepFace {
         return s;
     }
 
-    /** Find with explicit model, metric, detector, and optional threshold override. */
-    public static FindResult find(String queryImagePath, List<String> galleryImagePaths,
-                                  ModelType model, DistanceMetric metric,
-                                  DetectorBackend detector, Double thresholdOverride) {
-        DeepFaceConfig cfg = DeepFaceConfig.current();
-        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
-        DetectorBackend db = (detector != null) ? detector : cfg.detectorBackend();
-        validateFile(queryImagePath);
-        for (String p : galleryImagePaths) validateFile(p);
-        try {
-            List<EmbeddingResult> q = represent(loadImage(queryImagePath), db);
-            if (q.isEmpty()) return new FindResult(null, 1.0, cfg.threshold(m), false);
-            double best = Double.POSITIVE_INFINITY; String bestPath = null;
-            for (String p : galleryImagePaths) {
-                List<EmbeddingResult> g = represent(loadImage(p), db);
-                for (EmbeddingResult qe : q) for (EmbeddingResult ge : g) {
-                    double d = compute(m, qe.embedding(), ge.embedding());
-                    if (d < best) { best = d; bestPath = p; }
-                }
+    // ========================= MODEL SELECTION =========================
+    private static float[] selectModelAndEmbed(BufferedImage processed, ModelType model, DeepFaceConfig cfg) {
+        if (model == null) model = ModelType.ARCFACE;
+        switch (model) {
+            case VGG_FACE: {
+                VGGFaceModel m = new VGGFaceModel();
+                return m.generateEmbedding(processed, Math.max(32, cfg.inputSize()));
             }
-            double thr = (thresholdOverride != null) ? thresholdOverride : cfg.threshold(m);
-            return new FindResult(bestPath, best, thr, best <= thr);
-        } catch (IOException e) {
-            Logs.error("DeepFace", "find.load_failed", e, Map.of());
-            return new FindResult(null, 1.0, cfg.threshold(m), false);
-        }
-    }
-
-    /** Top-K with explicit model, metric, detector. */
-    public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k,
-                                           ModelType model, DistanceMetric metric, DetectorBackend detector) {
-        validateFile(queryImagePath);
-        for (String p : galleryImagePaths) validateFile(p);
-        DeepFaceConfig cfg = DeepFaceConfig.current();
-        DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
-        DetectorBackend db = (detector != null) ? detector : cfg.detectorBackend();
-        try {
-            List<float[]> qEmbeddings = representEmbeddings(loadImage(queryImagePath), db);
-            if (qEmbeddings.isEmpty()) return List.of();
-            Comparator<FindMatch> byDistanceDesc = Comparator.comparingDouble(FindMatch::distance).reversed();
-            PriorityQueue<FindMatch> heap = new PriorityQueue<>(k, byDistanceDesc);
-            for (int i = 0; i < galleryImagePaths.size(); i++) {
-                String p = galleryImagePaths.get(i);
-                List<float[]> gEmbeddings = representEmbeddings(loadImage(p), db);
-                double best = Double.POSITIVE_INFINITY;
-                for (float[] qe : qEmbeddings) for (float[] ge : gEmbeddings) {
-                    double d = compute(m, qe, ge);
-                    if (d < best) best = d;
-                }
-                String id = String.valueOf(i);
-                if (heap.size() < k) heap.offer(new FindMatch(id, best));
-                else if (!heap.isEmpty() && best < heap.peek().distance()) { heap.poll(); heap.offer(new FindMatch(id, best)); }
+            case ARCFACE: {
+                ArcFaceModel m = new ArcFaceModel();
+                return m.generateEmbedding(processed, cfg.arcFaceInputSize());
             }
-            List<FindMatch> result = new ArrayList<>(heap);
-            result.sort(Comparator.comparingDouble(FindMatch::distance));
-            return result;
-        } catch (IOException e) {
-            Logs.error("DeepFace", "findTopK.load_failed", e, Map.of());
-            return List.of();
+            case FACENET: {
+                FacenetModel m = new FacenetModel();
+                return m.generateEmbedding(processed, cfg.facenetInputSize());
+            }
+            case FACENET512: {
+                Facenet512Model m = new Facenet512Model();
+                return m.generateEmbedding(processed, cfg.facenet512InputSize());
+            }
+            case OPEN_FACE: {
+                OpenFaceModel m = new OpenFaceModel();
+                return m.generateEmbedding(processed, cfg.openfaceInputSize());
+            }
+            case SFACE: {
+                SFaceModel m = new SFaceModel();
+                return m.generateEmbedding(processed, cfg.sfaceInputSize());
+            }
+            case DEEP_FACE: {
+                DeepFaceModel m = new DeepFaceModel();
+                return m.generateEmbedding(processed, cfg.deepfaceInputSize());
+            }
+            case DLIB: {
+                DlibModel m = new DlibModel();
+                return m.generateEmbedding(processed, DlibModel.DEFAULT_INPUT_SIZE);
+            }
+            default: {
+                VGGFaceModel m = new VGGFaceModel();
+                return m.generateEmbedding(processed, Math.max(32, cfg.inputSize()));
+            }
         }
     }
 
-    /** Directory find with explicit model, metric, detector, and optional threshold override. */
-    public static FindResult find(String queryImagePath, String galleryDirectoryPath,
-                                  ModelType model, DistanceMetric metric, DetectorBackend detector,
-                                  Double thresholdOverride) {
-        validateFile(queryImagePath);
-        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
-        if (gallery.isEmpty()) {
-            Logs.warn("DeepFace", "find.dir.empty", Map.of("dir", galleryDirectoryPath));
-            DeepFaceConfig cfg = DeepFaceConfig.current();
-            DistanceMetric m = (metric != null) ? metric : cfg.defaultDistanceMetric();
-            return new FindResult(null, 1.0, cfg.threshold(m), false);
-        }
-        return find(queryImagePath, gallery, model, metric, detector, thresholdOverride);
+    // ========================= ARCFACE CONVENIENCE =========================
+    /**
+     * Generates ArcFace embeddings for all detected faces in the image at the given path.
+     */
+    public static List<EmbeddingResult> representArcFace(String imgPath) {
+        return represent(imgPath, ModelType.ARCFACE, DeepFaceConfig.current().detectorBackend());
     }
 
-    /** Directory top-K with explicit model, metric, detector. */
-    public static List<FindMatch> findTopK(String queryImagePath, String galleryDirectoryPath, int k,
-                                           ModelType model, DistanceMetric metric, DetectorBackend detector) {
-        validateFile(queryImagePath);
-        List<String> gallery = listImageFilesSecure(galleryDirectoryPath);
-        if (gallery.isEmpty() || k <= 0) return List.of();
-        return findTopK(queryImagePath, gallery, k, model, metric, detector);
+    /**
+     * Generates ArcFace embeddings for all detected faces in the provided image.
+     */
+    public static List<EmbeddingResult> representArcFace(BufferedImage image) {
+        return represent(image, ModelType.ARCFACE, DeepFaceConfig.current().detectorBackend());
+    }
+
+    /**
+     * Generates ArcFace embeddings with an explicit detector backend.
+     */
+    public static List<EmbeddingResult> representArcFace(String imgPath, DetectorBackend backend) {
+        return represent(imgPath, ModelType.ARCFACE, backend);
+    }
+
+    /**
+     * Generates ArcFace embeddings with an explicit detector backend.
+     */
+    public static List<EmbeddingResult> representArcFace(BufferedImage image, DetectorBackend backend) {
+        return represent(image, ModelType.ARCFACE, backend);
+    }
+
+    /** Verifies two images using ArcFace embeddings and the current default distance metric. */
+    public static VerificationResult verifyArcFace(String img1, String img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /** Verifies two buffered images using ArcFace embeddings. */
+    public static VerificationResult verifyArcFace(BufferedImage img1, BufferedImage img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /** Verifies two byte arrays using ArcFace embeddings. */
+    public static VerificationResult verifyArcFace(byte[] img1, byte[] img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /** Verifies two image streams using ArcFace embeddings. */
+    public static VerificationResult verifyArcFace(InputStream img1, InputStream img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.ARCFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
     }
 }
 
