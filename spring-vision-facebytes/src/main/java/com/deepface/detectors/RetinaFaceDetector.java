@@ -1,15 +1,5 @@
 package com.deepface.detectors;
 
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OnnxValue;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
-import com.deepface.config.DeepFaceConfig;
-import com.deepface.core.FaceRegion;
-import com.deepface.utils.Logs;
-import com.deepface.utils.Nms;
-
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.nio.FloatBuffer;
@@ -18,6 +8,17 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.deepface.config.DeepFaceConfig;
+import com.deepface.core.FaceRegion;
+import com.deepface.utils.Logs;
+import com.deepface.utils.Nms;
+
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OnnxValue;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 
 /**
  * RetinaFace ONNX detector. Uses a common 640x640 input variant with outputs:
@@ -33,6 +34,9 @@ public final class RetinaFaceDetector implements FaceDetector {
     private final OrtSession session;
     private final String inputName;
 
+    // Reuse a single OpenCV fallback instance
+    private static volatile OpenCVDetector OPENCV_FALLBACK;
+
     public RetinaFaceDetector() {
         try {
             String modelPath = DeepFaceConfig.current().retinaFaceOnnxPath();
@@ -46,6 +50,8 @@ public final class RetinaFaceDetector implements FaceDetector {
             this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
             this.inputName = session.getInputNames().iterator().next();
             Logs.info("RetinaFaceDetector", "onnx.loaded", Map.of("path", modelPath));
+            // Ensure resources are closed at JVM shutdown
+            installShutdownHook();
         } catch (Exception e) {
             Logs.error("RetinaFaceDetector", "onnx.init_failed", e, Map.of());
             throw new IllegalStateException("Failed to initialize RetinaFace ONNX", e);
@@ -57,7 +63,7 @@ public final class RetinaFaceDetector implements FaceDetector {
         if (image == null) return List.of();
         if (session == null) {
             // Fallback to OpenCV when ONNX is missing
-            return new OpenCVDetector().detectFaces(image);
+            return fallbackOpenCv().detectFaces(image);
         }
         DeepFaceConfig cfg = DeepFaceConfig.current();
         int size = cfg.retinaFaceInputSize();
@@ -75,13 +81,14 @@ public final class RetinaFaceDetector implements FaceDetector {
                 // Heuristic output parsing: look for boxes and scores tensors
                 float[][] boxes = first2dFloat(outputs, 4); // [N,4]
                 float[] scores = first1dFloat(outputs);     // [N]
+                float[][] landmarks = first2dFloat(outputs, 10); // [N,10] (optional: 5-point x,y)
                 if (boxes == null || scores == null || boxes.length != scores.length) {
                     Logs.warn("RetinaFaceDetector", "onnx.unexpected_output", Map.of());
                     return List.of();
                 }
                 // Filter by score and build boxes in original image coords via reverse letterbox
                 List<Nms.Box> nmsBoxes = new ArrayList<>();
-                List<int[]> rawBoxes = new ArrayList<>();
+                List<float[]> lmList = new ArrayList<>();
                 for (int i = 0; i < scores.length; i++) {
                     float sc = sigmoid(scores[i]);
                     if (sc < scoreThr) continue;
@@ -92,6 +99,21 @@ public final class RetinaFaceDetector implements FaceDetector {
                     // Model coordinates assumed in resized image space
                     float[] xyxy = invertLetterbox(x1, y1, x2, y2, prep, image.getWidth(), image.getHeight());
                     nmsBoxes.add(new Nms.Box(xyxy[0], xyxy[1], xyxy[2], xyxy[3], sc));
+                    if (landmarks != null && i < landmarks.length && landmarks[i] != null && landmarks[i].length >= 10) {
+                        // Map 5-point landmarks back as well
+                        float[] l = landmarks[i];
+                        float[] mapped = new float[10];
+                        for (int k = 0; k < 5; k++) {
+                            float lx = l[2 * k];
+                            float ly = l[2 * k + 1];
+                            float[] m = invertLetterbox(lx, ly, lx, ly, prep, image.getWidth(), image.getHeight());
+                            mapped[2 * k] = m[0];
+                            mapped[2 * k + 1] = m[1];
+                        }
+                        lmList.add(mapped);
+                    } else {
+                        lmList.add(null);
+                    }
                 }
                 // Apply NMS
                 List<Integer> keep = Nms.nms(nmsBoxes, nmsThr, 200);
@@ -102,7 +124,21 @@ public final class RetinaFaceDetector implements FaceDetector {
                     int y = Math.max(0, Math.round(b.y1));
                     int w = Math.min(image.getWidth() - x, Math.max(0, Math.round(b.x2 - b.x1)));
                     int h = Math.min(image.getHeight() - y, Math.max(0, Math.round(b.y2 - b.y1)));
-                    if (w > 0 && h > 0) out.add(new FaceRegion(x, y, w, h, (double) b.score, null));
+                    if (w > 0 && h > 0) {
+                        float[] lm = (idx < lmList.size()) ? lmList.get(idx) : null;
+                        // Optional geometry sanity check using landmarks eye distance vs box width
+                        if (lm != null && lm.length >= 10) {
+                            double eyeDx = Math.abs(lm[0] - lm[2]);
+                            double eyeDy = Math.abs(lm[1] - lm[3]);
+                            double eyeDist = Math.hypot(eyeDx, eyeDy);
+                            double ratio = eyeDist / Math.max(1.0, w);
+                            if (ratio < 0.15 || ratio > 0.8) {
+                                // suspect false positive: skip
+                                continue;
+                            }
+                        }
+                        out.add(new FaceRegion(x, y, w, h, (double) b.score, lm));
+                    }
                 }
                 res.close();
                 return out;
@@ -111,6 +147,35 @@ public final class RetinaFaceDetector implements FaceDetector {
             Logs.error("RetinaFaceDetector", "detect.failed", e, Map.of());
             return List.of();
         }
+    }
+
+    private static OpenCVDetector fallbackOpenCv() {
+        OpenCVDetector inst = OPENCV_FALLBACK;
+        if (inst == null) {
+            synchronized (RetinaFaceDetector.class) {
+                inst = OPENCV_FALLBACK;
+                if (inst == null) {
+                    inst = new OpenCVDetector();
+                    OPENCV_FALLBACK = inst;
+                }
+            }
+        }
+        return inst;
+    }
+
+    private void installShutdownHook() {
+        try {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    safeClose();
+                } catch (Throwable ignored) {}
+            }, "facebytes-retinaface-shutdown"));
+        } catch (Throwable ignored) {}
+    }
+
+    private void safeClose() {
+        try { if (session != null) session.close(); } catch (Throwable ignored) {}
+        try { if (env != null) env.close(); } catch (Throwable ignored) {}
     }
 
     private static float[] toNchw01(BufferedImage img) {

@@ -157,6 +157,13 @@ public class OpenCvVisionBackend implements VisionBackend {
      * Fail-safe guardrail for incoming image payload to avoid memory/DoS issues.
      */
     private static final long MAX_SAFE_IMAGE_BYTES = 50L * 1024 * 1024; // 50MB
+    /**
+     * Additional fail-safe for very large images that may cause native OOM during
+     * OpenCV operations regardless of byte size (e.g., highly compressed but huge resolution).
+     * Values chosen conservatively for desktop usage while keeping good accuracy.
+     */
+    private static final long MAX_SAFE_PIXELS = 8_000_000L; // ~8 MP (e.g., 3264x2448)
+    private static final int MAX_SAFE_DIMENSION = 4000;     // Cap either width or height to 4K
 
     /**
      * Face detection cascade classifier.
@@ -300,6 +307,36 @@ public class OpenCvVisionBackend implements VisionBackend {
             // Load image into OpenCV Mat
             Mat image = loadImageToMat(imageData);
             logger.debug("Image loaded successfully: {}x{}", image.cols(), image.rows());
+
+            // Downscale overly large images to avoid native memory OOM while preserving aspect ratio
+            try {
+                long pixels = (long) image.cols() * (long) image.rows();
+                int maxDim = Math.max(image.cols(), image.rows());
+                if (pixels > MAX_SAFE_PIXELS || maxDim > MAX_SAFE_DIMENSION) {
+                    double scaleByPixels = Math.sqrt((double) MAX_SAFE_PIXELS / Math.max(1.0, pixels));
+                    double scaleByDim = (double) MAX_SAFE_DIMENSION / Math.max(1.0, maxDim);
+                    double scale = Math.min(1.0, Math.min(scaleByPixels, scaleByDim));
+                    if (scale < 0.999) {
+                        int newW = Math.max(1, (int) Math.round(image.cols() * scale));
+                        int newH = Math.max(1, (int) Math.round(image.rows() * scale));
+                        Mat downscaled = new Mat();
+                        org.bytedeco.opencv.global.opencv_imgproc.resize(
+                            image, downscaled, new Size(newW, newH), 0, 0,
+                            org.bytedeco.opencv.global.opencv_imgproc.INTER_AREA);
+                        logger.warn("Downscaled large image for safe processing", Map.of(
+                            "originalWidth", image.cols(),
+                            "originalHeight", image.rows(),
+                            "newWidth", newW,
+                            "newHeight", newH,
+                            "scale", scale
+                        ));
+                        image.releaseReference();
+                        image = downscaled;
+                    }
+                }
+            } catch (Throwable t) {
+                logger.debug("Image downscaling skipped due to error: {}", t.getMessage());
+            }
 
             // Convert to grayscale for face detection and normalize contrast
             Mat grayImage = new Mat();

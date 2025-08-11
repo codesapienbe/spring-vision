@@ -1532,11 +1532,11 @@ public final class DeepFace {
 
     // Heuristic: reject faces that occupy less than a minimal fraction of the image area or have too small width/height.
     private static boolean isTooSmall(FaceRegion r, int imgW, int imgH) {
-        // Defaults can be overridden via system properties; keep conservative safe defaults.
-        double minFrac = readDouble("facebytes.min_face_area_fraction", 0.002); // 0.2% of image area (more permissive)
-        int minSide = (int) readDouble("facebytes.min_face_side_pixels", 24);   // at least 24px on each side
+        // Defaults can be overridden via system properties; stricter by default to suppress tiny false positives.
+        double minFrac = readDouble("facebytes.min_face_area_fraction", 0.006); // 0.6% of image area
+        int minSide = (int) readDouble("facebytes.min_face_side_pixels", 36);   // at least 36px on each side
         long area = Math.max(0, r.width()) * (long) Math.max(0, r.height());
-        long imgArea = Math.max(1, imgW) * (long) Math.max(1, imgH);
+        long imgArea = Math.max(1, imgW) * (long) imgH;
         if (r.width() < minSide || r.height() < minSide) return true;
         return area < imgArea * minFrac;
     }

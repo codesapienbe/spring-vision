@@ -53,8 +53,9 @@ public final class OpenCVDetector implements FaceDetector {
         equalizeHist(gray, gray);
 
         RectVector faces = new RectVector();
-        // Reasonable defaults for photos; tune later
-        classifier.detectMultiScale(gray, faces, 1.1, 3, 0, new Size(30, 30), new Size());
+        // Tuned parameters: slightly more conservative minNeighbors to reduce false positives,
+        // and smaller minSize to allow small faces in crowds.
+        classifier.detectMultiScale(gray, faces, 1.1, 4, 0, new Size(20, 20), new Size());
 
         List<FaceRegion> list = new ArrayList<>();
         for (long i = 0; i < faces.size(); i++) {

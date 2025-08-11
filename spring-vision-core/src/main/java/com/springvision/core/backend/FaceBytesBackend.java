@@ -99,6 +99,17 @@ public final class FaceBytesBackend implements VisionBackend {
             List<Detection> detections = new ArrayList<>(embeddings.size());
             for (EmbeddingResult er : embeddings) {
                 FaceRegion r = er.faceRegion();
+                // Optional: require plausible facial landmarks when available to reduce false positives
+                float[] lm = r.landmarks();
+                if (lm != null && lm.length >= 10) {
+                    double eyeDx = Math.abs(lm[0] - lm[2]);
+                    double eyeDy = Math.abs(lm[1] - lm[3]);
+                    double eyeDist = Math.hypot(eyeDx, eyeDy);
+                    if (eyeDist < 4.0) {
+                        // extremely small or degenerate eyes -> skip as noise
+                        continue;
+                    }
+                }
                 // Normalize bounding box to [0,1]
                 double nx = clamp01((double) r.x() / img.getWidth());
                 double ny = clamp01((double) r.y() / img.getHeight());
