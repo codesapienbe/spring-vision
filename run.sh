@@ -317,6 +317,14 @@ test_opencv_functionality() {
     fi
 }
 
+# Function to build deepface
+build_deepface() {
+    print_info "Building deepface..."
+    cd "$PROJECT_ROOT/spring-vision-deepface"
+    uv sync --frozen
+    print_success "Deepface built successfully"
+}
+
 # Main script logic
 main() {
     # Get the project root directory (where this script is located)
@@ -350,6 +358,9 @@ main() {
             ;;
         "clean")
             clean_all_examples
+            ;;
+        "deepface")
+            build_deepface
             ;;
         "test-opencv")
             test_opencv_functionality
