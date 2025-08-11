@@ -6,7 +6,11 @@ package com.deepface.enums;
 public enum ModelType {
     VGG_FACE,
     FACENET,
+    FACENET512,
     OPEN_FACE,
     DEEP_FACE,
-    ARCFACE
+    ARCFACE,
+    SFACE,
+    DEEPID,
+    DLIB
 }

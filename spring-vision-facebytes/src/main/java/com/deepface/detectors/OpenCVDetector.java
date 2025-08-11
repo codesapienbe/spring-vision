@@ -59,7 +59,7 @@ public final class OpenCVDetector implements FaceDetector {
         List<FaceRegion> list = new ArrayList<>();
         for (long i = 0; i < faces.size(); i++) {
             Rect r = faces.get(i);
-            list.add(new FaceRegion(r.x(), r.y(), r.width(), r.height(), 0.9));
+            list.add(new FaceRegion(r.x(), r.y(), r.width(), r.height(), 0.9, null));
         }
         return list;
     }

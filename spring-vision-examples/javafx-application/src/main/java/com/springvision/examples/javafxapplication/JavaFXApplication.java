@@ -23,6 +23,7 @@ import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
 import com.springvision.core.backend.OpenCvVisionBackend;
+import com.springvision.core.backend.FaceBytesBackend;
 import com.springvision.core.exception.VisionProcessingException;
 
 import javafx.application.Application;
@@ -191,7 +192,7 @@ public class JavaFXApplication {
 
             // Backend selector
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv");
+            backendComboBox.getItems().addAll("opencv", "facebytes");
             String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
@@ -221,6 +222,12 @@ public class JavaFXApplication {
 
             VisionBackend backend;
             switch (backendId) {
+                case "facebytes": {
+                    FaceBytesBackend fb = new FaceBytesBackend();
+                    logger.info("FaceBytes backend selected", Map.of("component", "JavaFXApplication"));
+                    backend = fb;
+                    break;
+                }
                 case "opencv":
                 default: {
                     OpenCvVisionBackend ocv = new OpenCvVisionBackend();
