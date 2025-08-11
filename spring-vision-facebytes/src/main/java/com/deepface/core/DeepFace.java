@@ -54,6 +54,7 @@ public final class DeepFace {
 
     private static final Logger log = LoggerFactory.getLogger(DeepFace.class);
     private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50MB guardrail
+    private static final long MAX_IMAGE_PIXELS = 80_000_000L; // ~80MP guardrail to prevent memory exhaustion
 
     private DeepFace() {}
 
@@ -598,6 +599,7 @@ public final class DeepFace {
      * Generates embeddings for all faces in the provided image.
      */
     public static List<EmbeddingResult> represent(BufferedImage img) {
+        validateImage(img);
         DeepFaceConfig cfg = DeepFaceConfig.current();
         FaceDetector fd = DetectorFactory.create(cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(img);
@@ -636,6 +638,7 @@ public final class DeepFace {
 
     /** Represent with explicit detector backend override. */
     public static List<EmbeddingResult> represent(BufferedImage img, DetectorBackend backend) {
+        validateImage(img);
         DeepFaceConfig cfg = DeepFaceConfig.current();
         FaceDetector fd = DetectorFactory.create(backend != null ? backend : cfg.detectorBackend());
         List<FaceRegion> regions = fd.detectFaces(img);
@@ -1244,6 +1247,21 @@ public final class DeepFace {
         }
         if (f.length() > MAX_FILE_SIZE_BYTES) {
             throw new IllegalArgumentException("Image exceeds maximum allowed size of " + MAX_FILE_SIZE_BYTES + " bytes");
+        }
+    }
+
+    private static void validateImage(BufferedImage img) {
+        if (img == null) {
+            Logs.warn("DeepFace", "represent.null_image", Map.of());
+            throw new IllegalArgumentException("Image must not be null");
+        }
+        long pixels = (long) img.getWidth() * (long) img.getHeight();
+        if (pixels <= 0) {
+            throw new IllegalArgumentException("Image has invalid dimensions");
+        }
+        if (pixels > MAX_IMAGE_PIXELS) {
+            Logs.warn("DeepFace", "represent.too_large_image", Map.of("width", img.getWidth(), "height", img.getHeight(), "pixels", pixels));
+            throw new IllegalArgumentException("Image exceeds maximum allowed pixel count");
         }
     }
 
