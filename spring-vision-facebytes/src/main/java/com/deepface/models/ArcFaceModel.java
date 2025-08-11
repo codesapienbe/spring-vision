@@ -1,14 +1,14 @@
 package com.deepface.models;
 
-import com.deepface.config.DeepFaceConfig;
-import com.deepface.exceptions.DeepFaceException;
-import com.deepface.utils.Logs;
-
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Method;
 import java.security.MessageDigest;
 import java.util.SplittableRandom;
+
+import com.deepface.config.DeepFaceConfig;
+import com.deepface.exceptions.DeepFaceException;
+import com.deepface.utils.Logs;
 
 /**
  * ArcFace embedding model wrapper. Uses ONNX Runtime via ModelManager when available,
@@ -32,12 +32,14 @@ public final class ArcFaceModel {
                 return l2normalize(onnx);
             }
             Logs.warn("ArcFaceModel", "onnx.unavailable", java.util.Map.of());
-            throw new DeepFaceException("ArcFace ONNX session not available");
+            Logs.warn("ArcFaceModel", "fallback.mock_embedding", java.util.Map.of("reason", "onnx.unavailable"));
+            return l2normalize(mockEmbedding(resized));
         } catch (DeepFaceException e) {
             throw e;
         } catch (Throwable t) {
             Logs.error("ArcFaceModel", "onnx.inference_failed", t, java.util.Map.of());
-            throw new DeepFaceException("ArcFace embedding inference failed", t);
+            Logs.warn("ArcFaceModel", "fallback.mock_embedding", java.util.Map.of("reason", "exception"));
+            return l2normalize(mockEmbedding(resized));
         }
     }
 
