@@ -36,7 +36,6 @@
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <!-- DJL API (optional) -->

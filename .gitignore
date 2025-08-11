@@ -217,4 +217,7 @@ opencv_java*.dylib
 .DS_Store?
 ehthumbs.db
 Icon?
-Thumbs.db 
+Thumbs.db
+
+# Deepface ignore/
+spring-vision-deepface/.venv/
