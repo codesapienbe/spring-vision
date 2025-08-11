@@ -10,9 +10,16 @@ spring:
 
 # Vision configuration
 vision:
-  backend:
-    type: opencv
+  # Select backend: opencv | facebytes | deepface
+  backend: opencv
+  deepface:
     enabled: true
+    base-url: http://localhost:5005
+    model-name: Facenet
+    detector-backend: mtcnn
+    distance-metric: cosine
+    connect-timeout: 5000
+    read-timeout: 15000
   logging:
     level: INFO
     format: structured
