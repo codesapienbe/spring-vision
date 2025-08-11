@@ -379,6 +379,24 @@ public class VisionProperties {
          */
         private long readTimeout = 15000L;
 
+        /**
+         * Endpoint-specific read timeout in milliseconds for /represent.
+         * If set to <= 0, the general readTimeout or an implementation default will be used.
+         */
+        private long representReadTimeout = 0L;
+
+        /**
+         * Endpoint-specific read timeout in milliseconds for /verify.
+         * If set to <= 0, the general readTimeout or an implementation default will be used.
+         */
+        private long verifyReadTimeout = 0L;
+
+        /**
+         * Endpoint-specific read timeout in milliseconds for /analyze.
+         * If set to <= 0, the general readTimeout or an implementation default will be used.
+         */
+        private long analyzeReadTimeout = 0L;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -433,6 +451,30 @@ public class VisionProperties {
 
         public void setReadTimeout(long readTimeout) {
             this.readTimeout = readTimeout;
+        }
+
+        public long getRepresentReadTimeout() {
+            return representReadTimeout;
+        }
+
+        public void setRepresentReadTimeout(long representReadTimeout) {
+            this.representReadTimeout = representReadTimeout;
+        }
+
+        public long getVerifyReadTimeout() {
+            return verifyReadTimeout;
+        }
+
+        public void setVerifyReadTimeout(long verifyReadTimeout) {
+            this.verifyReadTimeout = verifyReadTimeout;
+        }
+
+        public long getAnalyzeReadTimeout() {
+            return analyzeReadTimeout;
+        }
+
+        public void setAnalyzeReadTimeout(long analyzeReadTimeout) {
+            this.analyzeReadTimeout = analyzeReadTimeout;
         }
     }
 

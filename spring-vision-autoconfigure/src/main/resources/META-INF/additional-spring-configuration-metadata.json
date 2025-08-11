@@ -131,6 +131,24 @@
       "type": "java.lang.Long",
       "description": "HTTP read timeout in milliseconds for DeepFace backend.",
       "defaultValue": 15000
+    },
+    {
+      "name": "vision.deepface.represent-read-timeout",
+      "type": "java.lang.Long",
+      "description": "HTTP read timeout in milliseconds for DeepFace /represent endpoint.",
+      "defaultValue": 0
+    },
+    {
+      "name": "vision.deepface.verify-read-timeout",
+      "type": "java.lang.Long",
+      "description": "HTTP read timeout in milliseconds for DeepFace /verify endpoint.",
+      "defaultValue": 0
+    },
+    {
+      "name": "vision.deepface.analyze-read-timeout",
+      "type": "java.lang.Long",
+      "description": "HTTP read timeout in milliseconds for DeepFace /analyze endpoint.",
+      "defaultValue": 0
     }
   ],
   "hints": [

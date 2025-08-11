@@ -2,10 +2,18 @@ package com.springvision.core.backend;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,8 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.imageio.ImageIO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,9 +43,6 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.exception.BaseVisionException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * VisionBackend implementation that integrates with an external DeepFace REST API.
@@ -47,12 +60,25 @@ public final class DeepFaceBackend implements VisionBackend {
     private static final String DISPLAY_NAME = "DeepFace REST Backend";
     private static final String VERSION = "1.0.0";
 
+    // Base folder name where the repo is unpacked by Maven build
+    private static final String DEEPFACE_FOLDER_NAME = "deepface";
+    private static final String SCRIPTS_SUBFOLDER = "scripts";
+    private static final String SERVICE_SCRIPT = "service.sh";
+
+    private static final AtomicBoolean serviceStartAttempted = new AtomicBoolean(false);
+    private static volatile Process deepFaceProcess;
+
     private final String baseUrl;
     private final String defaultModelName;
     private final String defaultDetectorBackend;
     private final String defaultDistanceMetric;
     private final Duration connectTimeout;
     private final Duration readTimeout;
+
+    // Endpoint-specific read timeouts
+    private final Duration representReadTimeout;
+    private final Duration verifyReadTimeout;
+    private final Duration analyzeReadTimeout;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -65,7 +91,7 @@ public final class DeepFaceBackend implements VisionBackend {
      * @param defaultDetectorBackend Default detector backend (e.g., "mtcnn")
      * @param defaultDistanceMetric Default distance metric (e.g., "cosine")
      * @param connectTimeoutMillis Connection timeout in milliseconds
-     * @param readTimeoutMillis Read timeout in milliseconds
+     * @param readTimeoutMillis Read timeout in milliseconds (used for all endpoints)
      */
     public DeepFaceBackend(
             String baseUrl,
@@ -75,12 +101,50 @@ public final class DeepFaceBackend implements VisionBackend {
             long connectTimeoutMillis,
             long readTimeoutMillis
     ) {
+        this(
+            baseUrl,
+            defaultModelName,
+            defaultDetectorBackend,
+            defaultDistanceMetric,
+            connectTimeoutMillis,
+            readTimeoutMillis,
+            readTimeoutMillis,
+            readTimeoutMillis
+        );
+    }
+
+    /**
+     * Creates a new DeepFace backend using endpoint-specific read timeouts.
+     *
+     * @param baseUrl Base URL of the DeepFace REST API (e.g., http://localhost:5005)
+     * @param defaultModelName Default model name for requests (e.g., "Facenet")
+     * @param defaultDetectorBackend Default detector backend (e.g., "mtcnn")
+     * @param defaultDistanceMetric Default distance metric (e.g., "cosine")
+     * @param connectTimeoutMillis Connection timeout in milliseconds
+     * @param representReadTimeoutMillis Read timeout in milliseconds for /represent
+     * @param verifyReadTimeoutMillis Read timeout in milliseconds for /verify
+     * @param analyzeReadTimeoutMillis Read timeout in milliseconds for /analyze
+     */
+    public DeepFaceBackend(
+            String baseUrl,
+            String defaultModelName,
+            String defaultDetectorBackend,
+            String defaultDistanceMetric,
+            long connectTimeoutMillis,
+            long representReadTimeoutMillis,
+            long verifyReadTimeoutMillis,
+            long analyzeReadTimeoutMillis
+    ) {
         this.baseUrl = ensureNoTrailingSlash(baseUrl);
         this.defaultModelName = Optional.ofNullable(defaultModelName).orElse("Facenet");
         this.defaultDetectorBackend = Optional.ofNullable(defaultDetectorBackend).orElse("mtcnn");
         this.defaultDistanceMetric = Optional.ofNullable(defaultDistanceMetric).orElse("cosine");
         this.connectTimeout = Duration.ofMillis(Math.max(1, connectTimeoutMillis));
-        this.readTimeout = Duration.ofMillis(Math.max(1, readTimeoutMillis));
+        // Keep legacy aggregate read timeout for backward compatibility/health checks
+        this.readTimeout = Duration.ofMillis(Math.max(1, Math.max(Math.max(representReadTimeoutMillis, verifyReadTimeoutMillis), analyzeReadTimeoutMillis)));
+        this.representReadTimeout = Duration.ofMillis(Math.max(1, representReadTimeoutMillis));
+        this.verifyReadTimeout = Duration.ofMillis(Math.max(1, verifyReadTimeoutMillis));
+        this.analyzeReadTimeout = Duration.ofMillis(Math.max(1, analyzeReadTimeoutMillis));
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(this.connectTimeout)
                 .build();
@@ -152,7 +216,11 @@ public final class DeepFaceBackend implements VisionBackend {
         }
 
         long start = System.currentTimeMillis();
+        String correlationId = generateCorrelationId();
         try {
+            // Ensure DeepFace service is up before making the API call
+            ensureServiceRunning(correlationId);
+
             BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData.data()));
             if (img == null) {
                 throw new IllegalArgumentException("Unsupported or corrupt image data");
@@ -167,7 +235,7 @@ public final class DeepFaceBackend implements VisionBackend {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/represent"))
-                    .timeout(readTimeout)
+                    .timeout(representReadTimeout)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
@@ -176,12 +244,23 @@ public final class DeepFaceBackend implements VisionBackend {
             int status = response.statusCode();
             if (status == 400) {
                 long took = System.currentTimeMillis() - start;
-                logger.warn("DeepFace detection returned 400 - invalid image or request");
+                logger.warn("DeepFace represent returned 400", Map.of(
+                        "component", BACKEND_ID,
+                        "endpoint", "/represent",
+                        "correlation_id", correlationId,
+                        "elapsed_ms", took
+                ));
                 return VisionResult.empty(DetectionType.FACE, took);
             }
             if (status < 200 || status >= 300) {
                 long took = System.currentTimeMillis() - start;
-                logger.error("DeepFace represent call failed: status={}", status);
+                logger.error("DeepFace represent call failed", Map.of(
+                        "component", BACKEND_ID,
+                        "endpoint", "/represent",
+                        "status", status,
+                        "correlation_id", correlationId,
+                        "elapsed_ms", took
+                ));
                 return VisionResult.empty(DetectionType.FACE, took);
             }
 
@@ -189,7 +268,12 @@ public final class DeepFaceBackend implements VisionBackend {
             JsonNode results = root.get("results");
             if (results == null || !results.isArray() || results.isEmpty()) {
                 long took = System.currentTimeMillis() - start;
-                logger.warn("DeepFace represent returned no results");
+                logger.warn("DeepFace represent returned no results", Map.of(
+                        "component", BACKEND_ID,
+                        "endpoint", "/represent",
+                        "correlation_id", correlationId,
+                        "elapsed_ms", took
+                ));
                 return VisionResult.empty(DetectionType.FACE, took);
             }
 
@@ -230,7 +314,13 @@ public final class DeepFaceBackend implements VisionBackend {
         } catch (Exception e) {
             long took = System.currentTimeMillis() - start;
             String msg = sanitize(e.getMessage());
-            logger.error("DeepFace detectFaces failed: {}", msg);
+            logger.error("DeepFace detectFaces failed", Map.of(
+                    "component", BACKEND_ID,
+                    "endpoint", "/represent",
+                    "correlation_id", correlationId,
+                    "elapsed_ms", took,
+                    "error", msg
+            ));
             return VisionResult.empty(DetectionType.FACE, took);
         }
     }
@@ -284,5 +374,151 @@ public final class DeepFaceBackend implements VisionBackend {
             return message.substring(0, 512) + "...";
         }
         return message;
+    }
+
+    private static String generateCorrelationId() {
+        return UUID.randomUUID().toString();
+    }
+
+    private void ensureServiceRunning(String correlationId) {
+        if (isHealthy()) {
+            return;
+        }
+        if (!serviceStartAttempted.compareAndSet(false, true)) {
+            // Another attempt has been made previously; do not spam starts
+            waitForServiceReadiness(correlationId, Duration.ofSeconds(25));
+            return;
+        }
+
+        Path script = resolveServiceScriptPath();
+        if (script == null) {
+            logger.warn("DeepFace service.sh not found; skipping auto-start", Map.of(
+                    "component", BACKEND_ID,
+                    "correlation_id", correlationId
+            ));
+            return;
+        }
+        try {
+            startDeepFaceServiceProcess(script, correlationId);
+        } catch (Exception ex) {
+            logger.error("Failed to start DeepFace service", Map.of(
+                    "component", BACKEND_ID,
+                    "correlation_id", correlationId,
+                    "error", sanitize(ex.getMessage())
+            ));
+            return;
+        }
+        // Wait briefly for the service to come up
+        waitForServiceReadiness(correlationId, Duration.ofSeconds(25));
+    }
+
+    private void waitForServiceReadiness(String correlationId, Duration timeout) {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        long sleepMs = 500;
+        while (System.nanoTime() < deadline) {
+            if (isHealthy()) {
+                logger.info("DeepFace service is ready", Map.of(
+                        "component", BACKEND_ID,
+                        "correlation_id", correlationId
+                ));
+                return;
+            }
+            try {
+                Thread.sleep(sleepMs);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            sleepMs = Math.min(2000, sleepMs + 250);
+        }
+        logger.warn("DeepFace service did not become ready in time", Map.of(
+                "component", BACKEND_ID,
+                "correlation_id", correlationId,
+                "timeout_ms", timeout.toMillis()
+        ));
+    }
+
+    private Path resolveServiceScriptPath() {
+        // Start from user.dir and walk up to 6 levels to find deepface/scripts/service.sh
+        Path start = Paths.get(System.getProperty("user.dir"));
+        for (int i = 0; i < 6; i++) {
+            Path candidate = start.resolve(DEEPFACE_FOLDER_NAME)
+                    .resolve(SCRIPTS_SUBFOLDER)
+                    .resolve(SERVICE_SCRIPT);
+            if (Files.isRegularFile(candidate) && Files.isReadable(candidate)) {
+                // Extra safety: ensure the path contains the deepface folder component
+                try {
+                    String canonical = candidate.toFile().getCanonicalPath();
+                    if (canonical.contains(File.separator + DEEPFACE_FOLDER_NAME + File.separator)) {
+                        return candidate;
+                    }
+                } catch (IOException ignored) {
+                    // fall through
+                }
+            }
+            start = start.getParent() != null ? start.getParent() : start;
+        }
+        return null;
+    }
+
+    private void startDeepFaceServiceProcess(Path scriptPath, String correlationId) throws IOException {
+        if (deepFaceProcess != null && deepFaceProcess.isAlive()) {
+            return;
+        }
+
+        File scriptsDir = scriptPath.getParent().toFile();
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+
+        ProcessBuilder pb;
+        if (isWindows) {
+            // Attempt to use Git Bash if available on PATH
+            pb = new ProcessBuilder("bash", "-lc", "./" + SERVICE_SCRIPT);
+        } else {
+            pb = new ProcessBuilder("bash", "./" + SERVICE_SCRIPT);
+        }
+        pb.directory(scriptsDir);
+        pb.redirectErrorStream(true);
+
+        Map<String, String> env = pb.environment();
+        env.putIfAbsent("PYTHONUNBUFFERED", "1");
+        env.putIfAbsent("DEEPFACE_PORT", String.valueOf(URI.create(baseUrl).getPort() == -1 ? 5005 : URI.create(baseUrl).getPort()));
+
+        deepFaceProcess = pb.start();
+        consumeProcessOutputAsync(deepFaceProcess, correlationId);
+
+        logger.info("Started DeepFace service.sh", Map.of(
+                "component", BACKEND_ID,
+                "working_dir", scriptsDir.getAbsolutePath(),
+                "correlation_id", correlationId
+        ));
+    }
+
+    private void consumeProcessOutputAsync(Process process, String correlationId) {
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        executor.submit(() -> {
+            try (InputStream is = process.getInputStream();
+                 InputStreamReader isr = new InputStreamReader(is);
+                 BufferedReader br = new BufferedReader(isr)) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    String sanitized = sanitize(line);
+                    if (!sanitized.isBlank()) {
+                        logger.debug(sanitized, Map.of(
+                                "component", BACKEND_ID,
+                                "correlation_id", correlationId,
+                                "source", "deepface-service"
+                        ));
+                    }
+                }
+            } catch (IOException ignored) {
+                // ignore
+            }
+        });
+        executor.shutdown();
+        try {
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
