@@ -15,10 +15,10 @@ import org.springframework.context.event.EventListener;
 
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
+import com.springvision.core.backend.DeepFaceBackend;
+import com.springvision.core.backend.MediaPipeVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.backend.StableOpenCvVisionBackend;
-import com.springvision.core.backend.MediaPipeVisionBackend;
-import com.springvision.core.backend.DeepFaceBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -322,13 +322,21 @@ public class VisionAutoConfiguration {
     private VisionBackend createDeepFaceBackend(VisionProperties properties) {
         logger.info("Creating DeepFace REST backend");
         VisionProperties.DeepFace cfg = properties.getDeepface();
+        // Determine endpoint-specific timeouts with sensible defaults if not explicitly configured
+        long generalRead = cfg.getReadTimeout();
+        long representRead = cfg.getRepresentReadTimeout() > 0 ? cfg.getRepresentReadTimeout() : Math.max(generalRead, 20000L);
+        long verifyRead = cfg.getVerifyReadTimeout() > 0 ? cfg.getVerifyReadTimeout() : Math.max(generalRead, 30000L);
+        long analyzeRead = cfg.getAnalyzeReadTimeout() > 0 ? cfg.getAnalyzeReadTimeout() : Math.max(generalRead, 45000L);
+
         DeepFaceBackend backend = new DeepFaceBackend(
                 cfg.getBaseUrl(),
                 cfg.getModelName(),
                 cfg.getDetectorBackend(),
                 cfg.getDistanceMetric(),
                 cfg.getConnectTimeout(),
-                cfg.getReadTimeout()
+                representRead,
+                verifyRead,
+                analyzeRead
         );
         try {
             backend.initialize();

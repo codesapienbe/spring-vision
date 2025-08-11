@@ -292,8 +292,7 @@ public class JavaFXApplication {
             // Image view with overlay and scroll pane
             imageView = new ImageView();
             imageView.setPreserveRatio(true);
-            imageView.setFitWidth(600);
-            imageView.setFitHeight(400);
+            imageView.setSmooth(true);
             imageView.setStyle("-fx-border-color: #cccccc; -fx-border-width: 1; -fx-border-radius: 3;");
 
             overlayPane = new Pane();
@@ -302,6 +301,10 @@ public class JavaFXApplication {
 
             StackPane imageStack = new StackPane(imageView, overlayPane);
             imageStack.setStyle("-fx-background-color: transparent;");
+
+            // Bind the ImageView size to the container so it fits available space
+            imageView.fitWidthProperty().bind(imageStack.widthProperty());
+            imageView.fitHeightProperty().bind(imageStack.heightProperty());
 
             ScrollPane scrollPane = new ScrollPane(imageStack);
             scrollPane.setFitToWidth(true);

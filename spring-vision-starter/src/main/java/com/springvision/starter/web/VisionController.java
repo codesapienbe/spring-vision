@@ -1,26 +1,40 @@
 package com.springvision.starter.web;
 
-import com.springvision.core.DetectionType;
-import com.springvision.core.ImageData;
-import com.springvision.core.VisionResult;
-import com.springvision.core.VisionTemplate;
-import com.springvision.starter.web.dto.DetectionRequest;
-import com.springvision.starter.web.dto.DetectionResponse;
-import com.springvision.starter.web.dto.HealthResponse;
-import com.springvision.starter.web.dto.MultipleDetectionRequest;
-import com.springvision.starter.web.dto.MultipleDetectionResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.springvision.core.DetectionType;
+import com.springvision.core.ImageData;
+import com.springvision.core.VisionResult;
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.async.AsyncVisionProcessor;
+import com.springvision.core.async.TaskProgress;
+import com.springvision.starter.web.dto.DetectionRequest;
+import com.springvision.starter.web.dto.DetectionResponse;
+import com.springvision.starter.web.dto.HealthResponse;
+import com.springvision.starter.web.dto.MultipleDetectionRequest;
+import com.springvision.starter.web.dto.MultipleDetectionResponse;
+import com.springvision.starter.web.dto.TaskSubmissionResponse;
 
 /**
  * REST controller for Spring Vision operations.
@@ -75,6 +89,7 @@ public class VisionController {
      * The vision template for processing operations.
      */
     private final VisionTemplate visionTemplate;
+    private final AsyncVisionProcessor asyncVisionProcessor = new AsyncVisionProcessor();
 
     /**
      * Constructs a new vision controller.
@@ -214,6 +229,119 @@ public class VisionController {
         }
     }
 
+    @PostMapping(value = "/async/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromFileAsync(
+            @RequestParam("file") MultipartFile file) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async face detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            // Validate file
+            validateFile(file);
+
+            // Convert to ImageData
+            ImageData imageData = convertToImageData(file);
+
+            // Perform face detection (runs on async executor due to @Async)
+            VisionResult result = visionTemplate.detectFaces(imageData);
+
+            // Create response
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.FACE.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Async face detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async face detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.FACE.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromDataAsync(
+            @RequestBody DetectionRequest request) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async face detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData().length
+        ));
+
+        try {
+            // Convert to ImageData
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+
+            // Perform face detection (runs on async executor due to @Async)
+            VisionResult result = visionTemplate.detectFaces(imageData);
+
+            // Create response
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.FACE.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Async face detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async face detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.FACE.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
+        }
+    }
+
     /**
      * Detects objects in an uploaded image file.
      *
@@ -340,6 +468,109 @@ public class VisionController {
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/async/detect/objects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromFileAsync(
+            @RequestParam("file") MultipartFile file) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async object detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+            VisionResult result = visionTemplate.detectObjects(imageData);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.OBJECT.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Async object detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async object detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.OBJECT.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/objects", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromDataAsync(
+            @RequestBody DetectionRequest request) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async object detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData().length
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            VisionResult result = visionTemplate.detectObjects(imageData);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.OBJECT.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Async object detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async object detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(DetectionType.OBJECT.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
         }
     }
 
@@ -489,6 +720,244 @@ public class VisionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(errorResponse);
         }
+    }
+
+    @PostMapping(value = "/async/detect/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromFileAsync(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("detectionTypes") String detectionTypes) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async multiple detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "detectionTypes", detectionTypes
+        ));
+
+        try {
+            validateFile(file);
+            List<DetectionType> types = parseDetectionTypes(detectionTypes);
+            ImageData imageData = convertToImageData(file);
+            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+
+            MultipleDetectionResponse response = MultipleDetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionTypes(types.stream().map(DetectionType::getCode).toList())
+                .results(results.stream()
+                    .map(result -> DetectionResponse.builder()
+                        .correlationId(correlationId)
+                        .detectionType(result.detectionType().getCode())
+                        .detectionCount(result.detectionCount())
+                        .averageConfidence(result.averageConfidence())
+                        .processingTimeMs(result.processingTimeMs())
+                        .detections(result.detections())
+                        .build())
+                    .toList())
+                .build();
+
+            logger.info("Async multiple detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionTypes", types.size(),
+                "totalDetections", results.stream().mapToInt(VisionResult::detectionCount).sum()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async multiple detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            MultipleDetectionResponse errorResponse = MultipleDetectionResponse.builder()
+                .correlationId(correlationId)
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/multiple", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromDataAsync(
+            @RequestBody MultipleDetectionRequest request) {
+
+        String correlationId = generateCorrelationId();
+
+        logger.info("Async multiple detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData().length,
+            "detectionTypes", request.getDetectionTypes()
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            List<DetectionType> types = parseDetectionTypesFromList(request.getDetectionTypes());
+            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+
+            MultipleDetectionResponse response = MultipleDetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionTypes(request.getDetectionTypes())
+                .results(results.stream()
+                    .map(result -> DetectionResponse.builder()
+                        .correlationId(correlationId)
+                        .detectionType(result.detectionType().getCode())
+                        .detectionCount(result.detectionCount())
+                        .averageConfidence(result.averageConfidence())
+                        .processingTimeMs(result.processingTimeMs())
+                        .detections(result.detections())
+                        .build())
+                    .toList())
+                .build();
+
+            logger.info("Async multiple detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionTypes", types.size(),
+                "totalDetections", results.stream().mapToInt(VisionResult::detectionCount).sum()
+            ));
+
+            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+
+        } catch (Exception e) {
+            logger.error("Async multiple detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            MultipleDetectionResponse errorResponse = MultipleDetectionResponse.builder()
+                .correlationId(correlationId)
+                .error(e.getMessage())
+                .build();
+
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/tasks/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTask(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+
+        logger.info("Submit face detection task", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.FACE,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit face detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/tasks/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTaskJson(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+
+        logger.info("Submit face detection task (json)", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.FACE,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit face detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @GetMapping(value = "/tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> getTaskStatus(@PathVariable("taskId") String taskId) {
+        String correlationId = generateCorrelationId();
+        TaskProgress progress = asyncVisionProcessor.getTaskProgress(taskId);
+        if (progress == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("correlationId", correlationId, "taskId", taskId, "status", "not_found"));
+        }
+        Map<String, Object> payload = Map.of(
+            "correlationId", correlationId,
+            "taskId", progress.getTaskId(),
+            "status", progress.getStatus().toString(),
+            "completion", progress.getCompletionPercentage(),
+            "message", progress.getMessage()
+        );
+        return ResponseEntity.ok(payload);
+    }
+
+    @GetMapping(value = "/tasks/{taskId}/result")
+    public ResponseEntity<?> getTaskResult(@PathVariable("taskId") String taskId) {
+        String correlationId = generateCorrelationId();
+        TaskProgress progress = asyncVisionProcessor.getTaskProgress(taskId);
+        if (progress == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("correlationId", correlationId, "taskId", taskId, "status", "not_found"));
+        }
+        if (!progress.isCompleted()) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(Map.of(
+                    "correlationId", correlationId,
+                    "taskId", taskId,
+                    "status", progress.getStatus().toString(),
+                    "completion", progress.getCompletionPercentage(),
+                    "message", progress.getMessage()
+                ));
+        }
+        VisionResult result = progress.getResult();
+        DetectionResponse response = DetectionResponse.builder()
+            .correlationId(correlationId)
+            .detectionType(result.detectionType().getCode())
+            .detectionCount(result.detectionCount())
+            .averageConfidence(result.averageConfidence())
+            .processingTimeMs(result.processingTimeMs())
+            .detections(result.detections())
+            .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping(value = "/tasks/{taskId}")
+    public ResponseEntity<Map<String, Object>> cancelTask(@PathVariable("taskId") String taskId) {
+        String correlationId = generateCorrelationId();
+        boolean cancelled = asyncVisionProcessor.cancelTask(taskId);
+        return ResponseEntity.ok(Map.of(
+            "correlationId", correlationId,
+            "taskId", taskId,
+            "cancelled", cancelled
+        ));
     }
 
     /**

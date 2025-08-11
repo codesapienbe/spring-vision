@@ -61,6 +61,11 @@ public class AsyncVisionProcessor {
     private final AtomicInteger taskCounter;
 
     /**
+     * Handle that exposes a generated taskId and the future representing the execution.
+     */
+    public static record TaskHandle<T>(String taskId, CompletableFuture<T> future) {}
+
+    /**
      * Creates a new AsyncVisionProcessor with default settings.
      */
     public AsyncVisionProcessor() {
@@ -96,8 +101,7 @@ public class AsyncVisionProcessor {
             ImageData imageData,
             DetectionType detectionType,
             Map<String, Object> parameters) {
-
-        return processAsync(imageData, detectionType, parameters, null);
+        return processAsyncWithHandle(imageData, detectionType, parameters, null).future();
     }
 
     /**
@@ -110,6 +114,17 @@ public class AsyncVisionProcessor {
      * @return a CompletableFuture that will complete with the vision result
      */
     public CompletableFuture<VisionResult> processAsync(
+            ImageData imageData,
+            DetectionType detectionType,
+            Map<String, Object> parameters,
+            Consumer<TaskProgress> progressCallback) {
+        return processAsyncWithHandle(imageData, detectionType, parameters, progressCallback).future();
+    }
+
+    /**
+     * Submits an async task and returns a handle containing the taskId and future.
+     */
+    public TaskHandle<VisionResult> processAsyncWithHandle(
             ImageData imageData,
             DetectionType detectionType,
             Map<String, Object> parameters,
@@ -127,16 +142,13 @@ public class AsyncVisionProcessor {
             try {
                 logger.debug("Starting async vision task: {}", taskId);
 
-                // Update progress
                 updateProgress(task, TaskProgress.started(taskId));
                 if (progressCallback != null) {
                     progressCallback.accept(TaskProgress.started(taskId));
                 }
 
-                // Execute the task
                 VisionResult result = taskExecutor.executeTask(task);
 
-                // Update progress
                 updateProgress(task, TaskProgress.completed(taskId, result));
                 if (progressCallback != null) {
                     progressCallback.accept(TaskProgress.completed(taskId, result));
@@ -148,7 +160,6 @@ public class AsyncVisionProcessor {
             } catch (Exception e) {
                 logger.error("Error processing async vision task: {}", taskId, e);
 
-                // Update progress
                 TaskProgress failedProgress = TaskProgress.failed(taskId, e);
                 updateProgress(task, failedProgress);
                 if (progressCallback != null) {
@@ -162,7 +173,7 @@ public class AsyncVisionProcessor {
             }
         }, executor);
 
-        return future;
+        return new TaskHandle<>(taskId, future);
     }
 
     /**

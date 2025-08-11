@@ -1,14 +1,14 @@
 package com.springvision.core.backend;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacv.OpenCVFrameConverter;
@@ -284,10 +284,12 @@ public class OpenCvVisionBackend implements VisionBackend {
         long startTime = System.currentTimeMillis();
         String correlationId = generateCorrelationId();
 
-        logger.debug("Starting face detection", Map.of(
-            "correlationId", correlationId,
-            "imageSize", imageData.getSizeInBytes(),
-            "imageFormat", imageData.format()
+                    logger.debug("Starting face detection", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_faces",
+            "correlation_id", correlationId,
+            "image_size", imageData.getSizeInBytes(),
+            "image_format", imageData.format()
         ));
 
         try {
@@ -302,11 +304,19 @@ public class OpenCvVisionBackend implements VisionBackend {
                 return VisionResult.of(DetectionType.FACE, List.of(), 0.0, System.currentTimeMillis() - startTime);
             }
 
-            logger.debug("OpenCV is available, proceeding with face detection");
+            logger.debug("OpenCV is available, proceeding with face detection", Map.of(
+                "component", BACKEND_ID,
+                "correlation_id", correlationId
+            ));
 
             // Load image into OpenCV Mat
             Mat image = loadImageToMat(imageData);
-            logger.debug("Image loaded successfully: {}x{}", image.cols(), image.rows());
+            logger.debug("Image loaded successfully", Map.of(
+                "component", BACKEND_ID,
+                "correlation_id", correlationId,
+                "width", image.cols(),
+                "height", image.rows()
+            ));
 
             // Downscale overly large images to avoid native memory OOM while preserving aspect ratio
             try {
@@ -412,7 +422,9 @@ public class OpenCvVisionBackend implements VisionBackend {
                     if (upscale1 > 1.05) collectYuNetCandidates(image, upscale1, allRects, allScores);
                     if (upscale2 > 1.2) collectYuNetCandidates(image, upscale2, allRects, allScores);
                     logger.debug("YuNet stage completed", Map.of(
-                        "correlationId", correlationId,
+                        "component", BACKEND_ID,
+                        "operation", "detect_faces",
+                        "correlation_id", correlationId,
                         "candidates", allRects.size()
                     ));
                 }
@@ -443,7 +455,9 @@ public class OpenCvVisionBackend implements VisionBackend {
                     allRects.addAll(candidateRects);
                     allScores.addAll(candidateScores);
                     logger.debug("DNN stage completed", Map.of(
-                        "correlationId", correlationId,
+                        "component", BACKEND_ID,
+                        "operation", "detect_faces",
+                        "correlation_id", correlationId,
                         "candidates", candidateRects.size(),
                         "kept", candidateRects.size()
                     ));
@@ -462,7 +476,12 @@ public class OpenCvVisionBackend implements VisionBackend {
                     // More sensitive parameters to improve recall in crowded scenes
                     faceCascade.detectMultiScale(grayImage, faces, 1.05, 2, 0, minSize, maxSize);
 
-                    logger.debug("Cascade classifier detected {} faces", faces.size());
+                    logger.debug("Cascade classifier stage completed", Map.of(
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId,
+                "candidates", faces.size()
+            ));
 
                     for (long i = 0; i < faces.size(); i++) {
                         Rect faceRect = faces.get(i);
@@ -477,9 +496,17 @@ public class OpenCvVisionBackend implements VisionBackend {
                     logger.warn("Cascade classifier failed, using basic detection: {}", e.getMessage());
                 }
             } else if (!allRects.isEmpty()) {
-                logger.debug("Skipping cascade/profile stages due to existing DNN candidates");
+                logger.debug("Skipping cascade/profile stages due to existing DNN candidates", Map.of(
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId
+            ));
             } else {
-                logger.debug("Cascade classifier not available, using basic detection");
+                logger.debug("Cascade classifier not available, using basic detection", Map.of(
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId
+            ));
             }
 
             // 3) Profile-face detection -> only when no DNN/YuNet candidates
@@ -513,7 +540,12 @@ public class OpenCvVisionBackend implements VisionBackend {
                     flipped.releaseReference();
                 }
             } catch (Exception e) {
-                logger.debug("Profile-face detection skipped due to error: {}", e.getMessage());
+                logger.debug("Profile-face detection skipped due to error", Map.of(
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId,
+                "error", e.getMessage()
+            ));
             }
 
             // Dynamic size self-alignment: derive expected face area from top-scoring candidates
@@ -537,8 +569,11 @@ public class OpenCvVisionBackend implements VisionBackend {
                         allScores = filteredScores;
                     }
                     logger.debug("Dynamic size filter applied", Map.of(
-                        "minAreaRatio", minArea,
-                        "maxAreaRatio", maxArea,
+                        "component", BACKEND_ID,
+                        "operation", "detect_faces",
+                        "correlation_id", correlationId,
+                        "min_area_ratio", minArea,
+                        "max_area_ratio", maxArea,
                         "remaining", allRects.size()
                     ));
                 }
@@ -554,7 +589,12 @@ public class OpenCvVisionBackend implements VisionBackend {
                     allScores.set(i, sAdj);
                 }
             } catch (Throwable t) {
-                logger.debug("Quality adjustment skipped: {}", t.getMessage());
+                logger.debug("Quality adjustment skipped", Map.of(
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId,
+                "error", t.getMessage()
+            ));
             }
 
             // Final NMS over all candidates (tighter IoU to reduce duplicates)
@@ -633,10 +673,12 @@ public class OpenCvVisionBackend implements VisionBackend {
                 averageConfidence, processingTime);
 
             logger.debug("Face detection completed", Map.of(
-                "correlationId", correlationId,
-                "facesDetected", detections.size(),
-                "averageConfidence", averageConfidence,
-                "processingTimeMs", processingTime
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId,
+                "faces_detected", detections.size(),
+                "average_confidence", averageConfidence,
+                "elapsed_ms", processingTime
             ));
 
             return result;
@@ -645,10 +687,12 @@ public class OpenCvVisionBackend implements VisionBackend {
             long processingTime = System.currentTimeMillis() - startTime;
 
             logger.error("Face detection failed", Map.of(
-                "correlationId", correlationId,
-                "processingTimeMs", processingTime,
+                "component", BACKEND_ID,
+                "operation", "detect_faces",
+                "correlation_id", correlationId,
+                "elapsed_ms", processingTime,
                 "error", e.getClass().getSimpleName(),
-                "opencvAvailable", opencvAvailable
+                "opencv_available", opencvAvailable
             ), e);
 
             if (!opencvAvailable) {
@@ -678,9 +722,11 @@ public class OpenCvVisionBackend implements VisionBackend {
         String correlationId = generateCorrelationId();
 
         logger.debug("Starting object detection", Map.of(
-            "correlationId", correlationId,
-            "imageSize", imageData.getSizeInBytes(),
-            "imageFormat", imageData.format()
+            "component", BACKEND_ID,
+            "operation", "detect_objects",
+            "correlation_id", correlationId,
+            "image_size", imageData.getSizeInBytes(),
+            "image_format", imageData.format()
         ));
 
         try {
@@ -748,24 +794,28 @@ public class OpenCvVisionBackend implements VisionBackend {
             VisionResult result = VisionResult.of(DetectionType.OBJECT, detections,
                 averageConfidence, processingTime);
 
-            logger.debug("Object detection completed", Map.of(
-                "correlationId", correlationId,
-                "objectsDetected", detections.size(),
-                "averageConfidence", averageConfidence,
-                "processingTimeMs", processingTime
-            ));
+                    logger.debug("Object detection completed", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_objects",
+            "correlation_id", correlationId,
+            "objects_detected", detections.size(),
+            "average_confidence", averageConfidence,
+            "elapsed_ms", processingTime
+        ));
 
             return result;
 
         } catch (Exception e) {
             long processingTime = System.currentTimeMillis() - startTime;
 
-            logger.error("Object detection failed", Map.of(
-                "correlationId", correlationId,
-                "processingTimeMs", processingTime,
-                "error", e.getClass().getSimpleName(),
-                "opencvAvailable", opencvAvailable
-            ), e);
+                    logger.error("Object detection failed", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_objects",
+            "correlation_id", correlationId,
+            "elapsed_ms", processingTime,
+            "error", e.getClass().getSimpleName(),
+            "opencv_available", opencvAvailable
+        ), e);
 
             if (!opencvAvailable) {
                 throw new VisionProcessingException(

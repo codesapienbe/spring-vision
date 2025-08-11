@@ -138,6 +138,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         String correlationId = generateCorrelationId();
         logger.debug("Starting MediaPipe face detection", Map.of(
             "component", BACKEND_ID,
+            "operation", "detect_faces",
             "correlation_id", correlationId,
             "image_size", imageData.getSizeInBytes(),
             "image_format", imageData.format()
@@ -164,11 +165,12 @@ public class MediaPipeVisionBackend implements VisionBackend {
                 e
             );
         } finally {
-            logger.debug("Completed MediaPipe face detection", Map.of(
-                "component", BACKEND_ID,
-                "correlation_id", correlationId,
-                "elapsed_ms", System.currentTimeMillis() - start
-            ));
+                    logger.debug("Completed MediaPipe face detection", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_faces",
+            "correlation_id", correlationId,
+            "elapsed_ms", System.currentTimeMillis() - start
+        ));
         }
     }
 
@@ -189,6 +191,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         String correlationId = generateCorrelationId();
         logger.debug("Starting MediaPipe landmark detection", Map.of(
             "component", BACKEND_ID,
+            "operation", "detect_landmarks",
             "correlation_id", correlationId,
             "image_size", imageData.getSizeInBytes(),
             "image_format", imageData.format()
@@ -213,11 +216,12 @@ public class MediaPipeVisionBackend implements VisionBackend {
                 e
             );
         } finally {
-            logger.debug("Completed MediaPipe landmark detection", Map.of(
-                "component", BACKEND_ID,
-                "correlation_id", correlationId,
-                "elapsed_ms", System.currentTimeMillis() - start
-            ));
+                    logger.debug("Completed MediaPipe landmark detection", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_landmarks",
+            "correlation_id", correlationId,
+            "elapsed_ms", System.currentTimeMillis() - start
+        ));
         }
     }
 
@@ -228,6 +232,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         String correlationId = generateCorrelationId();
         logger.debug("Starting MediaPipe pose detection", Map.of(
             "component", BACKEND_ID,
+            "operation", "detect_poses",
             "correlation_id", correlationId,
             "image_size", imageData.getSizeInBytes(),
             "image_format", imageData.format()
@@ -252,11 +257,12 @@ public class MediaPipeVisionBackend implements VisionBackend {
                 e
             );
         } finally {
-            logger.debug("Completed MediaPipe pose detection", Map.of(
-                "component", BACKEND_ID,
-                "correlation_id", correlationId,
-                "elapsed_ms", System.currentTimeMillis() - start
-            ));
+                    logger.debug("Completed MediaPipe pose detection", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_poses",
+            "correlation_id", correlationId,
+            "elapsed_ms", System.currentTimeMillis() - start
+        ));
         }
     }
 
@@ -267,6 +273,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         String correlationId = generateCorrelationId();
         logger.debug("Starting MediaPipe hand detection", Map.of(
             "component", BACKEND_ID,
+            "operation", "detect_hands",
             "correlation_id", correlationId,
             "image_size", imageData.getSizeInBytes(),
             "image_format", imageData.format()
@@ -291,11 +298,12 @@ public class MediaPipeVisionBackend implements VisionBackend {
                 e
             );
         } finally {
-            logger.debug("Completed MediaPipe hand detection", Map.of(
-                "component", BACKEND_ID,
-                "correlation_id", correlationId,
-                "elapsed_ms", System.currentTimeMillis() - start
-            ));
+                    logger.debug("Completed MediaPipe hand detection", Map.of(
+            "component", BACKEND_ID,
+            "operation", "detect_hands",
+            "correlation_id", correlationId,
+            "elapsed_ms", System.currentTimeMillis() - start
+        ));
         }
     }
 
