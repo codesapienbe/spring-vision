@@ -12,26 +12,31 @@ import java.util.Map;
  *     <li>Minimum luminance standard deviation (basic contrast check)</li>
  *     <li>Minimum edge density (approximate sharpness/texture check)</li>
  * </ul>
+ * Additionally, a variance-of-Laplacian blur metric is evaluated to reject very blurry crops.
+ * <p>
  * All thresholds are conservative defaults and can be adjusted at runtime via system properties:
  * <pre>
  *   -Dfacebytes.quality.min_width=40
  *   -Dfacebytes.quality.min_height=40
  *   -Dfacebytes.quality.min_stddev=15.0
  *   -Dfacebytes.quality.min_edge_density=0.02
+ *   -Dfacebytes.quality.min_laplacian_var=40.0
  * </pre>
  * No exceptions are thrown; failures are logged at DEBUG level to avoid noisy logs while preserving observability.
  */
 public final class FaceQualityValidator {
 
-    private static final int DEFAULT_MIN_WIDTH = 40;
-    private static final int DEFAULT_MIN_HEIGHT = 40;
-    private static final double DEFAULT_MIN_STDDEV = 15.0; // on 0..255 luminance
-    private static final double DEFAULT_MIN_EDGE_DENSITY = 0.02; // 2% pixels with noticeable gradient
+    private static final int DEFAULT_MIN_WIDTH = 24;
+    private static final int DEFAULT_MIN_HEIGHT = 24;
+    private static final double DEFAULT_MIN_STDDEV = 10.0; // on 0..255 luminance (more permissive)
+    private static final double DEFAULT_MIN_EDGE_DENSITY = 0.012; // 1.2% pixels with noticeable gradient
+    private static final double DEFAULT_MIN_LAPLACIAN_VAR = 20.0; // more permissive blur threshold
 
     private final int minWidth;
     private final int minHeight;
     private final double minStdDev;
     private final double minEdgeDensity;
+    private final double minLaplacianVar;
 
     /**
      * Constructs a validator with thresholds sourced from system properties or safe defaults.
@@ -41,6 +46,7 @@ public final class FaceQualityValidator {
         this.minHeight = (int) readDouble("facebytes.quality.min_height", DEFAULT_MIN_HEIGHT);
         this.minStdDev = readDouble("facebytes.quality.min_stddev", DEFAULT_MIN_STDDEV);
         this.minEdgeDensity = readDouble("facebytes.quality.min_edge_density", DEFAULT_MIN_EDGE_DENSITY);
+        this.minLaplacianVar = readDouble("facebytes.quality.min_laplacian_var", DEFAULT_MIN_LAPLACIAN_VAR);
     }
 
     /**
@@ -71,6 +77,12 @@ public final class FaceQualityValidator {
         double edgeDensity = estimateEdgeDensity(image);
         if (Double.isNaN(edgeDensity) || edgeDensity < minEdgeDensity) {
             Logs.debug("FaceQualityValidator", "low_edges", Map.of("edge_density", round4(edgeDensity), "min_edge_density", minEdgeDensity));
+            return false;
+        }
+
+        double lapVar = laplacianVariance(image);
+        if (Double.isNaN(lapVar) || lapVar < minLaplacianVar) {
+            Logs.debug("FaceQualityValidator", "too_blurry", Map.of("laplacian_var", round2(lapVar), "min_laplacian_var", minLaplacianVar));
             return false;
         }
 
@@ -137,6 +149,41 @@ public final class FaceQualityValidator {
             }
         }
         return edges <= 0 ? 0.0 : (edges / (double) total);
+    }
+
+    // Variance of Laplacian computed via a separable convolution approximation on luminance
+    private static double laplacianVariance(BufferedImage img) {
+        final int w = img.getWidth();
+        final int h = img.getHeight();
+        if (w < 3 || h < 3) return 0.0;
+        // 3x3 Laplacian kernel: [0,1,0;1,-4,1;0,1,0]
+        double sum = 0.0;
+        double sumSq = 0.0;
+        int count = 0;
+        for (int y = 1; y < h - 1; y++) {
+            for (int x = 1; x < w - 1; x++) {
+                int lC = luminance(img.getRGB(x, y));
+                int lU = luminance(img.getRGB(x, y - 1));
+                int lD = luminance(img.getRGB(x, y + 1));
+                int lL = luminance(img.getRGB(x - 1, y));
+                int lR = luminance(img.getRGB(x + 1, y));
+                int val = (lU + lD + lL + lR) - 4 * lC;
+                sum += val;
+                sumSq += (double) val * val;
+                count++;
+            }
+        }
+        if (count == 0) return 0.0;
+        double mean = sum / count;
+        double variance = Math.max(0.0, (sumSq / count) - (mean * mean));
+        return variance;
+    }
+
+    private static int luminance(int rgb) {
+        int r = (rgb >> 16) & 0xFF;
+        int g = (rgb >> 8) & 0xFF;
+        int b = (rgb) & 0xFF;
+        return (int) Math.round(0.299 * r + 0.587 * g + 0.114 * b);
     }
 
     private static double readDouble(String key, double def) {

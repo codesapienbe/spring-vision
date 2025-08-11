@@ -1,5 +1,18 @@
 package com.springvision.core.backend;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.imageio.ImageIO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.deepface.core.DeepFace;
 import com.deepface.core.EmbeddingResult;
 import com.deepface.core.FaceRegion;
@@ -10,17 +23,6 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.exception.BaseVisionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * VisionBackend implementation backed by the FaceBytes (DeepFace Java) module.
@@ -113,6 +115,13 @@ public final class FaceBytesBackend implements VisionBackend {
                 "source", "facebytes"
             ));
         } catch (Exception e) {
+            // Gracefully handle expected "no faces/embeddings" cases without logging errors
+            String msg = e.getMessage() == null ? "" : e.getMessage();
+            if (e instanceof IllegalArgumentException && (msg.contains("No faces detected") || msg.contains("No valid face embeddings produced"))) {
+                long took = System.currentTimeMillis() - start;
+                logger.warn("FaceBytes detection returned no results: {}", msg);
+                return VisionResult.empty(DetectionType.FACE, took);
+            }
             logger.error("FaceBytes detectFaces failed", e);
             long took = System.currentTimeMillis() - start;
             return VisionResult.empty(DetectionType.FACE, took);
