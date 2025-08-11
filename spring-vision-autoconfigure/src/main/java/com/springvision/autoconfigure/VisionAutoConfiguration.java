@@ -18,6 +18,7 @@ import com.springvision.core.VisionTemplate;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.backend.StableOpenCvVisionBackend;
 import com.springvision.core.backend.MediaPipeVisionBackend;
+import com.springvision.core.backend.DeepFaceBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -92,6 +93,8 @@ public class VisionAutoConfiguration {
                 createMediaPipeBackend(properties);
             case "yolo" ->
                 createYoloBackend(properties);
+            case "deepface" ->
+                createDeepFaceBackend(properties);
             default -> {
                 logger.warn("Unknown backend '{}'", properties.getBackend());
                 yield createOpenCvBackend(properties);
@@ -308,5 +311,33 @@ public class VisionAutoConfiguration {
     private VisionBackend createYoloBackend(VisionProperties properties) {
         logger.warn("YOLO backend is not yet implemented");
         throw new UnsupportedOperationException("YOLO backend is not yet implemented");
+    }
+
+    /**
+     * Creates a DeepFace backend that forwards requests to an external REST API.
+     *
+     * @param properties the vision configuration properties
+     * @return the configured DeepFace backend
+     */
+    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
+        logger.info("Creating DeepFace REST backend");
+        VisionProperties.DeepFace cfg = properties.getDeepface();
+        DeepFaceBackend backend = new DeepFaceBackend(
+                cfg.getBaseUrl(),
+                cfg.getModelName(),
+                cfg.getDetectorBackend(),
+                cfg.getDistanceMetric(),
+                cfg.getConnectTimeout(),
+                cfg.getReadTimeout()
+        );
+        try {
+            backend.initialize();
+        } catch (Exception e) {
+            logger.warn("DeepFace backend initialization encountered an error: {}", e.getMessage());
+        }
+        if (!backend.isHealthy()) {
+            logger.warn("DeepFace backend appears unhealthy: {}", backend.getHealthInfo().errorMessage());
+        }
+        return backend;
     }
 }
