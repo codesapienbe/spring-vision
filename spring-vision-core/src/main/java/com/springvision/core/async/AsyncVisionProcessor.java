@@ -3,6 +3,7 @@ package com.springvision.core.async;
 import com.springvision.core.ImageData;
 import com.springvision.core.VisionResult;
 import com.springvision.core.DetectionType;
+import com.springvision.core.VisionTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +31,7 @@ import java.util.Objects;
  *
  * <p>Example usage:</p>
  * <pre>{@code
- * AsyncVisionProcessor processor = new AsyncVisionProcessor();
+ * AsyncVisionProcessor processor = new AsyncVisionProcessor(visionTemplate);
  *
  * // Submit a task for asynchronous processing
  * CompletableFuture<VisionResult> future = processor.processAsync(
@@ -59,6 +60,7 @@ public class AsyncVisionProcessor {
     private final Map<String, VisionTask> activeTasks;
     private final VisionTaskExecutor taskExecutor;
     private final AtomicInteger taskCounter;
+    private final VisionTemplate visionTemplate;
 
     /**
      * Handle that exposes a generated taskId and the future representing the execution.
@@ -66,25 +68,39 @@ public class AsyncVisionProcessor {
     public static record TaskHandle<T>(String taskId, CompletableFuture<T> future) {}
 
     /**
-     * Creates a new AsyncVisionProcessor with default settings.
+     * Deprecated: Prefer using the constructor that accepts a VisionTemplate.
      */
+    @Deprecated
     public AsyncVisionProcessor() {
-        this(Executors.newFixedThreadPool(
+        this(null, Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(),
+            new VisionThreadFactory()
+        ));
+        logger.warn("AsyncVisionProcessor created without a VisionTemplate. Task execution will fail until bound to a backend.");
+    }
+
+    /**
+     * Creates a new AsyncVisionProcessor with default settings and the provided VisionTemplate.
+     */
+    public AsyncVisionProcessor(VisionTemplate visionTemplate) {
+        this(visionTemplate, Executors.newFixedThreadPool(
             Runtime.getRuntime().availableProcessors(),
             new VisionThreadFactory()
         ));
     }
 
     /**
-     * Creates a new AsyncVisionProcessor with the specified executor.
+     * Creates a new AsyncVisionProcessor with the specified executor and VisionTemplate.
      *
+     * @param visionTemplate the VisionTemplate used to execute tasks against the real backend
      * @param executor the executor to use for task processing
      */
-    public AsyncVisionProcessor(Executor executor) {
+    public AsyncVisionProcessor(VisionTemplate visionTemplate, Executor executor) {
         this.executor = Objects.requireNonNull(executor, "Executor must not be null");
         this.activeTasks = new ConcurrentHashMap<>();
         this.taskExecutor = new VisionTaskExecutor();
         this.taskCounter = new AtomicInteger(0);
+        this.visionTemplate = visionTemplate; // may be null in deprecated path
 
         logger.info("AsyncVisionProcessor initialized with executor: {}", executor.getClass().getSimpleName());
     }
@@ -326,39 +342,27 @@ public class AsyncVisionProcessor {
     /**
      * Executor for vision tasks.
      */
-    private static class VisionTaskExecutor {
+    private class VisionTaskExecutor {
 
-        private static final Logger logger = LoggerFactory.getLogger(VisionTaskExecutor.class);
+        private final Logger logger = LoggerFactory.getLogger(VisionTaskExecutor.class);
 
         /**
-         * Executes a vision task.
+         * Executes a vision task by delegating to the configured VisionTemplate/backend.
          *
          * @param task the task to execute
          * @return the vision result
          */
         public VisionResult executeTask(VisionTask task) {
-            // This is a placeholder implementation
-            // In a real implementation, this would delegate to the actual vision backend
-
             logger.debug("Executing vision task: {}", task.getTaskId());
 
-            // Simulate processing time
-            try {
-                Thread.sleep(100 + (long) (Math.random() * 900)); // 100-1000ms
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Task interrupted", e);
+            if (task.isCancelled()) {
+                throw new RuntimeException("Task was cancelled before execution");
+            }
+            if (visionTemplate == null) {
+                throw new IllegalStateException("AsyncVisionProcessor is not bound to a VisionTemplate/backend");
             }
 
-            // Return a mock result
-            return new VisionResult(
-                task.getDetectionType(),
-                List.of(),
-                0.0,
-                System.currentTimeMillis() - task.getStartTime(),
-                java.time.Instant.now(),
-                Map.of("taskId", task.getTaskId())
-            );
+            return visionTemplate.detect(task.getImageData(), task.getDetectionType());
         }
     }
 }

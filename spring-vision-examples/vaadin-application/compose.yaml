@@ -1,0 +1,8 @@
+services:
+  deepface:
+    build:
+      context: ../../spring-vision-deepface
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1

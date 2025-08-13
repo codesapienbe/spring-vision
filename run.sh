@@ -318,10 +318,10 @@ test_opencv_functionality() {
 }
 
 # Function to build deepface
-docker_run_deepface() {
+run_deepface() {
     print_info "Running deepface..."
-    cd "$PROJECT_ROOT/spring-vision-deepface"
-    docker run -p 5005:5005 spring-vision-deepface
+    cd "$PROJECT_ROOT/spring-vision-deepface" 
+    docker run -p 5555:5000 spring-vision-deepface --name spring-vision-deepface --rm || true
     print_success "Deepface running successfully"
 }
 
@@ -360,7 +360,7 @@ main() {
             clean_all_examples
             ;;
         "deepface")
-            build_deepface
+            run_deepface
             ;;
         "test-opencv")
             test_opencv_functionality

@@ -31,6 +31,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Spring Boot Docker Compose integration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-docker-compose</artifactId>
+        </dependency>
+
         <!-- Spring Boot Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

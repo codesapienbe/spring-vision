@@ -58,18 +58,6 @@ else
   fi
 fi
 
-# Always remove the nested .git directory (do NOT touch parent repo)
-if [[ -d "${GIT_DIR_PATH}" ]]; then
-  # Safety guard: ensure path is exactly under expected target directory
-  if [[ "${GIT_DIR_PATH}" == "${TARGET_DIR_PATH}/.git" ]]; then
-    echo "[INFO] Removing ${GIT_DIR_PATH} to avoid nested Git repository"
-    rm -rf -- "${GIT_DIR_PATH}"
-  else
-    echo "[ERROR] Unexpected .git path: ${GIT_DIR_PATH}" >&2
-    exit 1
-  fi
-fi
-
 # Dockerize the project
 echo "[INFO] Dockerizing project..."
 cd "${SCRIPT_DIR}/${TARGET_DIR_NAME}"
