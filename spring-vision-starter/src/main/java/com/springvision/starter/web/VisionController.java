@@ -89,7 +89,7 @@ public class VisionController {
      * The vision template for processing operations.
      */
     private final VisionTemplate visionTemplate;
-    private final AsyncVisionProcessor asyncVisionProcessor = new AsyncVisionProcessor();
+    private final AsyncVisionProcessor asyncVisionProcessor; // used for task-tracking endpoints
 
     /**
      * Constructs a new vision controller.
@@ -98,6 +98,7 @@ public class VisionController {
      */
     public VisionController(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
+        this.asyncVisionProcessor = new AsyncVisionProcessor(visionTemplate);
     }
 
     /**
@@ -250,26 +251,23 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = convertToImageData(file);
 
-            // Perform face detection (runs on async executor due to @Async)
-            VisionResult result = visionTemplate.detectFaces(imageData);
-
-            // Create response
-            DetectionResponse response = DetectionResponse.builder()
-                .correlationId(correlationId)
-                .detectionType(DetectionType.FACE.getCode())
-                .detectionCount(result.detectionCount())
-                .averageConfidence(result.averageConfidence())
-                .processingTimeMs(result.processingTimeMs())
-                .detections(result.detections())
-                .build();
-
-            logger.info("Async face detection completed successfully", Map.of(
-                "correlationId", correlationId,
-                "detectionCount", result.detectionCount(),
-                "processingTimeMs", result.processingTimeMs()
-            ));
-
-            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detectFaces(imageData);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(DetectionType.FACE.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async face detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
 
         } catch (Exception e) {
             logger.error("Async face detection failed", Map.of(
@@ -304,26 +302,23 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
-            // Perform face detection (runs on async executor due to @Async)
-            VisionResult result = visionTemplate.detectFaces(imageData);
-
-            // Create response
-            DetectionResponse response = DetectionResponse.builder()
-                .correlationId(correlationId)
-                .detectionType(DetectionType.FACE.getCode())
-                .detectionCount(result.detectionCount())
-                .averageConfidence(result.averageConfidence())
-                .processingTimeMs(result.processingTimeMs())
-                .detections(result.detections())
-                .build();
-
-            logger.info("Async face detection completed successfully", Map.of(
-                "correlationId", correlationId,
-                "detectionCount", result.detectionCount(),
-                "processingTimeMs", result.processingTimeMs()
-            ));
-
-            return CompletableFuture.completedFuture(ResponseEntity.ok(response));
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detectFaces(imageData);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(DetectionType.FACE.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async face detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
 
         } catch (Exception e) {
             logger.error("Async face detection failed", Map.of(
