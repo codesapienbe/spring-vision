@@ -9,7 +9,7 @@ description = "Python consumer for face embedding pipeline using DeepFace"
 authors = [
     {name = "Spring Vision Team"}
 ]
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.8,<3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -18,12 +18,14 @@ classifiers = [
 
 dependencies = [
     "kafka-python>=2.0.2",
-    "deepface>=0.0.79",
-    "numpy>=1.24.0",
+    "deepface==0.0.79",
+    "numpy>=1.19.0,<1.24.0",
     "Pillow>=10.0.0",
     "python-dotenv>=1.0.0",
     "loguru>=0.7.0",
-    "tf-keras>=2.15.0",
+    "opencv-python>=4.8.0",
+    "mtcnn>=0.1.1",
+    "retina-face>=0.0.13",
 ]
 
 [project.scripts]
@@ -31,7 +33,7 @@ deepface_consumer = "deepface_consumer:main"
 
 [tool.black]
 line-length = 88
-target-version = ["py310"]
+target-version = ["py38"]
 
 [tool.isort]
 profile = "black"

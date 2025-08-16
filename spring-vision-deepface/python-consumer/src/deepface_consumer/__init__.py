@@ -1,3 +1,8 @@
+import os
+# Force TensorFlow to use CPU only
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Reduce TensorFlow logging
+
 from kafka import KafkaConsumer
 from deepface import DeepFace
 import numpy as np
