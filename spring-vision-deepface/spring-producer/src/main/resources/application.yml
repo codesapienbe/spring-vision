@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: spring-vision-deepface-producer
+  profiles:
+    active: dev
+  kafka:
+    bootstrap-servers: localhost:9092
+  main:
+    allow-bean-definition-overriding: true
+
+# Server Configuration
+server:
+  port: 8092
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      file-size-threshold: 2KB
+
+# Logging Configuration
+logging:
+  level:
+    com.springvision: DEBUG
+    com.springvision.deepface: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
+  file:
+    name: application.log
+    max-size: 1000MB
+    max-history: 30
+
+# Kafka Configuration
+kafka:
+  topic:
+    face-tasks: face-tasks
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized

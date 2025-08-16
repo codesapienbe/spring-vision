@@ -16,7 +16,7 @@ spring:
 # Vision Framework Configuration
 vision:
   enabled: true
-  backend: opencv
+  backend: opencv  # Change to opencv to test OpenCV backend
   opencv:
     enabled: true
     confidence-threshold: 0.5  # Lower threshold for better detection
@@ -51,8 +51,9 @@ server:
 # Logging Configuration
 logging:
   level:
-    com.springvision: INFO
+    com.springvision: DEBUG
     com.springvision.examples: DEBUG
+
     org.springframework.web: INFO
     org.bytedeco: WARN
   pattern:

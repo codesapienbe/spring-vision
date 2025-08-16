@@ -147,43 +147,7 @@
   - [ ] If engines are unavailable, return descriptive errors while keeping the app stable
   - [ ] Clamp all normalized coordinates to \[0,1]; sanitize labels; never log image data or PII
 
-#### 3.3 DeepFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/DeepFaceVisionBackend.java`)
 
-- [ ] **Backend scaffolding**
-  - [ ] Create `DeepFaceVisionBackend` implementing `VisionBackend`; support `DetectionType.FACE` and `DetectionType.CUSTOM` (attributes)
-  - [ ] Preserve public APIs and configuration; no changes to `VisionProperties`
-
-- [ ] **Integration approach (secure and optional)**
-  - [ ] Preferred: external Python sidecar (HTTP/gRPC) exposing DeepFace endpoints (verify/analyze/detect); configure endpoint via env/system property
-  - [ ] Add resilient Java client with strict timeouts, authentication header support, and exponential backoff; sanitize requests/logs
-  - [ ] Alternative (future): embedded Python via JEP/Py4J behind reflection guards; manage interpreter/venv discovery and sandboxing
-  - [ ] Alternative (future): ONNX Runtime pipeline with RetinaFace/MobileFaceNet/ArcFace equivalents for detection/embedding/analysis
-
-- [ ] **Capabilities mapping**
-  - [ ] Map face detections (from RetinaFace/MTCNN) to `Detection` with normalized `BoundingBox` and confidence
-  - [ ] Populate `attributes` with DeepFace analysis results (e.g., `age`, `gender`, `dominant_emotion`, `race` distribution) while avoiding PII in logs
-  - [ ] Consider `CUSTOM` type for verification/embedding results; include cosine distance/thresholds in attributes
-
-- [ ] **Model management & security (sidecar)**
-  - [ ] Enforce HTTPS for sidecar communication; configurable TLS and auth token
-  - [ ] Enforce max image size and rate limits; never log raw image bytes or sensitive attributes
-  - [ ] Document model choices (RetinaFace, Facenet, VGG-Face, ArcFace) and performance trade-offs
-
-- [ ] **Performance & stability**
-  - [ ] Support request batching when sidecar enables it; reuse HTTP clients and connection pools
-  - [ ] Add warm-up call on startup; cache frequent embeddings when safe (LRU)
-  - [ ] Defensive handling for large payloads and long-running inference with timeouts and circuit breaker
-
-- [ ] **Structured logging & observability**
-  - [ ] Log operation timings, sidecar endpoint, and summarized analysis fields (JSON structured)
-  - [ ] Surface counters/latency via `VisionMetrics` without changing public contracts
-
-- [ ] **Graceful shutdown**
-  - [ ] Close HTTP clients/resources; expose health state transitions
-
-- [ ] **Compatibility & fallback**
-  - [ ] If DeepFace sidecar/unavailable, return descriptive errors while keeping app stable
-  - [ ] Clamp coordinates to \[0,1]; sanitize attributes; do not emit photos/embeddings in logs
 
 #### 3.4 InsightFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/InsightFaceVisionBackend.java`)
 - [ ] **Backend scaffolding**

@@ -89,66 +89,6 @@
       "type": "java.lang.Boolean",
       "description": "Whether to include detailed metrics.",
       "defaultValue": false
-    },
-    {
-      "name": "vision.deepface.enabled",
-      "type": "java.lang.Boolean",
-      "description": "Whether DeepFace backend is enabled.",
-      "defaultValue": true
-    },
-    {
-      "name": "vision.deepface.base-url",
-      "type": "java.lang.String",
-      "description": "Base URL of the DeepFace REST API.",
-      "defaultValue": "http://localhost:5005"
-    },
-    {
-      "name": "vision.deepface.model-name",
-      "type": "java.lang.String",
-      "description": "Default model name for DeepFace requests.",
-      "defaultValue": "Facenet"
-    },
-    {
-      "name": "vision.deepface.detector-backend",
-      "type": "java.lang.String",
-      "description": "Default detector backend for DeepFace requests.",
-      "defaultValue": "mtcnn"
-    },
-    {
-      "name": "vision.deepface.distance-metric",
-      "type": "java.lang.String",
-      "description": "Default distance metric for DeepFace verification.",
-      "defaultValue": "cosine"
-    },
-    {
-      "name": "vision.deepface.connect-timeout",
-      "type": "java.lang.Long",
-      "description": "HTTP connection timeout in milliseconds for DeepFace backend.",
-      "defaultValue": 5000
-    },
-    {
-      "name": "vision.deepface.read-timeout",
-      "type": "java.lang.Long",
-      "description": "HTTP read timeout in milliseconds for DeepFace backend.",
-      "defaultValue": 15000
-    },
-    {
-      "name": "vision.deepface.represent-read-timeout",
-      "type": "java.lang.Long",
-      "description": "HTTP read timeout in milliseconds for DeepFace /represent endpoint.",
-      "defaultValue": 0
-    },
-    {
-      "name": "vision.deepface.verify-read-timeout",
-      "type": "java.lang.Long",
-      "description": "HTTP read timeout in milliseconds for DeepFace /verify endpoint.",
-      "defaultValue": 0
-    },
-    {
-      "name": "vision.deepface.analyze-read-timeout",
-      "type": "java.lang.Long",
-      "description": "HTTP read timeout in milliseconds for DeepFace /analyze endpoint.",
-      "defaultValue": 0
     }
   ],
   "hints": [
@@ -157,8 +97,7 @@
       "values": [
         {"value": "opencv", "description": "OpenCV backend for computer vision operations."},
         {"value": "mediapipe", "description": "MediaPipe backend for ML-based vision operations (not yet implemented)."},
-        {"value": "yolo", "description": "YOLO backend for real-time object detection (not yet implemented)."},
-        {"value": "deepface", "description": "DeepFace REST backend that proxies to external DeepFace API."}
+        {"value": "yolo", "description": "YOLO backend for real-time object detection (not yet implemented)."}
       ]
     },
     {

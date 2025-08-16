@@ -22,9 +22,9 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.OpenCvVisionBackend;
+
 import com.springvision.core.backend.FaceBytesBackend;
-import com.springvision.core.backend.DeepFaceBackend;
+import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.exception.VisionProcessingException;
 
 import javafx.application.Application;
@@ -193,7 +193,7 @@ public class JavaFXApplication {
 
             // Backend selector
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv", "facebytes", "deepface");
+            backendComboBox.getItems().addAll("opencv", "facebytes");
             String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
@@ -229,38 +229,7 @@ public class JavaFXApplication {
                     backend = fb;
                     break;
                 }
-                case "deepface": {
-                    // Build DeepFace backend using provided VisionProperties if available, otherwise defaults
-                    String baseUrl = "http://localhost:5005";
-                    String modelName = "Facenet";
-                    String detectorBackend = "mtcnn";
-                    String distanceMetric = "cosine";
-                    long connectTimeout = 5000L;
-                    long readTimeout = 15000L;
 
-                    if (visionProperties != null && visionProperties.getDeepface() != null) {
-                        var cfg = visionProperties.getDeepface();
-                        if (cfg.getBaseUrl() != null && !cfg.getBaseUrl().isBlank()) baseUrl = cfg.getBaseUrl();
-                        if (cfg.getModelName() != null && !cfg.getModelName().isBlank()) modelName = cfg.getModelName();
-                        if (cfg.getDetectorBackend() != null && !cfg.getDetectorBackend().isBlank()) detectorBackend = cfg.getDetectorBackend();
-                        if (cfg.getDistanceMetric() != null && !cfg.getDistanceMetric().isBlank()) distanceMetric = cfg.getDistanceMetric();
-                        connectTimeout = cfg.getConnectTimeout();
-                        readTimeout = cfg.getReadTimeout();
-                    }
-
-                    DeepFaceBackend df = new DeepFaceBackend(
-                        baseUrl,
-                        modelName,
-                        detectorBackend,
-                        distanceMetric,
-                        connectTimeout,
-                        readTimeout
-                    );
-                    try { df.initialize(); } catch (Exception ignore) { }
-                    logger.info("DeepFace backend selected", Map.of("component", "JavaFXApplication", "baseUrl", baseUrl));
-                    backend = df;
-                    break;
-                }
                 case "opencv":
                 default: {
                     OpenCvVisionBackend ocv = new OpenCvVisionBackend();

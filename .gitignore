@@ -219,5 +219,4 @@ ehthumbs.db
 Icon?
 Thumbs.db
 
-# Deepface ignore/
-spring-vision-deepface/.venv/
+spring-vision-deepface/python-consumer/.venv/
