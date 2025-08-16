@@ -15,7 +15,7 @@ import org.springframework.context.event.EventListener;
 
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.DeepFaceBackend;
+
 import com.springvision.core.backend.MediaPipeVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.backend.StableOpenCvVisionBackend;
@@ -93,8 +93,7 @@ public class VisionAutoConfiguration {
                 createMediaPipeBackend(properties);
             case "yolo" ->
                 createYoloBackend(properties);
-            case "deepface" ->
-                createDeepFaceBackend(properties);
+
             default -> {
                 logger.warn("Unknown backend '{}'", properties.getBackend());
                 yield createOpenCvBackend(properties);
@@ -313,39 +312,5 @@ public class VisionAutoConfiguration {
         throw new UnsupportedOperationException("YOLO backend is not yet implemented");
     }
 
-    /**
-     * Creates a DeepFace backend that forwards requests to an external REST API.
-     *
-     * @param properties the vision configuration properties
-     * @return the configured DeepFace backend
-     */
-    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
-        logger.info("Creating DeepFace REST backend");
-        VisionProperties.DeepFace cfg = properties.getDeepface();
-        // Determine endpoint-specific timeouts with sensible defaults if not explicitly configured
-        long generalRead = cfg.getReadTimeout();
-        long representRead = cfg.getRepresentReadTimeout() > 0 ? cfg.getRepresentReadTimeout() : Math.max(generalRead, 20000L);
-        long verifyRead = cfg.getVerifyReadTimeout() > 0 ? cfg.getVerifyReadTimeout() : Math.max(generalRead, 30000L);
-        long analyzeRead = cfg.getAnalyzeReadTimeout() > 0 ? cfg.getAnalyzeReadTimeout() : Math.max(generalRead, 45000L);
 
-        DeepFaceBackend backend = new DeepFaceBackend(
-                cfg.getBaseUrl(),
-                cfg.getModelName(),
-                cfg.getDetectorBackend(),
-                cfg.getDistanceMetric(),
-                cfg.getConnectTimeout(),
-                representRead,
-                verifyRead,
-                analyzeRead
-        );
-        try {
-            backend.initialize();
-        } catch (Exception e) {
-            logger.warn("DeepFace backend initialization encountered an error: {}", e.getMessage());
-        }
-        if (!backend.isHealthy()) {
-            logger.warn("DeepFace backend appears unhealthy: {}", backend.getHealthInfo().errorMessage());
-        }
-        return backend;
-    }
 }

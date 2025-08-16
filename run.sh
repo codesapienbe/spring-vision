@@ -138,6 +138,7 @@ list_examples() {
     echo "   - Modern desktop interface with drag-and-drop"
     echo "   - Visual result display with bounding boxes"
     echo "   - Asynchronous processing with progress indicators"
+    echo "   - Runs without Docker Compose dependency (uses OpenCV backend)"
     echo ""
     echo "Usage: $0 example <name>"
     echo "Example: $0 example basic"
@@ -239,16 +240,16 @@ run_example() {
             print_info "Supported formats: JPG, JPEG, PNG, BMP, TIFF"
             ;;
         "javafx")
-            # For JavaFX, build and run with proper module path
+            # For JavaFX, build and run without Docker Compose dependency
             print_info "Building JavaFX application..."
             mvn clean package -DskipTests
             print_success "JavaFX application built successfully"
             print_info ""
             print_info "Launching JavaFX application..."
-            print_info "Note: JavaFX requires proper module configuration"
+            print_info "Note: JavaFX application runs without Docker Compose dependency"
             print_info ""
 
-            # Try to run with Maven first
+            # Run with Maven JavaFX plugin
             if mvn javafx:run 2>/dev/null; then
                 print_success "JavaFX application launched successfully"
             else
@@ -317,13 +318,7 @@ test_opencv_functionality() {
     fi
 }
 
-# Function to build deepface
-run_deepface() {
-    print_info "Running deepface..."
-    cd "$PROJECT_ROOT/spring-vision-deepface" 
-    docker run -p 5555:5000 spring-vision-deepface --name spring-vision-deepface --rm || true
-    print_success "Deepface running successfully"
-}
+
 
 # Main script logic
 main() {
@@ -359,8 +354,7 @@ main() {
         "clean")
             clean_all_examples
             ;;
-        "deepface")
-            run_deepface
+
             ;;
         "test-opencv")
             test_opencv_functionality

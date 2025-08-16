@@ -33,12 +33,7 @@
         <onnxruntime.version>1.15.1</onnxruntime.version>
         <djl.version>0.27.0</djl.version>
 
-        <!-- DeepFace weights directory (Python service default) -->
-        <deepface.weights.dir>${user.home}/.deepface/weights</deepface.weights.dir>
-        <!-- Allow opt-out via -Dskip.deepface.weights.download=true -->
-        <skip.deepface.weights.download>false</skip.deepface.weights.download>
-        <!-- Allow opt-out via -Dskip.deepface.download=true for repo clone/pull -->
-        <skip.deepface.download>false</skip.deepface.download>
+
 
         <!-- Code Quality & Plugins -->
         <checkstyle.version>10.12.5</checkstyle.version>
@@ -53,6 +48,8 @@
         <module>spring-vision-autoconfigure</module>
         <module>spring-vision-starter</module>
         <module>spring-vision-facebytes</module>
+        <module>spring-vision-deepface</module>
+
     </modules>
 
     <dependencyManagement>

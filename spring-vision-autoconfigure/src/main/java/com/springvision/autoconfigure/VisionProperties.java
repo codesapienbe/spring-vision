@@ -44,10 +44,7 @@ public class VisionProperties {
      */
     private String backend = "opencv";
 
-    /**
-     * DeepFace-specific configuration properties.
-     */
-    private DeepFace deepface = new DeepFace();
+
 
     /**
      * OpenCV-specific configuration properties.
@@ -100,23 +97,9 @@ public class VisionProperties {
         this.backend = backend;
     }
 
-    /**
-     * Gets the DeepFace configuration.
-     *
-     * @return the DeepFace configuration
-     */
-    public DeepFace getDeepface() {
-        return deepface;
-    }
 
-    /**
-     * Sets the DeepFace configuration.
-     *
-     * @param deepface the DeepFace configuration
-     */
-    public void setDeepface(DeepFace deepface) {
-        this.deepface = deepface;
-    }
+
+
 
     /**
      * Gets the OpenCV configuration.
@@ -339,144 +322,7 @@ public class VisionProperties {
         }
     }
 
-    /**
-     * DeepFace-specific configuration properties.
-     */
-    public static class DeepFace {
 
-        /**
-         * Whether DeepFace backend is enabled.
-         */
-        private boolean enabled = true;
-
-        /**
-         * Base URL of the DeepFace REST API.
-         */
-        private String baseUrl = "http://localhost:5005";
-
-        /**
-         * Default model name to use when not specified by callers.
-         */
-        private String modelName = "Facenet";
-
-        /**
-         * Detector backend to use (e.g., mtcnn, opencv, retinaface).
-         */
-        private String detectorBackend = "mtcnn";
-
-        /**
-         * Distance metric to use for verification (e.g., cosine, euclidean).
-         */
-        private String distanceMetric = "cosine";
-
-        /**
-         * HTTP connection timeout in milliseconds.
-         */
-        private long connectTimeout = 5000L;
-
-        /**
-         * HTTP read timeout in milliseconds.
-         */
-        private long readTimeout = 15000L;
-
-        /**
-         * Endpoint-specific read timeout in milliseconds for /represent.
-         * If set to <= 0, the general readTimeout or an implementation default will be used.
-         */
-        private long representReadTimeout = 0L;
-
-        /**
-         * Endpoint-specific read timeout in milliseconds for /verify.
-         * If set to <= 0, the general readTimeout or an implementation default will be used.
-         */
-        private long verifyReadTimeout = 0L;
-
-        /**
-         * Endpoint-specific read timeout in milliseconds for /analyze.
-         * If set to <= 0, the general readTimeout or an implementation default will be used.
-         */
-        private long analyzeReadTimeout = 0L;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public String getBaseUrl() {
-            return baseUrl;
-        }
-
-        public void setBaseUrl(String baseUrl) {
-            this.baseUrl = baseUrl;
-        }
-
-        public String getModelName() {
-            return modelName;
-        }
-
-        public void setModelName(String modelName) {
-            this.modelName = modelName;
-        }
-
-        public String getDetectorBackend() {
-            return detectorBackend;
-        }
-
-        public void setDetectorBackend(String detectorBackend) {
-            this.detectorBackend = detectorBackend;
-        }
-
-        public String getDistanceMetric() {
-            return distanceMetric;
-        }
-
-        public void setDistanceMetric(String distanceMetric) {
-            this.distanceMetric = distanceMetric;
-        }
-
-        public long getConnectTimeout() {
-            return connectTimeout;
-        }
-
-        public void setConnectTimeout(long connectTimeout) {
-            this.connectTimeout = connectTimeout;
-        }
-
-        public long getReadTimeout() {
-            return readTimeout;
-        }
-
-        public void setReadTimeout(long readTimeout) {
-            this.readTimeout = readTimeout;
-        }
-
-        public long getRepresentReadTimeout() {
-            return representReadTimeout;
-        }
-
-        public void setRepresentReadTimeout(long representReadTimeout) {
-            this.representReadTimeout = representReadTimeout;
-        }
-
-        public long getVerifyReadTimeout() {
-            return verifyReadTimeout;
-        }
-
-        public void setVerifyReadTimeout(long verifyReadTimeout) {
-            this.verifyReadTimeout = verifyReadTimeout;
-        }
-
-        public long getAnalyzeReadTimeout() {
-            return analyzeReadTimeout;
-        }
-
-        public void setAnalyzeReadTimeout(long analyzeReadTimeout) {
-            this.analyzeReadTimeout = analyzeReadTimeout;
-        }
-    }
 
     /**
      * Health monitoring configuration properties.
