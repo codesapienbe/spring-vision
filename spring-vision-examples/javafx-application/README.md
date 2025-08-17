@@ -163,10 +163,10 @@ To use the DeepFace backend:
 
    ```bash
    # From the project root (recommended)
-   mvn spring-boot:run -Pjavafx
-   
-   # Or manually start Docker Compose
    docker-compose up -d deepface
+   
+   # Or start specific services
+   docker-compose up -d deepface postgres redis
    ```
 
    The DeepFace container uses the official `serengil/deepface:latest` image with built-in HTTP API.
@@ -192,7 +192,15 @@ To use the DeepFace backend:
 4. **Run the application**:
 
    ```bash
+   # From the javafx-application directory
+   cd spring-vision-examples/javafx-application
    ./run.sh
+   
+   # Or using Maven from the module directory
+   mvn spring-boot:run
+   
+   # Or from project root with module specification
+   mvn spring-boot:run -pl spring-vision-examples/javafx-application
    ```
 
 The DeepFace backend provides advanced face analysis including age, gender, emotion, and race detection.
@@ -205,10 +213,10 @@ To use the CompreFace backend:
 
    ```bash
    # From the project root (recommended)
-   mvn spring-boot:run -Pjavafx
-   
-   # Or manually start Docker Compose
    docker-compose up -d compreface postgres
+   
+   # Or start specific services
+   docker-compose up -d compreface postgres redis
    ```
 
    The CompreFace container uses the official `exadel/compreface:latest` image with built-in HTTP API.
@@ -234,7 +242,15 @@ To use the CompreFace backend:
 4. **Run the application**:
 
    ```bash
+   # From the javafx-application directory
+   cd spring-vision-examples/javafx-application
    ./run.sh
+   
+   # Or using Maven from the module directory
+   mvn spring-boot:run
+   
+   # Or from project root with module specification
+   mvn spring-boot:run -pl spring-vision-examples/javafx-application
    ```
 
 The CompreFace backend provides face detection, recognition, and verification capabilities with a user-friendly API.
@@ -312,13 +328,18 @@ The application provides comprehensive error handling:
 1. Start the CompreFace API container:
 
    ```bash
-   mvn spring-boot:run -Pjavafx
+   docker-compose up -d compreface postgres
    ```
 
 2. Launch the JavaFX application:
 
    ```bash
+   # From the javafx-application directory
+   cd spring-vision-examples/javafx-application
    ./run.sh
+   
+   # Or from project root
+   mvn spring-boot:run -pl spring-vision-examples/javafx-application
    ```
 
 3. Select "compreface" from the backend dropdown

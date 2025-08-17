@@ -15,7 +15,11 @@ This example demonstrates how to use the Spring Vision framework with the Compre
 The CompreFace service is configured in the main `docker-compose.yml` file. Start it with:
 
 ```bash
+# From the project root
 docker-compose up -d compreface postgres
+
+# Or start all services
+docker-compose up -d
 ```
 
 This will start:
@@ -36,11 +40,20 @@ mvn clean package
 ### 3. Run the Application
 
 ```bash
+# From the compreface-example directory
+cd spring-vision-examples/compreface-example
+
 # Run with a test image
 java -jar target/compreface-example.jar /path/to/face.jpg
 
 # Or run without arguments to see usage
 java -jar target/compreface-example.jar
+
+# Or using Maven
+mvn spring-boot:run -- /path/to/face.jpg
+
+# Or from project root with module specification
+mvn spring-boot:run -pl spring-vision-examples/compreface-example -- /path/to/face.jpg
 ```
 
 ## Configuration

@@ -54,25 +54,28 @@ Spring-Vision is an open source project designed to empower Spring Boot develope
 
 The project includes several example applications that demonstrate different use cases:
 
-#### Using Maven Profiles
+#### Running Examples
 
-You can run any example application using Maven profiles. The Docker Compose services will be automatically started:
+You can run any example application using Maven. The Docker Compose services will be automatically started:
 
 ```bash
 # Basic Face Detection Example
-mvn spring-boot:run -Pbasic
+mvn spring-boot:run -pl spring-vision-examples/basic-face-detection
 
 # JavaFX Application
-mvn spring-boot:run -Pjavafx
+mvn spring-boot:run -pl spring-vision-examples/javafx-application
 
 # GWT Application
-mvn spring-boot:run -Pgwt
+mvn spring-boot:run -pl spring-vision-examples/gwt-application
 
 # Vaadin Application
-mvn spring-boot:run -Pvaadin
+mvn spring-boot:run -pl spring-vision-examples/vaadin-application
 
 # PicoCLI Application
-mvn spring-boot:run -Ppicocli
+mvn spring-boot:run -pl spring-vision-examples/picocli-application
+
+# CompreFace Example
+mvn spring-boot:run -pl spring-vision-examples/compreface-example
 ```
 
 #### Manual Docker Compose Setup
