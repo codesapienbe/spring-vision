@@ -16,6 +16,12 @@
     <name>Spring Vision DeepFace Producer</name>
     <description>Spring Boot producer for DeepFace face extraction pipeline</description>
 
+    <properties>
+        <maven.exec.skip>true</maven.exec.skip>
+    </properties>
+
+
+
     <dependencies>
       <dependency>
           <groupId>org.springframework.boot</groupId>
@@ -54,8 +60,12 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.springvision.deepface.DeepFaceProducerApplication</mainClass>
+                    <profiles>
+                        <profile>${spring.profiles.active:dev}</profile>
+                    </profiles>
                 </configuration>
             </plugin>
 
@@ -83,6 +93,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
             </plugin>
+
+
         </plugins>
     </build>
 
