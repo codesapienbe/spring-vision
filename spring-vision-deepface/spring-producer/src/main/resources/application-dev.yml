@@ -4,3 +4,13 @@ spring:
       enabled: true
       file: docker-compose.yml
       lifecycle-management: start-and-stop
+      readiness-timeout: 5m
+      wait:
+        timeout: 5m
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      retries: 3
+      acks: all
+      request-timeout-ms: 30000
+      delivery-timeout-ms: 60000

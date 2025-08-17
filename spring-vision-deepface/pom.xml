@@ -53,7 +53,7 @@
             </configuration>
           </execution>
 
-          <!-- Sync Python dependencies during compile phase -->
+          <!-- Install Python dependencies from pyproject.toml during compile phase -->
           <execution>
             <id>sync-python-dependencies</id>
             <phase>compile</phase>
@@ -69,44 +69,13 @@
             </configuration>
           </execution>
 
-          <!-- Install additional Python dependencies during compile phase -->
-          <execution>
-            <id>install-python-dependencies</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>uv</executable>
-              <arguments>
-                <argument>pip</argument>
-                <argument>install</argument>
-                <argument>-e</argument>
-                <argument>.</argument>
-                <argument>--upgrade</argument>
-                <argument>kafka-python>=2.0.2</argument>
-                <argument>deepface>=0.0.84</argument>
-                <argument>numpy>=1.24.0</argument>
-                <argument>Pillow>=10.0.0</argument>
-                <argument>python-dotenv>=1.0.0</argument>
-                <argument>loguru>=0.7.0</argument>
-                <argument>opencv-python>=4.8.0</argument>
-                <argument>mtcnn>=0.1.1</argument>
-                <argument>retina-face>=0.0.13</argument>
-                <argument>protobuf&gt;=3.20.0,&lt;4.0.0</argument>
-                <argument>tensorflow-cpu>=2.15.0</argument>
-              </arguments>
-              <workingDirectory>python-consumer</workingDirectory>
-            </configuration>
-          </execution>
+
         </executions>
       </plugin>
     </plugins>
   </build>
 
   <profiles>
-
-
 
     <profile>
       <id>run-with-consumer</id>
@@ -144,5 +113,6 @@
         <spring.profiles.active>prod</spring.profiles.active>
       </properties>
     </profile>
+
   </profiles>
 </project>

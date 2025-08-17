@@ -17,14 +17,27 @@ def process_image_bytes(image_bytes):
     # Load image (no disk) — if image is already JPEG/PNG bytes
     image = Image.open(BytesIO(image_bytes)).convert('RGB')
     img_array = np.array(image)
-    embedding = DeepFace.represent(img_array, model_name='Facenet', enforce_detection=True)[0]['embedding']
+    result = DeepFace.represent(img_array, model_name='Facenet', enforce_detection=True)
+    embedding = result[0]['embedding']
     return embedding
 
 def create_consumer():
     """Create and configure Kafka consumer."""
+    # Get configuration from environment variables
+    bootstrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
+    topic = os.getenv('KAFKA_TOPIC', 'face-tasks')
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
+
+    # Configure logging
+    logger.remove()
+    logger.add(sys.stderr, level=log_level)
+
+    logger.info(f"Connecting to Kafka at {bootstrap_servers}")
+    logger.info(f"Listening to topic: {topic}")
+
     return KafkaConsumer(
-        'face-tasks',
-        bootstrap_servers='localhost:9092',
+        topic,
+        bootstrap_servers=bootstrap_servers,
         auto_offset_reset='earliest',
         enable_auto_commit=True,
         group_id='face-worker-group',

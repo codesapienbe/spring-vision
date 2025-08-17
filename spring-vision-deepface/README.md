@@ -27,17 +27,31 @@ A scalable face embedding pipeline using Spring Boot, Kafka, and Python DeepFace
 
 ## 🚀 Quick Start
 
-### 1. Start Infrastructure
+### Full Docker Stack (Recommended)
 
 ```bash
-# Start Kafka and Zookeeper
-docker-compose up -d
+# Build and start all services with a single command
+docker-compose up -d --build
 
-# Verify Kafka is running
+# Check service status
 docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
 ```
 
-### 2. Start Spring Boot Producer
+### Manual Setup (Alternative)
+
+#### 1. Start Infrastructure Only
+
+```bash
+docker-compose up -d zookeeper kafka
+```
+
+#### 2. Start Spring Boot Producer
 
 ```bash
 cd spring-producer
@@ -45,7 +59,7 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-### 3. Start Python Consumer
+#### 3. Start Python Consumer
 
 ```bash
 cd python-consumer
