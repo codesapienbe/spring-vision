@@ -60,7 +60,7 @@ You can run any example application using Maven profiles. The Docker Compose ser
 
 ```bash
 # Basic Face Detection Example
-mvn spring-boot:run -Pbasic-face-detection
+mvn spring-boot:run -Pbasic
 
 # JavaFX Application
 mvn spring-boot:run -Pjavafx
