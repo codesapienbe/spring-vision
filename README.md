@@ -44,7 +44,22 @@ Spring-Vision is an open source project designed to empower Spring Boot develope
 
 ## 🚀 Quick Start
 
-### 📦 Maven
+### 🏗️ Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/codesapienbe/spring-vision.git
+cd spring-vision
+
+# Build all modules including examples
+mvn clean install
+
+# Build specific modules
+mvn clean install -pl spring-vision-core,spring-vision-starter
+mvn clean install -pl spring-vision-examples
+```
+
+### 📦 Maven Dependency
 
 ```xml
 <dependency>
@@ -57,6 +72,32 @@ Spring-Vision is an open source project designed to empower Spring Boot develope
 ### 🌐 Spring Initializr *(pending full release)*
 
 - Will be listed as "Computer Vision (spring-vision)" among dependencies.
+
+### 🎯 Running Examples
+
+After building the project, you can run any of the example applications:
+
+```bash
+# Basic Face Detection (Web UI)
+cd spring-vision-examples/basic-face-detection
+mvn spring-boot:run
+
+# GWT Application
+cd spring-vision-examples/gwt-application
+mvn spring-boot:run
+
+# Vaadin Application
+cd spring-vision-examples/vaadin-application
+mvn spring-boot:run
+
+# JavaFX Desktop Application
+cd spring-vision-examples/javafx-application
+mvn javafx:run
+
+# PicoCLI Command Line Application
+cd spring-vision-examples/picocli-application
+mvn spring-boot:run -- -h
+```
 
 ### ⚙️ Configuration Example
 

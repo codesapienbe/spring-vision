@@ -32,51 +32,50 @@ This guide covers deploying Spring Vision applications across different environm
 ### Local Development Setup
 
 1. **Clone the Repository**
+
    ```bash
    git clone https://github.com/spring-vision/spring-vision.git
    cd spring-vision
    ```
 
 2. **Build the Project**
+
    ```bash
    mvn clean install
    ```
 
 3. **Run the Application**
+
    ```bash
    mvn spring-boot:run -pl spring-vision-starter
    ```
 
 4. **Access the Application**
-   - Application: http://localhost:8080
-   - Health Check: http://localhost:8080/actuator/health
-   - API Documentation: http://localhost:8080/api/vision/health
+   - Application: <http://localhost:8080>
+   - Health Check: <http://localhost:8080/actuator/health>
+   - API Documentation: <http://localhost:8080/api/vision/health>
 
-### Development Configuration
+### Container-First Configuration
 
-Create `application-dev.yml`:
+The application uses environment variables for configuration. No separate profile files are needed:
 
 ```yaml
+# application.yml (single configuration file)
 spring:
-  profiles:
-    active: dev
+  application:
+    name: spring-vision-application
 
 vision:
   enabled: true
-  backend: opencv
+  backend: ${VISION_BACKEND:opencv}
   opencv:
-    confidence-threshold: 0.7
-    gpu-acceleration: false
-  health:
-    enabled: true
-  metrics:
-    enabled: true
+    confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}
+    gpu-acceleration: ${VISION_GPU_ACCELERATION:false}
 
 logging:
   level:
-    com.springvision: DEBUG
-    org.springframework.web: DEBUG
-    org.bytedeco: DEBUG
+    com.springvision: ${LOG_LEVEL:INFO}
+    org.springframework.web: ${WEB_LOG_LEVEL:INFO}
 
 management:
   endpoints:
@@ -85,7 +84,16 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+```
+
+**Environment Variables for Development:**
+
+```bash
+LOG_LEVEL=DEBUG
+WEB_LOG_LEVEL=DEBUG
+HEALTH_SHOW_DETAILS=always
+VISION_CONFIDENCE_THRESHOLD=0.7
 ```
 
 ### IDE Configuration
@@ -166,12 +174,14 @@ mvn clean package -DskipTests
 #### 2. Prepare the Server
 
 **System Requirements**:
+
 - Java 21+
 - 4GB+ RAM
 - Multi-core CPU
 - 10GB+ storage
 
 **Install Java**:
+
 ```bash
 # Ubuntu/Debian
 sudo apt update
@@ -195,6 +205,7 @@ sudo nano /etc/systemd/system/spring-vision.service
 ```
 
 **Systemd Service Configuration**:
+
 ```ini
 [Unit]
 Description=Spring Vision Application
@@ -214,6 +225,7 @@ WantedBy=multi-user.target
 ```
 
 **Start the Service**:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable spring-vision
@@ -223,60 +235,38 @@ sudo systemctl status spring-vision
 
 #### 4. Production Configuration
 
-Create `application-prod.yml`:
+Use environment variables for production configuration. No separate profile files needed:
 
-```yaml
-spring:
-  profiles:
-    active: prod
+**Production Environment Variables:**
+```bash
+# Vision Configuration
+VISION_CONFIDENCE_THRESHOLD=0.8
+VISION_GPU_ACCELERATION=true
+VISION_MAX_IMAGE_SIZE=10485760
 
-vision:
-  enabled: true
-  backend: opencv
-  opencv:
-    confidence-threshold: 0.8
-    gpu-acceleration: true
-    max-image-size: 10485760
-  health:
-    enabled: true
-    check-interval: 30000
-    max-response-time: 5000
-  metrics:
-    enabled: true
-    collection-interval: 60000
+# Logging Configuration
+LOG_LEVEL=INFO
+WEB_LOG_LEVEL=WARN
+LOG_FILE=/var/log/spring-vision/application.log
+LOG_MAX_SIZE=100MB
+LOG_MAX_HISTORY=30
 
-logging:
-  level:
-    com.springvision: INFO
-    org.springframework.web: WARN
-    org.bytedeco: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: /var/log/spring-vision/application.log
-    max-size: 100MB
-    max-history: 30
+# Server Configuration
+SERVER_PORT=8080
+HEALTH_SHOW_DETAILS=when-authorized
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: when-authorized
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+# Security
+ENVIRONMENT=production
+```
 
-server:
-  port: 8080
-  compression:
-    enabled: true
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+**Systemd Service File** (add environment variables):
+```ini
+[Service]
+Environment="VISION_CONFIDENCE_THRESHOLD=0.8"
+Environment="VISION_GPU_ACCELERATION=true"
+Environment="LOG_LEVEL=INFO"
+Environment="WEB_LOG_LEVEL=WARN"
+Environment="ENVIRONMENT=production"
 ```
 
 ### Reverse Proxy Configuration
@@ -496,56 +486,19 @@ networks:
 
 ### Docker Configuration
 
-Create `application-docker.yml`:
+**Docker Environment Variables:**
 
 ```yaml
-spring:
-  profiles:
-    active: docker
-
-vision:
-  enabled: true
-  backend: opencv
-  opencv:
-    confidence-threshold: 0.8
-    gpu-acceleration: false
-    max-image-size: 10485760
-  health:
-    enabled: true
-    check-interval: 30000
-    max-response-time: 5000
-  metrics:
-    enabled: true
-    collection-interval: 60000
-
-logging:
-  level:
-    com.springvision: INFO
-    org.springframework.web: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: /var/log/spring-vision/application.log
-    max-size: 100MB
-    max-history: 30
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: when-authorized
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-
-server:
-  port: 8080
-  compression:
-    enabled: true
+# docker-compose.yml
+environment:
+  - VISION_CONFIDENCE_THRESHOLD=0.8
+  - VISION_GPU_ACCELERATION=false
+  - VISION_MAX_IMAGE_SIZE=10485760
+  - LOG_LEVEL=INFO
+  - WEB_LOG_LEVEL=WARN
+  - SERVER_PORT=8080
+  - HEALTH_SHOW_DETAILS=when-authorized
+  - ENVIRONMENT=docker
 ```
 
 ### Build and Run
@@ -590,13 +543,15 @@ metadata:
   name: spring-vision-config
   namespace: spring-vision
 data:
-  application.yml: |
-    spring:
-      profiles:
-        active: k8s
-    
-    vision:
-      enabled: true
+  VISION_CONFIDENCE_THRESHOLD: "0.8"
+  VISION_GPU_ACCELERATION: "true"
+  VISION_MAX_IMAGE_SIZE: "10485760"
+  LOG_LEVEL: "INFO"
+  WEB_LOG_LEVEL: "WARN"
+  SERVER_PORT: "8080"
+  HEALTH_SHOW_DETAILS: "when-authorized"
+  ENVIRONMENT: "production"
+```
       backend: opencv
       opencv:
         confidence-threshold: 0.8
@@ -1110,6 +1065,7 @@ scrape_configs:
 ### Grafana Dashboard
 
 Create dashboard configuration for monitoring:
+
 - Application metrics
 - JVM metrics
 - System metrics
@@ -1118,6 +1074,7 @@ Create dashboard configuration for monitoring:
 ### Alerting
 
 Configure alerts for:
+
 - High CPU/memory usage
 - Slow response times
 - Error rates
@@ -1171,8 +1128,9 @@ netstat -tulpn | grep 8080
 ### Support
 
 For deployment issues:
+
 1. Check application logs
 2. Verify configuration
 3. Test connectivity
 4. Review system resources
-5. Contact support with correlation IDs 
+5. Contact support with correlation IDs

@@ -1,8 +1,8 @@
 spring:
   application:
     name: gwt-application
-  profiles:
-    active: dev
+  main:
+    allow-bean-definition-overriding: true
 
 # Vision Framework Configuration
 vision:
@@ -10,37 +10,34 @@ vision:
   backend: opencv
   opencv:
     enabled: true
-    confidence-threshold: 0.5  # Lower threshold for better detection
-    min-face-size-ratio: 0.02  # Very small minimum face size for crowd detection
-    max-face-size-ratio: 0.95  # Very large maximum face size
-    gpu-acceleration: false
-    max-image-size: 52428800  # 50MB
+    confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}
+    min-face-size-ratio: ${VISION_MIN_FACE_SIZE:0.02}
+    max-face-size-ratio: ${VISION_MAX_FACE_SIZE:0.95}
+    gpu-acceleration: ${VISION_GPU_ACCELERATION:false}
+    max-image-size: ${VISION_MAX_IMAGE_SIZE:52428800}
   health:
     enabled: true
-    check-interval: 30000     # 30 seconds
-    max-response-time: 5000   # 5 seconds
+    check-interval: ${VISION_HEALTH_CHECK_INTERVAL:30000}
+    max-response-time: ${VISION_HEALTH_MAX_RESPONSE_TIME:5000}
   metrics:
     enabled: true
-    collection-interval: 60000 # 1 minute
-    detailed: false
-
-  main:
-    allow-bean-definition-overriding: true
+    collection-interval: ${VISION_METRICS_INTERVAL:60000}
+    detailed: ${VISION_METRICS_DETAILED:false}
 
 # GWT Configuration
 gwt:
   enabled: true
   module-name: com.springvision.examples.gwtapplication.GwtApplication
-  compile-on-startup: true
+  compile-on-startup: ${GWT_COMPILE_ON_STARTUP:true}
   source-path: src/main/java
-  style: DETAILED  # Options: OBFUSCATED, PRETTY, DETAILED
+  style: ${GWT_STYLE:DETAILED}
   dev-mode:
-    enabled: true
-    code-server-port: 9876
-    auto-reload: true
+    enabled: ${GWT_DEV_MODE:true}
+    code-server-port: ${GWT_CODE_SERVER_PORT:9876}
+    auto-reload: ${GWT_AUTO_RELOAD:true}
   production:
-    optimize: true
-    compress-javascript: true
+    optimize: ${GWT_OPTIMIZE:true}
+    compress-javascript: ${GWT_COMPRESS_JS:true}
   rpc:
     enabled: true
     endpoint-base-path: /gwt/rpc
@@ -52,22 +49,22 @@ gwt:
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: ${MAX_FILE_SIZE:50MB}
+      max-request-size: ${MAX_REQUEST_SIZE:50MB}
       file-size-threshold: 2KB
 
 # Logging Configuration
 logging:
   level:
-    com.springvision: INFO
-    com.springvision.examples: DEBUG
-    org.springframework.web: INFO
+    com.springvision: ${LOG_LEVEL:INFO}
+    com.springvision.examples: ${LOG_LEVEL:INFO}
+    org.springframework.web: ${WEB_LOG_LEVEL:INFO}
     org.bytedeco: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
@@ -86,98 +83,11 @@ management:
       base-path: /actuator
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
   metrics:
     export:
       prometheus:
         enabled: true
     tags:
       application: gwt-application
-      environment: development
-
-# Development Profile
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-
-logging:
-  level:
-    com.springvision: DEBUG
-    com.springvision.examples: DEBUG
-    org.springframework.web: DEBUG
-
-vision:
-  opencv:
-    confidence-threshold: 0.7
-
-gwt:
-  dev-mode:
-    enabled: true
-    auto-reload: true
-  style: DETAILED
-
-management:
-  endpoint:
-    health:
-      show-details: always
-
-# Production Profile
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-logging:
-  level:
-    com.springvision: INFO
-    com.springvision.examples: INFO
-    org.springframework.web: WARN
-
-vision:
-  opencv:
-    confidence-threshold: 0.8
-    gpu-acceleration: true
-
-gwt:
-  dev-mode:
-    enabled: false
-  style: OBFUSCATED
-  production:
-    optimize: true
-    compress-javascript: true
-
-management:
-  endpoint:
-    health:
-      show-details: when-authorized
-
-# Test Profile
----
-spring:
-  config:
-    activate:
-      on-profile: test
-
-logging:
-  level:
-    com.springvision: WARN
-    com.springvision.examples: WARN
-    root: WARN
-
-vision:
-  opencv:
-    confidence-threshold: 0.6
-
-gwt:
-  dev-mode:
-    enabled: false
-  compile-on-startup: false
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health
+      environment: ${ENVIRONMENT:development}

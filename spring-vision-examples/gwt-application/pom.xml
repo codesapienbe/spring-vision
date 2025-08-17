@@ -32,11 +32,7 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Spring Boot Docker Compose integration -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-docker-compose</artifactId>
-        </dependency>
+        <!-- Docker Compose dependency removed - services managed externally -->
 
         <!-- Spring Boot Web -->
         <dependency>

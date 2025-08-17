@@ -1,16 +1,23 @@
 spring:
   application:
     name: spring-vision-deepface-producer
-  profiles:
-    active: dev
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      retries: 3
+      acks: all
+      request-timeout-ms: 30000
+      delivery-timeout-ms: 60000
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      group-id: face-extraction-producer
   main:
     allow-bean-definition-overriding: true
 
 # Server Configuration
 server:
-  port: 8092
+  port: ${SERVER_PORT:8092}
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
@@ -23,9 +30,10 @@ server:
 # Logging Configuration
 logging:
   level:
-    com.springvision: DEBUG
-    com.springvision.deepface: DEBUG
+    com.springvision: ${LOG_LEVEL:INFO}
+    com.springvision.deepface: ${LOG_LEVEL:INFO}
     org.springframework.web: INFO
+    org.springframework.kafka: ${LOG_LEVEL:INFO}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
