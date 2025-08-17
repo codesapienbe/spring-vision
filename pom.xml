@@ -15,8 +15,7 @@
     <url>https://github.com/codesapienbe/spring-vision</url>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -32,6 +31,7 @@
         <commons-math3.version>3.6.1</commons-math3.version>
         <onnxruntime.version>1.15.1</onnxruntime.version>
         <djl.version>0.27.0</djl.version>
+        <picocli.version>4.7.5</picocli.version>
 
 
 
@@ -108,6 +108,18 @@
                 <artifactId>api</artifactId>
                 <version>${djl.version}</version>
             </dependency>
+
+            <!-- PicoCLI Dependencies -->
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli-spring-boot-starter</artifactId>
+                <version>${picocli.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -120,8 +132,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
                     <configuration>
-                        <source>21</source>
-                        <target>21</target>
+                        <release>21</release>
                         <compilerArgs>
                             <arg>-parameters</arg>
                         </compilerArgs>

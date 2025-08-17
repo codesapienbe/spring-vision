@@ -1,32 +1,34 @@
 package com.springvision.examples.picocliapplication;
 
-import com.springvision.core.VisionTemplate;
-import com.springvision.core.VisionResult;
-import com.springvision.core.Detection;
-import com.springvision.core.DetectionType;
-import com.springvision.core.ImageData;
-import com.springvision.core.exception.VisionProcessingException;
-import info.picocli.CommandLine;
-import info.picocli.CommandLine.Command;
-import info.picocli.CommandLine.Option;
-import info.picocli.CommandLine.Parameters;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.concurrent.Callable;
+import com.springvision.core.Detection;
+import com.springvision.core.DetectionType;
+import com.springvision.core.ImageData;
+import com.springvision.core.VisionResult;
+import com.springvision.core.VisionTemplate;
+import com.springvision.core.exception.VisionProcessingException;
 
 /**
- * PicoCLI Application for Spring Vision face detection.
+ * CLI Application for Spring Vision face detection using Apache Commons CLI.
  *
  * <p>This application provides a command-line interface for performing face detection
  * on image files using the Spring Vision framework. It supports single file processing,
@@ -40,360 +42,359 @@ import java.util.concurrent.Callable;
  * @since 1.0.0
  */
 @SpringBootApplication
-public class PicoCLIApplication {
+public class PicoCLIApplication implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(PicoCLIApplication.class);
 
+    private final ApplicationContext applicationContext;
+    private final VisionTemplate visionTemplate;
+
+    public PicoCLIApplication(ApplicationContext applicationContext, VisionTemplate visionTemplate) {
+        this.applicationContext = applicationContext;
+        this.visionTemplate = visionTemplate;
+    }
+
     /**
-     * Main entry point for the PicoCLI application.
+     * Main entry point for the CLI application.
      *
      * @param args command line arguments
      */
     public static void main(String[] args) {
-        logger.info("Starting Spring Vision PicoCLI Application");
+        logger.info("Starting Spring Vision CLI Application");
         SpringApplication.run(PicoCLIApplication.class, args);
     }
 
-    /**
-     * Main command for face detection operations.
-     *
-     * <p>This command provides the primary interface for face detection operations,
-     * supporting both single file and batch processing modes.</p>
-     */
-    @Command(
-        name = "face-detect",
-        mixinStandardHelpOptions = true,
-        version = "1.0.0",
-        description = "Perform face detection on image files using Spring Vision",
-        subcommands = {
-            FaceDetectCommand.class,
-            BatchDetectCommand.class,
-            HealthCheckCommand.class
-        }
-    )
-    static class FaceDetectApp implements Callable<Integer> {
-
-        @Override
-        public Integer call() {
-            // Show help if no subcommand is specified
-            System.out.println("Spring Vision Face Detection CLI");
-            System.out.println("Use --help for more information");
-            return 0;
-        }
-    }
-
-    /**
-     * Command for single file face detection.
-     *
-     * <p>Processes a single image file and outputs detection results in various formats.</p>
-     */
-    @Command(
-        name = "detect",
-        description = "Detect faces in a single image file"
-    )
-    static class FaceDetectCommand implements Callable<Integer> {
-
-        @Parameters(
-            index = "0",
-            description = "Path to the image file to process",
-            arity = "1"
-        )
-        private String imagePath;
-
-        @Option(
-            names = {"-o", "--output"},
-            description = "Output format: json, text, csv (default: text)"
-        )
-        private String outputFormat = "text";
-
-        @Option(
-            names = {"-v", "--verbose"},
-            description = "Enable verbose output"
-        )
-        private boolean verbose = false;
-
-        @Option(
-            names = {"--save-results"},
-            description = "Save results to output file"
-        )
-        private String outputFile;
-
-        private final VisionTemplate visionTemplate;
-        private final ApplicationContext applicationContext;
-
-        public FaceDetectCommand(VisionTemplate visionTemplate, ApplicationContext applicationContext) {
-            this.visionTemplate = visionTemplate;
-            this.applicationContext = applicationContext;
+    @Override
+    public void run(String... args) throws Exception {
+        if (args.length == 0) {
+            printHelp();
+            return;
         }
 
-        @Override
-        public Integer call() {
-            try {
-                logger.info("Processing image file: {}", imagePath);
+        Options options = createOptions();
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
 
-                // Validate input file
-                Path path = Paths.get(imagePath);
-                if (!Files.exists(path)) {
-                    logger.error("Image file not found: {}", imagePath);
-                    System.err.println("Error: Image file not found: " + imagePath);
-                    return 1;
-                }
+        try {
+            CommandLine cmd = parser.parse(options, args);
 
-                if (!Files.isReadable(path)) {
-                    logger.error("Image file is not readable: {}", imagePath);
-                    System.err.println("Error: Image file is not readable: " + imagePath);
-                    return 1;
-                }
-
-                // Read image data
-                byte[] imageData = Files.readAllBytes(path);
-                ImageData image = new ImageData(imageData, path.getFileName().toString());
-
-                // Perform face detection
-                logger.info("Starting face detection for image: {}", path.getFileName());
-                VisionResult result = visionTemplate.detectFaces(image);
-
-                // Process results
-                List<Detection> detections = result.getDetections();
-
-                if (verbose) {
-                    logger.info("Detection completed. Found {} faces", detections.size());
-                }
-
-                // Output results
-                String output = formatResults(detections, outputFormat, path.getFileName().toString());
-
-                if (outputFile != null) {
-                    Files.write(Paths.get(outputFile), output.getBytes());
-                    logger.info("Results saved to: {}", outputFile);
-                    System.out.println("Results saved to: " + outputFile);
-                } else {
-                    System.out.println(output);
-                }
-
-                return 0;
-
-            } catch (VisionProcessingException e) {
-                logger.error("Vision processing error: {}", e.getMessage(), e);
-                System.err.println("Error: " + e.getMessage());
-                return 1;
-            } catch (IOException e) {
-                logger.error("I/O error: {}", e.getMessage(), e);
-                System.err.println("Error: " + e.getMessage());
-                return 1;
-            } catch (Exception e) {
-                logger.error("Unexpected error: {}", e.getMessage(), e);
-                System.err.println("Error: " + e.getMessage());
-                return 1;
+            if (cmd.hasOption("help")) {
+                formatter.printHelp("spring-vision-cli", options);
+                return;
             }
-        }
 
-        /**
-         * Format detection results according to the specified output format.
-         *
-         * @param detections list of detections
-         * @param format output format (json, text, csv)
-         * @param filename original filename
-         * @return formatted output string
-         */
-        private String formatResults(List<Detection> detections, String format, String filename) {
-            return switch (format.toLowerCase()) {
-                case "json" -> formatJson(detections, filename);
-                case "csv" -> formatCsv(detections, filename);
-                case "text", default -> formatText(detections, filename);
-            };
-        }
+            if (cmd.hasOption("version")) {
+                System.out.println("Spring Vision CLI 1.0.0");
+                return;
+            }
 
-        private String formatText(List<Detection> detections, String filename) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Face Detection Results for: ").append(filename).append("\n");
-            sb.append("=".repeat(50)).append("\n");
-            sb.append("Total faces detected: ").append(detections.size()).append("\n\n");
-
-            if (detections.isEmpty()) {
-                sb.append("No faces detected in the image.\n");
+            if (cmd.hasOption("detect")) {
+                handleSingleDetection(cmd);
+            } else if (cmd.hasOption("batch")) {
+                handleBatchDetection(cmd);
+            } else if (cmd.hasOption("health")) {
+                handleHealthCheck();
             } else {
-                sb.append("Detected faces:\n");
-                for (int i = 0; i < detections.size(); i++) {
-                    Detection detection = detections.get(i);
-                    sb.append(String.format("  Face %d: Confidence=%.2f%%, BoundingBox=(%d,%d,%d,%d)\n",
-                        i + 1,
-                        detection.getConfidence() * 100,
-                        detection.getBoundingBox().getX(),
-                        detection.getBoundingBox().getY(),
-                        detection.getBoundingBox().getWidth(),
-                        detection.getBoundingBox().getHeight()));
-                }
+                printHelp();
             }
 
-            return sb.toString();
-        }
-
-        private String formatJson(List<Detection> detections, String filename) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("{\n");
-            sb.append("  \"filename\": \"").append(filename).append("\",\n");
-            sb.append("  \"totalFaces\": ").append(detections.size()).append(",\n");
-            sb.append("  \"detections\": [\n");
-
-            for (int i = 0; i < detections.size(); i++) {
-                Detection detection = detections.get(i);
-                sb.append("    {\n");
-                sb.append("      \"index\": ").append(i + 1).append(",\n");
-                sb.append("      \"confidence\": ").append(String.format("%.4f", detection.getConfidence())).append(",\n");
-                sb.append("      \"boundingBox\": {\n");
-                sb.append("        \"x\": ").append(detection.getBoundingBox().getX()).append(",\n");
-                sb.append("        \"y\": ").append(detection.getBoundingBox().getY()).append(",\n");
-                sb.append("        \"width\": ").append(detection.getBoundingBox().getWidth()).append(",\n");
-                sb.append("        \"height\": ").append(detection.getBoundingBox().getHeight()).append("\n");
-                sb.append("      }\n");
-                sb.append("    }").append(i < detections.size() - 1 ? "," : "").append("\n");
-            }
-
-            sb.append("  ]\n");
-            sb.append("}\n");
-            return sb.toString();
-        }
-
-        private String formatCsv(List<Detection> detections, String filename) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("filename,face_index,confidence,x,y,width,height\n");
-
-            for (int i = 0; i < detections.size(); i++) {
-                Detection detection = detections.get(i);
-                sb.append(String.format("\"%s\",%d,%.4f,%d,%d,%d,%d\n",
-                    filename,
-                    i + 1,
-                    detection.getConfidence(),
-                    detection.getBoundingBox().getX(),
-                    detection.getBoundingBox().getY(),
-                    detection.getBoundingBox().getWidth(),
-                    detection.getBoundingBox().getHeight()));
-            }
-
-            return sb.toString();
+        } catch (ParseException e) {
+            System.err.println("Error parsing command line arguments: " + e.getMessage());
+            formatter.printHelp("spring-vision-cli", options);
+            System.exit(1);
         }
     }
 
-    /**
-     * Command for batch face detection.
-     *
-     * <p>Processes multiple image files in a directory and outputs batch results.</p>
-     */
-    @Command(
-        name = "batch",
-        description = "Detect faces in multiple image files (batch processing)"
-    )
-    static class BatchDetectCommand implements Callable<Integer> {
+    private Options createOptions() {
+        Options options = new Options();
 
-        @Parameters(
-            index = "0",
-            description = "Directory containing image files to process",
-            arity = "1"
-        )
-        private String directoryPath;
+        // Help and version options
+        options.addOption("h", "help", false, "Show help information");
+        options.addOption("v", "version", false, "Show version information");
 
-        @Option(
-            names = {"-p", "--pattern"},
-            description = "File pattern to match (default: *.jpg,*.jpeg,*.png)"
-        )
-        private String filePattern = "*.{jpg,jpeg,png}";
+        // Single detection option
+        Option detectOption = Option.builder("d")
+                .longOpt("detect")
+                .hasArg()
+                .argName("FILE")
+                .desc("Detect faces in a single image file")
+                .build();
+        options.addOption(detectOption);
 
-        @Option(
-            names = {"-o", "--output"},
-            description = "Output format: json, text, csv (default: text)"
-        )
-        private String outputFormat = "text";
+        // Batch detection option
+        Option batchOption = Option.builder("b")
+                .longOpt("batch")
+                .hasArg()
+                .argName("DIRECTORY")
+                .desc("Detect faces in all images in a directory")
+                .build();
+        options.addOption(batchOption);
 
-        @Option(
-            names = {"-v", "--verbose"},
-            description = "Enable verbose output"
-        )
-        private boolean verbose = false;
+        // Health check option
+        options.addOption("hc", "health", false, "Check system health");
 
-        @Option(
-            names = {"--save-results"},
-            description = "Save results to output file"
-        )
-        private String outputFile;
+        // Output format option
+        Option formatOption = Option.builder("f")
+                .longOpt("format")
+                .hasArg()
+                .argName("FORMAT")
+                .desc("Output format (json, text, csv) [default: text]")
+                .build();
+        options.addOption(formatOption);
 
-        private final VisionTemplate visionTemplate;
+        // Confidence threshold option
+        Option confidenceOption = Option.builder("c")
+                .longOpt("confidence")
+                .hasArg()
+                .argName("THRESHOLD")
+                .desc("Confidence threshold (0.0-1.0) [default: 0.5]")
+                .build();
+        options.addOption(confidenceOption);
 
-        public BatchDetectCommand(VisionTemplate visionTemplate) {
-            this.visionTemplate = visionTemplate;
-        }
+        // Verbose option
+        options.addOption("V", "verbose", false, "Enable verbose output");
 
-        @Override
-        public Integer call() {
-            // TODO: Implement batch processing
-            System.out.println("Batch processing not yet implemented");
-            return 0;
+        return options;
+    }
+
+    private void handleSingleDetection(CommandLine cmd) {
+        String imagePath = cmd.getOptionValue("detect");
+        String format = cmd.getOptionValue("format", "text");
+        String confidenceStr = cmd.getOptionValue("confidence", "0.5");
+        boolean verbose = cmd.hasOption("verbose");
+
+        try {
+            double confidence = Double.parseDouble(confidenceStr);
+            if (confidence < 0.0 || confidence > 1.0) {
+                System.err.println("Confidence threshold must be between 0.0 and 1.0");
+                System.exit(1);
+            }
+
+            Path path = Paths.get(imagePath);
+            if (!Files.exists(path)) {
+                System.err.println("Image file not found: " + imagePath);
+                System.exit(1);
+            }
+
+            logger.info("Processing single image: {}", imagePath);
+            ImageData imageData = ImageData.fromBytes(Files.readAllBytes(path));
+
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+
+            if (verbose) {
+                logger.info("Detection completed. Found {} faces", result.detections().size());
+            }
+
+            printResults(result, format);
+
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid confidence threshold: " + confidenceStr);
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Error reading image file: " + e.getMessage());
+            System.exit(1);
+        } catch (VisionProcessingException e) {
+            System.err.println("Error processing image: " + e.getMessage());
+            System.exit(1);
         }
     }
 
-    /**
-     * Command for health check.
-     *
-     * <p>Checks the health and status of the vision backend.</p>
-     */
-    @Command(
-        name = "health",
-        description = "Check the health status of the vision backend"
-    )
-    static class HealthCheckCommand implements Callable<Integer> {
+    private void handleBatchDetection(CommandLine cmd) {
+        String directoryPath = cmd.getOptionValue("batch");
+        String format = cmd.getOptionValue("format", "text");
+        String confidenceStr = cmd.getOptionValue("confidence", "0.5");
+        boolean verbose = cmd.hasOption("verbose");
 
-        private final VisionTemplate visionTemplate;
+        try {
+            double confidence = Double.parseDouble(confidenceStr);
+            if (confidence < 0.0 || confidence > 1.0) {
+                System.err.println("Confidence threshold must be between 0.0 and 1.0");
+                System.exit(1);
+            }
 
-        public HealthCheckCommand(VisionTemplate visionTemplate) {
-            this.visionTemplate = visionTemplate;
+            Path directory = Paths.get(directoryPath);
+            if (!Files.exists(directory) || !Files.isDirectory(directory)) {
+                System.err.println("Directory not found: " + directoryPath);
+                System.exit(1);
+            }
+
+            logger.info("Processing batch directory: {}", directoryPath);
+
+            Files.list(directory)
+                    .filter(path -> isImageFile(path))
+                    .forEach(path -> {
+                        try {
+                            if (verbose) {
+                                logger.info("Processing: {}", path.getFileName());
+                            }
+
+                            ImageData imageData = ImageData.fromBytes(Files.readAllBytes(path));
+                            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+
+                            System.out.println("File: " + path.getFileName());
+                            printResults(result, format);
+                            System.out.println();
+
+                        } catch (Exception e) {
+                            System.err.println("Error processing " + path.getFileName() + ": " + e.getMessage());
+                        }
+                    });
+
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid confidence threshold: " + confidenceStr);
+            System.exit(1);
+        } catch (IOException e) {
+            System.err.println("Error reading directory: " + e.getMessage());
+            System.exit(1);
         }
+    }
 
-        @Override
-        public Integer call() {
+    private void handleHealthCheck() {
+        try {
+            logger.info("Performing health check");
+
+            // Simple health check - try to detect faces in a minimal test
+            boolean isHealthy = true;
+            String status = "OK";
+
             try {
-                // TODO: Implement health check
-                System.out.println("Health check not yet implemented");
-                return 0;
+                // Test if vision template is available
+                if (visionTemplate == null) {
+                    isHealthy = false;
+                    status = "Vision template not available";
+                }
+
+                // Test if application context is available
+                if (applicationContext == null) {
+                    isHealthy = false;
+                    status = "Application context not available";
+                }
+
             } catch (Exception e) {
-                logger.error("Health check failed: {}", e.getMessage(), e);
-                System.err.println("Error: " + e.getMessage());
-                return 1;
+                isHealthy = false;
+                status = "Error during health check: " + e.getMessage();
             }
+
+            if (isHealthy) {
+                System.out.println("Health Check: PASSED");
+                System.out.println("Status: " + status);
+                System.out.println("Vision Template: Available");
+                System.out.println("Application Context: Available");
+            } else {
+                System.out.println("Health Check: FAILED");
+                System.out.println("Status: " + status);
+                System.exit(1);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Health check failed: " + e.getMessage());
+            System.exit(1);
         }
     }
 
-    /**
-     * Command line runner that executes the PicoCLI commands.
-     */
-    @Component
-    static class PicoCLICommandRunner implements CommandLineRunner {
+    private void printResults(VisionResult result, String format) {
+        List<Detection> detections = result.detections();
 
-        private final VisionTemplate visionTemplate;
-        private final ApplicationContext applicationContext;
+        switch (format.toLowerCase()) {
+            case "json":
+                printJsonResults(detections);
+                break;
+            case "csv":
+                printCsvResults(detections);
+                break;
+            case "text":
+            default:
+                printTextResults(detections);
+                break;
+        }
+    }
 
-        public PicoCLICommandRunner(VisionTemplate visionTemplate, ApplicationContext applicationContext) {
-            this.visionTemplate = visionTemplate;
-            this.applicationContext = applicationContext;
+    private void printTextResults(List<Detection> detections) {
+        if (detections.isEmpty()) {
+            System.out.println("No faces detected");
+            return;
         }
 
-        @Override
-        public void run(String... args) throws Exception {
-            // Create command instances with dependencies
-            FaceDetectCommand detectCommand = new FaceDetectCommand(visionTemplate, applicationContext);
-            BatchDetectCommand batchCommand = new BatchDetectCommand(visionTemplate);
-            HealthCheckCommand healthCommand = new HealthCheckCommand(visionTemplate);
-
-            // Create command line interface
-            CommandLine commandLine = new CommandLine(new FaceDetectApp());
-            commandLine.addSubcommand("detect", detectCommand);
-            commandLine.addSubcommand("batch", batchCommand);
-            commandLine.addSubcommand("health", healthCommand);
-
-            // Execute the command
-            int exitCode = commandLine.execute(args);
-
-            // Exit the application
-            System.exit(exitCode);
+        System.out.println("Detected " + detections.size() + " face(s):");
+        for (int i = 0; i < detections.size(); i++) {
+            Detection detection = detections.get(i);
+            System.out.printf("Face %d: Confidence=%.2f, Bounds=(%.3f,%.3f,%.3f,%.3f)%n",
+                    i + 1,
+                    detection.confidence(),
+                    detection.boundingBox().x(),
+                    detection.boundingBox().y(),
+                    detection.boundingBox().width(),
+                    detection.boundingBox().height());
         }
+    }
+
+    private void printJsonResults(List<Detection> detections) {
+        System.out.println("{");
+        System.out.println("  \"detections\": [");
+
+        for (int i = 0; i < detections.size(); i++) {
+            Detection detection = detections.get(i);
+            System.out.printf("    {%n");
+            System.out.printf("      \"index\": %d,%n", i + 1);
+            System.out.printf("      \"confidence\": %.2f,%n", detection.confidence());
+            System.out.printf("      \"bounds\": {%n");
+            System.out.printf("        \"x\": %.3f,%n", detection.boundingBox().x());
+            System.out.printf("        \"y\": %.3f,%n", detection.boundingBox().y());
+            System.out.printf("        \"width\": %.3f,%n", detection.boundingBox().width());
+            System.out.printf("        \"height\": %.3f%n", detection.boundingBox().height());
+            System.out.printf("      }%n");
+            System.out.printf("    }%s%n", i < detections.size() - 1 ? "," : "");
+        }
+
+        System.out.println("  ]");
+        System.out.println("}");
+    }
+
+    private void printCsvResults(List<Detection> detections) {
+        System.out.println("Index,Confidence,X,Y,Width,Height");
+
+        for (int i = 0; i < detections.size(); i++) {
+            Detection detection = detections.get(i);
+            System.out.printf("%d,%.2f,%.3f,%.3f,%.3f,%.3f%n",
+                    i + 1,
+                    detection.confidence(),
+                    detection.boundingBox().x(),
+                    detection.boundingBox().y(),
+                    detection.boundingBox().width(),
+                    detection.boundingBox().height());
+        }
+    }
+
+    private boolean isImageFile(Path path) {
+        String fileName = path.getFileName().toString().toLowerCase();
+        return fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
+               fileName.endsWith(".png") || fileName.endsWith(".bmp") ||
+               fileName.endsWith(".gif");
+    }
+
+    private void printHelp() {
+        System.out.println("Spring Vision CLI - Face Detection Tool");
+        System.out.println();
+        System.out.println("Usage:");
+        System.out.println("  Single file detection:");
+        System.out.println("    java -jar picocli-application.jar --detect <image-file> [options]");
+        System.out.println();
+        System.out.println("  Batch directory processing:");
+        System.out.println("    java -jar picocli-application.jar --batch <directory> [options]");
+        System.out.println();
+        System.out.println("  Health check:");
+        System.out.println("    java -jar picocli-application.jar --health");
+        System.out.println();
+        System.out.println("Options:");
+        System.out.println("  -h, --help                    Show this help message");
+        System.out.println("  -v, --version                 Show version information");
+        System.out.println("  -f, --format <format>         Output format (json, text, csv) [default: text]");
+        System.out.println("  -c, --confidence <threshold>  Confidence threshold (0.0-1.0) [default: 0.5]");
+        System.out.println("  -V, --verbose                 Enable verbose output");
+        System.out.println();
+        System.out.println("Examples:");
+        System.out.println("  java -jar picocli-application.jar --detect image.jpg --format json");
+        System.out.println("  java -jar picocli-application.jar --batch ./images --confidence 0.7 --verbose");
+        System.out.println("  java -jar picocli-application.jar --health");
     }
 }

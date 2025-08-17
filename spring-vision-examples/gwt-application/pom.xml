@@ -19,8 +19,7 @@
     <description>Example demonstrating a GWT-based GUI application using Spring Vision</description>
 
     <properties>
-        <java.version>21</java.version>
-        <spring-boot.version>3.2.8</spring-boot.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <gwt.version>2.9.0</gwt.version>
     </properties>
 
