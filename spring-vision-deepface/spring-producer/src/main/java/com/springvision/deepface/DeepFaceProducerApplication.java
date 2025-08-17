@@ -2,6 +2,7 @@ package com.springvision.deepface;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.retry.annotation.EnableRetry;
 
 /**
  * Spring Boot application for the DeepFace producer service.
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @since 1.0.0
  */
 @SpringBootApplication
+@EnableRetry
 public class DeepFaceProducerApplication {
 
     public static void main(String[] args) {

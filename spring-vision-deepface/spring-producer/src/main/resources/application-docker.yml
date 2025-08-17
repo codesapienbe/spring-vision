@@ -1,0 +1,36 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      retries: 3
+      acks: all
+      request-timeout-ms: 30000
+      delivery-timeout-ms: 60000
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8092}
+
+# Logging Configuration
+logging:
+  level:
+    com.springvision: INFO
+    com.springvision.deepface: INFO
+    org.springframework.web: INFO
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
