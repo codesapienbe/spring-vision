@@ -12,6 +12,24 @@ services:
     networks:
       - spring-vision-network
 
+  # CompreFace service for face detection and recognition
+  # https://hub.docker.com/r/exadel/compreface
+  compreface:
+    image: exadel/compreface:latest
+    container_name: spring-vision-compreface
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/springvision
+      POSTGRES_USER: springvision
+      POSTGRES_PASSWORD: springvision
+      EXTERNAL_DB: "true"
+    ports:
+      - "8000:80"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    networks:
+      - spring-vision-network
+
   # PostgreSQL database for applications that need persistence
   postgres:
     image: postgres:15-alpine

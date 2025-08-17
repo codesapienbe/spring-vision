@@ -22,6 +22,7 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
+import com.springvision.core.backend.CompreFaceVisionBackend;
 import com.springvision.core.backend.DeepFaceVisionBackend;
 import com.springvision.core.backend.FaceBytesBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
@@ -193,7 +194,7 @@ public class JavaFXApplication {
 
             // Backend selector
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv", "facebytes", "deepface");
+            backendComboBox.getItems().addAll("opencv", "facebytes", "deepface", "compreface");
             String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
@@ -244,6 +245,14 @@ public class JavaFXApplication {
                     deepFace.initialize();
                     logger.info("DeepFace backend initialized successfully", Map.of("component", "JavaFXApplication"));
                     backend = deepFace;
+                    break;
+                }
+                case "compreface": {
+                    // Use CompreFace HTTP API
+                    CompreFaceVisionBackend compreFace = new CompreFaceVisionBackend("http://localhost:8000");
+                    compreFace.initialize();
+                    logger.info("CompreFace backend initialized successfully", Map.of("component", "JavaFXApplication"));
+                    backend = compreFace;
                     break;
                 }
             }

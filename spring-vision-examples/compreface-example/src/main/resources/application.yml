@@ -1,0 +1,24 @@
+# CompreFace Example Application Configuration
+spring:
+  application:
+    name: compreface-example
+
+# Vision backend configuration
+vision:
+  backend: compreface
+  timeout: 30s
+  health-check:
+    enabled: true
+    interval: 30s
+
+# Logging configuration
+logging:
+  level:
+    com.springvision: DEBUG
+    com.springvision.core.backend.CompreFaceVisionBackend: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Server configuration (if running as web application)
+server:
+  port: 8081

@@ -80,10 +80,11 @@ java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdo
    - Or drag and drop an image file onto the application window
 
 2. **Select Backend** (Optional):
-   - Use the backend dropdown to choose between OpenCV, FaceBytes, or DeepFace
+   - Use the backend dropdown to choose between OpenCV, FaceBytes, DeepFace, or CompreFace
    - OpenCV: Fast, local processing (default)
    - FaceBytes: Advanced face analysis capabilities
    - DeepFace: Containerized API with advanced ML models
+   - CompreFace: Containerized API with face recognition and verification
 
 3. **Detect Faces**:
    - Once an image is loaded, click the "Detect Faces" button
@@ -196,6 +197,48 @@ To use the DeepFace backend:
 
 The DeepFace backend provides advanced face analysis including age, gender, emotion, and race detection.
 
+### CompreFace Backend Setup
+
+To use the CompreFace backend:
+
+1. **Start the CompreFace API container**:
+
+   ```bash
+   # From the project root (recommended)
+   mvn spring-boot:run -Pjavafx
+   
+   # Or manually start Docker Compose
+   docker-compose up -d compreface postgres
+   ```
+
+   The CompreFace container uses the official `exadel/compreface:latest` image with built-in HTTP API.
+
+2. **Configure the application**:
+
+   ```yaml
+   vision:
+     backend: compreface
+     compreface:
+       enabled: true
+       api-url: http://localhost:8000
+   ```
+
+3. **Or use environment variables**:
+
+   ```bash
+   export VISION_BACKEND=compreface
+   export VISION_COMPREFACE_ENABLED=true
+   export VISION_COMPREFACE_API_URL=http://localhost:8000
+   ```
+
+4. **Run the application**:
+
+   ```bash
+   ./run.sh
+   ```
+
+The CompreFace backend provides face detection, recognition, and verification capabilities with a user-friendly API.
+
 ## Logging
 
 The application provides comprehensive logging with multiple output formats:
@@ -257,6 +300,26 @@ The application provides comprehensive error handling:
 4. Load an image and click "Detect Faces"
 
 5. View advanced analysis results including age, gender, and emotion detection
+
+### Example 4: CompreFace Backend Usage
+
+1. Start the CompreFace API container:
+
+   ```bash
+   mvn spring-boot:run -Pjavafx
+   ```
+
+2. Launch the JavaFX application:
+
+   ```bash
+   ./run.sh
+   ```
+
+3. Select "compreface" from the backend dropdown
+
+4. Load an image and click "Detect Faces"
+
+5. View face detection results with bounding boxes and confidence scores
 
 ## Development
 
@@ -328,6 +391,13 @@ mvn javafx:run
    - Check if the API is accessible: `curl http://localhost:5000/health`
    - Verify the container logs: `docker logs spring-vision-deepface`
    - Ensure port 5000 is not used by another application
+
+6. **"CompreFace backend not working"**
+   - Ensure the CompreFace container is running: `docker ps | grep compreface`
+   - Check if the API is accessible: `curl http://localhost:8000/api/v1/recognition/detect`
+   - Verify the container logs: `docker logs spring-vision-compreface`
+   - Ensure PostgreSQL is running: `docker ps | grep postgres`
+   - Ensure port 8000 is not used by another application
 
 ### Debug Mode
 

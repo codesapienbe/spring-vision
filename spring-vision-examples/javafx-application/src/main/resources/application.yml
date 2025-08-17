@@ -21,6 +21,11 @@ vision:
     api-url: ${VISION_DEEPFACE_API_URL:http://localhost:5000}
     timeout: ${VISION_DEEPFACE_TIMEOUT:30s}
     max-retries: ${VISION_DEEPFACE_MAX_RETRIES:3}
+  compreface:
+    enabled: ${VISION_COMPREFACE_ENABLED:false}
+    api-url: ${VISION_COMPREFACE_API_URL:http://localhost:8000}
+    timeout: ${VISION_COMPREFACE_TIMEOUT:30s}
+    max-retries: ${VISION_COMPREFACE_MAX_RETRIES:3}
   health:
     enabled: true
     check-interval: ${VISION_HEALTH_CHECK_INTERVAL:30000}
