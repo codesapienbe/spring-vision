@@ -16,20 +16,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-dependencies = [
-    "kafka-python>=2.0.2",
-    "deepface>=0.0.84",
-    "numpy>=1.24.0",
-    "Pillow>=10.0.0",
-    "python-dotenv>=1.0.0",
-    "loguru>=0.7.0",
-    "opencv-python>=4.8.0",
-    "mtcnn>=0.1.1",
-    "retina-face>=0.0.13",
-    "protobuf>=3.20.0,<4.0.0",
-    "tensorflow>=2.15.0",
-]
-
 [project.scripts]
 deepface_consumer = "deepface_consumer:main"
 
