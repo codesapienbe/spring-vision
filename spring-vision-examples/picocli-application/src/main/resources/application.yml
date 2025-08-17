@@ -2,40 +2,48 @@
 spring:
   application:
     name: spring-vision-picocli
-  banner:
-    mode: console
   main:
-    banner-mode: console
     web-application-type: none  # Disable web server for CLI application
 
-# Vision configuration
+# Vision Framework Configuration
 vision:
-  backend:
-    type: opencv
+  enabled: true
+  backend: ${VISION_BACKEND:opencv}
+  opencv:
     enabled: true
-  logging:
-    level: INFO
-    format: structured
+    confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}
+    min-face-size-ratio: ${VISION_MIN_FACE_SIZE:0.02}
+    max-face-size-ratio: ${VISION_MAX_FACE_SIZE:0.95}
+    gpu-acceleration: ${VISION_GPU_ACCELERATION:false}
+    max-image-size: ${VISION_MAX_IMAGE_SIZE:52428800}
+  health:
+    enabled: true
+    check-interval: ${VISION_HEALTH_CHECK_INTERVAL:30000}
+    max-response-time: ${VISION_HEALTH_MAX_RESPONSE_TIME:5000}
+  metrics:
+    enabled: true
+    collection-interval: ${VISION_METRICS_INTERVAL:60000}
+    detailed: ${VISION_METRICS_DETAILED:false}
 
 # Logging configuration
 logging:
   level:
-    com.springvision: INFO
-    com.springvision.examples.picocliapplication: INFO
-    org.springframework: WARN
+    com.springvision: ${LOG_LEVEL:INFO}
+    com.springvision.examples.picocliapplication: ${LOG_LEVEL:INFO}
+    org.springframework: ${SPRING_LOG_LEVEL:WARN}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/picocli-application.log
-    max-size: 10MB
-    max-history: 30
+    name: ${LOG_FILE:logs/picocli-application.log}
+    max-size: ${LOG_MAX_SIZE:10MB}
+    max-history: ${LOG_MAX_HISTORY:30}
 
 # Application-specific settings
 app:
   cli:
-    default-output-format: text
-    enable-verbose-logging: false
-    max-file-size: 50MB
+    default-output-format: ${CLI_OUTPUT_FORMAT:text}
+    enable-verbose-logging: ${CLI_VERBOSE:false}
+    max-file-size: ${MAX_FILE_SIZE:50MB}
     supported-formats:
       - jpg
       - jpeg

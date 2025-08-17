@@ -89,4 +89,7 @@ alwaysApply: true
 - Share with all new collaborators, and periodically review/adapt as the project grows.
 
 
+## DON'T DO List
+- Never generate a bash script to solve problems temporarily. Stick always focusing on fixing issues instead of
+applying a workaround.
 

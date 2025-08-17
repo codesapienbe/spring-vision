@@ -2,48 +2,54 @@
 spring:
   application:
     name: spring-vision-javafx
-  banner:
-    mode: console
   main:
-    banner-mode: console
     web-application-type: none  # Disable web server for desktop application
-  docker:
-    compose:
-      enabled: false  # Disable Docker Compose integration for desktop application
 
-# Vision configuration
+# Vision Framework Configuration
 vision:
-  # Select backend: opencv | facebytes
-  backend: opencv
-  logging:
-    level: INFO
-    format: structured
+  enabled: true
+  backend: ${VISION_BACKEND:opencv}
+  opencv:
+    enabled: true
+    confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}
+    min-face-size-ratio: ${VISION_MIN_FACE_SIZE:0.02}
+    max-face-size-ratio: ${VISION_MAX_FACE_SIZE:0.95}
+    gpu-acceleration: ${VISION_GPU_ACCELERATION:false}
+    max-image-size: ${VISION_MAX_IMAGE_SIZE:52428800}
+  health:
+    enabled: true
+    check-interval: ${VISION_HEALTH_CHECK_INTERVAL:30000}
+    max-response-time: ${VISION_HEALTH_MAX_RESPONSE_TIME:5000}
+  metrics:
+    enabled: true
+    collection-interval: ${VISION_METRICS_INTERVAL:60000}
+    detailed: ${VISION_METRICS_DETAILED:false}
 
 # Logging configuration
 logging:
   level:
-    com.springvision: INFO
-    com.springvision.examples.javafxapplication: INFO
-    org.springframework: WARN
-    javafx: INFO
+    com.springvision: ${LOG_LEVEL:INFO}
+    com.springvision.examples.javafxapplication: ${LOG_LEVEL:INFO}
+    org.springframework: ${SPRING_LOG_LEVEL:WARN}
+    javafx: ${JAVAFX_LOG_LEVEL:INFO}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   file:
-    name: logs/javafx-application.log
-    max-size: 10MB
-    max-history: 30
+    name: ${LOG_FILE:logs/javafx-application.log}
+    max-size: ${LOG_MAX_SIZE:10MB}
+    max-history: ${LOG_MAX_HISTORY:30}
 
 # Application-specific settings
 app:
   javafx:
     window:
-      title: "Spring Vision - Face Detection"
-      min-width: 800
-      min-height: 600
-      default-width: 1000
-      default-height: 700
+      title: ${JAVAFX_WINDOW_TITLE:"Spring Vision - Face Detection"}
+      min-width: ${JAVAFX_MIN_WIDTH:800}
+      min-height: ${JAVAFX_MIN_HEIGHT:600}
+      default-width: ${JAVAFX_DEFAULT_WIDTH:1000}
+      default-height: ${JAVAFX_DEFAULT_HEIGHT:700}
     image:
-      max-file-size: 50MB
+      max-file-size: ${MAX_FILE_SIZE:50MB}
       supported-formats:
         - jpg
         - jpeg
@@ -51,8 +57,8 @@ app:
         - bmp
         - gif
     ui:
-      theme: light
-      enable-drag-drop: true
-      show-progress: true
+      theme: ${JAVAFX_THEME:light}
+      enable-drag-drop: ${JAVAFX_DRAG_DROP:true}
+      show-progress: ${JAVAFX_SHOW_PROGRESS:true}
 
 

@@ -49,7 +49,7 @@
         <module>spring-vision-starter</module>
         <module>spring-vision-facebytes</module>
         <module>spring-vision-deepface</module>
-
+        <module>spring-vision-examples</module>
     </modules>
 
     <dependencyManagement>

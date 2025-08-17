@@ -93,11 +93,7 @@
             <version>4.0.17</version>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Boot Docker Compose integration -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-docker-compose</artifactId>
-        </dependency>
+        <!-- Docker Compose dependency removed - services managed externally -->
     </dependencies>
 
     <build>
@@ -106,7 +102,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.springvision.examples.javafxapplication.JavaFXApplication</mainClass>
                 </configuration>
@@ -133,7 +128,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
                 <configuration>
                     <source>21</source>
                     <target>21</target>

@@ -36,11 +36,7 @@
             <artifactId>spring-vision-starter</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
-        <!-- Spring Boot Docker Compose integration -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-docker-compose</artifactId>
-        </dependency>
+        <!-- Docker Compose dependency removed - services managed externally -->
         <!-- Vaadin Spring Boot Starter -->
         <dependency>
             <groupId>com.vaadin</groupId>

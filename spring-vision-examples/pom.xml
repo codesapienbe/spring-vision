@@ -20,7 +20,6 @@
 
     <modules>
         <module>basic-face-detection</module>
-        <module>batch-processing-example</module>
         <module>gwt-application</module>
         <module>vaadin-application</module>
         <module>picocli-application</module>
