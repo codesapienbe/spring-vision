@@ -22,6 +22,8 @@ services:
       POSTGRES_USER: springvision
       POSTGRES_PASSWORD: springvision
       EXTERNAL_DB: "true"
+      # Optional: Configure Java memory settings for better performance
+      API_JAVA_OPTS: ${COMPREFACE_API_JAVA_OPTS:--Xmx2g}
     ports:
       - "8000:80"
     restart: unless-stopped
@@ -29,6 +31,12 @@ services:
       - postgres
     networks:
       - spring-vision-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/api/v1/recognition/detect || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # PostgreSQL database for applications that need persistence
   postgres:

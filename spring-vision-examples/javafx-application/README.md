@@ -239,6 +239,12 @@ To use the CompreFace backend:
 
 The CompreFace backend provides face detection, recognition, and verification capabilities with a user-friendly API.
 
+**Important Startup Notes:**
+- CompreFace takes approximately 45 seconds to start due to service initialization
+- Monitor startup progress with: `docker logs spring-vision-compreface -f`
+- Wait for "exited: startup (exit status 0; expected)" message before using
+- The service will automatically restart if database initialization is slow
+
 ## Logging
 
 The application provides comprehensive logging with multiple output formats:
@@ -395,7 +401,9 @@ mvn javafx:run
 6. **"CompreFace backend not working"**
    - Ensure the CompreFace container is running: `docker ps | grep compreface`
    - Check if the API is accessible: `curl http://localhost:8000/api/v1/recognition/detect`
-   - Verify the container logs: `docker logs spring-vision-compreface`
+   - Verify the container logs: `docker logs spring-vision-compreface -f`
+   - **Wait for startup completion**: Look for "exited: startup (exit status 0; expected)" in logs
+   - **Startup time**: CompreFace takes ~45 seconds to start - be patient
    - Ensure PostgreSQL is running: `docker ps | grep postgres`
    - Ensure port 8000 is not used by another application
 

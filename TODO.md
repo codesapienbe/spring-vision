@@ -147,9 +147,8 @@
   - [ ] If engines are unavailable, return descriptive errors while keeping the app stable
   - [ ] Clamp all normalized coordinates to \[0,1]; sanitize labels; never log image data or PII
 
-
-
 #### 3.4 InsightFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/InsightFaceVisionBackend.java`)
+
 - [ ] **Backend scaffolding**
   - [ ] Create `InsightFaceVisionBackend` implementing `VisionBackend`; support `DetectionType.FACE` and `DetectionType.CUSTOM` for embeddings/verification
   - [ ] Keep public APIs/config intact; no changes to `VisionProperties`

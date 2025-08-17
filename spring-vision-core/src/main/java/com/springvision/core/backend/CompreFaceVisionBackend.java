@@ -57,7 +57,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
     private static final String VERSION = "1.0.0";
 
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration HEALTH_CHECK_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration HEALTH_CHECK_TIMEOUT = Duration.ofSeconds(10); // Increased for CompreFace startup
     private static final int MAX_RETRIES = 3;
     private static final Duration RETRY_DELAY = Duration.ofMillis(500);
 
@@ -142,9 +142,9 @@ public class CompreFaceVisionBackend implements VisionBackend {
             return false;
         }
 
-        // Check health every 30 seconds to avoid excessive API calls
+        // Check health every 60 seconds to avoid excessive API calls (CompreFace is slower)
         long now = System.currentTimeMillis();
-        if (now - lastHealthCheckTime < 30000) {
+        if (now - lastHealthCheckTime < 60000) {
             return healthStatus == BackendHealthInfo.HealthStatus.HEALTHY;
         }
 
@@ -254,8 +254,12 @@ public class CompreFaceVisionBackend implements VisionBackend {
         }
 
         logger.info("Initializing CompreFace backend with API URL: {}", baseUrl);
+        logger.info("Note: CompreFace may take up to 45 seconds to start. Please be patient...");
 
         try {
+            // Wait for CompreFace to be ready (with retries)
+            waitForCompreFaceStartup();
+
             // Perform initial health check
             performHealthCheck();
 
@@ -278,6 +282,41 @@ public class CompreFaceVisionBackend implements VisionBackend {
                 null,
                 e
             );
+        }
+    }
+
+    /**
+     * Waits for CompreFace to be ready for requests.
+     * CompreFace takes approximately 45 seconds to start up.
+     */
+    private void waitForCompreFaceStartup() throws Exception {
+        int maxAttempts = 12; // 12 attempts * 5 seconds = 60 seconds total
+        int attempt = 0;
+
+        while (attempt < maxAttempts) {
+            try {
+                logger.debug("Checking CompreFace startup status (attempt {}/{})", attempt + 1, maxAttempts);
+
+                // Try a simple health check
+                webClient.get()
+                    .uri("/api/v1/recognition/detect")
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+
+                logger.info("CompreFace is ready for requests");
+                return;
+
+            } catch (Exception e) {
+                attempt++;
+                if (attempt >= maxAttempts) {
+                    throw new Exception("CompreFace failed to start within expected time: " + e.getMessage(), e);
+                }
+
+                logger.debug("CompreFace not ready yet (attempt {}/{}), waiting 5 seconds...", attempt, maxAttempts);
+                Thread.sleep(5000); // Wait 5 seconds between attempts
+            }
         }
     }
 
@@ -370,6 +409,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
 
         try {
             // Simple health check - try to call the detect endpoint with minimal data
+            // Note: CompreFace may take longer to respond during startup
             Map<String, Object> requestBody = Map.of(
                 "file", "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
             );

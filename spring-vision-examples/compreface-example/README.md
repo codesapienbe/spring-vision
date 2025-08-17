@@ -22,6 +22,11 @@ This will start:
 - **CompreFace API**: Available at `http://localhost:8000`
 - **PostgreSQL**: Required by CompreFace for data storage
 
+**Important Notes:**
+- **Startup Time**: CompreFace takes approximately 45 seconds to start due to service initialization timing
+- **Database Dependencies**: If PostgreSQL starts slowly, CompreFace may fail initially but will restart automatically
+- **Health Monitoring**: The container includes health checks to ensure proper startup
+
 ### 2. Build the Application
 
 ```bash
@@ -70,20 +75,34 @@ CompreFace provides several REST API endpoints:
 
 ### CompreFace Service Not Starting
 
-1. Check if PostgreSQL is running:
+1. **Check startup status**:
+   ```bash
+   # Check if container is running
+   docker ps | grep compreface
+   
+   # Monitor startup logs (wait for "exited: startup (exit status 0; expected)")
+   docker logs spring-vision-compreface -f
+   ```
+
+2. **Check if PostgreSQL is running**:
    ```bash
    docker-compose ps postgres
    ```
 
-2. Check CompreFace logs:
+3. **Check CompreFace logs**:
    ```bash
    docker-compose logs compreface
    ```
 
-3. Ensure the database connection is working:
+4. **Ensure the database connection is working**:
    ```bash
    docker-compose exec postgres psql -U springvision -d springvision
    ```
+
+5. **Wait for full startup**:
+   - CompreFace takes ~45 seconds to start
+   - Look for "exited: startup (exit status 0; expected)" in logs
+   - Service will restart automatically if database is slow
 
 ### API Connection Issues
 
@@ -109,6 +128,64 @@ Found 1 faces:
     Gender: male
     Mask: no_mask
 Processing completed in 1250ms
+```
+
+## CompreFace Maintenance
+
+### Startup Monitoring
+
+CompreFace has a complex startup process that takes approximately 45 seconds:
+
+1. **Monitor startup progress**:
+   ```bash
+   docker logs spring-vision-compreface -f
+   ```
+
+2. **Look for completion message**:
+   ```
+   exited: startup (exit status 0; expected)
+   ```
+
+3. **Verify service is running**:
+   ```bash
+   docker ps | grep compreface
+   ```
+
+### Performance Configuration
+
+You can configure CompreFace performance using environment variables:
+
+```bash
+# Increase Java heap memory (default: 2GB)
+export COMPREFACE_API_JAVA_OPTS="-Xmx4g"
+
+# Start with custom memory settings
+docker-compose up -d compreface postgres
+```
+
+### Data Persistence
+
+- CompreFace data is stored in PostgreSQL volume
+- Data persists across container restarts
+- Backup the PostgreSQL volume for data safety
+
+### Manual Docker Run (Alternative)
+
+If you prefer manual Docker commands:
+
+```bash
+# Basic setup with data persistence
+docker run -d \
+  --name=CompreFace \
+  -e "POSTGRES_URL=jdbc:postgresql://postgres:5432/springvision" \
+  -e "POSTGRES_USER=springvision" \
+  -e "POSTGRES_PASSWORD=springvision" \
+  -e "EXTERNAL_DB=true" \
+  -e "API_JAVA_OPTS=-Xmx4g" \
+  -v compreface-db:/var/lib/postgresql/data \
+  -p 8000:80 \
+  --restart=always \
+  exadel/compreface
 ```
 
 ## Next Steps
