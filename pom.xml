@@ -30,7 +30,7 @@
         <!-- Additional shared versions -->
         <commons-math3.version>3.6.1</commons-math3.version>
         <onnxruntime.version>1.15.1</onnxruntime.version>
-        <djl.version>0.27.0</djl.version>
+        <djl.version>0.31.1</djl.version>
         <picocli.version>4.7.5</picocli.version>
 
 
