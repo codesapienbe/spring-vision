@@ -15,10 +15,8 @@ import org.springframework.context.event.EventListener;
 
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
-
 import com.springvision.core.backend.MediaPipeVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
-import com.springvision.core.backend.StableOpenCvVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -91,6 +89,8 @@ public class VisionAutoConfiguration {
                 createOpenCvBackend(properties);
             case "mediapipe" ->
                 createMediaPipeBackend(properties);
+            case "deepface" ->
+                createDeepFaceBackend(properties);
             case "yolo" ->
                 createYoloBackend(properties);
 
@@ -179,10 +179,10 @@ public class VisionAutoConfiguration {
         logger.info("Creating OpenCV vision backend");
 
         try {
-            // Try direct instantiation first with stability wrapper
-            StableOpenCvVisionBackend backend = new StableOpenCvVisionBackend(new OpenCvVisionBackend());
+            // Try direct instantiation of OpenCV backend
+            OpenCvVisionBackend backend = new OpenCvVisionBackend();
             backend.initialize();
-            logger.info("OpenCV backend initialized successfully (stable wrapper)");
+            logger.info("OpenCV backend initialized successfully");
             return backend;
         } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
             logger.warn("Failed to create or initialize OpenCV backend - using OpenCV with degraded functionality: {}", e.getMessage());
@@ -294,6 +294,43 @@ public class VisionAutoConfiguration {
             logger.error("Failed to create or initialize MediaPipe backend: {}", e.getMessage(), e);
             throw new UnsupportedOperationException("MediaPipe backend initialization failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Creates a DeepFace vision backend with the specified configuration.
+     *
+     * <p>
+     * This method creates a DeepFace backend that connects to a DeepFace API
+     * server running in a Docker container.</p>
+     *
+     * @param properties the vision configuration properties
+     * @return the configured DeepFace backend
+     */
+    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
+        logger.info("Creating DeepFace vision backend");
+        logger.warn("DeepFace backend is not yet fully integrated - using placeholder");
+        throw new UnsupportedOperationException("DeepFace backend is not yet fully integrated");
+
+        /*
+        try {
+            // Use default configuration for now
+            String apiUrl = "http://localhost:5000";
+            Duration timeout = Duration.ofSeconds(30);
+
+            DeepFaceVisionBackend backend = new DeepFaceVisionBackend(apiUrl, timeout);
+            backend.initialize();
+
+            if (!backend.isHealthy()) {
+                logger.warn("DeepFace backend initialized but unhealthy: {}", backend.getHealthInfo().errorMessage());
+            }
+
+            logger.info("DeepFace backend created successfully with API URL: {}", apiUrl);
+            return backend;
+        } catch (Exception e) {
+            logger.error("Failed to create or initialize DeepFace backend: {}", e.getMessage(), e);
+            throw new RuntimeException("DeepFace backend initialization failed: " + e.getMessage(), e);
+        }
+        */
     }
 
     /**

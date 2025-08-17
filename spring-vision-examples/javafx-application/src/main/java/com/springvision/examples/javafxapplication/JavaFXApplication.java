@@ -22,7 +22,7 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
-
+import com.springvision.core.backend.DeepFaceVisionBackend;
 import com.springvision.core.backend.FaceBytesBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.exception.VisionProcessingException;
@@ -193,7 +193,7 @@ public class JavaFXApplication {
 
             // Backend selector
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv", "facebytes");
+            backendComboBox.getItems().addAll("opencv", "facebytes", "deepface");
             String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
@@ -236,6 +236,14 @@ public class JavaFXApplication {
                     ocv.initialize();
                     logger.info("OpenCV backend initialized successfully", Map.of("component", "JavaFXApplication"));
                     backend = ocv;
+                    break;
+                }
+                case "deepface": {
+                    // Use DeepFace HTTP API
+                    DeepFaceVisionBackend deepFace = new DeepFaceVisionBackend("http://localhost:5000");
+                    deepFace.initialize();
+                    logger.info("DeepFace backend initialized successfully", Map.of("component", "JavaFXApplication"));
+                    backend = deepFace;
                     break;
                 }
             }

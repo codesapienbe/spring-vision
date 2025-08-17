@@ -171,6 +171,10 @@ venv.bak/
 .coverage
 htmlcov/
 
+# UV package manager virtual environments
+remove/
+.venv/
+
 # OpenCV native libraries (platform specific)
 *.dll
 *.so

@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: deepface-example
+
+vision:
+  enabled: true
+  backend: deepface
+  deepface:
+    enabled: true
+    api-url: http://localhost:5000
+    timeout: 30s
+    max-retries: 3
+
+logging:
+  level:
+    com.springvision: DEBUG
+    com.springvision.core.backend.DeepFaceVisionBackend: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

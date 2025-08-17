@@ -13,6 +13,7 @@ The JavaFX Application provides a modern, user-friendly desktop interface for pe
 - **Real-Time Processing**: Asynchronous face detection with progress indicators
 - **Visual Result Display**: Bounding boxes drawn directly on images
 - **Multiple Image Formats**: Support for JPG, JPEG, PNG, BMP, and GIF
+- **Multiple Backend Support**: OpenCV, FaceBytes, and DeepFace backends
 - **File Browser Integration**: Native file chooser for image selection
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **Structured Logging**: JSON-formatted logs for monitoring and debugging
@@ -28,17 +29,20 @@ The JavaFX Application provides a modern, user-friendly desktop interface for pe
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd spring-vision-examples/javafx-application
    ```
 
 2. Build the application:
+
    ```bash
    mvn clean package
    ```
 
 3. Run the application:
+
    ```bash
    ./run.sh
    ```
@@ -50,16 +54,19 @@ The JavaFX Application provides a modern, user-friendly desktop interface for pe
 The application can be started in several ways:
 
 #### Using the Run Script (Recommended)
+
 ```bash
 ./run.sh
 ```
 
 #### Using Maven
+
 ```bash
 mvn javafx:run
 ```
 
 #### Using Java Directly
+
 ```bash
 java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
      --add-modules javafx.controls,javafx.fxml,javafx.graphics \
@@ -72,17 +79,23 @@ java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdo
    - Click the "Open Image" button to browse for an image file
    - Or drag and drop an image file onto the application window
 
-2. **Detect Faces**:
+2. **Select Backend** (Optional):
+   - Use the backend dropdown to choose between OpenCV, FaceBytes, or DeepFace
+   - OpenCV: Fast, local processing (default)
+   - FaceBytes: Advanced face analysis capabilities
+   - DeepFace: Containerized API with advanced ML models
+
+3. **Detect Faces**:
    - Once an image is loaded, click the "Detect Faces" button
    - The application will process the image asynchronously
    - A progress indicator will show the processing status
 
-3. **View Results**:
+4. **View Results**:
    - Detection results are displayed in the right panel
    - Bounding boxes are drawn directly on the image
    - Each detection shows confidence score and position information
 
-4. **Clear Results**:
+5. **Clear Results**:
    - Use the "Clear" button to reset the display and load a new image
 
 ## User Interface
@@ -127,13 +140,61 @@ The application uses Spring Boot's autoconfiguration and can be customized throu
 ```yaml
 # Vision configuration
 vision:
-  backend:
-    type: opencv
+  backend: opencv  # or "facebytes" or "deepface"
+  opencv:
     enabled: true
+    confidence-threshold: 0.7
+  deepface:
+    enabled: false
+    api-url: http://localhost:5000
+    timeout: 30s
+    max-retries: 3
   logging:
     level: INFO
     format: structured
 ```
+
+### DeepFace Backend Setup
+
+To use the DeepFace backend:
+
+1. **Start the DeepFace API container**:
+
+   ```bash
+   # From the project root (recommended)
+   mvn spring-boot:run -Pjavafx
+   
+   # Or manually start Docker Compose
+   docker-compose up -d deepface
+   ```
+
+   The DeepFace container uses the official `serengil/deepface:latest` image with built-in HTTP API.
+
+2. **Configure the application**:
+
+   ```yaml
+   vision:
+     backend: deepface
+     deepface:
+       enabled: true
+       api-url: http://localhost:5000
+   ```
+
+3. **Or use environment variables**:
+
+   ```bash
+   export VISION_BACKEND=deepface
+   export VISION_DEEPFACE_ENABLED=true
+   export VISION_DEEPFACE_API_URL=http://localhost:5000
+   ```
+
+4. **Run the application**:
+
+   ```bash
+   ./run.sh
+   ```
+
+The DeepFace backend provides advanced face analysis including age, gender, emotion, and race detection.
 
 ## Logging
 
@@ -176,6 +237,26 @@ The application provides comprehensive error handling:
 3. Drop it onto the application window
 4. The image loads automatically
 5. Click "Detect Faces" to process
+
+### Example 3: DeepFace Backend Usage
+
+1. Start the DeepFace API container:
+
+   ```bash
+   mvn spring-boot:run -Pjavafx
+   ```
+
+2. Launch the JavaFX application:
+
+   ```bash
+   ./run.sh
+   ```
+
+3. Select "deepface" from the backend dropdown
+
+4. Load an image and click "Detect Faces"
+
+5. View advanced analysis results including age, gender, and emotion detection
 
 ## Development
 
@@ -242,6 +323,12 @@ mvn javafx:run
    - Check that Maven is properly configured
    - Verify all dependencies are available
 
+5. **"DeepFace backend not working"**
+   - Ensure the DeepFace container is running: `docker ps | grep deepface`
+   - Check if the API is accessible: `curl http://localhost:5000/health`
+   - Verify the container logs: `docker logs spring-vision-deepface`
+   - Ensure port 5000 is not used by another application
+
 ### Debug Mode
 
 Enable verbose logging for detailed debugging:
@@ -255,6 +342,7 @@ logging:
 ### Log Files
 
 Check the log files for detailed error information:
+
 - `logs/javafx-application.log` - Human-readable logs
 - `logs/javafx-application.json` - Structured JSON logs
 
@@ -308,6 +396,7 @@ This project is licensed under the same license as the Spring Vision framework.
 ## Support
 
 For issues and questions:
+
 1. Check the troubleshooting section
 2. Review the application logs
 3. Create an issue in the project repository
@@ -316,4 +405,4 @@ For issues and questions:
 ---
 
 *Last Updated: 2025-08-07*
-*Version: 1.0.0-SNAPSHOT* 
+*Version: 1.0.0-SNAPSHOT*

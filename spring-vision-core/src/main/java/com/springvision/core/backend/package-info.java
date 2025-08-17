@@ -16,9 +16,8 @@
  *   <li>Real-time performance for most applications</li>
  * </ul>
  *
- * <h3>Demo and Testing</h3>
- * <p>The {@link com.springvision.core.backend.OpenCvDemo} class provides examples of how to
- * use the OpenCV backend for basic image operations, face detection, and result visualization.</p>
+ * <h3>Testing</h3>
+ * <p>Integration tests are provided to verify OpenCV backend functionality and performance.</p>
  *
  * <h2>Usage Examples</h2>
  *

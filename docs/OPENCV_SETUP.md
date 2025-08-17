@@ -71,7 +71,7 @@ If you need to install OpenCV manually (not recommended):
    ```
 4. **Verify Installation**:
    ```cmd
-   java -cp "target/classes;target/dependency/*" com.springvision.core.backend.OpenCvDemo test-image.jpg
+   java -cp "target/classes;target/dependency/*" com.springvision.examples.basicfacedetection.BasicFaceDetectionApplication
    ```
 
 #### macOS
@@ -321,8 +321,8 @@ mvn test -Dopencv.available=true
 Test with real images:
 
 ```bash
-# Create test image
-java -cp target/classes com.springvision.core.backend.OpenCvDemo test-image.jpg
+# Run the basic face detection example
+mvn spring-boot:run -pl spring-vision-examples/basic-face-detection
 ```
 
 ## Support

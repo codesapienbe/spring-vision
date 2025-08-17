@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # DeepFace service for face detection and analysis
+  # https://hub.docker.com/r/serengil/deepface
+  deepface:
+    image: serengil/deepface:latest
+    container_name: spring-vision-deepface
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - spring-vision-network
+
+  # PostgreSQL database for applications that need persistence
+  postgres:
+    image: postgres:15-alpine
+    container_name: spring-vision-postgres
+    environment:
+      POSTGRES_DB: springvision
+      POSTGRES_USER: springvision
+      POSTGRES_PASSWORD: springvision
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - spring-vision-network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: spring-vision-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - spring-vision-network
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  spring-vision-network:
+    driver: bridge

@@ -44,19 +44,75 @@ Spring-Vision is an open source project designed to empower Spring Boot develope
 
 ## 🚀 Quick Start
 
-### 🏗️ Building from Source
+### Prerequisites
+
+- Java 21 or higher
+- Maven 3.8 or higher
+- Docker and Docker Compose (for DeepFace backend)
+
+### Running Examples
+
+The project includes several example applications that demonstrate different use cases:
+
+#### Using Maven Profiles
+
+You can run any example application using Maven profiles. The Docker Compose services will be automatically started:
+
+```bash
+# Basic Face Detection Example
+mvn spring-boot:run -Pbasic-face-detection
+
+# JavaFX Application
+mvn spring-boot:run -Pjavafx
+
+# GWT Application
+mvn spring-boot:run -Pgwt
+
+# Vaadin Application
+mvn spring-boot:run -Pvaadin
+
+# PicoCLI Application
+mvn spring-boot:run -Ppicocli
+```
+
+#### Manual Docker Compose Setup
+
+If you prefer to manage Docker Compose manually:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific services only
+docker-compose up -d deepface postgres redis
+
+# Stop all services
+docker-compose down
+```
+
+#### Available Services
+
+The `docker-compose.yml` includes the following services:
+
+- **DeepFace** (port 5000): Face detection and analysis API
+- **PostgreSQL** (port 5432): Database for applications requiring persistence
+- **Redis** (port 6379): Caching service (optional)
+
+### Building from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/codesapienbe/spring-vision.git
 cd spring-vision
 
-# Build all modules including examples
+# Build the project
 mvn clean install
 
-# Build specific modules
-mvn clean install -pl spring-vision-core,spring-vision-starter
-mvn clean install -pl spring-vision-examples
+# Run tests
+mvn test
+
+# Run with code quality checks
+mvn clean install -Pci
 ```
 
 ### 📦 Maven Dependency
