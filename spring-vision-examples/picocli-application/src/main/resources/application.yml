@@ -6,7 +6,7 @@ spring:
     web-application-type: none  # Disable web server for CLI application
   docker:
     compose:
-      enabled: false  # Disable Docker Compose since we use OpenCV by default
+      enabled: true
 
 # Vision Framework Configuration
 vision:
