@@ -1,9 +1,8 @@
 services:
   deepface:
-    build:
-      context: ../../spring-vision-deepface
-      dockerfile: Dockerfile
+    image: serengil/deepface:latest
+    container_name: basic-face-detection-deepface
     ports:
-      - "5000:5000"
+      - "5004:5000"
     environment:
       - PYTHONUNBUFFERED=1

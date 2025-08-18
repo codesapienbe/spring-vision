@@ -416,7 +416,7 @@ mvn javafx:run
 5. **"DeepFace backend not working"**
    - Ensure the DeepFace container is running: `docker ps | grep deepface`
    - Check if the API is accessible: `curl http://localhost:5000/health`
-   - Verify the container logs: `docker logs spring-vision-deepface`
+   - Verify the container logs: `docker logs javafx-deepface`
    - Ensure port 5000 is not used by another application
 
 6. **"CompreFace backend not working"**

@@ -1,7 +1,7 @@
 services:
   deepface:
-    build:
-      context: ../../spring-vision-deepface
+    image: serengil/deepface:latest
+    container_name: javafx-deepface
     ports:
       - "5000:5000"
     environment:

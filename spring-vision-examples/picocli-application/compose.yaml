@@ -1,8 +1,8 @@
 services:
   deepface:
-    build:
-      context: ../../spring-vision-deepface
+    image: serengil/deepface:latest
+    container_name: picocli-deepface
     ports:
-      - "5000:5000"
+      - "5002:5000"
     environment:
       - PYTHONUNBUFFERED=1

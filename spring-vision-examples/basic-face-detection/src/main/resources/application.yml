@@ -3,6 +3,9 @@ spring:
     name: basic-face-detection
   main:
     allow-bean-definition-overriding: true
+  docker:
+    compose:
+      enabled: false  # Disable Docker Compose since we use OpenCV by default
   # Thymeleaf Configuration
   thymeleaf:
     cache: false
@@ -70,9 +73,9 @@ management:
   endpoint:
     health:
       show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
     tags:
       application: basic-face-detection
