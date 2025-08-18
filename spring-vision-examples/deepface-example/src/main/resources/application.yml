@@ -1,6 +1,9 @@
 spring:
   application:
     name: deepface-example
+  docker:
+    compose:
+      enabled: true
 
 vision:
   enabled: true
