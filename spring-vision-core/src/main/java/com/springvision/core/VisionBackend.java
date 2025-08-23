@@ -14,8 +14,7 @@ import com.springvision.core.exception.BaseVisionException;
  * implementation (OpenCV, MediaPipe, YOLO, etc.).</p>
  *
  * <p>The interface supports multiple detection types and provides methods for
- * checking backend capabilities, health status, and performing detections.
- * Implementations should be thread-safe and handle errors gracefully.</p>
+ * checking backend capabilities, health status, and performing detections.</p>
  *
  * <p>Example usage:</p>
  * <pre>{@code
@@ -105,30 +104,10 @@ public interface VisionBackend {
      */
     BackendHealthInfo getHealthInfo();
 
-    /**
-     * Performs face detection on the provided image data.
-     *
-     * <p>This method detects human faces in the image and returns detection
-     * results including bounding boxes and confidence scores.</p>
-     *
-     * @param imageData the image data to process
-     * @return the face detection results
-     * @throws BaseVisionException if face detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs face detection on the provided image data. */
     VisionResult detectFaces(ImageData imageData) throws BaseVisionException;
 
-    /**
-     * Performs object detection on the provided image data.
-     *
-     * <p>This method detects various objects in the image and returns detection
-     * results including bounding boxes, class labels, and confidence scores.</p>
-     *
-     * @param imageData the image data to process
-     * @return the object detection results
-     * @throws BaseVisionException if object detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs object detection on the provided image data. */
     VisionResult detectObjects(ImageData imageData) throws BaseVisionException;
 
     /**
@@ -169,96 +148,43 @@ public interface VisionBackend {
         };
     }
 
-    /**
-     * Performs text recognition (OCR) on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the text recognition results
-     * @throws BaseVisionException if text recognition fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs text recognition (OCR) on the provided image data. */
     default VisionResult detectText(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Text detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs barcode/QR code detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the barcode detection results
-     * @throws BaseVisionException if barcode detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs barcode/QR code detection on the provided image data. */
     default VisionResult detectBarcodes(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Barcode detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs landmark detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the landmark detection results
-     * @throws BaseVisionException if landmark detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs landmark detection on the provided image data. */
     default VisionResult detectLandmarks(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Landmark detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs pose estimation on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the pose estimation results
-     * @throws BaseVisionException if pose estimation fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs pose estimation on the provided image data. */
     default VisionResult detectPoses(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Pose detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs hand detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the hand detection results
-     * @throws BaseVisionException if hand detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs hand detection on the provided image data. */
     default VisionResult detectHands(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Hand detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs custom detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the custom detection results
-     * @throws BaseVisionException if custom detection fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
+    /** Performs custom detection on the provided image data. */
     default VisionResult detectCustom(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException(
             String.format("Custom detection is not supported by backend '%s'", getBackendId()));
     }
 
-    /**
-     * Performs multiple detection types on the provided image data.
-     *
-     * <p>This method allows performing multiple detection operations in a single
-     * call, which can be more efficient than multiple individual calls.</p>
-     *
-     * @param imageData the image data to process
-     * @param detectionTypes the types of detection to perform
-     * @return a list of detection results in the same order as the detection types
-     * @throws BaseVisionException if any detection fails
-     * @throws IllegalArgumentException if imageData is null, detectionTypes is null/empty, or any detection type is not supported
-     */
+    /** Performs multiple detection types on the provided image data. */
     default List<VisionResult> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes)
             throws BaseVisionException {
         if (imageData == null) {
@@ -288,28 +214,43 @@ public interface VisionBackend {
             .toList();
     }
 
-    /**
-     * Initializes the backend and performs any necessary setup.
-     *
-     * <p>This method should be called before using the backend to ensure
-     * it's properly initialized. It may load models, establish connections,
-     * or perform other initialization tasks.</p>
-     *
-     * @throws BaseVisionException if initialization fails
-     */
+    /** Initializes the backend and performs any necessary setup. */
     default void initialize() throws BaseVisionException {
-        // Default implementation does nothing
+        // Default no-op
+    }
+
+    /** Shuts down the backend and releases resources. */
+    default void shutdown() {
+        // Default no-op
     }
 
     /**
-     * Shuts down the backend and releases any resources.
+     * Extracts face embeddings from the provided image.
      *
-     * <p>This method should be called when the backend is no longer needed
-     * to properly clean up resources, close connections, etc.</p>
+     * <p>Default implementation uses FaceBytes (DeepFace Java) under the hood to produce
+     * L2-normalized embeddings. Backends can override to provide native embeddings (e.g., SFace).</p>
      *
-     * @throws BaseVisionException if shutdown fails
+     * @param imageData image to process
+     * @return list of embeddings (one per detected face); may be empty
+     * @throws BaseVisionException if processing fails
      */
-    default void shutdown() throws BaseVisionException {
-        // Default implementation does nothing
+    default List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
+        return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+    }
+
+    /**
+     * Verifies whether two images belong to the same identity using embeddings.
+     *
+     * <p>Default implementation extracts embeddings and computes distance using the given metric.</p>
+     *
+     * @param a first image
+     * @param b second image
+     * @param metric "cosine" or "euclidean"
+     * @param threshold distance threshold for a match
+     * @return true if match, false otherwise
+     * @throws BaseVisionException if processing fails
+     */
+    default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
+        return com.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
     }
 }
