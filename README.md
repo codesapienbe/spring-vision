@@ -74,6 +74,15 @@ mvn spring-boot:run -pl spring-vision-examples/vaadin-application
 # PicoCLI Application
 mvn spring-boot:run -pl spring-vision-examples/picocli-application
 
+# PicoCLI Application with Example
+SPRING_DOCKER_COMPOSE_ENABLED=false \
+VISION_BACKEND=opencv \
+VISION_DEEPFACE_ENABLED=false \
+VISION_COMPREFACE_ENABLED=false \
+SERVER_PORT=9999 \
+mvn -pl spring-vision-examples/picocli-application spring-boot:run \
+  -Dspring-boot.run.arguments="--detect ~/mockdata/spring-vision/selfie.jpg --format json"
+
 # CompreFace Example
 mvn spring-boot:run -pl spring-vision-examples/compreface-example
 ```
@@ -119,6 +128,8 @@ mvn clean install -Pci
 ```
 
 ### 📦 Maven Dependency
+
+- Will be added as soon as the project is stable and passes all build pipelines.
 
 ```xml
 <dependency>

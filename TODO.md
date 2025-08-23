@@ -18,19 +18,19 @@
 #### 2.1 CLI-Based Application
 
 - [ ] **TODO: Create CLI-based Spring Vision application**
-  - [ ] Create `spring-vision-examples/cli-application/` module
-  - [ ] Implement command-line interface for image processing
-  - [ ] Support batch processing from command line
-  - [ ] Add interactive mode for single image processing
-  - [ ] Include progress bars and real-time feedback
-  - [ ] Support multiple output formats (JSON, CSV, XML)
-  - [ ] Add configuration file support
-  - [ ] Include help and usage documentation
+  - [x] Created `spring-vision-examples/picocli-application/` module
+  - [x] Implement command-line interface for image processing
+  - [x] Support batch processing from command line
+  - [x] Add interactive mode for single image processing
+  - [x] Include progress bars and real-time feedback
+  - [x] Support multiple output formats (JSON, CSV) [XML pending]
+  - [x] Add configuration file support
+  - [x] Include help and usage documentation
 
 #### 2.2 GWT-Based GUI Application
 
 - [ ] **TODO: Create GWT-based GUI application**
-  - [ ] Create `spring-vision-examples/gwt-application/` module
+  - [x] Created `spring-vision-examples/gwt-application/` module
   - [ ] Implement web-based GUI using Google Web Toolkit
   - [ ] Add drag-and-drop image upload functionality
   - [ ] Create real-time image preview and detection visualization
@@ -43,8 +43,8 @@
 #### 2.3 Vaadin-Based GUI Application
 
 - [ ] **TODO: Create Vaadin-based GUI application**
-  - [ ] Create `spring-vision-examples/vaadin-application/` module
-  - [ ] Implement modern web-based GUI using Vaadin Framework
+  - [x] Created `spring-vision-examples/vaadin-application/` module
+  - [x] Implement modern web-based GUI using Vaadin Framework
   - [ ] Add advanced image upload with preview
   - [ ] Create interactive detection result visualization
   - [ ] Implement real-time processing with WebSocket updates

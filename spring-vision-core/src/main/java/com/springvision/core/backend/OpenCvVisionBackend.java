@@ -855,13 +855,17 @@ public class OpenCvVisionBackend implements VisionBackend {
 
             // Load face cascade classifier only if OpenCV is available
             if (opencvAvailable) {
-                loadFaceCascade();
+                boolean cascadesAvailable = tryLoadFaceCascade();
                 // Prefer loading YuNet first, then DNN SSD as secondary
                 loadYuNetDetector();
                 loadDnnFaceDetector();
-                loadEyeCascade();
-                loadProfileCascade();
-                loadLbpCascade();
+                if (cascadesAvailable) {
+                    loadEyeCascade();
+                    loadProfileCascade();
+                    loadLbpCascade();
+                } else {
+                    logger.warn("Skipping Haar/LBP cascades due to unavailable native highgui/GTK in headless environment");
+                }
                 loadSFaceRecognizer();
             } else {
                 logger.debug("Skipping face cascade loading - OpenCV not available");
@@ -2066,6 +2070,28 @@ public class OpenCvVisionBackend implements VisionBackend {
             return factor;
         } catch (Throwable t) {
             return 1.0;
+        }
+    }
+
+    /**
+     * Attempts to load the face cascade but tolerates environments where native GUI deps are missing.
+     *
+     * @return true if cascades are available; false if skipped due to missing native dependencies
+     */
+    private boolean tryLoadFaceCascade() {
+        try {
+            loadFaceCascade();
+            return true;
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+            // HighGUI/GTK may be missing in headless environments; proceed without cascades
+            logger.warn("Face cascade unavailable (native dependency missing): {}", e.getMessage());
+            faceCascade = null;
+            return false;
+        } catch (Throwable t) {
+            // Catch-all to avoid failing backend initialization
+            logger.warn("Failed to load face cascade: {}", t.getMessage());
+            faceCascade = null;
+            return false;
         }
     }
 }

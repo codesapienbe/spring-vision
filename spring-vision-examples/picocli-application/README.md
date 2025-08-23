@@ -4,13 +4,15 @@ A command-line interface application for face detection using the Spring Vision 
 
 ## Overview
 
-The PicoCLI Application provides a powerful command-line interface for performing face detection on image files. It leverages the Spring Vision framework and PicoCLI library to deliver a robust, user-friendly CLI experience.
+The PicoCLI Application provides a powerful command-line interface for performing face detection on image files. It leverages the Spring Vision framework and Apache Commons CLI to deliver a robust, user-friendly CLI experience.
 
 ## Features
 
 - **Single File Processing**: Detect faces in individual image files
+- **Batch Processing**: Process multiple files in a directory
+- **Interactive Mode**: Guided prompts for single-image detection
+- **Progress Indicator**: Optional progress display for batch runs
 - **Multiple Output Formats**: Support for text, JSON, and CSV output formats
-- **Batch Processing**: Process multiple files in a directory (planned)
 - **Health Monitoring**: Check the status of the vision backend
 - **Verbose Logging**: Detailed logging for debugging and monitoring
 - **File Validation**: Comprehensive input validation and error handling
@@ -50,49 +52,45 @@ The PicoCLI Application provides a powerful command-line interface for performin
 java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --help
 ```
 
+#### Interactive Mode
+```bash
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --interactive
+```
+
 #### Detect Faces in a Single Image
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg
 ```
 
 #### Detect Faces with JSON Output
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg -o json
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg -f json
 ```
 
 #### Detect Faces with Verbose Output
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg -v
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg -V
 ```
 
-#### Save Results to File
+#### Batch Processing with Progress
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect /path/to/image.jpg --save-results results.txt
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --batch /path/to/images --confidence 0.7 --progress -f csv
 ```
 
 #### Check Health Status
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar health
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --health
 ```
 
 ### Command Options
 
-#### Detect Command Options
-
-| Option | Long Option | Description | Default |
-|--------|-------------|-------------|---------|
-| `-o` | `--output` | Output format: json, text, csv | text |
-| `-v` | `--verbose` | Enable verbose output | false |
-| | `--save-results` | Save results to output file | null |
-
-#### Batch Command Options (Planned)
-
-| Option | Long Option | Description | Default |
-|--------|-------------|-------------|---------|
-| `-p` | `--pattern` | File pattern to match | `*.{jpg,jpeg,png}` |
-| `-o` | `--output` | Output format: json, text, csv | text |
-| `-v` | `--verbose` | Enable verbose output | false |
-| | `--save-results` | Save results to output file | null |
+- `-f, --format <format>`: Output format: json, text, csv (default: text)
+- `-c, --confidence <threshold>`: Confidence threshold 0.0-1.0 (default: 0.5)
+- `-p, --progress`: Show progress during batch processing
+- `-i, --interactive`: Run in interactive mode
+- `-V, --verbose`: Enable verbose output
+- `-v, --version`: Show version information
+- `-h, --help`: Show help information
 
 ## Output Formats
 
@@ -192,7 +190,7 @@ The application provides comprehensive error handling:
 
 ### Example 1: Basic Face Detection
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect family-photo.jpg
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect family-photo.jpg
 Face Detection Results for: family-photo.jpg
 ==================================================
 Total faces detected: 4
@@ -206,7 +204,7 @@ Detected faces:
 
 ### Example 2: JSON Output for Scripting
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect image.jpg -o json
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect image.jpg -f json
 {
   "filename": "image.jpg",
   "totalFaces": 1,
@@ -225,12 +223,21 @@ $ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect image.jpg -o js
 }
 ```
 
-### Example 3: Batch Processing (Planned)
+### Example 3: Batch Processing with Progress
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar batch /path/to/images/ -o csv --save-results results.csv
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --batch /path/to/images/ -f csv --progress
 Processing 15 images...
 Completed: 15/15 (100%)
-Results saved to: results.csv
+Results printed to stdout
+```
+
+### Example 4: Interactive Mode
+```bash
+$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --interactive
+Image file path > /path/to/image.jpg
+Output format [text|json|csv] (default: text) > json
+Confidence threshold [0.0-1.0] (default: 0.5) > 0.6
+...
 ```
 
 ## Development
@@ -255,14 +262,11 @@ src/
 # Clean and compile
 mvn clean compile
 
-# Run tests
-mvn test
-
 # Package application
 mvn package
 
 # Run with Maven
-mvn spring-boot:run -- detect /path/to/image.jpg
+mvn spring-boot:run -- --detect /path/to/image.jpg
 ```
 
 ## Troubleshooting
@@ -286,7 +290,7 @@ mvn spring-boot:run -- detect /path/to/image.jpg
 
 Enable verbose logging for detailed debugging:
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar detect image.jpg -v
+java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect image.jpg -V
 ```
 
 ### Log Files
@@ -300,9 +304,8 @@ Check the log files for detailed error information:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+4. Ensure build passes
+5. Submit a pull request
 
 ## License
 

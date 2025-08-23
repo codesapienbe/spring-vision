@@ -7,7 +7,7 @@ services:
     image: serengil/deepface:latest
     container_name: spring-vision-deepface
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     restart: unless-stopped
     networks:
       - spring-vision-network
@@ -25,7 +25,7 @@ services:
       # Optional: Configure Java memory settings for better performance
       API_JAVA_OPTS: ${COMPREFACE_API_JAVA_OPTS:--Xmx2g}
     ports:
-      - "8000:80"
+      - "127.0.0.1:8000:80"
     restart: unless-stopped
     depends_on:
       - postgres
@@ -47,7 +47,7 @@ services:
       POSTGRES_USER: springvision
       POSTGRES_PASSWORD: springvision
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
     image: redis:7-alpine
     container_name: spring-vision-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     restart: unless-stopped
     networks:
       - spring-vision-network

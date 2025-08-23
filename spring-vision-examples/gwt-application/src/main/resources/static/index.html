@@ -81,6 +81,43 @@
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        /* New styles for drag-and-drop and preview */
+        .drop-zone {
+            margin: 15px auto;
+            padding: 20px;
+            border: 2px dashed #007bff;
+            border-radius: 8px;
+            color: #007bff;
+            background-color: #f0f7ff;
+            cursor: pointer;
+            max-width: 600px;
+        }
+        .drop-zone.dragover {
+            background-color: #e2f0ff;
+            border-color: #0056b3;
+            color: #0056b3;
+        }
+        .preview-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .preview-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+        }
+        #previewImage {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        #overlayCanvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -95,6 +132,15 @@
             <div class="file-input">
                 <label for="fileInput">Select an image to detect faces:</label><br>
                 <input type="file" id="fileInput" accept="image/*" title="Choose image for face detection" />
+            </div>
+            <div id="dropZone" class="drop-zone" aria-label="Drop image here for detection">
+                Drag & Drop an image here, or click to select
+            </div>
+            <div class="preview-container">
+                <div class="preview-wrapper">
+                    <img id="previewImage" alt="Image preview" />
+                    <canvas id="overlayCanvas"></canvas>
+                </div>
             </div>
             <button id="detectBtn" class="submit-btn">Detect Faces</button>
         </div>
@@ -119,14 +165,76 @@
         const resultsDiv = document.getElementById('results');
         const detectionCount = document.getElementById('detectionCount');
         const detectionList = document.getElementById('detectionList');
+        const dropZone = document.getElementById('dropZone');
+        const previewImage = document.getElementById('previewImage');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const overlayCtx = overlayCanvas.getContext('2d');
+
+        let selectedFile = null;
+        let previewUrl = null;
+
+        // Sync selected file from file input
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files[0]) {
+                setSelectedFile(fileInput.files[0]);
+            }
+        });
+
+        // Click on drop zone opens file dialog
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Drag-and-drop handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files[0]) {
+                setSelectedFile(dt.files[0]);
+            }
+        });
+
+        function setSelectedFile(file) {
+            hideError();
+            selectedFile = file;
+            // Only accept image types
+            if (!file.type || !file.type.startsWith('image/')) {
+                showError('Unsupported file type. Please select an image.');
+                return;
+            }
+            // Preview the image and prepare canvas overlay
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+            previewUrl = URL.createObjectURL(file);
+            previewImage.onload = () => {
+                // Resize canvas to image size
+                overlayCanvas.width = previewImage.clientWidth;
+                overlayCanvas.height = previewImage.clientHeight;
+                // Clear any existing drawings
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+            };
+            previewImage.src = previewUrl;
+        }
 
         detectBtn.addEventListener('click', async () => {
-            if (!fileInput.files.length) {
+            if (!selectedFile && (!fileInput.files || !fileInput.files.length)) {
                 showError('Please choose an image first.');
                 return;
             }
 
-            const file = fileInput.files[0];
+            const file = selectedFile || fileInput.files[0];
             const formData = new FormData();
             formData.append('file', file);
 
@@ -150,7 +258,7 @@
                 displayResults(json);
             } catch (err) {
                 console.error(err);
-                showError(`Error: ${err.message}`);
+                showError(`Error: ${sanitize(err.message)}`);
             } finally {
                 detectBtn.textContent = 'Detect Faces';
                 detectBtn.disabled = false;
@@ -159,7 +267,7 @@
 
         function displayResults(data) {
             if (data.error) {
-                showError(data.error);
+                showError(sanitize(data.error));
                 return;
             }
 
@@ -170,6 +278,8 @@
 
             if (detections.length === 0) {
                 detectionList.innerHTML = '<p>No faces detected in the uploaded image.</p>';
+                // Clear overlay
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             } else {
                 detections.forEach((detection, index) => {
                     const detectionItem = document.createElement('div');
@@ -177,14 +287,53 @@
                     detectionItem.innerHTML = `
                         <strong>Face #${index + 1}</strong><br>
                         <span class="confidence">Confidence: ${(detection.confidence * 100).toFixed(1)}%</span><br>
-                        <span>Location: (${detection.boundingBox.x.toFixed(3)}, ${detection.boundingBox.y.toFixed(3)})</span><br>
-                        <span>Size: ${detection.boundingBox.width.toFixed(3)} x ${detection.boundingBox.height.toFixed(3)}</span>
+                        <span>Location: (${Number(detection.boundingBox.x).toFixed(3)}, ${Number(detection.boundingBox.y).toFixed(3)})</span><br>
+                        <span>Size: ${Number(detection.boundingBox.width).toFixed(3)} x ${Number(detection.boundingBox.height).toFixed(3)}</span>
                     `;
                     detectionList.appendChild(detectionItem);
                 });
+                drawDetections(detections);
             }
 
             showResults();
+        }
+
+        function drawDetections(detections) {
+            try {
+                // Ensure canvas matches the displayed image size
+                overlayCanvas.width = previewImage.clientWidth;
+                overlayCanvas.height = previewImage.clientHeight;
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+                const imgWidth = previewImage.clientWidth;
+                const imgHeight = previewImage.clientHeight;
+
+                overlayCtx.strokeStyle = '#FF3B30';
+                overlayCtx.lineWidth = 2;
+                overlayCtx.font = '12px Arial';
+                overlayCtx.fillStyle = 'rgba(255, 59, 48, 0.15)';
+
+                detections.forEach((det, idx) => {
+                    const x = Number(det.boundingBox.x) * imgWidth;
+                    const y = Number(det.boundingBox.y) * imgHeight;
+                    const w = Number(det.boundingBox.width) * imgWidth;
+                    const h = Number(det.boundingBox.height) * imgHeight;
+
+                    // Draw filled rect (semi-transparent) and border
+                    overlayCtx.fillRect(x, y, w, h);
+                    overlayCtx.strokeRect(x, y, w, h);
+
+                    // Label
+                    const label = `Face ${idx + 1} ${(det.confidence * 100).toFixed(1)}%`;
+                    overlayCtx.fillStyle = '#FF3B30';
+                    overlayCtx.fillRect(x, Math.max(0, y - 16), overlayCtx.measureText(label).width + 6, 16);
+                    overlayCtx.fillStyle = '#FFFFFF';
+                    overlayCtx.fillText(label, x + 3, Math.max(10, y - 4));
+                    overlayCtx.fillStyle = 'rgba(255, 59, 48, 0.15)';
+                });
+            } catch (e) {
+                console.error('Failed to draw detections', e);
+            }
         }
 
         function showError(message) {
@@ -202,6 +351,10 @@
 
         function hideResults() {
             resultsDiv.style.display = 'none';
+        }
+
+        function sanitize(text) {
+            return String(text).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
         }
     </script>
 </body>
