@@ -26,6 +26,19 @@
   - [x] Support multiple output formats (JSON, CSV) [XML pending]
   - [x] Add configuration file support
   - [x] Include help and usage documentation
+  - [ ] Add `--embed <image>`: extract face embeddings (JSON output)
+    - [ ] Use FaceBytes embeddings initially (fast path), return per-face vectors and bounds
+    - [ ] Add optional `--truncate <n>` to shorten printed vector for readability (no effect on computation)
+    - [ ] Validate file path (exists, regular file, readable), secure home expansion
+  - [ ] Add `--verify <image1> <image2>`: verify if two photos belong to the same person
+    - [ ] Extract embeddings per image; select top-confidence face when multiple
+    - [ ] Support `--metric cosine|euclidean` (default: cosine)
+    - [ ] Support `--threshold <value>` (default: 0.35 for cosine; 1.24 for euclidean)
+    - [ ] Output JSON/text with distances and boolean `is_match`
+    - [ ] Secure path handling, meaningful error messages
+  - [ ] Future: Prefer OpenCV SFace for embeddings when `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` is present
+    - [ ] Fallback to FaceBytes when SFace class is unavailable
+    - [ ] Keep model downloads at build (YuNet/SFace) to avoid runtime fetches
 
 #### 2.2 GWT-Based GUI Application
 
@@ -101,7 +114,7 @@
 
 - [ ] **Compatibility & fallback**
   - [ ] Keep reflection guards for missing classes; return descriptive errors without breaking `VisionTemplate`
-  - [ ] Clamp and validate all normalized coordinates to \[0,1]; sanitize attributes; no PII or raw image data in logs
+  - [ ] Clamp and validate all normalized coordinates to [0,1]; sanitize attributes; no PII or raw image data in logs
 
 #### 3.2 YOLO Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/YoloVisionBackend.java`)
 
@@ -145,7 +158,7 @@
 
 - [ ] **Compatibility & fallback**
   - [ ] If engines are unavailable, return descriptive errors while keeping the app stable
-  - [ ] Clamp all normalized coordinates to \[0,1]; sanitize labels; never log image data or PII
+  - [ ] Clamp all normalized coordinates to [0,1]; sanitize labels; never log image data or PII
 
 #### 3.4 InsightFace Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/InsightFaceVisionBackend.java`)
 
@@ -186,7 +199,14 @@
 
 - [ ] **Compatibility & fallback**
   - [ ] If ONNX Runtime missing or models unavailable, return descriptive errors; do not crash the app
-  - [ ] Clamp normalized coordinates to \[0,1]; never log raw image bytes or full embeddings; redact PII
+  - [ ] Clamp normalized coordinates to [0,1]; never log raw image bytes or full embeddings; redact PII
+
+#### 3.5 Embedding APIs (non-breaking additions)
+
+- [ ] Add optional embedding/verification APIs to `VisionBackend` and `VisionTemplate` (default: unsupported)
+  - [ ] `List<float[]> extractEmbeddings(ImageData)` and `boolean verify(ImageData a, ImageData b, String metric, double threshold)`
+  - [ ] Implement in `OpenCvVisionBackend` using SFace when available; fallback to FaceBytes when not
+  - [ ] Do not break existing public contracts; keep defaults throwing `UnsupportedOperationException`
 
 ### 4. Testing Strategy (Future)
 
