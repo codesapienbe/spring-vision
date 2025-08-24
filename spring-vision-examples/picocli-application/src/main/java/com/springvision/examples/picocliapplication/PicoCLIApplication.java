@@ -106,6 +106,8 @@ public class PicoCLIApplication implements CommandLineRunner {
                 handleInteractiveMode(cmd);
             } else if (cmd.hasOption("verify")) {
                 handleVerify(cmd);
+            } else if (cmd.hasOption("verify-batch")) {
+                handleBatchVerify(cmd);
             } else if (cmd.hasOption("embed")) {
                 handleEmbed(cmd);
             } else if (cmd.hasOption("detect")) {
@@ -215,6 +217,15 @@ public class PicoCLIApplication implements CommandLineRunner {
                 .desc("Distance threshold for verification (depends on metric)")
                 .build();
         options.addOption(thresholdOption);
+
+        // Batch verification option
+        Option verifyBatchOption = Option.builder()
+                .longOpt("verify-batch")
+                .numberOfArgs(2)
+                .argName("FILE DIRECTORY")
+                .desc("Verify a reference image against all images in a directory")
+                .build();
+        options.addOption(verifyBatchOption);
 
         // Truncate for embedding printing
         Option truncateOption = Option.builder()
@@ -549,6 +560,137 @@ public class PicoCLIApplication implements CommandLineRunner {
         }
     }
 
+    private void handleBatchVerify(CommandLine cmd) {
+        String[] args = cmd.getOptionValues("verify-batch");
+        String metric = cmd.getOptionValue("metric", DEFAULT_VERIFY_METRIC).toLowerCase();
+        String format = cmd.getOptionValue("format", "text");
+        String thresholdStr = cmd.getOptionValue("threshold", "");
+        boolean showProgress = cmd.hasOption("progress");
+        try {
+            if (args == null || args.length != 2) {
+                System.err.println("--verify-batch requires two arguments: --verify-batch <reference-image> <directory>");
+                System.exit(1);
+            }
+            Path refPath = resolvePath(args[0]);
+            Path dirPath = resolvePath(args[1]);
+            if (!Files.exists(refPath) || !Files.isRegularFile(refPath) || !Files.isReadable(refPath)) {
+                System.err.println("Reference image not found or not readable: " + refPath);
+                System.exit(1);
+            }
+            if (!Files.exists(dirPath) || !Files.isDirectory(dirPath) || !Files.isReadable(dirPath)) {
+                System.err.println("Directory not found or not readable: " + dirPath);
+                System.exit(1);
+            }
+
+            BufferedImage refImg = ImageIO.read(refPath.toFile());
+            if (refImg == null) {
+                System.err.println("Unsupported or corrupt reference image: " + refPath);
+                System.exit(1);
+            }
+            var refEmb = getTopEmbedding(DeepFace.represent(refImg));
+            if (refEmb == null || refEmb.embedding() == null) {
+                System.err.println("No face embedding found in reference image: " + refPath);
+                System.exit(1);
+            }
+            float[] refVec = l2Normalize(refEmb.embedding());
+
+            List<Path> imageFiles;
+            try (var paths = Files.list(dirPath)) {
+                imageFiles = paths.filter(this::isImageFile).sorted().toList();
+            }
+            int total = imageFiles.size();
+            if (total == 0) {
+                System.out.println("No image files found in directory: " + dirPath);
+                return;
+            }
+
+            double defaultThreshold = "euclidean".equals(metric) ? DEFAULT_VERIFY_THRESHOLD_EUCLIDEAN : DEFAULT_VERIFY_THRESHOLD_COSINE;
+            double threshold = thresholdStr.isBlank() ? defaultThreshold : Double.parseDouble(thresholdStr);
+
+            if ("json".equalsIgnoreCase(format)) {
+                StringBuilder json = new StringBuilder();
+                json.append("[");
+                for (int i = 0; i < total; i++) {
+                    Path p = imageFiles.get(i);
+                    try {
+                        BufferedImage img = ImageIO.read(p.toFile());
+                        if (img == null) throw new IOException("unsupported/corrupt image");
+                        var er = getTopEmbedding(DeepFace.represent(img));
+                        if (er == null || er.embedding() == null) {
+                            // skip file with null embedding
+                            continue;
+                        }
+                        float[] vec = l2Normalize(er.embedding());
+                        double distance = "euclidean".equals(metric) ? euclideanDistance(refVec, vec) : cosineDistance(refVec, vec);
+                        boolean isMatch = distance <= threshold;
+                        json.append("{")
+                            .append("\"file\":\"").append(p.getFileName().toString().replace("\"", "")).append("\",")
+                            .append("\"distance\":").append(String.format("%.6f", distance)).append(",")
+                            .append("\"threshold\":").append(String.format("%.6f", threshold)).append(",")
+                            .append("\"metric\":\"").append(metric).append("\",")
+                            .append("\"is_match\":").append(isMatch)
+                            .append("}");
+                        if (i < total - 1) json.append(",");
+                    } catch (Exception e) {
+                        // skip problematic files
+                    }
+                    if (showProgress) {
+                        printProgress(i + 1, total);
+                    }
+                }
+                json.append("]");
+                System.out.println(json);
+                if (showProgress) System.out.println();
+            } else if ("csv".equalsIgnoreCase(format)) {
+                System.out.println("file,distance,threshold,metric,is_match");
+                for (int i = 0; i < total; i++) {
+                    Path p = imageFiles.get(i);
+                    try {
+                        BufferedImage img = ImageIO.read(p.toFile());
+                        if (img == null) throw new IOException("unsupported/corrupt image");
+                        var er = getTopEmbedding(DeepFace.represent(img));
+                        if (er == null || er.embedding() == null) continue;
+                        float[] vec = l2Normalize(er.embedding());
+                        double distance = "euclidean".equals(metric) ? euclideanDistance(refVec, vec) : cosineDistance(refVec, vec);
+                        boolean isMatch = distance <= threshold;
+                        System.out.printf("%s,%.6f,%.6f,%s,%s%n",
+                                p.getFileName(), distance, threshold, metric, isMatch);
+                    } catch (Exception e) {
+                        // skip
+                    }
+                    if (showProgress) {
+                        printProgress(i + 1, total);
+                    }
+                }
+                if (showProgress) System.out.println();
+            } else { // text
+                for (int i = 0; i < total; i++) {
+                    Path p = imageFiles.get(i);
+                    try {
+                        BufferedImage img = ImageIO.read(p.toFile());
+                        if (img == null) throw new IOException("unsupported/corrupt image");
+                        var er = getTopEmbedding(DeepFace.represent(img));
+                        if (er == null || er.embedding() == null) continue;
+                        float[] vec = l2Normalize(er.embedding());
+                        double distance = "euclidean".equals(metric) ? euclideanDistance(refVec, vec) : cosineDistance(refVec, vec);
+                        boolean isMatch = distance <= threshold;
+                        System.out.printf("%s -> metric=%s distance=%.6f threshold=%.6f match=%s%n",
+                                p.getFileName(), metric, distance, threshold, isMatch);
+                    } catch (Exception e) {
+                        // skip
+                    }
+                    if (showProgress) {
+                        printProgress(i + 1, total);
+                    }
+                }
+                if (showProgress) System.out.println();
+            }
+        } catch (NumberFormatException nfe) {
+            System.err.println("Invalid threshold: " + thresholdStr);
+            System.exit(1);
+        }
+    }
+
     private EmbeddingResult getTopEmbedding(List<EmbeddingResult> list) {
         if (list == null || list.isEmpty()) return null;
         return list.stream()
@@ -799,6 +941,9 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println("  Face verification:");
         System.out.println("    java -jar picocli-application.jar --verify <image1> <image2> [--metric cosine|euclidean] [--threshold value] [--format json|text]");
         System.out.println();
+        System.out.println("  Batch verification:");
+        System.out.println("    java -jar picocli-application.jar --verify-batch <image> <directory> [--metric ...] [--threshold ...] [--format json|csv|text] [--progress]");
+        System.out.println();
         System.out.println("  Health check:");
         System.out.println("    java -jar picocli-application.jar --health");
         System.out.println();
@@ -819,6 +964,7 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println("  java -jar picocli-application.jar --detect image.jpg --format json");
         System.out.println("  java -jar picocli-application.jar --embed image.jpg --format json --truncate 8");
         System.out.println("  java -jar picocli-application.jar --verify a.jpg b.jpg --metric cosine --format json");
+        System.out.println("  java -jar picocli-application.jar --verify-batch a.jpg ./images --metric cosine --format csv --progress");
         System.out.println("  java -jar picocli-application.jar --batch ./images --confidence 0.7 --progress --verbose");
         System.out.println("  java -jar picocli-application.jar --health");
     }

@@ -26,16 +26,23 @@
   - [x] Support multiple output formats (JSON, CSV) [XML pending]
   - [x] Add configuration file support
   - [x] Include help and usage documentation
-  - [ ] Add `--embed <image>`: extract face embeddings (JSON output)
-    - [ ] Use FaceBytes embeddings initially (fast path), return per-face vectors and bounds
-    - [ ] Add optional `--truncate <n>` to shorten printed vector for readability (no effect on computation)
-    - [ ] Validate file path (exists, regular file, readable), secure home expansion
-  - [ ] Add `--verify <image1> <image2>`: verify if two photos belong to the same person
-    - [ ] Extract embeddings per image; select top-confidence face when multiple
-    - [ ] Support `--metric cosine|euclidean` (default: cosine)
-    - [ ] Support `--threshold <value>` (default: 0.35 for cosine; 1.24 for euclidean)
-    - [ ] Output JSON/text with distances and boolean `is_match`
-    - [ ] Secure path handling, meaningful error messages
+  - [x] Add `--embed <image>`: extract face embeddings (JSON output)
+    - [x] Use FaceBytes embeddings initially (fast path), return per-face vectors and bounds
+    - [x] Add optional `--truncate <n>` to shorten printed vector for readability (no effect on computation)
+    - [x] Validate file path (exists, regular file, readable), secure home expansion
+  - [x] Add `--verify <image1> <image2>`: verify if two photos belong to the same person
+    - [x] Extract embeddings per image; select top-confidence face when multiple
+    - [x] Support `--metric cosine|euclidean` (default: cosine)
+    - [x] Support `--threshold <value>` (default: 0.35 for cosine; 1.24 for euclidean)
+    - [x] Output JSON/text with distances and boolean `is_match`
+    - [x] Secure path handling, meaningful error messages
+  - [ ] Add `--verify-batch <image> <directory>`: verify reference image against all images in a directory
+    - [ ] Options: `--metric`, `--threshold`, `--format json|csv|text`
+    - [ ] Show progress with `--progress`; continue on errors
+    - [ ] Output includes: file name, distance, is_match (and optional index)
+    - [ ] Secure path handling (exists, directory, readability), home expansion
+    - [ ] Skip unreadable/unsupported files with warning; do not abort batch
+    - [ ] Consider parallel processing with virtual threads (optional)
   - [ ] Future: Prefer OpenCV SFace for embeddings when `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` is present
     - [ ] Fallback to FaceBytes when SFace class is unavailable
     - [ ] Keep model downloads at build (YuNet/SFace) to avoid runtime fetches
@@ -203,10 +210,10 @@
 
 #### 3.5 Embedding APIs (non-breaking additions)
 
-- [ ] Add optional embedding/verification APIs to `VisionBackend` and `VisionTemplate` (default: unsupported)
-  - [ ] `List<float[]> extractEmbeddings(ImageData)` and `boolean verify(ImageData a, ImageData b, String metric, double threshold)`
+- [x] Add optional embedding/verification APIs to `VisionBackend` and `VisionTemplate` (default provided safely)
+  - [x] `List<float[]> extractEmbeddings(ImageData)` and `boolean verify(ImageData a, ImageData b, String metric, double threshold)`
   - [ ] Implement in `OpenCvVisionBackend` using SFace when available; fallback to FaceBytes when not
-  - [ ] Do not break existing public contracts; keep defaults throwing `UnsupportedOperationException`
+  - [x] Do not break existing public contracts; defaults provided safely
 
 ### 4. Testing Strategy (Future)
 
