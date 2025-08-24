@@ -520,7 +520,8 @@ public class PicoCLIApplication implements CommandLineRunner {
             float[] b = l2Normalize(embB.embedding());
             double distance = switch (metric) {
                 case "euclidean" -> euclideanDistance(a, b);
-                case "cosine" -> default -> cosineDistance(a, b);
+                case "cosine" -> cosineDistance(a, b);
+                default -> cosineDistance(a, b);
             };
             double threshold = thresholdStr.isBlank()
                     ? ("euclidean".equals(metric) ? DEFAULT_VERIFY_THRESHOLD_EUCLIDEAN : DEFAULT_VERIFY_THRESHOLD_COSINE)

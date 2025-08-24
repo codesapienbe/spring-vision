@@ -73,6 +73,10 @@ mvn spring-boot:run -pl spring-vision-examples/vaadin-application
 
 # PicoCLI Application
 mvn spring-boot:run -pl spring-vision-examples/picocli-application
+# PicoCLI Embedding
+mvn spring-boot:run -pl spring-vision-examples/picocli-application -Dspring-boot.run.arguments="--embed ~/mockdata/spring-vision/selfie.jpg --format json --truncate 8"
+# PicoCLI Verification
+mvn spring-boot:run -pl spring-vision-examples/picocli-application -Dspring-boot.run.arguments="--verify ~/mockdata/spring-vision/selfie-a.jpg ~/mockdata/spring-vision/selfie-b.jpg --metric cosine --format json"
 
 # PicoCLI Application with Example
 SPRING_DOCKER_COMPOSE_ENABLED=false \
