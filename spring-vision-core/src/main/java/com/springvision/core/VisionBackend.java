@@ -253,4 +253,19 @@ public interface VisionBackend {
     default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         return com.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
     }
+
+    /**
+     * Obscures detected faces in the provided image by applying blur or other obfuscation techniques.
+     *
+     * <p>This method detects faces in the image and applies obfuscation (typically blurring)
+     * to protect privacy while preserving the overall image structure.</p>
+     *
+     * @param imageData image to process
+     * @return obscured image data with faces blurred/obscured
+     * @throws BaseVisionException if processing fails
+     */
+    default ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
+        throw new UnsupportedOperationException(
+            String.format("Face obscuring is not supported by backend '%s'", getBackendId()));
+    }
 }

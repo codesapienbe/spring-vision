@@ -2094,4 +2094,94 @@ public class OpenCvVisionBackend implements VisionBackend {
             return false;
         }
     }
+
+    @Override
+    public ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("Image data must not be null or empty");
+        }
+
+        try {
+            // Decode image to Mat
+            Mat image = imdecode(new org.bytedeco.opencv.opencv_core.MatVector(imageData.data()), IMREAD_COLOR);
+            if (image.empty()) {
+                throw new VisionProcessingException("Failed to decode image data", "image_decode", 1001);
+            }
+
+            // Detect faces
+            VisionResult faceResult = detectFaces(imageData);
+            List<Detection> faces = faceResult.detections();
+            
+            if (faces.isEmpty()) {
+                logger.debug("No faces detected for obscuring");
+                // Return original image if no faces found
+                return imageData;
+            }
+
+            // Apply blur to each detected face
+            for (Detection face : faces) {
+                BoundingBox bbox = face.boundingBox();
+                if (bbox != null) {
+                    // Convert normalized coordinates to pixel coordinates
+                    int x = (int) (bbox.x() * image.cols());
+                    int y = (int) (bbox.y() * image.rows());
+                    int width = (int) (bbox.width() * image.cols());
+                    int height = (int) (bbox.height() * image.rows());
+                    
+                    // Ensure coordinates are within image bounds
+                    x = Math.max(0, Math.min(x, image.cols() - 1));
+                    y = Math.max(0, Math.min(y, image.rows() - 1));
+                    width = Math.min(width, image.cols() - x);
+                    height = Math.min(height, image.rows() - y);
+                    
+                    if (width > 0 && height > 0) {
+                        // Extract face region
+                        Rect faceRect = new Rect(x, y, width, height);
+                        Mat faceRegion = new Mat(image, faceRect);
+                        
+                        // Apply Gaussian blur to the face region
+                        Mat blurredFace = new Mat();
+                        org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
+                            faceRegion, 
+                            blurredFace, 
+                            new Size(31, 31), // Kernel size for strong blur
+                            0, 0 // Standard deviations
+                        );
+                        
+                        // Copy blurred face back to original image
+                        blurredFace.copyTo(faceRegion);
+                        
+                        // Cleanup
+                        faceRegion.releaseReference();
+                        blurredFace.releaseReference();
+                    }
+                }
+            }
+
+            // Encode the modified image back to bytes
+            org.bytedeco.opencv.opencv_core.MatVector encodedImage = new org.bytedeco.opencv.opencv_core.MatVector();
+            org.bytedeco.opencv.global.opencv_imgcodecs.imencode(".jpg", image, encodedImage);
+            
+            if (encodedImage.size() == 0) {
+                throw new VisionProcessingException("Failed to encode obscured image", "image_encode", 1002);
+            }
+            
+            Mat encodedMat = encodedImage.get(0);
+            byte[] obscuredImageBytes = new byte[(int) encodedMat.total() * encodedMat.channels()];
+            encodedMat.getByteBuffer().get(obscuredImageBytes);
+            
+            // Cleanup
+            image.releaseReference();
+            encodedMat.releaseReference();
+            encodedImage.releaseReference();
+            
+            logger.info("Successfully obscured {} faces in image", faces.size());
+            return ImageData.fromBytes(obscuredImageBytes, "image/jpeg");
+            
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionBackendException("Failed to obscure faces: " + e.getMessage(), e);
+        }
+    }
 }

@@ -36,13 +36,19 @@
     - [x] Support `--threshold <value>` (default: 0.35 for cosine; 1.24 for euclidean)
     - [x] Output JSON/text with distances and boolean `is_match`
     - [x] Secure path handling, meaningful error messages
-  - [ ] Add `--verify-batch <image> <directory>`: verify reference image against all images in a directory
-    - [ ] Options: `--metric`, `--threshold`, `--format json|csv|text`
-    - [ ] Show progress with `--progress`; continue on errors
-    - [ ] Output includes: file name, distance, is_match (and optional index)
-    - [ ] Secure path handling (exists, directory, readability), home expansion
-    - [ ] Skip unreadable/unsupported files with warning; do not abort batch
-    - [ ] Consider parallel processing with virtual threads (optional)
+  - [x] Add `--verify-batch <image> <directory>`: verify reference image against all images in a directory
+    - [x] Options: `--metric`, `--threshold`, `--format json|csv|text`
+    - [x] Show progress with `--progress`; continue on errors
+    - [x] Output includes: file name, distance, is_match (and optional index)
+    - [x] Secure path handling (exists, directory, readability), home expansion
+    - [x] Skip unreadable/unsupported files with warning; do not abort batch
+    - [x] Consider parallel processing with virtual threads (optional)
+  - [x] Add `--obscure <input> <output>`: obscure faces in an image using blur
+    - [x] Detect faces and apply Gaussian blur to face regions
+    - [x] Preserve original image structure and quality
+    - [x] Secure path handling, create output directories if needed
+    - [x] Return original image if no faces detected
+    - [x] Support common image formats (JPEG, PNG, etc.)
   - [ ] Future: Prefer OpenCV SFace for embeddings when `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` is present
     - [ ] Fallback to FaceBytes when SFace class is unavailable
     - [ ] Keep model downloads at build (YuNet/SFace) to avoid runtime fetches
@@ -214,6 +220,15 @@
   - [x] `List<float[]> extractEmbeddings(ImageData)` and `boolean verify(ImageData a, ImageData b, String metric, double threshold)`
   - [ ] Implement in `OpenCvVisionBackend` using SFace when available; fallback to FaceBytes when not
   - [x] Do not break existing public contracts; defaults provided safely
+
+#### 3.6 Face Obscuring APIs (non-breaking additions)
+
+- [x] Add face obscuring API to `VisionBackend` and `VisionTemplate` (default: unsupported)
+  - [x] `ImageData obscureFaces(ImageData)` - detects faces and applies blur/obfuscation
+  - [x] Implement in `OpenCvVisionBackend` using OpenCV Gaussian blur
+  - [x] Preserve image quality and structure while protecting privacy
+  - [x] Return original image if no faces detected
+  - [x] Support common image formats and coordinate normalization
 
 ### 4. Testing Strategy (Future)
 

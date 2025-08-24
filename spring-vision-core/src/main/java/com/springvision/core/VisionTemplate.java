@@ -237,6 +237,27 @@ public class VisionTemplate {
         return result;
     }
 
+    /** Obscures faces in the provided image data. */
+    public ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "Image data must not be null");
+        String correlationId = generateCorrelationId();
+        long startTime = System.currentTimeMillis();
+        logger.info("Starting face obscuring", Map.of(
+            "correlationId", correlationId,
+            "imageSize", imageData.getSizeInBytes(),
+            "imageFormat", imageData.format(),
+            "backendId", getBackendId()
+        ));
+        ImageData result = backend.obscureFaces(imageData);
+        long processingTime = System.currentTimeMillis() - startTime;
+        logger.info("Face obscuring completed", Map.of(
+            "correlationId", correlationId,
+            "processingTimeMs", processingTime,
+            "backendId", getBackendId()
+        ));
+        return result;
+    }
+
     /** Generates a unique correlation ID for tracking operations. */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();

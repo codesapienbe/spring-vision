@@ -110,6 +110,8 @@ public class PicoCLIApplication implements CommandLineRunner {
                 handleBatchVerify(cmd);
             } else if (cmd.hasOption("embed")) {
                 handleEmbed(cmd);
+            } else if (cmd.hasOption("obscure")) {
+                handleObscure(cmd);
             } else if (cmd.hasOption("detect")) {
                 handleSingleDetection(cmd);
             } else if (cmd.hasOption("batch")) {
@@ -226,6 +228,15 @@ public class PicoCLIApplication implements CommandLineRunner {
                 .desc("Verify a reference image against all images in a directory")
                 .build();
         options.addOption(verifyBatchOption);
+
+        // Face obscuring option
+        Option obscureOption = Option.builder()
+                .longOpt("obscure")
+                .numberOfArgs(2)
+                .argName("INPUT OUTPUT")
+                .desc("Obscure faces in an image and save the result")
+                .build();
+        options.addOption(obscureOption);
 
         // Truncate for embedding printing
         Option truncateOption = Option.builder()
@@ -691,6 +702,51 @@ public class PicoCLIApplication implements CommandLineRunner {
         }
     }
 
+    private void handleObscure(CommandLine cmd) {
+        String[] args = cmd.getOptionValues("obscure");
+        try {
+            if (args == null || args.length != 2) {
+                System.err.println("--obscure requires two arguments: --obscure <input-image> <output-image>");
+                System.exit(1);
+            }
+            Path inputPath = resolvePath(args[0]);
+            Path outputPath = resolvePath(args[1]);
+            
+            if (!Files.exists(inputPath) || !Files.isRegularFile(inputPath) || !Files.isReadable(inputPath)) {
+                System.err.println("Input image not found or not readable: " + inputPath);
+                System.exit(1);
+            }
+            
+            // Check if output directory exists and is writable
+            Path outputDir = outputPath.getParent();
+            if (outputDir != null && !Files.exists(outputDir)) {
+                try {
+                    Files.createDirectories(outputDir);
+                } catch (IOException e) {
+                    System.err.println("Cannot create output directory: " + outputDir);
+                    System.exit(1);
+                }
+            }
+            
+            logger.info("Obscuring faces in image: {} -> {}", inputPath, outputPath);
+            
+            // Read input image
+            ImageData inputImage = ImageData.fromBytes(Files.readAllBytes(inputPath));
+            
+            // Obscure faces
+            ImageData obscuredImage = visionTemplate.obscureFaces(inputImage);
+            
+            // Write output image
+            Files.write(outputPath, obscuredImage.data());
+            
+            System.out.println("Successfully obscured faces and saved to: " + outputPath);
+            
+        } catch (Exception e) {
+            System.err.println("Face obscuring failed: " + e.getMessage());
+            System.exit(1);
+        }
+    }
+
     private EmbeddingResult getTopEmbedding(List<EmbeddingResult> list) {
         if (list == null || list.isEmpty()) return null;
         return list.stream()
@@ -944,6 +1000,9 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println("  Batch verification:");
         System.out.println("    java -jar picocli-application.jar --verify-batch <image> <directory> [--metric ...] [--threshold ...] [--format json|csv|text] [--progress]");
         System.out.println();
+        System.out.println("  Face obscuring:");
+        System.out.println("    java -jar picocli-application.jar --obscure <input-image> <output-image>");
+        System.out.println();
         System.out.println("  Health check:");
         System.out.println("    java -jar picocli-application.jar --health");
         System.out.println();
@@ -965,6 +1024,7 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println("  java -jar picocli-application.jar --embed image.jpg --format json --truncate 8");
         System.out.println("  java -jar picocli-application.jar --verify a.jpg b.jpg --metric cosine --format json");
         System.out.println("  java -jar picocli-application.jar --verify-batch a.jpg ./images --metric cosine --format csv --progress");
+        System.out.println("  java -jar picocli-application.jar --obscure input.jpg output.jpg");
         System.out.println("  java -jar picocli-application.jar --batch ./images --confidence 0.7 --progress --verbose");
         System.out.println("  java -jar picocli-application.jar --health");
     }
