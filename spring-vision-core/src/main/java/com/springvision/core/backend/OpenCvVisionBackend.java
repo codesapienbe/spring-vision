@@ -2455,4 +2455,79 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             throw new VisionBackendException("Failed to mark faces: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public java.util.List<float[]> extractEmbeddings(com.springvision.core.ImageData imageData) throws com.springvision.core.exception.BaseVisionException {
+        // Use SFace when available; otherwise fallback to default FaceBytes-based embeddings
+        if (this.sFaceRecognizer == null) {
+            return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+        }
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("Image data must not be null or empty");
+        }
+        try {
+            // Decode image to Mat
+            org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
+            Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
+            Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
+            if (image == null || image.empty()) {
+                rawPointer.deallocate();
+                buffer.releaseReference();
+                throw new VisionProcessingException("Failed to decode image data", "embeddings", "face");
+            }
+            buffer.releaseReference();
+            rawPointer.deallocate();
+
+            // Detect faces (reuse existing detection pipeline)
+            VisionResult faceResult = detectFaces(imageData);
+            java.util.List<Detection> faces = faceResult.detections();
+            java.util.List<float[]> vectors = new java.util.ArrayList<>(Math.max(1, faces.size()));
+
+            if (faces.isEmpty()) {
+                // Fallback to default if SFace available but no faces found by our detector
+                image.releaseReference();
+                return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+            }
+
+            for (Detection face : faces) {
+                BoundingBox bbox = face.boundingBox();
+                if (bbox == null) continue;
+                int x = (int) Math.round(bbox.x() * image.cols());
+                int y = (int) Math.round(bbox.y() * image.rows());
+                int w = (int) Math.round(bbox.width() * image.cols());
+                int h = (int) Math.round(bbox.height() * image.rows());
+                x = Math.max(0, Math.min(x, image.cols() - 1));
+                y = Math.max(0, Math.min(y, image.rows() - 1));
+                w = Math.min(w, image.cols() - x);
+                h = Math.min(h, image.rows() - y);
+                if (w <= 0 || h <= 0) continue;
+
+                // Crop and resize to 112x112 as expected by SFace
+                Mat roi = new Mat(image, new Rect(x, y, w, h));
+                Mat resized = new Mat();
+                org.bytedeco.opencv.global.opencv_imgproc.resize(roi, resized, new Size(112, 112));
+
+                float[] vec = computeSFaceEmbedding(resized);
+                if (vec != null && vec.length > 0) {
+                    vectors.add(vec);
+                }
+
+                roi.releaseReference();
+                resized.releaseReference();
+            }
+
+            image.releaseReference();
+
+            if (vectors.isEmpty()) {
+                // As a robust fallback, use FaceBytes embeddings
+                return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+            }
+            return vectors;
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            // Fallback to default embeddings on any unexpected error to avoid breaking the API
+            return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+        }
+    }
 }

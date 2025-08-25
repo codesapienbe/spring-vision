@@ -17,7 +17,7 @@
 
 #### 2.1 CLI-Based Application
 
-- [ ] **TODO: Create CLI-based Spring Vision application**
+- [x] **Create CLI-based Spring Vision application**
   - [x] Created `spring-vision-examples/picocli-application/` module
   - [x] Implement command-line interface for image processing
   - [x] Support batch processing from command line

@@ -4,20 +4,27 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.slider.Slider;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import elemental.json.Json;
+import elemental.json.JsonArray;
 import elemental.json.JsonObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -25,12 +32,8 @@ import java.util.UUID;
  * Main view for the Vaadin face detection application.
  *
  * <p>This view provides a user interface for uploading images and performing face detection
- * using the Spring Vision framework. It includes file upload, result display, and error handling.</p>
- *
- * <p>The interface follows Vaadin design patterns and provides a modern, responsive user experience.</p>
- *
- * @author Spring Vision Team
- * @since 1.0.0
+ * using the Spring Vision framework. It includes file upload, image preview with overlay,
+ * result display, and error handling.</p>
  */
 @Route("")
 public class MainView extends VerticalLayout {
@@ -44,21 +47,27 @@ public class MainView extends VerticalLayout {
     private final Div resultsContainer = new Div();
     private final Div statusContainer = new Div();
 
+    // Preview/overlay components
+    private final Div previewWrapper = new Div();
+    private final Image previewImage = new Image();
+    private byte[] lastUploadedImageBytes;
+
+    private final Slider confidenceSlider = new Slider(0, 100, 0);
+
     /**
      * Constructs the main view with all UI components.
      */
     public MainView() {
         setupLayout();
         setupHeader();
+        setupControls();
         setupUploadArea();
+        setupPreviewArea();
         setupResultsArea();
         setupStatusArea();
         checkHealthStatus();
     }
 
-    /**
-     * Sets up the main layout with proper spacing and styling.
-     */
     private void setupLayout() {
         setSizeFull();
         setPadding(true);
@@ -67,9 +76,6 @@ public class MainView extends VerticalLayout {
         addClassName(LumoUtility.Background.CONTRAST_5);
     }
 
-    /**
-     * Sets up the application header.
-     */
     private void setupHeader() {
         H1 header = new H1("Spring Vision - Vaadin Face Detection");
         header.getStyle().set("text-align", "center");
@@ -85,9 +91,19 @@ public class MainView extends VerticalLayout {
         add(description);
     }
 
-    /**
-     * Sets up the file upload area with drag-and-drop support.
-     */
+    private void setupControls() {
+        HorizontalLayout controls = new HorizontalLayout();
+        controls.setAlignItems(Alignment.CENTER);
+        controls.getStyle().set("margin-top", "0.5rem");
+        Paragraph label = new Paragraph("Min confidence (%):");
+        label.getStyle().set("margin", "0 0.5rem 0 0");
+        confidenceSlider.setWidth("240px");
+        confidenceSlider.setValue(0.0);
+        confidenceSlider.setStep(1.0);
+        controls.add(label, confidenceSlider);
+        add(controls);
+    }
+
     private void setupUploadArea() {
         VerticalLayout uploadContainer = new VerticalLayout();
         uploadContainer.setAlignItems(Alignment.CENTER);
@@ -112,8 +128,17 @@ public class MainView extends VerticalLayout {
         detectButton.setEnabled(false);
 
         upload.addSucceededListener(event -> {
-            detectButton.setEnabled(true);
-            Notification.show("File uploaded successfully: " + event.getFileName());
+            try (InputStream in = buffer.getInputStream()) {
+                if (in != null) {
+                    lastUploadedImageBytes = in.readAllBytes();
+                    // Show preview
+                    showPreview(lastUploadedImageBytes, event.getFileName());
+                    detectButton.setEnabled(true);
+                    Notification.show("File uploaded successfully: " + event.getFileName());
+                }
+            } catch (Exception ex) {
+                Notification.show("Failed to read uploaded file: " + ex.getMessage());
+            }
         });
 
         upload.addFileRejectedListener(event -> {
@@ -121,8 +146,10 @@ public class MainView extends VerticalLayout {
         });
 
         detectButton.addClickListener(e -> {
-            if (buffer.getInputStream() != null) {
-                performFaceDetection(buffer.getInputStream(), buffer.getFileName());
+            if (lastUploadedImageBytes != null && lastUploadedImageBytes.length > 0) {
+                performFaceDetection(lastUploadedImageBytes, "uploaded-image.jpg");
+            } else {
+                Notification.show("Please upload an image first");
             }
         });
 
@@ -130,11 +157,32 @@ public class MainView extends VerticalLayout {
         add(uploadContainer);
     }
 
-    /**
-     * Sets up the results display area.
-     */
+    private void setupPreviewArea() {
+        previewWrapper.getStyle().set("position", "relative");
+        previewWrapper.getStyle().set("display", "inline-block");
+        previewWrapper.getStyle().set("max-width", "800px");
+        previewWrapper.getStyle().set("margin-top", "1rem");
+        previewWrapper.getStyle().set("border", "1px solid var(--lumo-contrast-30pct)");
+        previewWrapper.getStyle().set("border-radius", "4px");
+        previewWrapper.setVisible(false);
+
+        previewImage.getStyle().set("max-width", "100%");
+        previewImage.getStyle().set("height", "auto");
+        previewWrapper.add(previewImage);
+        add(previewWrapper);
+    }
+
+    private void showPreview(byte[] imageBytes, String fileName) {
+        // Clear previous overlays
+        clearOverlays();
+        StreamResource resource = new StreamResource(fileName == null ? "image.jpg" : fileName,
+            () -> new ByteArrayInputStream(imageBytes));
+        previewImage.setSrc(resource);
+        previewWrapper.setVisible(true);
+    }
+
     private void setupResultsArea() {
-        resultsContainer.getStyle().set("margin-top", "2rem");
+        resultsContainer.getStyle().set("margin-top", "1rem");
         resultsContainer.getStyle().set("padding", "1rem");
         resultsContainer.getStyle().set("background-color", "var(--lumo-contrast-10pct)");
         resultsContainer.getStyle().set("border-radius", "0.5rem");
@@ -142,9 +190,6 @@ public class MainView extends VerticalLayout {
         add(resultsContainer);
     }
 
-    /**
-     * Sets up the status display area.
-     */
     private void setupStatusArea() {
         statusContainer.getStyle().set("margin-top", "1rem");
         statusContainer.getStyle().set("padding", "0.5rem");
@@ -153,9 +198,6 @@ public class MainView extends VerticalLayout {
         add(statusContainer);
     }
 
-    /**
-     * Checks the health status of the vision backend.
-     */
     private void checkHealthStatus() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -175,30 +217,19 @@ public class MainView extends VerticalLayout {
         }
     }
 
-    /**
-     * Performs face detection on the uploaded image.
-     *
-     * @param inputStream the image input stream
-     * @param fileName the name of the uploaded file
-     */
-    private void performFaceDetection(InputStream inputStream, String fileName) {
+    private void performFaceDetection(byte[] imageData, String fileName) {
         try {
-            // Read the image data
-            byte[] imageData = inputStream.readAllBytes();
-
-            // Log request details for debugging
             System.out.println("Performing face detection for file: " + fileName);
             System.out.println("Image data size: " + imageData.length + " bytes");
             System.out.println("Request URL: " + FACE_DETECTION_ENDPOINT);
 
-            // Create multipart request with proper binary data encoding
             String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().substring(0, 8);
             byte[] multipartBody = createMultipartBody(imageData, fileName, boundary);
-
-            System.out.println("Multipart body size: " + multipartBody.length + " bytes");
+            double thr = Math.max(0.0, Math.min(1.0, confidenceSlider.getValue() / 100.0));
+            String url = FACE_DETECTION_ENDPOINT + "?minConfidence=" + URLEncoder.encode(String.valueOf(thr), StandardCharsets.UTF_8);
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(java.net.URI.create(FACE_DETECTION_ENDPOINT))
+                .uri(java.net.URI.create(url))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
                 .build();
@@ -221,63 +252,40 @@ public class MainView extends VerticalLayout {
         }
     }
 
-    /**
-     * Creates a multipart form body for file upload with proper binary data encoding.
-     *
-     * @param imageData the image data
-     * @param fileName the file name
-     * @param boundary the multipart boundary
-     * @return the multipart body as byte array
-     */
     private byte[] createMultipartBody(byte[] imageData, String fileName, String boundary) {
         try {
-            // Determine content type based on file extension
             String contentType = "image/jpeg"; // default
-            if (fileName.toLowerCase().endsWith(".png")) {
-                contentType = "image/png";
-            } else if (fileName.toLowerCase().endsWith(".gif")) {
-                contentType = "image/gif";
-            } else if (fileName.toLowerCase().endsWith(".bmp")) {
-                contentType = "image/bmp";
-            } else if (fileName.toLowerCase().endsWith(".webp")) {
-                contentType = "image/webp";
+            if (fileName != null) {
+                String lower = fileName.toLowerCase();
+                if (lower.endsWith(".png")) contentType = "image/png";
+                else if (lower.endsWith(".gif")) contentType = "image/gif";
+                else if (lower.endsWith(".bmp")) contentType = "image/bmp";
+                else if (lower.endsWith(".webp")) contentType = "image/webp";
             }
 
-            // Build multipart body
             StringBuilder header = new StringBuilder();
             header.append("--").append(boundary).append("\r\n");
-            header.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName).append("\"\r\n");
+            header.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName == null ? "image.jpg" : fileName).append("\"\r\n");
             header.append("Content-Type: ").append(contentType).append("\r\n\r\n");
 
             String footer = "\r\n--" + boundary + "--\r\n";
 
-            // Convert header and footer to bytes
             byte[] headerBytes = header.toString().getBytes(StandardCharsets.UTF_8);
             byte[] footerBytes = footer.getBytes(StandardCharsets.UTF_8);
 
-            // Combine all parts
             byte[] multipartBody = new byte[headerBytes.length + imageData.length + footerBytes.length];
-
             System.arraycopy(headerBytes, 0, multipartBody, 0, headerBytes.length);
             System.arraycopy(imageData, 0, multipartBody, headerBytes.length, imageData.length);
             System.arraycopy(footerBytes, 0, multipartBody, headerBytes.length + imageData.length, footerBytes.length);
-
             return multipartBody;
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to create multipart body: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Displays the face detection results.
-     *
-     * @param jsonResponse the JSON response from the API
-     */
     private void displayResults(String jsonResponse) {
         try {
             JsonObject json = Json.parse(jsonResponse);
-
             resultsContainer.removeAll();
             resultsContainer.setVisible(true);
 
@@ -302,9 +310,12 @@ public class MainView extends VerticalLayout {
             summary.getStyle().set("font-weight", "500");
             resultsContainer.add(summary);
 
-            if (detectionCount > 0) {
-                displayDetections(json);
-            } else {
+            clearOverlays();
+            if (json.hasKey("detections")) {
+                renderOverlays(json.getArray("detections"));
+            }
+
+            if (detectionCount == 0) {
                 Paragraph noFaces = new Paragraph("No faces detected in the uploaded image.");
                 noFaces.getStyle().set("text-align", "center");
                 noFaces.getStyle().set("color", "var(--lumo-secondary-text-color)");
@@ -316,56 +327,48 @@ public class MainView extends VerticalLayout {
         }
     }
 
-    /**
-     * Displays individual detection details.
-     *
-     * @param json the JSON response containing detections
-     */
-    private void displayDetections(JsonObject json) {
-        if (json.hasKey("detections")) {
-            // In a real implementation, you would iterate through the detections array
-            // and display each detection with its bounding box and confidence
-            Paragraph detectionsInfo = new Paragraph("Detection details would be displayed here.");
-            detectionsInfo.getStyle().set("text-align", "center");
-            detectionsInfo.getStyle().set("color", "var(--lumo-secondary-text-color)");
-            resultsContainer.add(detectionsInfo);
+    private void renderOverlays(JsonArray detections) {
+        if (detections == null) return;
+        previewWrapper.getStyle().set("position", "relative");
+        for (int i = 0; i < detections.length(); i++) {
+            JsonObject det = detections.getObject(i);
+            if (det == null || !det.hasKey("boundingBox")) continue;
+            JsonObject bb = det.getObject("boundingBox");
+            double x = bb.getNumber("x");
+            double y = bb.getNumber("y");
+            double w = bb.getNumber("width");
+            double h = bb.getNumber("height");
+            Div box = new Div();
+            box.getStyle().set("position", "absolute");
+            box.getStyle().set("left", String.format("%.3f%%", x * 100));
+            box.getStyle().set("top", String.format("%.3f%%", y * 100));
+            box.getStyle().set("width", String.format("%.3f%%", w * 100));
+            box.getStyle().set("height", String.format("%.3f%%", h * 100));
+            box.getStyle().set("border", "2px solid #e53935");
+            box.getStyle().set("box-sizing", "border-box");
+            previewWrapper.add(box);
         }
     }
 
-    /**
-     * Displays an error message.
-     *
-     * @param errorMessage the error message to display
-     */
     private void displayError(String errorMessage) {
         resultsContainer.removeAll();
         resultsContainer.setVisible(true);
-
         H3 errorTitle = new H3("Error");
         errorTitle.getStyle().set("text-align", "center");
         errorTitle.getStyle().set("color", "var(--lumo-error-color)");
         resultsContainer.add(errorTitle);
-
         Paragraph errorText = new Paragraph(errorMessage);
         errorText.getStyle().set("text-align", "center");
         errorText.getStyle().set("color", "var(--lumo-error-color)");
         resultsContainer.add(errorText);
-
         Notification.show("Error: " + errorMessage);
+        clearOverlays();
     }
 
-    /**
-     * Updates the status display.
-     *
-     * @param message the status message
-     * @param type the status type (success, warning, error)
-     */
     private void updateStatus(String message, String type) {
         statusContainer.removeAll();
-
         Paragraph statusText = new Paragraph(message);
         statusText.getStyle().set("text-align", "center");
-
         switch (type) {
             case "success":
                 statusText.getStyle().set("color", "var(--lumo-success-color)");
@@ -377,7 +380,16 @@ public class MainView extends VerticalLayout {
                 statusText.getStyle().set("color", "var(--lumo-error-color)");
                 break;
         }
-
         statusContainer.add(statusText);
+    }
+
+    private void clearOverlays() {
+        // Remove all overlay boxes while keeping the image
+        if (previewWrapper.getElement().getChildCount() > 1) {
+            // index 0 is the Image component
+            while (previewWrapper.getElement().getChildCount() > 1) {
+                previewWrapper.getElement().removeChild(previewWrapper.getElement().getChild(1));
+            }
+        }
     }
 }

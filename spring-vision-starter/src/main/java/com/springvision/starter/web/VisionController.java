@@ -112,7 +112,8 @@ public class VisionController {
      */
     @PostMapping(value = "/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetectionResponse> detectFacesFromFile(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
 
         String correlationId = generateCorrelationId();
 
@@ -120,7 +121,8 @@ public class VisionController {
             "correlationId", correlationId,
             "fileName", file.getOriginalFilename(),
             "fileSize", file.getSize(),
-            "contentType", file.getContentType()
+            "contentType", file.getContentType(),
+            "minConfidence", minConfidence
         ));
 
         try {
@@ -132,20 +134,25 @@ public class VisionController {
 
             // Perform face detection
             VisionResult result = visionTemplate.detectFaces(imageData);
+            List<com.springvision.core.Detection> detections = result.detections();
+            if (minConfidence != null) {
+                double thr = Math.max(0.0, Math.min(1.0, minConfidence));
+                detections = detections.stream().filter(d -> d.confidence() >= thr).toList();
+            }
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
                 .detectionType(DetectionType.FACE.getCode())
-                .detectionCount(result.detectionCount())
+                .detectionCount(detections.size())
                 .averageConfidence(result.averageConfidence())
                 .processingTimeMs(result.processingTimeMs())
-                .detections(result.detections())
+                .detections(detections)
                 .build();
 
             logger.info("Face detection completed successfully", Map.of(
                 "correlationId", correlationId,
-                "detectionCount", result.detectionCount(),
+                "detectionCount", detections.size(),
                 "processingTimeMs", result.processingTimeMs()
             ));
 
@@ -179,13 +186,15 @@ public class VisionController {
      */
     @PostMapping(value = "/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DetectionResponse> detectFacesFromData(
-            @RequestBody DetectionRequest request) {
+            @RequestBody DetectionRequest request,
+            @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
 
         String correlationId = generateCorrelationId();
 
         logger.info("Face detection request received", Map.of(
             "correlationId", correlationId,
-            "imageSize", request.getImageData().length
+            "imageSize", request.getImageData().length,
+            "minConfidence", minConfidence
         ));
 
         try {
@@ -194,20 +203,25 @@ public class VisionController {
 
             // Perform face detection
             VisionResult result = visionTemplate.detectFaces(imageData);
+            List<com.springvision.core.Detection> detections = result.detections();
+            if (minConfidence != null) {
+                double thr = Math.max(0.0, Math.min(1.0, minConfidence));
+                detections = detections.stream().filter(d -> d.confidence() >= thr).toList();
+            }
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
                 .detectionType(DetectionType.FACE.getCode())
-                .detectionCount(result.detectionCount())
+                .detectionCount(detections.size())
                 .averageConfidence(result.averageConfidence())
                 .processingTimeMs(result.processingTimeMs())
-                .detections(result.detections())
+                .detections(detections)
                 .build();
 
             logger.info("Face detection completed successfully", Map.of(
                 "correlationId", correlationId,
-                "detectionCount", result.detectionCount(),
+                "detectionCount", detections.size(),
                 "processingTimeMs", result.processingTimeMs()
             ));
 
