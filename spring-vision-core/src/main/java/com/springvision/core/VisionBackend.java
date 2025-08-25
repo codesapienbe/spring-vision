@@ -105,7 +105,6 @@ public interface VisionBackend {
     BackendHealthInfo getHealthInfo();
 
     /** Performs face detection on the provided image data. */
-    @Deprecated(since = "1.x", forRemoval = false)
     VisionResult detectFaces(ImageData imageData) throws BaseVisionException;
 
     /** Performs object detection on the provided image data. */
@@ -114,15 +113,8 @@ public interface VisionBackend {
     /**
      * Performs a generic detection operation based on the specified detection type.
      *
-     * <p>This method provides a unified interface for all detection types.
-     * The actual implementation should delegate to the appropriate specific
-     * method based on the detection type.</p>
-     *
-     * @param imageData the image data to process
-     * @param detectionType the type of detection to perform
-     * @return the detection results
-     * @throws BaseVisionException if detection fails
-     * @throws IllegalArgumentException if imageData is null, detectionType is null, or detection type is not supported
+     * <p>Default implementation routes via capability interfaces when available.
+     * Implementations may override for backend-specific routing.</p>
      */
     default VisionResult detect(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
         if (imageData == null) {
@@ -137,40 +129,54 @@ public interface VisionBackend {
                     detectionType.getDisplayName(), getBackendId()));
         }
 
-        return switch (detectionType) {
-            case FACE -> detectFaces(imageData);
-            case OBJECT -> detectObjects(imageData);
-            case TEXT -> detectText(imageData);
-            case BARCODE -> detectBarcodes(imageData);
-            case LANDMARK -> detectLandmarks(imageData);
-            case POSE -> detectPoses(imageData);
-            case HAND -> detectHands(imageData);
-            case CUSTOM -> detectCustom(imageData);
-        };
-    }
-
-    /**
-     * Performs detection using a rich query with optional categories, ROI, and thresholds.
-     *
-     * <p>Default implementation validates input and delegates to
-     * {@link #detect(ImageData, DetectionType)} when only the type is provided.
-     * Backends may override to leverage query fields for finer control.</p>
-     *
-     * @param imageData the image data to process
-     * @param query the detection query (must include type)
-     * @return the detection results
-     * @throws BaseVisionException if detection fails
-     * @throws IllegalArgumentException if query is invalid or unsupported
-     */
-    default VisionResult detect(ImageData imageData, com.springvision.core.DetectionQuery query) throws BaseVisionException {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
+        switch (detectionType) {
+            case FACE -> {
+                if (this instanceof com.springvision.core.capabilities.FaceDetectionCapability cap) {
+                    return cap.detectFaces(imageData);
+                }
+                throw new UnsupportedOperationException("FACE detection not supported by capabilities of backend '" + getBackendId() + "'");
+            }
+            case OBJECT -> {
+                if (this instanceof com.springvision.core.capabilities.ObjectDetectionCapability cap) {
+                    return cap.detectObjects(imageData);
+                }
+                throw new UnsupportedOperationException("OBJECT detection not supported by capabilities of backend '" + getBackendId() + "'");
+            }
+            case TEXT -> {
+                if (this instanceof com.springvision.core.capabilities.TextOcrCapability cap) {
+                    return cap.detectText(imageData);
+                }
+                return detectText(imageData);
+            }
+            case BARCODE -> {
+                if (this instanceof com.springvision.core.capabilities.BarcodeCapability cap) {
+                    return cap.detectBarcodes(imageData);
+                }
+                return detectBarcodes(imageData);
+            }
+            case LANDMARK -> {
+                if (this instanceof com.springvision.core.capabilities.LandmarkDetectionCapability cap) {
+                    return cap.detectLandmarks(imageData);
+                }
+                return detectLandmarks(imageData);
+            }
+            case POSE -> {
+                if (this instanceof com.springvision.core.capabilities.PoseEstimationCapability cap) {
+                    return cap.detectPoses(imageData);
+                }
+                return detectPoses(imageData);
+            }
+            case HAND -> {
+                if (this instanceof com.springvision.core.capabilities.HandDetectionCapability cap) {
+                    return cap.detectHands(imageData);
+                }
+                return detectHands(imageData);
+            }
+            case CUSTOM -> {
+                return detectCustom(imageData);
+            }
+            default -> throw new UnsupportedOperationException("Unsupported detection type: " + detectionType);
         }
-        if (query == null || query.getType() == null) {
-            throw new IllegalArgumentException("Detection query and type must not be null");
-        }
-        // For 1.x, honor only the type by default. Advanced fields are backend-optional.
-        return detect(imageData, query.getType());
     }
 
     /** Performs text recognition (OCR) on the provided image data. */
@@ -219,7 +225,6 @@ public interface VisionBackend {
             throw new IllegalArgumentException("Detection types must not be null or empty");
         }
 
-        // Validate all detection types are supported
         for (DetectionType detectionType : detectionTypes) {
             if (!supportsDetectionType(detectionType)) {
                 throw new IllegalArgumentException(
@@ -251,82 +256,16 @@ public interface VisionBackend {
 
     /**
      * Extracts face embeddings from the provided image.
-     *
-     * <p>Default implementation uses FaceBytes (DeepFace Java) under the hood to produce
-     * L2-normalized embeddings. Backends can override to provide native embeddings (e.g., SFace).</p>
-     *
-     * @param imageData image to process
-     * @return list of embeddings (one per detected face); may be empty
-     * @throws BaseVisionException if processing fails
+     * Default implementation delegates to FaceBytes support if available.
      */
-    @Deprecated(since = "1.x", forRemoval = false)
-    default List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
+    default java.util.List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
         return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
     }
 
     /**
      * Verifies whether two images belong to the same identity using embeddings.
-     *
-     * <p>Default implementation extracts embeddings and computes distance using the given metric.</p>
-     *
-     * @param a first image
-     * @param b second image
-     * @param metric "cosine" or "euclidean"
-     * @param threshold distance threshold for a match
-     * @return true if match, false otherwise
-     * @throws BaseVisionException if processing fails
      */
     default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         return com.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
-    }
-
-    /**
-     * Obscures detected faces in the provided image by applying blur or other obfuscation techniques.
-     *
-     * <p>This method detects faces in the image and applies obfuscation (typically blurring)
-     * to protect privacy while preserving the overall image structure.</p>
-     *
-     * @param imageData image to process
-     * @return obscured image data with faces blurred/obscured
-     * @throws BaseVisionException if processing fails
-     */
-    @Deprecated(since = "1.x", forRemoval = false)
-    default ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
-        throw new UnsupportedOperationException(
-            String.format("Face obscuring is not supported by backend '%s'", getBackendId()));
-    }
-
-    /**
-     * Draws a textual tag above each detected face in the provided image.
-     *
-     * <p>Implementations should detect faces in the image and render the provided tag
-     * just above each face bounding box. The tag is a free-form string intended for
-     * names or labels and should be limited to a maximum of 255 characters.</p>
-     *
-     * @param imageData image to process
-     * @param tag text to render above each detected face (max 255 characters)
-     * @return image data with the tag rendered above each detected face; original image if no faces are found
-     * @throws BaseVisionException if processing fails
-     */
-    @Deprecated(since = "1.x", forRemoval = false)
-    default ImageData tagFaces(ImageData imageData, String tag) throws BaseVisionException {
-        throw new UnsupportedOperationException(
-            String.format("Face tagging is not supported by backend '%s'", getBackendId()));
-    }
-
-    /**
-     * Draws colored rectangles around each detected face in the provided image.
-     *
-     * <p>Implementations should detect faces in the image and render a visible rectangle
-     * around each face using distinct colors to differentiate faces.</p>
-     *
-     * @param imageData image to process
-     * @return image data with rectangles drawn around each detected face; original image if no faces are found
-     * @throws BaseVisionException if processing fails
-     */
-    @Deprecated(since = "1.x", forRemoval = false)
-    default ImageData markFaces(ImageData imageData) throws BaseVisionException {
-        throw new UnsupportedOperationException(
-            String.format("Face marking is not supported by backend '%s'", getBackendId()));
     }
 }

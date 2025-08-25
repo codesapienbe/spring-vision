@@ -324,7 +324,7 @@ public class VisionTemplate {
         ));
 
         try {
-            VisionResult result = backend.detect(imageData, query);
+            VisionResult result = backend.detect(imageData, query.getType());
             long processingTime = System.currentTimeMillis() - startTime;
 
             logger.info("Detection query completed", Map.of(
@@ -427,14 +427,60 @@ public class VisionTemplate {
             "imageFormat", imageData.format(),
             "backendId", getBackendId()
         ));
-        ImageData result = backend.obscureFaces(imageData);
-        long processingTime = System.currentTimeMillis() - startTime;
-        logger.info("Face obscuring completed", Map.of(
-            "correlationId", correlationId,
-            "processingTimeMs", processingTime,
-            "backendId", getBackendId()
-        ));
-        return result;
+        if (backend instanceof com.springvision.core.capabilities.AnnotationCapability cap) {
+            com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+                .action(com.springvision.core.AnnotationRequest.Action.OBSCURE)
+                .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
+                .build();
+            ImageData result = cap.annotate(imageData, req);
+            long processingTime = System.currentTimeMillis() - startTime;
+            logger.info("Face obscuring completed", Map.of(
+                "correlationId", correlationId,
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId()
+            ));
+            return result;
+        }
+        throw new com.springvision.core.exception.VisionProcessingException(
+            "Annotation capability not supported by backend",
+            "annotate_not_supported",
+            "annotate",
+            null
+        );
+    }
+
+    /** Generic annotate call for clients wanting TAG/MARK/OBSCURE with categories. */
+    public ImageData annotate(ImageData imageData, com.springvision.core.AnnotationRequest request) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "Image data must not be null");
+        Objects.requireNonNull(request, "Annotation request must not be null");
+        if (!(backend instanceof com.springvision.core.capabilities.AnnotationCapability cap)) {
+            throw new com.springvision.core.exception.VisionProcessingException(
+                "Annotation capability not supported by backend",
+                "annotate_not_supported",
+                "annotate",
+                null
+            );
+        }
+        return cap.annotate(imageData, request);
+    }
+
+    /** Convenience: draw labels for detections of categories using TAG action. */
+    public ImageData tag(ImageData imageData, String label, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
+        com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+            .action(com.springvision.core.AnnotationRequest.Action.TAG)
+            .label(label)
+            .categories(categories)
+            .build();
+        return annotate(imageData, req);
+    }
+
+    /** Convenience: draw rectangles for detections of categories using MARK action. */
+    public ImageData mark(ImageData imageData, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
+        com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+            .action(com.springvision.core.AnnotationRequest.Action.MARK)
+            .categories(categories)
+            .build();
+        return annotate(imageData, req);
     }
 
     /** Generates a unique correlation ID for tracking operations. */

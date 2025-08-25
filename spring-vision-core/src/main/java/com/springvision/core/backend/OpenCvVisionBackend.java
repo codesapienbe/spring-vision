@@ -186,13 +186,23 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     @Override
     public ImageData obscure(ImageData imageData, java.util.function.Predicate<com.springvision.core.Detection> filter)
             throws com.springvision.core.exception.BaseVisionException {
+        // Reuse existing implementation
         return obscureFaces(imageData);
     }
 
     @Override
-    public ImageData annotate(ImageData imageData, Object annotationRequest)
+    public ImageData annotate(ImageData imageData, com.springvision.core.AnnotationRequest request)
             throws com.springvision.core.exception.BaseVisionException {
-        return markFaces(imageData);
+        if (request.getAction() == com.springvision.core.AnnotationRequest.Action.OBSCURE) {
+            return obscureFaces(imageData);
+        }
+        if (request.getAction() == com.springvision.core.AnnotationRequest.Action.MARK) {
+            return markFaces(imageData);
+        }
+        if (request.getAction() == com.springvision.core.AnnotationRequest.Action.TAG) {
+            return tagFaces(imageData, request.getLabel());
+        }
+        return imageData;
     }
 
     /**
@@ -2114,7 +2124,6 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         }
     }
 
-    @Override
     public ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
         if (imageData == null || imageData.isEmpty()) {
             throw new IllegalArgumentException("Image data must not be null or empty");
@@ -2213,7 +2222,6 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     /**
      * Draw a textual tag above each detected face.
      */
-    @Override
     public ImageData tagFaces(ImageData imageData, String tag) throws BaseVisionException {
         if (imageData == null || imageData.isEmpty()) {
             throw new IllegalArgumentException("Image data must not be null or empty");
@@ -2358,7 +2366,6 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     /**
      * Draw a colored rectangle around each detected face.
      */
-    @Override
     public ImageData markFaces(ImageData imageData) throws BaseVisionException {
         if (imageData == null || imageData.isEmpty()) {
             throw new IllegalArgumentException("Image data must not be null or empty");

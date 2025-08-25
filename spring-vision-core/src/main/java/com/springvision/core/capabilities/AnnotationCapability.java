@@ -1,5 +1,6 @@
 package com.springvision.core.capabilities;
 
+import com.springvision.core.AnnotationRequest;
 import com.springvision.core.Detection;
 import com.springvision.core.ImageData;
 import com.springvision.core.exception.BaseVisionException;
@@ -13,5 +14,5 @@ public interface AnnotationCapability {
 	ImageData obscure(ImageData imageData, Predicate<Detection> filter) throws BaseVisionException;
 
 	/** Performs generic annotation (e.g., draw boxes/labels) specified by request. */
-	ImageData annotate(ImageData imageData, Object annotationRequest) throws BaseVisionException;
+	ImageData annotate(ImageData imageData, AnnotationRequest request) throws BaseVisionException;
 } 

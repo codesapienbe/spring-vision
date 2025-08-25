@@ -11,6 +11,11 @@ import java.util.List;
 import java.util.Comparator;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -267,6 +272,82 @@ public class PicoCLIApplication implements CommandLineRunner {
         return Paths.get(expanded).toAbsolutePath().normalize();
     }
 
+    private static final int MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024; // 50MB safety cap
+    private static final int CONNECT_TIMEOUT_MS = 8000;
+    private static final int READ_TIMEOUT_MS = 15000;
+
+    private boolean isHttpUrl(String value) {
+        if (value == null) return false;
+        String v = value.trim().toLowerCase();
+        return v.startsWith("http://") || v.startsWith("https://");
+    }
+
+    private byte[] readAllBytesFromSource(String source) throws IOException {
+        if (!isHttpUrl(source)) {
+            Path p = resolvePath(source);
+            if (!Files.exists(p) || !Files.isRegularFile(p)) {
+                throw new IOException("File not found or not a file: " + p);
+            }
+            if (!Files.isReadable(p)) {
+                throw new IOException("File not readable: " + p);
+            }
+            return Files.readAllBytes(p);
+        }
+        return downloadBytesFromHttp(source);
+    }
+
+    private BufferedImage readImageFromSource(String source) throws IOException {
+        byte[] data = readAllBytesFromSource(source);
+        try (var bais = new java.io.ByteArrayInputStream(data)) {
+            BufferedImage img = ImageIO.read(bais);
+            if (img == null) throw new IOException("Unsupported or corrupt image content");
+            return img;
+        }
+    }
+
+    private byte[] downloadBytesFromHttp(String urlString) throws IOException {
+        URL url = URI.create(urlString).toURL();
+        validateRemoteAddress(url);
+        URLConnection conn = url.openConnection();
+        conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        conn.setReadTimeout(READ_TIMEOUT_MS);
+        conn.setRequestProperty("User-Agent", "spring-vision-cli/1.0");
+        int contentLength = conn.getContentLength();
+        if (contentLength > 0 && contentLength > MAX_DOWNLOAD_BYTES) {
+            throw new IOException("Remote content too large: " + contentLength);
+        }
+        try (InputStream in = conn.getInputStream(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            int total = 0;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > MAX_DOWNLOAD_BYTES) {
+                    throw new IOException("Download exceeds size limit: " + MAX_DOWNLOAD_BYTES);
+                }
+                baos.write(buffer, 0, read);
+            }
+            return baos.toByteArray();
+        }
+    }
+
+    private void validateRemoteAddress(URL url) throws IOException {
+        String host = url.getHost();
+        if (host == null || host.isBlank()) throw new IOException("Invalid URL host");
+        try {
+            java.net.InetAddress[] addrs = java.net.InetAddress.getAllByName(host);
+            for (java.net.InetAddress a : addrs) {
+                if (a.isAnyLocalAddress() || a.isLoopbackAddress() || a.isLinkLocalAddress() || a.isSiteLocalAddress()) {
+                    throw new IOException("Refusing to connect to non-public address: " + a.getHostAddress());
+                }
+            }
+        } catch (IOException ioe) {
+            throw ioe;
+        } catch (Exception e) {
+            throw new IOException("Failed to resolve host: " + host);
+        }
+    }
+
     private void handleSingleDetection(CommandLine cmd) {
         String imagePath = cmd.getOptionValue("detect");
         String format = cmd.getOptionValue("format", "text");
@@ -280,18 +361,8 @@ public class PicoCLIApplication implements CommandLineRunner {
                 System.exit(1);
             }
 
-            Path path = resolvePath(imagePath);
-            if (!Files.exists(path) || !Files.isRegularFile(path)) {
-                System.err.println("Image file not found or not a file: " + path);
-                System.exit(1);
-            }
-            if (!Files.isReadable(path)) {
-                System.err.println("Image file is not readable: " + path);
-                System.exit(1);
-            }
-
-            logger.info("Processing single image: {}", path);
-            ImageData imageData = ImageData.fromBytes(Files.readAllBytes(path));
+            logger.info("Processing single image: {}", imagePath);
+            ImageData imageData = ImageData.fromBytes(readAllBytesFromSource(imagePath));
 
             VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
 
@@ -305,7 +376,7 @@ public class PicoCLIApplication implements CommandLineRunner {
             System.err.println("Invalid confidence threshold: " + confidenceStr);
             System.exit(1);
         } catch (IOException e) {
-            System.err.println("Error reading image file: " + e.getMessage());
+            System.err.println("Error reading image: " + e.getMessage());
             System.exit(1);
         } catch (VisionProcessingException e) {
             System.err.println("Error processing image: " + e.getMessage());
@@ -483,17 +554,7 @@ public class PicoCLIApplication implements CommandLineRunner {
         String format = cmd.getOptionValue("format", "text");
         int truncate = parseIntOrDefault(cmd.getOptionValue("truncate"), -1);
         try {
-            Path path = resolvePath(imagePath);
-            if (!Files.exists(path) || !Files.isRegularFile(path) || !Files.isReadable(path)) {
-                System.err.println("Image file not found or not readable: " + path);
-                System.exit(1);
-            }
-            byte[] bytes = Files.readAllBytes(path);
-            BufferedImage img = ImageIO.read(path.toFile());
-            if (img == null) {
-                System.err.println("Unsupported or corrupt image: " + path);
-                System.exit(1);
-            }
+            BufferedImage img = readImageFromSource(imagePath);
             List<EmbeddingResult> list = DeepFace.represent(img);
             if ("json".equalsIgnoreCase(format)) {
                 printEmbeddingJson(list, img.getWidth(), img.getHeight(), truncate);
@@ -515,23 +576,11 @@ public class PicoCLIApplication implements CommandLineRunner {
         String thresholdStr = cmd.getOptionValue("threshold", "");
         try {
             if (files == null || files.length != 2) {
-                System.err.println("--verify requires two image paths: --verify <image1> <image2>");
+                System.err.println("--verify requires two image paths or URLs: --verify <image1> <image2>");
                 System.exit(1);
             }
-            Path pathA = resolvePath(files[0]);
-            Path pathB = resolvePath(files[1]);
-            for (Path p : new Path[]{pathA, pathB}) {
-                if (!Files.exists(p) || !Files.isRegularFile(p) || !Files.isReadable(p)) {
-                    System.err.println("Image file not found or not readable: " + p);
-                    System.exit(1);
-                }
-            }
-            BufferedImage imgA = ImageIO.read(pathA.toFile());
-            BufferedImage imgB = ImageIO.read(pathB.toFile());
-            if (imgA == null || imgB == null) {
-                System.err.println("Unsupported or corrupt image(s)");
-                System.exit(1);
-            }
+            BufferedImage imgA = readImageFromSource(files[0]);
+            BufferedImage imgB = readImageFromSource(files[1]);
             var embA = getTopEmbedding(DeepFace.represent(imgA));
             var embB = getTopEmbedding(DeepFace.represent(imgB));
             if (embA == null || embB == null) {
@@ -548,7 +597,7 @@ public class PicoCLIApplication implements CommandLineRunner {
             double threshold = thresholdStr.isBlank()
                     ? ("euclidean".equals(metric) ? DEFAULT_VERIFY_THRESHOLD_EUCLIDEAN : DEFAULT_VERIFY_THRESHOLD_COSINE)
                     : Double.parseDouble(thresholdStr);
-            boolean isMatch = "euclidean".equals(metric) ? (distance <= threshold) : (distance <= threshold);
+            boolean isMatch = distance <= threshold;
 
             if ("json".equalsIgnoreCase(format)) {
                 String json = "{"+
@@ -558,6 +607,9 @@ public class PicoCLIApplication implements CommandLineRunner {
                         "\"is_match\":" + isMatch +
                         "}";
                 System.out.println(json);
+            } else if ("csv".equalsIgnoreCase(format)) {
+                System.out.println("metric,distance,threshold,is_match");
+                System.out.printf("%s,%.6f,%.6f,%s%n", metric, distance, threshold, isMatch);
             } else {
                 System.out.printf("Verification: metric=%s, distance=%.6f, threshold=%.6f, match=%s%n",
                         metric, distance, threshold, isMatch);
@@ -579,31 +631,22 @@ public class PicoCLIApplication implements CommandLineRunner {
         boolean showProgress = cmd.hasOption("progress");
         try {
             if (args == null || args.length != 2) {
-                System.err.println("--verify-batch requires two arguments: --verify-batch <reference-image> <directory>");
+                System.err.println("--verify-batch requires two arguments: --verify-batch <reference-image-URL-or-file> <directory>");
                 System.exit(1);
             }
-            Path refPath = resolvePath(args[0]);
+            BufferedImage refImg = readImageFromSource(args[0]);
+            var refEmb = getTopEmbedding(DeepFace.represent(refImg));
+            if (refEmb == null || refEmb.embedding() == null) {
+                System.err.println("No face embedding found in reference image");
+                System.exit(1);
+            }
+            float[] refVec = l2Normalize(refEmb.embedding());
+
             Path dirPath = resolvePath(args[1]);
-            if (!Files.exists(refPath) || !Files.isRegularFile(refPath) || !Files.isReadable(refPath)) {
-                System.err.println("Reference image not found or not readable: " + refPath);
-                System.exit(1);
-            }
             if (!Files.exists(dirPath) || !Files.isDirectory(dirPath) || !Files.isReadable(dirPath)) {
                 System.err.println("Directory not found or not readable: " + dirPath);
                 System.exit(1);
             }
-
-            BufferedImage refImg = ImageIO.read(refPath.toFile());
-            if (refImg == null) {
-                System.err.println("Unsupported or corrupt reference image: " + refPath);
-                System.exit(1);
-            }
-            var refEmb = getTopEmbedding(DeepFace.represent(refImg));
-            if (refEmb == null || refEmb.embedding() == null) {
-                System.err.println("No face embedding found in reference image: " + refPath);
-                System.exit(1);
-            }
-            float[] refVec = l2Normalize(refEmb.embedding());
 
             List<Path> imageFiles;
             try (var paths = Files.list(dirPath)) {
@@ -628,7 +671,6 @@ public class PicoCLIApplication implements CommandLineRunner {
                         if (img == null) throw new IOException("unsupported/corrupt image");
                         var er = getTopEmbedding(DeepFace.represent(img));
                         if (er == null || er.embedding() == null) {
-                            // skip file with null embedding
                             continue;
                         }
                         float[] vec = l2Normalize(er.embedding());
@@ -709,18 +751,13 @@ public class PicoCLIApplication implements CommandLineRunner {
         String[] args = cmd.getOptionValues("obscure");
         try {
             if (args == null || args.length != 2) {
-                System.err.println("--obscure requires two arguments: --obscure <input-image> <output-image>");
+                System.err.println("--obscure requires two arguments: --obscure <input-image-URL-or-file> <output-image>");
                 System.exit(1);
             }
-            Path inputPath = resolvePath(args[0]);
+            String input = args[0];
             Path outputPath = resolvePath(args[1]);
             
-            if (!Files.exists(inputPath) || !Files.isRegularFile(inputPath) || !Files.isReadable(inputPath)) {
-                System.err.println("Input image not found or not readable: " + inputPath);
-                System.exit(1);
-            }
-            
-            // Check if output directory exists and is writable
+            // Check or create output directory
             Path outputDir = outputPath.getParent();
             if (outputDir != null && !Files.exists(outputDir)) {
                 try {
@@ -731,15 +768,10 @@ public class PicoCLIApplication implements CommandLineRunner {
                 }
             }
             
-            logger.info("Obscuring faces in image: {} -> {}", inputPath, outputPath);
+            logger.info("Obscuring faces in image: {} -> {}", input, outputPath);
             
-            // Read input image
-            ImageData inputImage = ImageData.fromBytes(Files.readAllBytes(inputPath));
-            
-            // Obscure faces
+            ImageData inputImage = ImageData.fromBytes(readAllBytesFromSource(input));
             ImageData obscuredImage = visionTemplate.obscureFaces(inputImage);
-            
-            // Write output image
             Files.write(outputPath, obscuredImage.data());
             
             System.out.println("Successfully obscured faces and saved to: " + outputPath);
@@ -992,22 +1024,22 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println("    java -jar picocli-application.jar --interactive");
         System.out.println();
         System.out.println("  Single file detection:");
-        System.out.println("    java -jar picocli-application.jar --detect <image-file> [options]");
+        System.out.println("    java -jar picocli-application.jar --detect <image-file-or-URL> [options]");
         System.out.println();
         System.out.println("  Batch directory processing:");
         System.out.println("    java -jar picocli-application.jar --batch <directory> [--progress] [options]");
         System.out.println();
         System.out.println("  Embedding extraction:");
-        System.out.println("    java -jar picocli-application.jar --embed <image-file> [--format json|text|csv] [--truncate N]");
+        System.out.println("    java -jar picocli-application.jar --embed <image-file-or-URL> [--format json|text|csv] [--truncate N]");
         System.out.println();
         System.out.println("  Face verification:");
-        System.out.println("    java -jar picocli-application.jar --verify <image1> <image2> [--metric cosine|euclidean] [--threshold value] [--format json|text]");
+        System.out.println("    java -jar picocli-application.jar --verify <image1-file-or-URL> <image2-file-or-URL> [--metric cosine|euclidean] [--threshold value] [--format json|text|csv]");
         System.out.println();
         System.out.println("  Batch verification:");
-        System.out.println("    java -jar picocli-application.jar --verify-batch <image> <directory> [--metric ...] [--threshold ...] [--format json|csv|text] [--progress]");
+        System.out.println("    java -jar picocli-application.jar --verify-batch <image-file-or-URL> <directory> [--metric ...] [--threshold ...] [--format json|csv|text] [--progress]");
         System.out.println();
         System.out.println("  Face obscuring:");
-        System.out.println("    java -jar picocli-application.jar --obscure <input-image> <output-image>");
+        System.out.println("    java -jar picocli-application.jar --obscure <input-image-file-or-URL> <output-image-file>");
         System.out.println();
         System.out.println("  Health check:");
         System.out.println("    java -jar picocli-application.jar --health");
@@ -1026,11 +1058,11 @@ public class PicoCLIApplication implements CommandLineRunner {
         System.out.println();
         System.out.println("Examples:");
         System.out.println("  java -jar picocli-application.jar --interactive");
-        System.out.println("  java -jar picocli-application.jar --detect image.jpg --format json");
+        System.out.println("  java -jar picocli-application.jar --detect https://example.com/img.jpg --format json");
         System.out.println("  java -jar picocli-application.jar --embed image.jpg --format json --truncate 8");
-        System.out.println("  java -jar picocli-application.jar --verify a.jpg b.jpg --metric cosine --format json");
+        System.out.println("  java -jar picocli-application.jar --verify https://a.jpg b.jpg --metric cosine --format csv");
         System.out.println("  java -jar picocli-application.jar --verify-batch a.jpg ./images --metric cosine --format csv --progress");
-        System.out.println("  java -jar picocli-application.jar --obscure input.jpg output.jpg");
+        System.out.println("  java -jar picocli-application.jar --obscure https://a.jpg output.jpg");
         System.out.println("  java -jar picocli-application.jar --batch ./images --confidence 0.7 --progress --verbose");
         System.out.println("  java -jar picocli-application.jar --health");
     }
