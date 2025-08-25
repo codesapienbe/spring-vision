@@ -14,6 +14,7 @@ Comprehensive documentation for the Spring Vision REST API, including endpoints,
 8. [Examples](#examples)
 9. [Best Practices](#best-practices)
 10. [Troubleshooting](#troubleshooting)
+11. [Advanced Usage: DetectionQuery and Capabilities](#advanced-usage-detectionquery-and-capabilities)
 
 ## Overview
 
@@ -96,26 +97,8 @@ curl -X POST http://localhost:8080/api/vision/detect/faces \
   "averageConfidence": 0.85,
   "processingTimeMs": 150,
   "detections": [
-    {
-      "label": "face",
-      "confidence": 0.92,
-      "boundingBox": {
-        "x": 0.1,
-        "y": 0.2,
-        "width": 0.3,
-        "height": 0.4
-      }
-    },
-    {
-      "label": "face",
-      "confidence": 0.78,
-      "boundingBox": {
-        "x": 0.6,
-        "y": 0.3,
-        "width": 0.25,
-        "height": 0.35
-      }
-    }
+    { "label": "face", "confidence": 0.92, "boundingBox": { "x": 0.1, "y": 0.2, "width": 0.3, "height": 0.4 } },
+    { "label": "face", "confidence": 0.78, "boundingBox": { "x": 0.6, "y": 0.3, "width": 0.25, "height": 0.35 } }
   ]
 }
 ```
@@ -158,36 +141,9 @@ curl -X POST http://localhost:8080/api/vision/detect/objects \
   "averageConfidence": 0.78,
   "processingTimeMs": 200,
   "detections": [
-    {
-      "label": "person",
-      "confidence": 0.85,
-      "boundingBox": {
-        "x": 0.1,
-        "y": 0.2,
-        "width": 0.3,
-        "height": 0.6
-      }
-    },
-    {
-      "label": "car",
-      "confidence": 0.72,
-      "boundingBox": {
-        "x": 0.5,
-        "y": 0.4,
-        "width": 0.4,
-        "height": 0.3
-      }
-    },
-    {
-      "label": "building",
-      "confidence": 0.77,
-      "boundingBox": {
-        "x": 0.0,
-        "y": 0.0,
-        "width": 1.0,
-        "height": 0.8
-      }
-    }
+    { "label": "person", "confidence": 0.85, "boundingBox": { "x": 0.1, "y": 0.2, "width": 0.3, "height": 0.6 } },
+    { "label": "car", "confidence": 0.72, "boundingBox": { "x": 0.5, "y": 0.4, "width": 0.4, "height": 0.3 } },
+    { "label": "building", "confidence": 0.77, "boundingBox": { "x": 0.0, "y": 0.0, "width": 1.0, "height": 0.8 } }
   ]
 }
 ```
@@ -235,22 +191,8 @@ curl -X POST http://localhost:8080/api/vision/detect/multiple \
   "correlationId": "123e4567-e89b-12d3-a456-426614174000",
   "detectionTypes": ["face", "object"],
   "results": [
-    {
-      "correlationId": "123e4567-e89b-12d3-a456-426614174000",
-      "detectionType": "face",
-      "detectionCount": 2,
-      "averageConfidence": 0.85,
-      "processingTimeMs": 150,
-      "detections": [...]
-    },
-    {
-      "correlationId": "123e4567-e89b-12d3-a456-426614174000",
-      "detectionType": "object",
-      "detectionCount": 3,
-      "averageConfidence": 0.78,
-      "processingTimeMs": 200,
-      "detections": [...]
-    }
+    { "correlationId": "123e4567-e89b-12d3-a456-426614174000", "detectionType": "face", "detectionCount": 2, "averageConfidence": 0.85, "processingTimeMs": 150, "detections": [...] },
+    { "correlationId": "123e4567-e89b-12d3-a456-426614174000", "detectionType": "object", "detectionCount": 3, "averageConfidence": 0.78, "processingTimeMs": 200, "detections": [...] }
   ]
 }
 ```
@@ -641,3 +583,29 @@ For additional support:
 1. Check the [GitHub repository](https://github.com/spring-vision/spring-vision)
 2. Review the [OpenCV documentation](https://docs.opencv.org/)
 3. Open an issue with correlation ID and error details 
+
+## Advanced Usage: DetectionQuery and Capabilities
+
+Spring Vision now supports a richer detection API via `DetectionQuery` and optional capability routing:
+
+- Use `VisionTemplate.detect(ImageData, DetectionQuery)` to provide:
+  - `type` (required): e.g., `DetectionType.FACE`
+  - `categories` (optional): e.g., `[FACE, EYE]`
+  - `minConfidence`, `maxDetections`, `roi` (optional)
+- The system validates inputs and logs structured metadata.
+- When a backend implements capability interfaces (e.g., `FaceDetectionCapability`), calls are routed to those implementations automatically, otherwise they fall back to the backend’s generic `detect`.
+
+Example (Java):
+```java
+DetectionQuery query = new DetectionQuery.Builder()
+    .type(DetectionType.FACE)
+    .categories(java.util.Set.of(DetectionCategory.FACE))
+    .minConfidence(0.6)
+    .build();
+
+VisionResult result = visionTemplate.detect(imageData, query);
+```
+
+Backward compatibility:
+- Existing endpoints and facade methods (e.g., `detectFaces`) continue to work unchanged in 1.x.
+- Deprecated methods will be removed in a future major (2.0). 

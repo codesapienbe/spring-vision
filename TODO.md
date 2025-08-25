@@ -230,12 +230,19 @@
   - [x] Return original image if no faces detected
   - [x] Support common image formats and coordinate normalization
 
-### 4. Testing Strategy (Future)
+### 5. VisionBackend Refactor to Multi-category (New)
 
-- [ ] **TODO: Design and implement advanced testing strategy using modern testing libraries**
-- [ ] **TODO: Add integration tests with proper test containers**
-- [ ] **TODO: Implement performance and load testing**
-- [ ] **TODO: Add security testing and vulnerability scanning**
+- [x] Add `DetectionCategory` enum (FACE, EYE, NOSE, MOUTH, EAR, HAND, BODY, PERSON, OBJECT, TEXT, BARCODE, LANDMARK, POSE, CUSTOM)
+- [x] Add `DetectionQuery` with builder (type, categories, classLabels, minConfidence, maxDetections, roi, options)
+- [x] Add `VisionBackend.detect(ImageData, DetectionQuery)` default (delegates to type)
+- [x] Add `VisionTemplate.detect(ImageData|byte[], DetectionQuery)` with structured logging
+- [x] Introduce capability interfaces under `com.springvision.core.capabilities` (Face/Object/Text/Barcode/Pose/Hand/Landmark/Annotation/Embedding)
+- [x] Deprecate face-centric methods on `VisionBackend` (`detectFaces`, `obscureFaces`, `tagFaces`, `markFaces`, default `extractEmbeddings`)
+- [x] Enrich face detections with `attributes.category=FACE` (FaceBytes/CompreFace/DeepFace backends)
+- [x] Update `OpenCvVisionBackend` face/object paths to set `attributes.category` appropriately
+- [x] Add optional capability-aware routing in `VisionTemplate` (use `instanceof` to call capability when available)
+- [x] Document `DetectionQuery` usage in `docs/` and update example apps minimally (preserve old flows)
+- [x] Plan 2.0 removal of deprecated methods; add note in `docs/VISION_BACKEND_REFACTOR.md`
 
 ## COMPLETED TASKS
 

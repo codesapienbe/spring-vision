@@ -481,7 +481,11 @@ public class JavaFXApplication {
                     ImageData image = ImageData.fromBytes(imageData);
 
                     // Perform detection
-                    VisionResult result = visionTemplate.detectFaces(image);
+                    com.springvision.core.DetectionQuery query = new com.springvision.core.DetectionQuery.Builder()
+                        .type(com.springvision.core.DetectionType.FACE)
+                        .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
+                        .build();
+                    VisionResult result = visionTemplate.detect(image, query);
                     long processingTime = System.currentTimeMillis() - startTime;
 
                     logger.info("Face detection completed", Map.of(

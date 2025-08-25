@@ -100,7 +100,11 @@ public class FaceDetectionController {
             ImageData imageData = convertToImageData(file);
 
             // Perform face detection
-            VisionResult result = visionTemplate.detectFaces(imageData);
+            com.springvision.core.DetectionQuery query = new com.springvision.core.DetectionQuery.Builder()
+                .type(com.springvision.core.DetectionType.FACE)
+                .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
+                .build();
+            VisionResult result = visionTemplate.detect(imageData, query);
 
             // Create response in the format expected by the Vaadin frontend
             Map<String, Object> response = Map.of(

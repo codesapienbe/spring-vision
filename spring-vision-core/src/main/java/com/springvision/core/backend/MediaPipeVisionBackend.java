@@ -35,7 +35,7 @@ import com.springvision.core.BoundingBox;
  * {@link DetectionType#POSE}, and {@link DetectionType#LANDMARK}. Additional
  * tasks can be enabled incrementally as the project evolves.</p>
  */
-public class MediaPipeVisionBackend implements VisionBackend {
+public class MediaPipeVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.HandDetectionCapability, com.springvision.core.capabilities.PoseEstimationCapability, com.springvision.core.capabilities.LandmarkDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(MediaPipeVisionBackend.class);
 

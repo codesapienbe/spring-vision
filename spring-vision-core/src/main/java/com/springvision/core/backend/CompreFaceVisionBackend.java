@@ -536,6 +536,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
 
         // Extract additional attributes
         Map<String, Object> attributes = new HashMap<>();
+        attributes.put("category", com.springvision.core.DetectionCategory.FACE.name());
         if (result.has("age")) attributes.put("age", result.get("age").asInt());
         if (result.has("gender")) attributes.put("gender", result.get("gender").asText());
         if (result.has("mask")) attributes.put("mask", result.get("mask").asText());

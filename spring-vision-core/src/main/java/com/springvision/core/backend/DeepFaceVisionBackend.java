@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0.0
  * @see VisionBackend
  */
-public class DeepFaceVisionBackend implements VisionBackend {
+public class DeepFaceVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DeepFaceVisionBackend.class);
 
@@ -478,6 +478,7 @@ public class DeepFaceVisionBackend implements VisionBackend {
 
         // Extract additional attributes
         Map<String, Object> attributes = new HashMap<>();
+        attributes.put("category", com.springvision.core.DetectionCategory.FACE.name());
         if (result.has("age")) attributes.put("age", result.get("age").asInt());
         if (result.has("dominant_gender")) attributes.put("gender", result.get("dominant_gender").asText());
         if (result.has("dominant_emotion")) attributes.put("emotion", result.get("dominant_emotion").asText());

@@ -30,7 +30,7 @@ import com.springvision.core.exception.BaseVisionException;
  * <p>This backend provides face detection by delegating to FaceBytes' OpenCV Haar cascade
  * face detector and mapping results into Spring Vision core domain objects.</p>
  */
-public final class FaceBytesBackend implements VisionBackend {
+public final class FaceBytesBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.EmbeddingCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(FaceBytesBackend.class);
 
@@ -117,7 +117,9 @@ public final class FaceBytesBackend implements VisionBackend {
                 double nh = clamp01((double) r.height() / img.getHeight());
                 var bbox = new com.springvision.core.BoundingBox(nx, ny, nw, nh);
                 double confidence = clamp01(r.confidence());
-                detections.add(new Detection("face", confidence, bbox, Map.of()));
+                detections.add(new Detection("face", confidence, bbox, Map.of(
+                    "category", com.springvision.core.DetectionCategory.FACE.name()
+                )));
             }
             double avg = detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0);
             long took = System.currentTimeMillis() - start;
@@ -142,6 +144,14 @@ public final class FaceBytesBackend implements VisionBackend {
     @Override
     public VisionResult detectObjects(ImageData imageData) throws BaseVisionException {
         throw new UnsupportedOperationException("Object detection not supported by FaceBytes backend");
+    }
+
+    @Override
+    public java.util.List<float[]> extractEmbeddings(com.springvision.core.ImageData imageData,
+                                                     com.springvision.core.DetectionCategory subject)
+            throws com.springvision.core.exception.BaseVisionException {
+        // For now, ignore subject and always extract face embeddings via FaceBytes
+        return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
     }
 
     private static double clamp01(double v) {

@@ -71,7 +71,7 @@ import com.springvision.core.exception.VisionProcessingException;
  * @see VisionBackend
  * @see VisionTemplate
  */
-public class OpenCvVisionBackend implements VisionBackend {
+public class OpenCvVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.ObjectDetectionCapability, com.springvision.core.capabilities.AnnotationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
 
@@ -181,6 +181,19 @@ public class OpenCvVisionBackend implements VisionBackend {
     private String dnnModelPath;
     private String yuNetModelPath;
     private String sFaceModelPath;
+
+    // AnnotationCapability - delegate to existing face-specific methods for now
+    @Override
+    public ImageData obscure(ImageData imageData, java.util.function.Predicate<com.springvision.core.Detection> filter)
+            throws com.springvision.core.exception.BaseVisionException {
+        return obscureFaces(imageData);
+    }
+
+    @Override
+    public ImageData annotate(ImageData imageData, Object annotationRequest)
+            throws com.springvision.core.exception.BaseVisionException {
+        return markFaces(imageData);
+    }
 
     /**
      * Frame converter for OpenCV operations.
@@ -778,7 +791,9 @@ public class OpenCvVisionBackend implements VisionBackend {
                     double confidence = calculateCircleConfidence(radius, image.cols(), image.rows());
                     totalConfidence += confidence;
 
-                    Detection detection = Detection.of("circle", confidence, boundingBox);
+                    Detection detection = new Detection("circle", confidence, boundingBox, java.util.Map.of(
+                        "category", com.springvision.core.DetectionCategory.OBJECT.name()
+                    ));
                     detections.add(detection);
                 }
             }
@@ -1606,7 +1621,9 @@ public class OpenCvVisionBackend implements VisionBackend {
             double nw = (double) r.width() / cols;
             double nh = (double) r.height() / rows;
             double conf = Math.min(0.9, 0.8 + (r.width() * r.height()) / (double) (cols * rows));
-            detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+            detections.add(new Detection("face", conf, new BoundingBox(nx, ny, nw, nh), java.util.Map.of(
+                "category", com.springvision.core.DetectionCategory.FACE.name()
+            )));
         }
         profiles.deallocate();
 
@@ -1627,7 +1644,9 @@ public class OpenCvVisionBackend implements VisionBackend {
             double nw = (double) mapped.width() / cols;
             double nh = (double) mapped.height() / rows;
             double conf = Math.min(0.9, 0.8 + (mapped.width() * mapped.height()) / (double) (cols * rows));
-            detections.add(Detection.of("face", conf, new BoundingBox(nx, ny, nw, nh)));
+            detections.add(new Detection("face", conf, new BoundingBox(nx, ny, nw, nh), java.util.Map.of(
+                "category", com.springvision.core.DetectionCategory.FACE.name()
+            )));
         }
         profilesFlipped.deallocate();
         flipped.releaseReference();

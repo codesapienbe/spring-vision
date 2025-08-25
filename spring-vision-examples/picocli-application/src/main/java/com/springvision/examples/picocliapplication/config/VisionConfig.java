@@ -83,12 +83,16 @@ public class VisionConfig {
 
         @Override
         public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
-            return com.springvision.core.VisionResult.of(
-                com.springvision.core.DetectionType.FACE,
-                java.util.List.of(),
-                0.0,
-                0L
-            );
+            try {
+                return this.detect(imageData, com.springvision.core.DetectionType.FACE);
+            } catch (com.springvision.core.exception.BaseVisionException e) {
+                return com.springvision.core.VisionResult.of(
+                    com.springvision.core.DetectionType.FACE,
+                    java.util.List.of(),
+                    0.0,
+                    0L
+                );
+            }
         }
 
         @Override

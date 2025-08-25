@@ -139,7 +139,7 @@ public class VisionTemplate {
         ));
 
         try {
-            VisionResult result = backend.detect(imageData, detectionType);
+            VisionResult result = routeViaCapabilitiesIfAvailable(imageData, detectionType);
             long processingTime = System.currentTimeMillis() - startTime;
 
             logger.info("{} detection completed", Map.of(
@@ -190,6 +190,50 @@ public class VisionTemplate {
     public VisionResult detect(byte[] imageBytes, DetectionType detectionType) throws BaseVisionException {
         ImageData imageData = ImageData.fromBytes(imageBytes);
         return detect(imageData, detectionType);
+    }
+
+    // Capability-aware routing (optional, non-breaking)
+    private VisionResult routeViaCapabilitiesIfAvailable(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
+        Object b = this.backend;
+        switch (detectionType) {
+            case FACE -> {
+                if (b instanceof com.springvision.core.capabilities.FaceDetectionCapability cap) {
+                    return cap.detectFaces(imageData);
+                }
+            }
+            case OBJECT -> {
+                if (b instanceof com.springvision.core.capabilities.ObjectDetectionCapability cap) {
+                    return cap.detectObjects(imageData);
+                }
+            }
+            case TEXT -> {
+                if (b instanceof com.springvision.core.capabilities.TextOcrCapability cap) {
+                    return cap.detectText(imageData);
+                }
+            }
+            case BARCODE -> {
+                if (b instanceof com.springvision.core.capabilities.BarcodeCapability cap) {
+                    return cap.detectBarcodes(imageData);
+                }
+            }
+            case LANDMARK -> {
+                if (b instanceof com.springvision.core.capabilities.LandmarkDetectionCapability cap) {
+                    return cap.detectLandmarks(imageData);
+                }
+            }
+            case POSE -> {
+                if (b instanceof com.springvision.core.capabilities.PoseEstimationCapability cap) {
+                    return cap.detectPoses(imageData);
+                }
+            }
+            case HAND -> {
+                if (b instanceof com.springvision.core.capabilities.HandDetectionCapability cap) {
+                    return cap.detectHands(imageData);
+                }
+            }
+            case CUSTOM -> { /* fall through to backend */ }
+        }
+        return backend.detect(imageData, detectionType);
     }
 
     /** Performs multiple detection types on the provided image data. */
@@ -250,6 +294,81 @@ public class VisionTemplate {
                 e
             );
         }
+    }
+
+    /** Performs a generic detection using a rich query. */
+    public VisionResult detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "Image data must not be null");
+        Objects.requireNonNull(query, "Detection query must not be null");
+        Objects.requireNonNull(query.getType(), "Detection query type must not be null");
+
+        if (!supportsDetectionType(query.getType())) {
+            throw new IllegalArgumentException(
+                String.format("Detection type '%s' is not supported by backend '%s'",
+                    query.getType().getDisplayName(), getBackendId()));
+        }
+
+        String correlationId = generateCorrelationId();
+        long startTime = System.currentTimeMillis();
+
+        logger.info("Starting detection query", Map.of(
+            "correlationId", correlationId,
+            "detectionType", query.getType().getDisplayName(),
+            "categories", query.getCategories().stream().map(Enum::name).toList(),
+            "minConfidence", query.getMinConfidence(),
+            "maxDetections", query.getMaxDetections(),
+            "hasRoi", query.getRoi() != null,
+            "imageSize", imageData.getSizeInBytes(),
+            "imageFormat", imageData.format(),
+            "backendId", getBackendId()
+        ));
+
+        try {
+            VisionResult result = backend.detect(imageData, query);
+            long processingTime = System.currentTimeMillis() - startTime;
+
+            logger.info("Detection query completed", Map.of(
+                "correlationId", correlationId,
+                "detectionType", query.getType().getDisplayName(),
+                "detectionsFound", result.detectionCount(),
+                "averageConfidence", result.averageConfidence(),
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId()
+            ));
+
+            return result;
+        } catch (BaseVisionException e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            logger.error("Detection query failed", Map.of(
+                "correlationId", correlationId,
+                "detectionType", query.getType().getDisplayName(),
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId(),
+                "error", e.getClass().getSimpleName()
+            ), e);
+            throw e;
+        } catch (Exception e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            logger.error("Unexpected error during detection query", Map.of(
+                "correlationId", correlationId,
+                "detectionType", query.getType().getDisplayName(),
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId(),
+                "error", e.getClass().getSimpleName()
+            ), e);
+            throw new VisionProcessingException(
+                String.format("Unexpected error during %s detection", query.getType().getDisplayName()),
+                query.getType().getDisplayName().toLowerCase(),
+                query.getType().getCode(),
+                e
+            );
+        }
+    }
+
+    /** Performs a generic detection on byte array using a rich query. */
+    public VisionResult detect(byte[] imageBytes, DetectionQuery query) throws BaseVisionException {
+        ImageData imageData = ImageData.fromBytes(imageBytes);
+        return detect(imageData, query);
     }
 
     /** Extracts face embeddings using the backend's implementation or default support. */

@@ -79,7 +79,11 @@ public class DeepFaceExampleApplication {
 
             // Detect faces
             logger.info("Detecting faces...");
-            VisionResult result = visionTemplate.detectFaces(imageData);
+            com.springvision.core.DetectionQuery query = new com.springvision.core.DetectionQuery.Builder()
+                .type(com.springvision.core.DetectionType.FACE)
+                .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
+                .build();
+            VisionResult result = visionTemplate.detect(imageData, query);
 
             if (result.hasDetections()) {
                 logger.info("Found {} faces:", result.detectionCount());
