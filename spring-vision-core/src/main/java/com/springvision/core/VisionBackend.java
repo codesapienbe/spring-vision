@@ -268,4 +268,36 @@ public interface VisionBackend {
         throw new UnsupportedOperationException(
             String.format("Face obscuring is not supported by backend '%s'", getBackendId()));
     }
+
+    /**
+     * Draws a textual tag above each detected face in the provided image.
+     *
+     * <p>Implementations should detect faces in the image and render the provided tag
+     * just above each face bounding box. The tag is a free-form string intended for
+     * names or labels and should be limited to a maximum of 255 characters.</p>
+     *
+     * @param imageData image to process
+     * @param tag text to render above each detected face (max 255 characters)
+     * @return image data with the tag rendered above each detected face; original image if no faces are found
+     * @throws BaseVisionException if processing fails
+     */
+    default ImageData tagFaces(ImageData imageData, String tag) throws BaseVisionException {
+        throw new UnsupportedOperationException(
+            String.format("Face tagging is not supported by backend '%s'", getBackendId()));
+    }
+
+    /**
+     * Draws colored rectangles around each detected face in the provided image.
+     *
+     * <p>Implementations should detect faces in the image and render a visible rectangle
+     * around each face using distinct colors to differentiate faces.</p>
+     *
+     * @param imageData image to process
+     * @return image data with rectangles drawn around each detected face; original image if no faces are found
+     * @throws BaseVisionException if processing fails
+     */
+    default ImageData markFaces(ImageData imageData) throws BaseVisionException {
+        throw new UnsupportedOperationException(
+            String.format("Face marking is not supported by backend '%s'", getBackendId()));
+    }
 }

@@ -2190,4 +2190,243 @@ public class OpenCvVisionBackend implements VisionBackend {
             throw new VisionBackendException("Failed to obscure faces: " + e.getMessage(), e);
         }
     }
+
+    /**
+     * Draw a textual tag above each detected face.
+     */
+    @Override
+    public ImageData tagFaces(ImageData imageData, String tag) throws BaseVisionException {
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("Image data must not be null or empty");
+        }
+        if (tag == null) {
+            throw new IllegalArgumentException("Tag must not be null");
+        }
+        String safeTag = tag.strip();
+        if (safeTag.length() > 255) {
+            safeTag = safeTag.substring(0, 255);
+        }
+        if (safeTag.isEmpty()) {
+            // Nothing to render; return original image
+            return imageData;
+        }
+
+        try {
+            // Decode image to Mat
+            org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
+            Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
+            Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
+            if (image == null || image.empty()) {
+                rawPointer.deallocate();
+                buffer.releaseReference();
+                throw new VisionProcessingException("Failed to decode image data", "tag", "face");
+            }
+            buffer.releaseReference();
+            rawPointer.deallocate();
+
+            // Detect faces
+            VisionResult faceResult = detectFaces(imageData);
+            List<Detection> faces = faceResult.detections();
+
+            if (faces.isEmpty()) {
+                logger.debug("No faces detected for tagging");
+                return imageData;
+            }
+
+            // Choose font and scale based on image size
+            int imgW = image.cols();
+            int imgH = image.rows();
+            int minDim = Math.max(1, Math.min(imgW, imgH));
+            double fontScale = Math.max(0.4, Math.min(2.5, minDim / 600.0));
+            int thickness = Math.max(1, (int) Math.round(fontScale * 2));
+            int baseline[] = new int[1];
+
+            for (Detection face : faces) {
+                BoundingBox bbox = face.boundingBox();
+                if (bbox == null) {
+                    continue;
+                }
+                int x = (int) Math.round(bbox.x() * imgW);
+                int y = (int) Math.round(bbox.y() * imgH);
+                int width = (int) Math.round(bbox.width() * imgW);
+                int height = (int) Math.round(bbox.height() * imgH);
+
+                x = Math.max(0, Math.min(x, imgW - 1));
+                y = Math.max(0, Math.min(y, imgH - 1));
+                width = Math.min(width, imgW - x);
+                height = Math.min(height, imgH - y);
+                if (width <= 0 || height <= 0) {
+                    continue;
+                }
+
+                // Calculate text size
+                org.bytedeco.opencv.opencv_core.Size textSize = org.bytedeco.opencv.global.opencv_imgproc.getTextSize(
+                    safeTag,
+                    org.bytedeco.opencv.global.opencv_imgproc.FONT_HERSHEY_SIMPLEX,
+                    fontScale,
+                    thickness,
+                    baseline
+                );
+
+                // Position above the face rectangle
+                int textX = Math.max(0, Math.min(x, imgW - textSize.width()));
+                int textY = y - 8; // small margin above
+                if (textY - textSize.height() < 0) {
+                    // If above goes out of frame, place inside the top edge of face rect
+                    textY = y + Math.min(height - 4, textSize.height() + 4);
+                }
+
+                // Draw background rectangle for readability
+                int rectX = textX - 2;
+                int rectY = textY - textSize.height() - 2;
+                int rectW = textSize.width() + 4;
+                int rectH = textSize.height() + 4;
+
+                rectX = Math.max(0, rectX);
+                rectY = Math.max(0, rectY);
+                if (rectX + rectW > imgW) rectW = imgW - rectX;
+                if (rectY + rectH > imgH) rectH = imgH - rectY;
+
+                if (rectW > 0 && rectH > 0) {
+                    org.bytedeco.opencv.global.opencv_imgproc.rectangle(
+                        image,
+                        new org.bytedeco.opencv.opencv_core.Rect(rectX, rectY, rectW, rectH),
+                        new Scalar(0, 0, 0, 0),
+                        org.bytedeco.opencv.global.opencv_imgproc.FILLED,
+                        0,
+                        0
+                    );
+                }
+
+                // Draw the text in white
+                org.bytedeco.opencv.global.opencv_imgproc.putText(
+                    image,
+                    safeTag,
+                    new org.bytedeco.opencv.opencv_core.Point(textX, textY),
+                    org.bytedeco.opencv.global.opencv_imgproc.FONT_HERSHEY_SIMPLEX,
+                    fontScale,
+                    new Scalar(255, 255, 255, 0),
+                    thickness,
+                    org.bytedeco.opencv.global.opencv_imgproc.LINE_AA,
+                    false
+                );
+            }
+
+            // Encode back to bytes
+            org.bytedeco.javacpp.BytePointer outBuffer = new org.bytedeco.javacpp.BytePointer();
+            boolean ok = org.bytedeco.opencv.global.opencv_imgcodecs.imencode(".jpg", image, outBuffer);
+            if (!ok || outBuffer.isNull() || outBuffer.limit() == 0) {
+                image.releaseReference();
+                outBuffer.deallocate();
+                throw new VisionProcessingException("Failed to encode tagged image", "tag", "face");
+            }
+            long length = outBuffer.limit();
+            byte[] taggedBytes = new byte[(int) length];
+            outBuffer.get(taggedBytes);
+
+            image.releaseReference();
+            outBuffer.deallocate();
+
+            logger.info("Tagged {} faces in image", faces.size());
+            return ImageData.fromBytes(taggedBytes, "image/jpeg");
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionBackendException("Failed to tag faces: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Draw a colored rectangle around each detected face.
+     */
+    @Override
+    public ImageData markFaces(ImageData imageData) throws BaseVisionException {
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("Image data must not be null or empty");
+        }
+
+        try {
+            // Decode image to Mat
+            org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
+            Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
+            Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
+            if (image == null || image.empty()) {
+                rawPointer.deallocate();
+                buffer.releaseReference();
+                throw new VisionProcessingException("Failed to decode image data", "mark", "face");
+            }
+            buffer.releaseReference();
+            rawPointer.deallocate();
+
+            // Detect faces
+            VisionResult faceResult = detectFaces(imageData);
+            List<Detection> faces = faceResult.detections();
+
+            if (faces.isEmpty()) {
+                logger.debug("No faces detected for marking");
+                return imageData;
+            }
+
+            int imgW = image.cols();
+            int imgH = image.rows();
+            java.util.Random rng = new java.util.Random(0x5F3759DFL ^ System.currentTimeMillis());
+
+            for (Detection face : faces) {
+                BoundingBox bbox = face.boundingBox();
+                if (bbox == null) {
+                    continue;
+                }
+                int x = (int) Math.round(bbox.x() * imgW);
+                int y = (int) Math.round(bbox.y() * imgH);
+                int width = (int) Math.round(bbox.width() * imgW);
+                int height = (int) Math.round(bbox.height() * imgH);
+
+                x = Math.max(0, Math.min(x, imgW - 1));
+                y = Math.max(0, Math.min(y, imgH - 1));
+                width = Math.min(width, imgW - x);
+                height = Math.min(height, imgH - y);
+                if (width <= 0 || height <= 0) {
+                    continue;
+                }
+
+                // Random distinct color with minimum brightness for visibility
+                int r = 64 + rng.nextInt(192);
+                int g = 64 + rng.nextInt(192);
+                int b = 64 + rng.nextInt(192);
+                Scalar color = new Scalar(b, g, r, 0); // OpenCV uses BGR
+
+                int thickness = Math.max(2, Math.min(6, Math.round(Math.min(imgW, imgH) / 400.0f)));
+                org.bytedeco.opencv.global.opencv_imgproc.rectangle(
+                    image,
+                    new org.bytedeco.opencv.opencv_core.Rect(x, y, width, height),
+                    color,
+                    thickness,
+                    org.bytedeco.opencv.global.opencv_imgproc.LINE_AA,
+                    0
+                );
+            }
+
+            // Encode back to bytes
+            org.bytedeco.javacpp.BytePointer outBuffer = new org.bytedeco.javacpp.BytePointer();
+            boolean ok = org.bytedeco.opencv.global.opencv_imgcodecs.imencode(".jpg", image, outBuffer);
+            if (!ok || outBuffer.isNull() || outBuffer.limit() == 0) {
+                image.releaseReference();
+                outBuffer.deallocate();
+                throw new VisionProcessingException("Failed to encode marked image", "mark", "face");
+            }
+            long length = outBuffer.limit();
+            byte[] markedBytes = new byte[(int) length];
+            outBuffer.get(markedBytes);
+
+            image.releaseReference();
+            outBuffer.deallocate();
+
+            logger.info("Marked {} faces in image", faces.size());
+            return ImageData.fromBytes(markedBytes, "image/jpeg");
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionBackendException("Failed to mark faces: " + e.getMessage(), e);
+        }
+    }
 }
