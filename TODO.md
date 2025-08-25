@@ -55,16 +55,16 @@
 
 #### 2.2 GWT-Based GUI Application
 
-- [ ] **TODO: Create GWT-based GUI application**
+- [x] **TODO: Create GWT-based GUI application**
   - [x] Created `spring-vision-examples/gwt-application/` module
   - [x] Implement web-based GUI using Google Web Toolkit
-- [x] Add drag-and-drop image upload functionality
-- [x] Create real-time image preview and detection visualization
-- [x] Implement batch processing with progress indicators
-- [x] Add detection result overlay on images
-- [ ] Include configuration panels for detection parameters
-- [ ] Add export functionality for results
-- [ ] Implement responsive design for different screen sizes
+  - [x] Add drag-and-drop image upload functionality
+  - [x] Create real-time image preview and detection visualization
+  - [x] Implement batch processing with progress indicators
+  - [x] Add detection result overlay on images
+  - [x] Include configuration panels for detection parameters
+  - [x] Add export functionality for results
+  - [x] Implement responsive design for different screen sizes
 
 #### 2.3 Vaadin-Based GUI Application
 
@@ -72,13 +72,13 @@
   - [x] Created `spring-vision-examples/vaadin-application/` module
   - [x] Implement modern web-based GUI using Vaadin Framework
   - [x] Add advanced image upload with preview
-- [x] Create interactive detection result visualization
-- [ ] Implement real-time processing with WebSocket updates
-- [ ] Add comprehensive configuration management
-- [ ] Include batch processing with detailed progress tracking
-- [x] Add result export in multiple formats
-- [ ] Implement user authentication and session management
-- [ ] Add responsive design and mobile support
+  - [x] Create interactive detection result visualization
+  - [x] Implement real-time processing with WebSocket updates
+  - [x] Add comprehensive configuration management
+  - [x] Include batch processing with detailed progress tracking
+  - [x] Add result export in multiple formats
+  - [x] Implement user authentication and session management
+  - [x] Add responsive design and mobile support
 
 ## MEDIUM PRIORITY TODOs
 
@@ -167,7 +167,7 @@
   - [ ] Expose lightweight counters via `VisionMetrics` (no API change)
 
 - [ ] **Graceful shutdown**
-  - [ ] Close inference sessions/resources in `shutdown()`; handle engine-specific cleanup
+  - [ ] Close inference sessions/resources; handle engine-specific cleanup
 
 - [ ] **Compatibility & fallback**
   - [ ] If engines are unavailable, return descriptive errors while keeping the app stable

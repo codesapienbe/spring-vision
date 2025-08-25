@@ -126,6 +126,22 @@
             gap: 10px;
             justify-content: center;
         }
+    @media (max-width: 900px) {
+        body { padding: 16px; }
+        .container { padding: 20px; }
+    }
+    @media (max-width: 600px) {
+        body { padding: 12px; }
+        .container { padding: 16px; }
+        h1 { font-size: 22px; }
+        .submit-btn { width: 100%; margin-top: 8px; }
+        .drop-zone { max-width: 100%; padding: 16px; }
+        .preview-container { justify-content: stretch; }
+        .preview-wrapper { width: 100%; }
+        .config { max-width: 100%; }
+        .config-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        #exports .submit-btn { width: 48%; }
+    }
     </style>
 </head>
 <body>
@@ -150,10 +166,25 @@
                     <canvas id="overlayCanvas"></canvas>
                 </div>
             </div>
-            <div class="config">
-                <label for="confidenceRange">Min confidence (%): <span id="confidenceValue">0</span></label>
-                <input type="range" id="confidenceRange" min="0" max="100" value="0" />
-            </div>
+            <details id="configPanel" class="config">
+                <summary>Configuration</summary>
+                <div class="config-row">
+                    <label for="confidenceRange">Min confidence (%): <span id="confidenceValue">0</span></label>
+                    <input type="range" id="confidenceRange" min="0" max="100" value="0" />
+                </div>
+                <div class="config-row">
+                    <label><input type="checkbox" id="showLabels" checked /> Show labels</label>
+                    <label><input type="checkbox" id="fillBoxes" checked /> Fill boxes</label>
+                    <label for="boxColor">Box color:</label>
+                    <select id="boxColor">
+                        <option value="red" selected>Red</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                    </select>
+                    <label for="lineWidth">Line width:</label>
+                    <input type="range" id="lineWidth" min="1" max="6" value="2" />
+                </div>
+            </details>
             <button id="detectBtn" class="submit-btn">Detect Faces</button>
             <button id="batchBtn" class="submit-btn" style="margin-left: 10px;">Batch Detect</button>
             <div id="batchProgress" style="display: none; margin-top: 10px;">
@@ -168,6 +199,10 @@
             <h3>Detection Results</h3>
             <p id="detectionCount"></p>
             <div id="detectionList"></div>
+        </div>
+        <div id="exports" style="display: none; margin-top: 10px; text-align: center;">
+            <a id="downloadJson" class="submit-btn" href="#" download="results.json">Download JSON</a>
+            <a id="downloadCsv" class="submit-btn" href="#" download="results.csv" style="margin-left: 10px;">Download CSV</a>
         </div>
 
         <div class="health-status">
@@ -192,9 +227,18 @@
         const batchProgress = document.getElementById('batchProgress');
         const progressBar = document.getElementById('progressBar');
         const progressLabel = document.getElementById('progressLabel');
+        const exportsDiv = document.getElementById('exports');
+        const downloadJson = document.getElementById('downloadJson');
+        const downloadCsv = document.getElementById('downloadCsv');
+        const showLabels = document.getElementById('showLabels');
+        const fillBoxes = document.getElementById('fillBoxes');
+        const boxColor = document.getElementById('boxColor');
+        const lineWidth = document.getElementById('lineWidth');
 
         let selectedFile = null;
         let previewUrl = null;
+        let lastResults = null; // stores last JSON result (single or batch aggregate)
+        let lastCsv = null;
 
         // Initialize confidence value label
         confidenceValue.textContent = confidenceRange.value;
@@ -286,6 +330,9 @@
                 }
 
                 const json = await response.json();
+                lastResults = json;
+                lastCsv = buildCsvFromDetections(json);
+                wireExports(lastResults, lastCsv);
                 displayResults(json);
             } catch (err) {
                 console.error(err);
@@ -328,7 +375,7 @@
                     } else {
                         const json = await resp.json();
                         const count = (json && Array.isArray(json.detections)) ? json.detections.length : (json.detectionCount || 0);
-                        summaries.push({ name: f.name, count });
+                        summaries.push({ name: f.name, count, detections: json.detections || [] });
                     }
                 } catch (e) {
                     summaries.push({ name: f.name, error: sanitize(e.message) });
@@ -336,6 +383,11 @@
                 progressBar.value = Math.round(((i + 1) / files.length) * 100);
                 progressLabel.textContent = `${i + 1}/${files.length}`;
             }
+
+            // Aggregate results JSON
+            lastResults = { batch: true, totalFiles: files.length, items: summaries };
+            lastCsv = buildCsvFromBatch(summaries);
+            wireExports(lastResults, lastCsv);
 
             // Render aggregated results
             resultsDiv.style.display = 'block';
@@ -404,10 +456,14 @@
                 const imgWidth = previewImage.clientWidth;
                 const imgHeight = previewImage.clientHeight;
 
-                overlayCtx.strokeStyle = '#FF3B30';
-                overlayCtx.lineWidth = 2;
+                // Colors map
+                const colorMap = { red: '#FF3B30', green: '#28A745', blue: '#007BFF' };
+                const stroke = colorMap[boxColor.value] || '#FF3B30';
+                overlayCtx.strokeStyle = stroke;
+                overlayCtx.lineWidth = Math.max(1, parseInt(lineWidth.value || '2', 10));
                 overlayCtx.font = '12px Arial';
-                overlayCtx.fillStyle = 'rgba(255, 59, 48, 0.15)';
+                const fillOverlay = fillBoxes.checked ? (stroke === '#FF3B30' ? 'rgba(255, 59, 48, 0.15)' : (stroke === '#28A745' ? 'rgba(40,167,69,0.15)' : 'rgba(0,123,255,0.15)')) : 'rgba(0,0,0,0)';
+                const labelBg = stroke;
 
                 detections.forEach((det, idx) => {
                     const x = Number(det.boundingBox.x) * imgWidth;
@@ -415,17 +471,20 @@
                     const w = Number(det.boundingBox.width) * imgWidth;
                     const h = Number(det.boundingBox.height) * imgHeight;
 
-                    // Draw filled rect (semi-transparent) and border
-                    overlayCtx.fillRect(x, y, w, h);
+                    // Draw filled rect (optional) and border
+                    if (fillBoxes.checked) {
+                        overlayCtx.fillStyle = fillOverlay;
+                        overlayCtx.fillRect(x, y, w, h);
+                    }
                     overlayCtx.strokeRect(x, y, w, h);
 
-                    // Label
-                    const label = `Face ${idx + 1} ${(det.confidence * 100).toFixed(1)}%`;
-                    overlayCtx.fillStyle = '#FF3B30';
-                    overlayCtx.fillRect(x, Math.max(0, y - 16), overlayCtx.measureText(label).width + 6, 16);
-                    overlayCtx.fillStyle = '#FFFFFF';
-                    overlayCtx.fillText(label, x + 3, Math.max(10, y - 4));
-                    overlayCtx.fillStyle = 'rgba(255, 59, 48, 0.15)';
+                    if (showLabels.checked) {
+                        const label = `Face ${idx + 1} ${(det.confidence * 100).toFixed(1)}%`;
+                        overlayCtx.fillStyle = labelBg;
+                        overlayCtx.fillRect(x, Math.max(0, y - 16), overlayCtx.measureText(label).width + 6, 16);
+                        overlayCtx.fillStyle = '#FFFFFF';
+                        overlayCtx.fillText(label, x + 3, Math.max(10, y - 4));
+                    }
                 });
             } catch (e) {
                 console.error('Failed to draw detections', e);
@@ -435,6 +494,7 @@
         function showError(message) {
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+            exportsDiv.style.display = 'none';
         }
 
         function hideError() {
@@ -443,14 +503,65 @@
 
         function showResults() {
             resultsDiv.style.display = 'block';
+            if (lastResults) {
+                exportsDiv.style.display = 'block';
+            }
         }
 
         function hideResults() {
             resultsDiv.style.display = 'none';
+            exportsDiv.style.display = 'none';
         }
 
         function sanitize(text) {
             return String(text).replace(/[&<>\"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+        }
+
+        function wireExports(json, csv) {
+            try {
+                const jsonStr = JSON.stringify(json, null, 2);
+                const jsonBlob = new Blob([jsonStr], { type: 'application/json' });
+                const csvBlob = new Blob([csv || ''], { type: 'text/csv' });
+                downloadJson.href = URL.createObjectURL(jsonBlob);
+                downloadCsv.href = URL.createObjectURL(csvBlob);
+            } catch (e) {
+                console.warn('Failed to wire export links', e);
+            }
+        }
+
+        function buildCsvFromDetections(json) {
+            const rows = ['face_index,confidence,x,y,width,height'];
+            const dets = (json && Array.isArray(json.detections)) ? json.detections : [];
+            dets.forEach((d, i) => {
+                const conf = (Number(d.confidence) || 0).toFixed(6);
+                const bb = d.boundingBox || {};
+                const x = (Number(bb.x) || 0).toFixed(6);
+                const y = (Number(bb.y) || 0).toFixed(6);
+                const w = (Number(bb.width) || 0).toFixed(6);
+                const h = (Number(bb.height) || 0).toFixed(6);
+                rows.push(`${i + 1},${conf},${x},${y},${w},${h}`);
+            });
+            return rows.join('\n');
+        }
+
+        function buildCsvFromBatch(items) {
+            const rows = ['file_name,face_index,confidence,x,y,width,height'];
+            items.forEach((it) => {
+                if (it && Array.isArray(it.detections)) {
+                    it.detections.forEach((d, i) => {
+                        const conf = (Number(d.confidence) || 0).toFixed(6);
+                        const bb = d.boundingBox || {};
+                        const x = (Number(bb.x) || 0).toFixed(6);
+                        const y = (Number(bb.y) || 0).toFixed(6);
+                        const w = (Number(bb.width) || 0).toFixed(6);
+                        const h = (Number(bb.height) || 0).toFixed(6);
+                        rows.push(`${sanitize(it.name)},${i + 1},${conf},${x},${y},${w},${h}`);
+                    });
+                } else if (it && it.error) {
+                    rows.push(`${sanitize(it.name)},,ERROR:${sanitize(it.error)},,,`);
+                }
+            });
+            return rows.join('\n');
         }
     </script>
 </body>

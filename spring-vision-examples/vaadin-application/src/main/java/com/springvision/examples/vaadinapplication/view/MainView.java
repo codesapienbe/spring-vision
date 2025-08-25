@@ -10,9 +10,11 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.slider.Slider;
+import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.upload.Upload;
-import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
+import com.vaadin.flow.component.upload.receivers.MultiFileMemoryBuffer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -27,7 +29,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Main view for the Vaadin face detection application.
@@ -36,6 +43,7 @@ import java.util.UUID;
  * using the Spring Vision framework. It includes file upload, image preview with overlay,
  * result display, and error handling.</p>
  */
+@Push
 @Route("")
 public class MainView extends VerticalLayout {
 
@@ -60,6 +68,12 @@ public class MainView extends VerticalLayout {
     private String lastResultsCsv;
     private Anchor jsonDownloadLink;
     private Anchor csvDownloadLink;
+
+    // Batch detection state
+    private final List<UploadedItem> batchFiles = new ArrayList<>();
+    private Button batchDetectButton;
+    private ProgressBar batchProgressBar;
+    private Paragraph batchProgressLabel;
 
     /**
      * Constructs the main view with all UI components.
@@ -107,7 +121,9 @@ public class MainView extends VerticalLayout {
         confidenceSlider.setWidth("240px");
         confidenceSlider.setValue(0.0);
         confidenceSlider.setStep(1.0);
-        controls.add(label, confidenceSlider);
+        controls.setWidth("100%");
+        controls.getStyle().set("flex-wrap", "wrap");
+        controls.add(label, confidenceSlider, showLabelsCheckbox, boxColorSelect, boxLineWidth);
         add(controls);
     }
 
@@ -119,11 +135,11 @@ public class MainView extends VerticalLayout {
         uploadContainer.getStyle().set("background-color", "var(--lumo-contrast-10pct)");
         uploadContainer.getStyle().set("border-radius", "0.5rem");
 
-        H3 uploadTitle = new H3("Select an image to detect faces");
+        H3 uploadTitle = new H3("Select image(s) to detect faces");
         uploadTitle.getStyle().set("text-align", "center");
         uploadContainer.add(uploadTitle);
 
-        MemoryBuffer buffer = new MemoryBuffer();
+        MultiFileMemoryBuffer buffer = new MultiFileMemoryBuffer();
         Upload upload = new Upload(buffer);
         upload.setAcceptedFileTypes("image/jpeg", "image/jpg", "image/png", "image/gif", "image/bmp", "image/webp");
         upload.setMaxFileSize(50 * 1024 * 1024); // 50MB
@@ -134,14 +150,28 @@ public class MainView extends VerticalLayout {
         detectButton.getStyle().set("color", "white");
         detectButton.setEnabled(false);
 
+        batchDetectButton = new Button("Batch Detect");
+        batchDetectButton.getStyle().set("background-color", "var(--lumo-primary-color-10pct)");
+        batchDetectButton.setEnabled(false);
+
+        batchProgressBar = new ProgressBar(0, 1, 0);
+        batchProgressBar.setWidth("320px");
+        batchProgressBar.setVisible(false);
+        batchProgressLabel = new Paragraph("0/0");
+        batchProgressLabel.getStyle().set("margin", "0");
+        batchProgressLabel.setVisible(false);
+
         upload.addSucceededListener(event -> {
-            try (InputStream in = buffer.getInputStream()) {
+            try (InputStream in = buffer.getInputStream(event.getFileName())) {
                 if (in != null) {
-                    lastUploadedImageBytes = in.readAllBytes();
-                    // Show preview
+                    byte[] bytes = in.readAllBytes();
+                    lastUploadedImageBytes = bytes;
+                    batchFiles.add(new UploadedItem(event.getFileName(), bytes));
+                    // Show preview of last uploaded
                     showPreview(lastUploadedImageBytes, event.getFileName());
                     detectButton.setEnabled(true);
-                    Notification.show("File uploaded successfully: " + event.getFileName());
+                    batchDetectButton.setEnabled(true);
+                    Notification.show("File uploaded: " + event.getFileName());
                 }
             } catch (Exception ex) {
                 Notification.show("Failed to read uploaded file: " + ex.getMessage());
@@ -160,7 +190,11 @@ public class MainView extends VerticalLayout {
             }
         });
 
-        uploadContainer.add(upload, detectButton);
+        batchDetectButton.addClickListener(e -> performBatchDetection());
+
+        HorizontalLayout buttons = new HorizontalLayout(detectButton, batchDetectButton);
+        HorizontalLayout progress = new HorizontalLayout(batchProgressBar, batchProgressLabel);
+        uploadContainer.add(upload, buttons, progress);
         add(uploadContainer);
     }
 
@@ -276,6 +310,110 @@ public class MainView extends VerticalLayout {
         }
     }
 
+    private void performBatchDetection() {
+        if (batchFiles.isEmpty()) {
+            Notification.show("Please upload one or more images first");
+            return;
+        }
+        resultsContainer.removeAll();
+        resultsContainer.setVisible(true);
+        H3 title = new H3("Batch Detection Results");
+        title.getStyle().set("text-align", "center");
+        resultsContainer.add(title);
+
+        batchProgressBar.setVisible(true);
+        batchProgressLabel.setVisible(true);
+
+        final List<String> perFileSummaries = new ArrayList<>();
+        final int totalFiles = batchFiles.size();
+        final var ui = getUI().orElse(null);
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+        CompletableFuture.runAsync(() -> {
+            int totalDetections = 0;
+            for (int i = 0; i < totalFiles; i++) {
+                UploadedItem item = batchFiles.get(i);
+                try {
+                    String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().substring(0, 8);
+                    byte[] multipartBody = createMultipartBody(item.bytes(), item.fileName(), boundary);
+                    double thr = Math.max(0.0, Math.min(1.0, confidenceSlider.getValue() / 100.0));
+                    String url = FACE_DETECTION_ENDPOINT + "?minConfidence=" + URLEncoder.encode(String.valueOf(thr), StandardCharsets.UTF_8);
+
+                    HttpRequest request = HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(url))
+                        .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                        .POST(HttpRequest.BodyPublishers.ofByteArray(multipartBody))
+                        .build();
+
+                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    int count = 0;
+                    if (response.statusCode() == 200) {
+                        try {
+                            JsonObject json = Json.parse(response.body());
+                            if (json.hasKey("detections")) {
+                                JsonArray arr = json.getArray("detections");
+                                count = arr != null ? arr.length() : 0;
+                            } else if (json.hasKey("detectionCount")) {
+                                count = (int) json.getNumber("detectionCount");
+                            }
+                        } catch (Exception ignore) {
+                        }
+                    }
+                    totalDetections += count;
+                    perFileSummaries.add(item.fileName() + ": " + count + " face(s)");
+                } catch (Exception ex) {
+                    perFileSummaries.add(item.fileName() + ": 0 face(s)");
+                }
+
+                double progress = (i + 1) / (double) totalFiles;
+                if (ui != null) {
+                    ui.access(() -> {
+                        batchProgressBar.setValue(progress);
+                        batchProgressLabel.setText((i + 1) + "/" + totalFiles);
+                    });
+                }
+            }
+
+            // finalize UI
+            if (ui != null) {
+                int finalTotal = totalDetections;
+                ui.access(() -> {
+                    Paragraph summary = new Paragraph("Processed " + totalFiles + " file(s), total faces: " + finalTotal);
+                    summary.getStyle().set("text-align", "center");
+                    resultsContainer.add(summary);
+                    for (String line : perFileSummaries) {
+                        resultsContainer.add(new Paragraph(line));
+                    }
+                    StringBuilder json = new StringBuilder();
+                    json.append("{\"batch\":true,\"totalFiles\":").append(totalFiles)
+                        .append(",\"totalDetections\":").append(finalTotal)
+                        .append(",\"items\":[");
+                    for (int i = 0; i < batchFiles.size(); i++) {
+                        UploadedItem it = batchFiles.get(i);
+                        String line = perFileSummaries.get(i);
+                        int faces = 0;
+                        try { faces = Integer.parseInt(line.replaceAll("[^0-9]", "").trim()); } catch (Exception ignore) {}
+                        json.append("{\"file\":\"").append(it.fileName().replace("\"", ""))
+                            .append("\",\"count\":").append(faces).append("}");
+                        if (i < batchFiles.size() - 1) json.append(',');
+                    }
+                    json.append("]}");
+                    lastResultsJson = json.toString();
+                    lastResultsCsv = generateBatchCsv(perFileSummaries);
+
+                    HorizontalLayout exports = new HorizontalLayout();
+                    exports.setId("exportButtons");
+                    jsonDownloadLink = new Anchor(new StreamResource("batch-results.json", () -> new ByteArrayInputStream(lastResultsJson.getBytes(StandardCharsets.UTF_8))), "Download JSON");
+                    jsonDownloadLink.getElement().setAttribute("download", true);
+                    csvDownloadLink = new Anchor(new StreamResource("batch-results.csv", () -> new ByteArrayInputStream(lastResultsCsv.getBytes(StandardCharsets.UTF_8))), "Download CSV");
+                    csvDownloadLink.getElement().setAttribute("download", true);
+                    exports.add(jsonDownloadLink, csvDownloadLink);
+                    resultsContainer.add(exports);
+                });
+            }
+        }, executor);
+    }
+
     private byte[] createMultipartBody(byte[] imageData, String fileName, String boundary) {
         try {
             String contentType = "image/jpeg"; // default
@@ -381,9 +519,29 @@ public class MainView extends VerticalLayout {
             box.getStyle().set("top", String.format("%.3f%%", y * 100));
             box.getStyle().set("width", String.format("%.3f%%", w * 100));
             box.getStyle().set("height", String.format("%.3f%%", h * 100));
-            box.getStyle().set("border", "2px solid #e53935");
+            String colorHex = switch (String.valueOf(boxColorSelect.getValue())) {
+                case "green" -> "#28a745";
+                case "blue" -> "#1e88e5";
+                default -> "#e53935"; // red
+            };
+            int line = (int) Math.round(boxLineWidth.getValue());
+            box.getStyle().set("border", line + "px solid " + colorHex);
             box.getStyle().set("box-sizing", "border-box");
             previewWrapper.add(box);
+
+            if (Boolean.TRUE.equals(showLabelsCheckbox.getValue())) {
+                Div label = new Div();
+                label.setText("Face " + (i + 1));
+                label.getStyle().set("position", "absolute");
+                label.getStyle().set("left", String.format("%.3f%%", x * 100));
+                label.getStyle().set("top", "calc(" + String.format("%.3f%%", y * 100) + " - 18px)");
+                label.getStyle().set("padding", "1px 4px");
+                label.getStyle().set("background-color", colorHex);
+                label.getStyle().set("color", "#ffffff");
+                label.getStyle().set("font-size", "12px");
+                label.getStyle().set("line-height", "16px");
+                previewWrapper.add(label);
+            }
         }
     }
 
@@ -453,4 +611,20 @@ public class MainView extends VerticalLayout {
         }
         return sb.toString();
     }
+
+    private String generateBatchCsv(List<String> perFileSummaries) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("file_name,count\n");
+        for (String line : perFileSummaries) {
+            int sep = line.lastIndexOf(": ");
+            if (sep > 0) {
+                String name = line.substring(0, sep);
+                String cnt = line.substring(sep + 2).replace(" face(s)", "").trim();
+                sb.append(name.replace(",", " ")).append(',').append(cnt).append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
+    private record UploadedItem(String fileName, byte[] bytes) {}
 }
