@@ -6,6 +6,13 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +47,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -101,6 +109,10 @@ public class JavaFXApplication {
         private Button clearButton;
         private Pane overlayPane;
         private ComboBox<String> backendComboBox;
+
+        private static final int CONNECT_TIMEOUT_MS = 8000;
+        private static final int READ_TIMEOUT_MS = 15000;
+        private static final int MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024; // 50MB
 
         public static void provideVisionTemplate(VisionTemplate template) {
             providedVisionTemplate = template;
@@ -184,6 +196,10 @@ public class JavaFXApplication {
             openButton.setStyle("-fx-background-color: #2196f3; -fx-text-fill: white; -fx-font-weight: bold;");
             openButton.setOnAction(e -> openImageFile());
 
+            Button openUrlButton = new Button("Open URL");
+            openUrlButton.setStyle("-fx-background-color: #673ab7; -fx-text-fill: white; -fx-font-weight: bold;");
+            openUrlButton.setOnAction(e -> openImageUrl());
+
             detectButton = new Button("Detect Faces");
             detectButton.setStyle("-fx-background-color: #4caf50; -fx-text-fill: white; -fx-font-weight: bold;");
             detectButton.setDisable(true);
@@ -199,7 +215,7 @@ public class JavaFXApplication {
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
 
-            toolbar.getChildren().addAll(openButton, detectButton, clearButton, new Label("Backend:"), backendComboBox);
+            toolbar.getChildren().addAll(openButton, openUrlButton, detectButton, clearButton, new Label("Backend:"), backendComboBox);
             return toolbar;
         }
 
@@ -407,6 +423,40 @@ public class JavaFXApplication {
             }
         }
 
+        private void openImageUrl() {
+            TextInputDialog dialog = new TextInputDialog("https://example.com/image.jpg");
+            dialog.setTitle("Open Image from URL");
+            dialog.setHeaderText("Enter a public HTTP/HTTPS image URL");
+            dialog.setContentText("URL:");
+            dialog.showAndWait().ifPresent(url -> {
+                try {
+                    byte[] bytes = downloadImageBytes(url.trim());
+                    loadImageFromBytes(bytes);
+                    // Store bytes for detection path
+                    imageView.setUserData(bytes);
+                    detectButton.setDisable(false);
+                    statusLabel.setText("Image loaded from URL");
+                    clearResults();
+                } catch (IllegalArgumentException iae) {
+                    showError("Invalid URL", iae.getMessage());
+                } catch (IOException ioe) {
+                    showError("Download Failed", "Could not fetch image: " + ioe.getMessage());
+                } catch (Exception ex) {
+                    showError("Error", ex.getMessage());
+                }
+            });
+        }
+
+        private void loadImageFromBytes(byte[] data) throws IOException {
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(data)) {
+                Image image = new Image(bais);
+                if (image.isError() || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                    throw new IOException("Unsupported or corrupt image content");
+                }
+                imageView.setImage(image);
+            }
+        }
+
         /**
          * Load and display an image file.
          */
@@ -446,8 +496,12 @@ public class JavaFXApplication {
         private void detectFaces() {
             File imageFile = (File) imageView.getUserData();
             if (imageFile == null || !imageFile.exists()) {
-                showError("No Image", "Please load an image first.");
-                return;
+                // If not a file, try bytes from URL load
+                Object ud = imageView.getUserData();
+                if (!(ud instanceof byte[] bytes) || bytes.length == 0) {
+                    showError("No Image", "Please load an image first.");
+                    return;
+                }
             }
 
             if (visionTemplate == null) {
@@ -471,14 +525,19 @@ public class JavaFXApplication {
                     logger.info("Starting face detection", Map.of(
                         "component", "JavaFXApplication",
                         "correlationId", correlationId,
-                        "fileName", imageFile.getName(),
-                        "fileSize", imageFile.length(),
+                        "fileName", imageFile != null ? imageFile.getName() : "<url-bytes>",
+                        "fileSize", imageFile != null ? imageFile.length() : (long) ((byte[]) imageView.getUserData()).length,
                         "backendId", visionTemplate.getBackend().getBackendId()
                     ));
 
                     // Read image data
-                    byte[] imageData = Files.readAllBytes(imageFile.toPath());
-                    ImageData image = ImageData.fromBytes(imageData);
+                    byte[] imageDataBytes;
+                    if (imageFile != null && imageFile.exists()) {
+                        imageDataBytes = Files.readAllBytes(imageFile.toPath());
+                    } else {
+                        imageDataBytes = (byte[]) imageView.getUserData();
+                    }
+                    ImageData image = ImageData.fromBytes(imageDataBytes);
 
                     // Perform detection
                     com.springvision.core.DetectionQuery query = new com.springvision.core.DetectionQuery.Builder()
@@ -511,9 +570,9 @@ public class JavaFXApplication {
                         "correlationId", correlationId,
                         "errorType", "IOException",
                         "errorMessage", e.getMessage(),
-                        "fileName", imageFile.getName()
+                        "fileName", imageFile != null ? imageFile.getName() : "<url-bytes>"
                     ), e);
-                    throw new RuntimeException("Could not read image file: " + e.getMessage(), e);
+                    throw new RuntimeException("Could not read image: " + e.getMessage(), e);
                 } catch (Exception e) {
                     logger.error("Unexpected error during face detection", Map.of(
                         "component", "JavaFXApplication",
@@ -538,6 +597,59 @@ public class JavaFXApplication {
                 });
                 return null;
             });
+        }
+
+        private byte[] downloadImageBytes(String urlString) throws IOException {
+            if (!isHttpUrl(urlString)) {
+                throw new IllegalArgumentException("Only HTTP/HTTPS URLs are supported");
+            }
+            URL url = URI.create(urlString).toURL();
+            validatePublicHost(url);
+            URLConnection conn = url.openConnection();
+            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            conn.setReadTimeout(READ_TIMEOUT_MS);
+            conn.setRequestProperty("User-Agent", "spring-vision-javafx-example/1.0");
+            String ct = conn.getContentType();
+            if (ct != null && !ct.toLowerCase().startsWith("image/")) {
+                throw new IllegalArgumentException("URL does not point to an image content type");
+            }
+            int contentLength = conn.getContentLength();
+            if (contentLength > 0 && contentLength > MAX_DOWNLOAD_BYTES) {
+                throw new IllegalArgumentException("Remote content too large");
+            }
+            try (InputStream in = conn.getInputStream(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                byte[] buf = new byte[8192];
+                int read; int total = 0;
+                while ((read = in.read(buf)) != -1) {
+                    total += read;
+                    if (total > MAX_DOWNLOAD_BYTES) {
+                        throw new IllegalArgumentException("Download exceeds size limit");
+                    }
+                    baos.write(buf, 0, read);
+                }
+                return baos.toByteArray();
+            }
+        }
+
+        private boolean isHttpUrl(String s) {
+            String v = s == null ? "" : s.trim().toLowerCase();
+            return v.startsWith("http://") || v.startsWith("https://");
+        }
+
+        private void validatePublicHost(URL url) throws IOException {
+            String host = url.getHost();
+            if (host == null || host.isBlank()) throw new IOException("Invalid URL host");
+            InetAddress[] addrs;
+            try {
+                addrs = InetAddress.getAllByName(host);
+            } catch (Exception e) {
+                throw new IOException("Failed to resolve host: " + host);
+            }
+            for (InetAddress a : addrs) {
+                if (a.isAnyLocalAddress() || a.isLoopbackAddress() || a.isLinkLocalAddress() || a.isSiteLocalAddress()) {
+                    throw new IOException("Refusing to connect to non-public address: " + a.getHostAddress());
+                }
+            }
         }
 
         /**

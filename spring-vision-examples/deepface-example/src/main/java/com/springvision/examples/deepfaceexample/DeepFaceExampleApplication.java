@@ -2,6 +2,12 @@ package com.springvision.examples.deepfaceexample;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +26,9 @@ import com.springvision.core.VisionTemplate;
  * <p>This application shows how to use the DeepFace backend to detect faces
  * and perform face analysis using a containerized DeepFace API.</p>
  *
+ * <p>It also supports HTTP/HTTPS image URLs as input with SSRF-safe in-memory
+ * downloading (public host validation, size/time limits).</p>
+ *
  * @author Spring Vision Team
  * @since 1.0.0
  */
@@ -27,6 +36,10 @@ import com.springvision.core.VisionTemplate;
 public class DeepFaceExampleApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(DeepFaceExampleApplication.class);
+
+    private static final int CONNECT_TIMEOUT_MS = 8000;
+    private static final int READ_TIMEOUT_MS = 15000;
+    private static final int MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024; // 50MB
 
     public static void main(String[] args) {
         SpringApplication.run(DeepFaceExampleApplication.class, args);
@@ -60,18 +73,21 @@ public class DeepFaceExampleApplication {
                 String imagePath = args[0];
                 processImage(visionTemplate, imagePath);
             } else {
-                logger.info("No image path provided. Usage: java -jar deepface-example.jar <image-path>");
+                logger.info("No image path provided. Usage: java -jar deepface-example.jar <image-path-or-URL>");
                 logger.info("Example: java -jar deepface-example.jar /path/to/face.jpg");
+                logger.info("Example: java -jar deepface-example.jar https://example.com/face.jpg");
             }
         };
     }
 
-    private void processImage(VisionTemplate visionTemplate, String imagePath) {
+    private void processImage(VisionTemplate visionTemplate, String imageSource) {
         try {
-            logger.info("Processing image: {}", imagePath);
+            logger.info("Processing image: {}", imageSource);
 
             // Load image
-            byte[] imageBytes = Files.readAllBytes(Path.of(imagePath));
+            byte[] imageBytes = isHttpUrl(imageSource)
+                    ? downloadImageBytes(imageSource)
+                    : Files.readAllBytes(Path.of(imageSource));
             ImageData imageData = ImageData.fromBytes(imageBytes);
 
             logger.info("Image loaded: {} bytes, format: {}",
@@ -110,6 +126,56 @@ public class DeepFaceExampleApplication {
 
         } catch (Exception e) {
             logger.error("Failed to process image: {}", e.getMessage(), e);
+        }
+    }
+
+    private boolean isHttpUrl(String s) {
+        String v = s == null ? "" : s.trim().toLowerCase();
+        return v.startsWith("http://") || v.startsWith("https://");
+    }
+
+    private byte[] downloadImageBytes(String urlString) throws Exception {
+        URL url = URI.create(urlString).toURL();
+        validatePublicHost(url);
+        URLConnection conn = url.openConnection();
+        conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        conn.setReadTimeout(READ_TIMEOUT_MS);
+        conn.setRequestProperty("User-Agent", "spring-vision-deepface-example/1.0");
+        String ct = conn.getContentType();
+        if (ct != null && !ct.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("URL does not point to an image content type");
+        }
+        int contentLength = conn.getContentLength();
+        if (contentLength > 0 && contentLength > MAX_DOWNLOAD_BYTES) {
+            throw new IllegalArgumentException("Remote content too large");
+        }
+        try (InputStream in = conn.getInputStream(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int read; int total = 0;
+            while ((read = in.read(buf)) != -1) {
+                total += read;
+                if (total > MAX_DOWNLOAD_BYTES) {
+                    throw new IllegalArgumentException("Download exceeds size limit");
+                }
+                baos.write(buf, 0, read);
+            }
+            return baos.toByteArray();
+        }
+    }
+
+    private void validatePublicHost(URL url) throws Exception {
+        String host = url.getHost();
+        if (host == null || host.isBlank()) throw new IllegalArgumentException("Invalid URL host");
+        InetAddress[] addrs;
+        try {
+            addrs = InetAddress.getAllByName(host);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to resolve host: " + host);
+        }
+        for (InetAddress a : addrs) {
+            if (a.isAnyLocalAddress() || a.isLoopbackAddress() || a.isLinkLocalAddress() || a.isSiteLocalAddress()) {
+                throw new IllegalArgumentException("Refusing to connect to non-public address: " + a.getHostAddress());
+            }
         }
     }
 }

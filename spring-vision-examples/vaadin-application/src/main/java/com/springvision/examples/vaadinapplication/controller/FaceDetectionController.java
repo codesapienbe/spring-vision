@@ -16,6 +16,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 
 /**
  * REST controller for face detection operations in the Vaadin application.
@@ -31,6 +37,9 @@ import java.util.UUID;
  * // Face detection with file upload
  * POST /api/vision/detect/faces
  * Content-Type: multipart/form-data
+ *
+ * // Face detection with URL
+ * POST /api/vision/detect/faces/url?imageUrl=https://...
  * }</pre>
  *
  * @author Spring Vision Team
@@ -48,6 +57,11 @@ public class FaceDetectionController {
      * Maximum file size for uploads (50MB as configured in application.yml).
      */
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+    /** Network limits for URL downloads */
+    private static final int CONNECT_TIMEOUT_MS = 8000;
+    private static final int READ_TIMEOUT_MS = 15000;
+    private static final int MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024;
 
     /**
      * Supported image content types.
@@ -142,6 +156,65 @@ public class FaceDetectionController {
     }
 
     /**
+     * Detects faces from a public image URL (in-memory download).
+     */
+    @PostMapping(value = "/detect/faces/url")
+    public ResponseEntity<Map<String, Object>> detectFacesFromUrl(@RequestParam("imageUrl") String imageUrl) {
+        String correlationId = generateCorrelationId();
+        logger.info("Face detection URL request received from Vaadin", Map.of(
+            "correlationId", correlationId,
+            "imageUrl", imageUrl
+        ));
+        try {
+            if (imageUrl == null || imageUrl.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "correlationId", correlationId,
+                    "error", "imageUrl must be provided"
+                ));
+            }
+            byte[] bytes = downloadImageBytes(imageUrl.trim());
+            ImageData imageData = ImageData.fromBytes(bytes);
+
+            com.springvision.core.DetectionQuery query = new com.springvision.core.DetectionQuery.Builder()
+                .type(com.springvision.core.DetectionType.FACE)
+                .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
+                .build();
+            VisionResult result = visionTemplate.detect(imageData, query);
+
+            Map<String, Object> response = Map.of(
+                "correlationId", correlationId,
+                "detectionType", DetectionType.FACE.getCode(),
+                "detectionCount", result.detectionCount(),
+                "averageConfidence", result.averageConfidence(),
+                "processingTimeMs", result.processingTimeMs(),
+                "detections", result.detections()
+            );
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "correlationId", correlationId,
+                "error", iae.getMessage()
+            ));
+        } catch (IOException ioe) {
+            logger.error("URL download failed (Vaadin)", Map.of("correlationId", correlationId, "error", ioe.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                "correlationId", correlationId,
+                "error", "Failed to download image"
+            ));
+        } catch (Exception e) {
+            logger.error("Face detection failed (Vaadin)", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "correlationId", correlationId,
+                    "error", e.getMessage()
+                ));
+        }
+    }
+
+    /**
      * Gets the health status of the vision backend.
      *
      * <p>This endpoint provides health information about the vision backend
@@ -201,12 +274,6 @@ public class FaceDetectionController {
         }
     }
 
-    /**
-     * Validates an uploaded file.
-     *
-     * @param file the file to validate
-     * @throws IllegalArgumentException if the file is invalid
-     */
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
@@ -223,24 +290,65 @@ public class FaceDetectionController {
         }
     }
 
-    /**
-     * Converts a multipart file to ImageData.
-     *
-     * @param file the multipart file
-     * @return the ImageData
-     * @throws IOException if the file cannot be read
-     */
     private ImageData convertToImageData(MultipartFile file) throws IOException {
         byte[] imageBytes = file.getBytes();
         return ImageData.fromBytes(imageBytes);
     }
 
-    /**
-     * Generates a unique correlation ID for request tracking.
-     *
-     * @return a unique correlation ID
-     */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
+    }
+
+    private byte[] downloadImageBytes(String urlString) throws IOException {
+        if (!isHttpUrl(urlString)) {
+            throw new IllegalArgumentException("Only HTTP/HTTPS URLs are supported");
+        }
+        URL url = URI.create(urlString).toURL();
+        validatePublicHost(url);
+        URLConnection conn = url.openConnection();
+        conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        conn.setReadTimeout(READ_TIMEOUT_MS);
+        conn.setRequestProperty("User-Agent", "spring-vision-vaadin-example/1.0");
+        String ct = conn.getContentType();
+        if (ct != null && !ct.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("URL does not point to an image content type");
+        }
+        int contentLength = conn.getContentLength();
+        if (contentLength > 0 && contentLength > MAX_DOWNLOAD_BYTES) {
+            throw new IllegalArgumentException("Remote content too large");
+        }
+        try (InputStream in = conn.getInputStream(); ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[8192];
+            int read; int total = 0;
+            while ((read = in.read(buf)) != -1) {
+                total += read;
+                if (total > MAX_DOWNLOAD_BYTES) {
+                    throw new IllegalArgumentException("Download exceeds size limit");
+                }
+                baos.write(buf, 0, read);
+            }
+            return baos.toByteArray();
+        }
+    }
+
+    private boolean isHttpUrl(String s) {
+        String v = s == null ? "" : s.trim().toLowerCase();
+        return v.startsWith("http://") || v.startsWith("https://");
+    }
+
+    private void validatePublicHost(URL url) throws IOException {
+        String host = url.getHost();
+        if (host == null || host.isBlank()) throw new IOException("Invalid URL host");
+        InetAddress[] addrs;
+        try {
+            addrs = InetAddress.getAllByName(host);
+        } catch (Exception e) {
+            throw new IOException("Failed to resolve host: " + host);
+        }
+        for (InetAddress a : addrs) {
+            if (a.isAnyLocalAddress() || a.isLoopbackAddress() || a.isLinkLocalAddress() || a.isSiteLocalAddress()) {
+                throw new IOException("Refusing to connect to non-public address: " + a.getHostAddress());
+            }
+        }
     }
 }

@@ -74,6 +74,8 @@
             border-radius: 5px;
             color: #155724;
         }
+        .or-divider { margin: 10px 0; color: #666; }
+        .url-input { width: 100%; max-width: 560px; padding: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -88,6 +90,11 @@
                 </div>
                 <button type="submit" class="submit-btn">Detect Faces</button>
             </form>
+            <div class="or-divider">— or —</div>
+            <form th:action="@{/detect/url}" method="post">
+                <input class="url-input" type="url" name="imageUrl" placeholder="https://example.com/image.jpg" required>
+                <button type="submit" class="submit-btn" style="margin-left:10px;">Detect from URL</button>
+            </form>
         </div>
 
         <div th:if="${error}" class="error">
@@ -100,7 +107,7 @@
 
             <div th:each="detection, iterStat : ${detections}" class="detection-item">
                 <strong>Face #<span th:text="${iterStat.count}"></span></strong><br>
-                <span class="confidence">Confidence: <span th:text="${#numbers.formatDecimal(detection.confidence, 1, 2)} + '%'"></span></span><br>
+                <span class="confidence">Confidence: <span th:text="${#numbers.formatDecimal(detection.confidence, 1, 2)} + '%' "></span></span><br>
                 <span>Location: (<span th:text="${detection.boundingBox.x}"></span>, <span th:text="${detection.boundingBox.y}"></span>)</span><br>
                 <span>Size: <span th:text="${detection.boundingBox.width}"></span> x <span th:text="${detection.boundingBox.height}"></span></span>
             </div>
