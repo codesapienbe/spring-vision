@@ -11,7 +11,10 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
-import com.vaadin.flow.component.slider.Slider;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MultiFileMemoryBuffer;
@@ -61,7 +64,12 @@ public class MainView extends VerticalLayout {
     private final Image previewImage = new Image();
     private byte[] lastUploadedImageBytes;
 
-    private final Slider confidenceSlider = new Slider(0, 100, 0);
+    private final IntegerField confidenceSlider = new IntegerField("Min confidence (%)");
+
+    // Add missing UI component declarations
+    private final Checkbox showLabelsCheckbox = new Checkbox("Show labels", true);
+    private final Select<String> boxColorSelect = new Select<>();
+    private final IntegerField boxLineWidth = new IntegerField("Line width");
 
     // Export state and links
     private String lastResultsJson;
@@ -116,14 +124,23 @@ public class MainView extends VerticalLayout {
         HorizontalLayout controls = new HorizontalLayout();
         controls.setAlignItems(Alignment.CENTER);
         controls.getStyle().set("margin-top", "0.5rem");
-        Paragraph label = new Paragraph("Min confidence (%):");
+        Paragraph label = new Paragraph();
         label.getStyle().set("margin", "0 0.5rem 0 0");
-        confidenceSlider.setWidth("240px");
-        confidenceSlider.setValue(0.0);
-        confidenceSlider.setStep(1.0);
+        confidenceSlider.setMin(0);
+        confidenceSlider.setMax(100);
+        confidenceSlider.setStepButtonsVisible(true);
+        confidenceSlider.setValue(0);
+        confidenceSlider.setWidth("160px");
         controls.setWidth("100%");
         controls.getStyle().set("flex-wrap", "wrap");
-        controls.add(label, confidenceSlider, showLabelsCheckbox, boxColorSelect, boxLineWidth);
+        boxColorSelect.setLabel("Box color");
+boxColorSelect.setItems("red", "green", "blue");
+boxColorSelect.setValue("red");
+boxLineWidth.setMin(1);
+boxLineWidth.setMax(6);
+boxLineWidth.setValue(2);
+boxLineWidth.setWidth("120px");
+controls.add(confidenceSlider, showLabelsCheckbox, boxColorSelect, boxLineWidth);
         add(controls);
     }
 
@@ -283,7 +300,7 @@ public class MainView extends VerticalLayout {
 
             String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().substring(0, 8);
             byte[] multipartBody = createMultipartBody(imageData, fileName, boundary);
-            double thr = Math.max(0.0, Math.min(1.0, confidenceSlider.getValue() / 100.0));
+            double thr = Math.max(0.0, Math.min(1.0, (confidenceSlider.getValue() == null ? 0 : confidenceSlider.getValue()) / 100.0));
             String url = FACE_DETECTION_ENDPOINT + "?minConfidence=" + URLEncoder.encode(String.valueOf(thr), StandardCharsets.UTF_8);
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -336,7 +353,7 @@ public class MainView extends VerticalLayout {
                 try {
                     String boundary = "----WebKitFormBoundary" + UUID.randomUUID().toString().substring(0, 8);
                     byte[] multipartBody = createMultipartBody(item.bytes(), item.fileName(), boundary);
-                    double thr = Math.max(0.0, Math.min(1.0, confidenceSlider.getValue() / 100.0));
+                    double thr = Math.max(0.0, Math.min(1.0, (confidenceSlider.getValue() == null ? 0 : confidenceSlider.getValue()) / 100.0));
                     String url = FACE_DETECTION_ENDPOINT + "?minConfidence=" + URLEncoder.encode(String.valueOf(thr), StandardCharsets.UTF_8);
 
                     HttpRequest request = HttpRequest.newBuilder()
@@ -367,9 +384,11 @@ public class MainView extends VerticalLayout {
 
                 double progress = (i + 1) / (double) totalFiles;
                 if (ui != null) {
+                    final int currentIndex = i + 1;
+                    final int total = totalFiles;
                     ui.access(() -> {
                         batchProgressBar.setValue(progress);
-                        batchProgressLabel.setText((i + 1) + "/" + totalFiles);
+                        batchProgressLabel.setText(currentIndex + "/" + total);
                     });
                 }
             }
@@ -524,7 +543,7 @@ public class MainView extends VerticalLayout {
                 case "blue" -> "#1e88e5";
                 default -> "#e53935"; // red
             };
-            int line = (int) Math.round(boxLineWidth.getValue());
+            int line = Math.max(1, (boxLineWidth.getValue() == null ? 2 : boxLineWidth.getValue()));
             box.getStyle().set("border", line + "px solid " + colorHex);
             box.getStyle().set("box-sizing", "border-box");
             previewWrapper.add(box);
