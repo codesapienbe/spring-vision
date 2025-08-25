@@ -2103,10 +2103,16 @@ public class OpenCvVisionBackend implements VisionBackend {
 
         try {
             // Decode image to Mat
-            Mat image = imdecode(new org.bytedeco.opencv.opencv_core.MatVector(imageData.data()), IMREAD_COLOR);
-            if (image.empty()) {
-                throw new VisionProcessingException("Failed to decode image data", "image_decode", 1001);
+            org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
+            Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
+            Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
+            if (image == null || image.empty()) {
+                rawPointer.deallocate();
+                buffer.releaseReference();
+                throw new VisionProcessingException("Failed to decode image data", "obscure", "face");
             }
+            buffer.releaseReference();
+            rawPointer.deallocate();
 
             // Detect faces
             VisionResult faceResult = detectFaces(imageData);
@@ -2142,10 +2148,11 @@ public class OpenCvVisionBackend implements VisionBackend {
                         // Apply Gaussian blur to the face region
                         Mat blurredFace = new Mat();
                         org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
-                            faceRegion, 
-                            blurredFace, 
-                            new Size(31, 31), // Kernel size for strong blur
-                            0, 0 // Standard deviations
+                            faceRegion,
+                            blurredFace,
+                            new Size(31, 31),
+                            0.0, 0.0,
+                            org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT
                         );
                         
                         // Copy blurred face back to original image
@@ -2159,21 +2166,20 @@ public class OpenCvVisionBackend implements VisionBackend {
             }
 
             // Encode the modified image back to bytes
-            org.bytedeco.opencv.opencv_core.MatVector encodedImage = new org.bytedeco.opencv.opencv_core.MatVector();
-            org.bytedeco.opencv.global.opencv_imgcodecs.imencode(".jpg", image, encodedImage);
-            
-            if (encodedImage.size() == 0) {
-                throw new VisionProcessingException("Failed to encode obscured image", "image_encode", 1002);
+            org.bytedeco.javacpp.BytePointer outBuffer = new org.bytedeco.javacpp.BytePointer();
+            boolean ok = org.bytedeco.opencv.global.opencv_imgcodecs.imencode(".jpg", image, outBuffer);
+            if (!ok || outBuffer.isNull() || outBuffer.limit() == 0) {
+                image.releaseReference();
+                outBuffer.deallocate();
+                throw new VisionProcessingException("Failed to encode obscured image", "obscure", "face");
             }
-            
-            Mat encodedMat = encodedImage.get(0);
-            byte[] obscuredImageBytes = new byte[(int) encodedMat.total() * encodedMat.channels()];
-            encodedMat.getByteBuffer().get(obscuredImageBytes);
+            long length = outBuffer.limit();
+            byte[] obscuredImageBytes = new byte[(int) length];
+            outBuffer.get(obscuredImageBytes);
             
             // Cleanup
             image.releaseReference();
-            encodedMat.releaseReference();
-            encodedImage.releaseReference();
+            outBuffer.deallocate();
             
             logger.info("Successfully obscured {} faces in image", faces.size());
             return ImageData.fromBytes(obscuredImageBytes, "image/jpeg");

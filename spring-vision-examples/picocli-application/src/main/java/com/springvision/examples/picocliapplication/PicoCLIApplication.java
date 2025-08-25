@@ -699,6 +699,9 @@ public class PicoCLIApplication implements CommandLineRunner {
         } catch (NumberFormatException nfe) {
             System.err.println("Invalid threshold: " + thresholdStr);
             System.exit(1);
+        } catch (IOException ioe) {
+            System.err.println("I/O error: " + ioe.getMessage());
+            System.exit(1);
         }
     }
 
@@ -741,6 +744,9 @@ public class PicoCLIApplication implements CommandLineRunner {
             
             System.out.println("Successfully obscured faces and saved to: " + outputPath);
             
+        } catch (IOException ioe) {
+            System.err.println("I/O error: " + ioe.getMessage());
+            System.exit(1);
         } catch (Exception e) {
             System.err.println("Face obscuring failed: " + e.getMessage());
             System.exit(1);

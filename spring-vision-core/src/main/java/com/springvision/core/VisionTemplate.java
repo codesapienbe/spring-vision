@@ -192,6 +192,66 @@ public class VisionTemplate {
         return detect(imageData, detectionType);
     }
 
+    /** Performs multiple detection types on the provided image data. */
+    public java.util.List<VisionResult> detectMultiple(ImageData imageData, java.util.List<DetectionType> detectionTypes)
+            throws BaseVisionException {
+        Objects.requireNonNull(imageData, "Image data must not be null");
+        if (detectionTypes == null || detectionTypes.isEmpty()) {
+            throw new IllegalArgumentException("Detection types must not be null or empty");
+        }
+
+        String correlationId = generateCorrelationId();
+        long startTime = System.currentTimeMillis();
+
+        logger.info("Starting multi-detection", Map.of(
+            "correlationId", correlationId,
+            "detectionTypes", detectionTypes.stream().map(DetectionType::getDisplayName).toList(),
+            "imageSize", imageData.getSizeInBytes(),
+            "imageFormat", imageData.format(),
+            "backendId", getBackendId()
+        ));
+
+        try {
+            java.util.List<VisionResult> results = backend.detectMultiple(imageData, detectionTypes);
+            long processingTime = System.currentTimeMillis() - startTime;
+            int totalDetections = results == null ? 0 : results.stream().mapToInt(VisionResult::detectionCount).sum();
+
+            logger.info("Multi-detection completed", Map.of(
+                "correlationId", correlationId,
+                "detectionTypes", detectionTypes.stream().map(DetectionType::getDisplayName).toList(),
+                "totalDetections", totalDetections,
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId()
+            ));
+            return results;
+        } catch (BaseVisionException e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            logger.error("Multi-detection failed", Map.of(
+                "correlationId", correlationId,
+                "detectionTypes", detectionTypes.stream().map(DetectionType::getDisplayName).toList(),
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId(),
+                "error", e.getClass().getSimpleName()
+            ), e);
+            throw e;
+        } catch (Exception e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            logger.error("Unexpected error during multi-detection", Map.of(
+                "correlationId", correlationId,
+                "detectionTypes", detectionTypes.stream().map(DetectionType::getDisplayName).toList(),
+                "processingTimeMs", processingTime,
+                "backendId", getBackendId(),
+                "error", e.getClass().getSimpleName()
+            ), e);
+            throw new VisionProcessingException(
+                "Unexpected error during multi-detection",
+                "multi-detect",
+                "multi",
+                e
+            );
+        }
+    }
+
     /** Extracts face embeddings using the backend's implementation or default support. */
     public List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
         Objects.requireNonNull(imageData, "Image data must not be null");
