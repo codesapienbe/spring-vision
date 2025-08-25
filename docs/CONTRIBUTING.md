@@ -9,9 +9,11 @@ Welcome to the Spring Vision project! This guide will help you understand how to
 - [Architecture Overview](#architecture-overview)
 - [Code Standards](#code-standards)
 - [Testing Guidelines](#testing-guidelines)
-- [Submitting Changes](#submitting-changes)
+- [Pull Request Process](#pull-request-process)
 - [Backend Development](#backend-development)
 - [Example Applications](#example-applications)
+- [Issue Reporting](#issue-reporting)
+- [Getting Help](#getting-help)
 
 ## Quick Start for Contributors
 
@@ -36,7 +38,7 @@ mvn clean install -DskipTests
 # Test all examples
 ./test.sh --all
 
-# Test specific components
+# Test individual components
 ./test.sh --cli    # CLI application
 ./test.sh --api    # REST APIs (GWT/Vaadin)
 ./test.sh --web    # Web applications
@@ -145,61 +147,24 @@ DetectionQuery query = DetectionQuery.builder()
 
 ### Senior-Level Requirements
 
+**IMPORTANT**: All contributors must read and follow our comprehensive coding standards before submitting any code.
+
 All code must meet senior Spring/Java engineer standards:
 
-#### 1. Naming Conventions
+#### 1. Security-First Approach
 
-```java
-// ✅ Good: Explicit, domain-specific names
-public class OpenCvVisionBackend implements VisionBackend {
-    private static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.5;
-    
-    public List<Detection> detectFacesWithConfidence(ImageData inputImage, double threshold) {
-        // Implementation
-    }
-}
+- **Address OWASP Top-10 vulnerabilities** in all code
+- **Validate all inputs**, especially image data and user parameters
+- **Implement proper size and format restrictions**
+- **Use secure error handling** without information leakage
+- **Never log sensitive data** (image contents, credentials, etc.)
 
-// ❌ Bad: Abbreviated, unclear names
-public class OCVBackend {
-    private static final double DEF_CONF = 0.5;
-    
-    public List<Detection> detect(ImageData img, double t) {
-        // Implementation
-    }
-}
-```
+#### 2. Comprehensive Documentation
 
-#### 2. Documentation Requirements
-
-**Every public class/method requires Javadoc:**
-
-```java
-/**
- * Detects faces in images using OpenCV's Haar cascade classifiers.
- *
- * <p>This backend supports multiple detection types and provides face embedding
- * extraction using SFace recognizer when available, with fallback to FaceBytes.</p>
- *
- * @since 1.0.0
- * @author Spring Vision Team
- */
-@Component
-public class OpenCvVisionBackend implements VisionBackend, EmbeddingCapability {
-
-    /**
-     * Extracts facial embeddings from the provided image.
-     *
-     * @param imageData the input image containing faces
-     * @return list of 512-dimensional embedding vectors, one per detected face
-     * @throws VisionProcessingException if image processing fails
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
-    @Override
-    public List<float[]> extractEmbeddings(ImageData imageData) {
-        // Implementation with comprehensive error handling
-    }
-}
-```
+- **Every public class and method must have Javadoc**
+- **Include parameter descriptions, return values, and exception details**
+- **Provide usage examples for complex APIs**
+- **Document security considerations and performance implications**
 
 #### 3. Modern Java Practices (JDK 21+)
 
@@ -234,7 +199,29 @@ public CompletableFuture<List<Detection>> detectAsync(ImageData imageData) {
 }
 ```
 
-#### 4. Error Handling Standards
+#### 4. Naming Conventions
+
+```java
+// ✅ Good: Explicit, domain-specific names
+public class OpenCvVisionBackend implements VisionBackend {
+    private static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.5;
+    
+    public List<Detection> detectFacesWithConfidence(ImageData inputImage, double threshold) {
+        // Implementation
+    }
+}
+
+// ❌ Bad: Abbreviated, unclear names
+public class OCVBackend {
+    private static final double DEF_CONF = 0.5;
+    
+    public List<Detection> detect(ImageData img, double t) {
+        // Implementation
+    }
+}
+```
+
+#### 5. Error Handling Standards
 
 ```java
 // ✅ Comprehensive error handling with context
@@ -263,9 +250,9 @@ public List<Detection> detectFaces(ImageData imageData) {
 }
 ```
 
-### Logging Standards
+### Structured Logging Standards
 
-**ALL logging must be structured JSON format:**
+**ALL logging must be structured JSON format with consistent fields:**
 
 ```java
 // ✅ Structured logging with contextual metadata
@@ -313,7 +300,35 @@ public class OpenCvVisionBackend implements VisionBackend {
 - `INFO`: Business events and major processing milestones
 - `DEBUG`: Technical implementation details
 
+### Configuration Guidelines
+
+Use `@ConfigurationProperties` for externalized configuration:
+
+```java
+@ConfigurationProperties(prefix = "spring.vision.mybackend")
+public record MyBackendProperties(
+    @DefaultValue("false")
+    boolean enabled,
+    
+    @DefaultValue("0.8")
+    @Min(0.0) @Max(1.0)
+    double confidenceThreshold,
+    
+    @DefaultValue("~/.spring-vision/models/")
+    String modelPath
+) {
+    // Validation logic if needed
+}
+```
+
 ## Testing Guidelines
+
+### Testing Requirements
+
+- **90%+ test coverage**: All public methods must have unit tests
+- **Integration tests**: Test component interactions
+- **Security tests**: Test input validation and security measures
+- **Performance tests**: Benchmark critical operations
 
 ### Manual Testing First
 
@@ -327,6 +342,39 @@ The framework prioritizes manual testing through example applications:
 ./test.sh --cli
 ./test.sh --api  
 ./test.sh --web
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+mvn test
+
+# Run integration tests
+mvn verify
+
+# Run with coverage
+mvn jacoco:report
+```
+
+### Test Naming Convention
+
+```java
+@Test
+@DisplayName("Should detect faces successfully when image contains valid faces")
+void shouldDetectFacesSuccessfully() {
+    // Test implementation
+}
+
+@Test
+@DisplayName("Should reject oversized images with clear error message")
+void shouldRejectOversizedImages() {
+    byte[] oversizedImage = new byte[MAX_IMAGE_SIZE + 1];
+    
+    assertThatThrownBy(() -> visionTemplate.detectFaces(oversizedImage))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Image size exceeds maximum allowed size");
+}
 ```
 
 ### Integration Testing
@@ -375,6 +423,117 @@ void shouldProcessImageWithinTimeLimit() {
     assertThat(detections).isNotNull();
 }
 ```
+
+## Pull Request Process
+
+### Before Submitting
+
+1. **Read the standards**: Ensure you understand all coding requirements
+2. **Test thoroughly**: Run all tests and ensure they pass
+3. **Format code**: Apply Spotless formatting
+4. **Check style**: Run Checkstyle validation
+5. **Update docs**: Update documentation if needed
+
+### Pull Request Template
+
+When submitting a pull request, include:
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] All tests pass
+- [ ] Manual testing via examples completed
+
+## Security
+- [ ] Input validation implemented
+- [ ] Error handling secure
+- [ ] No sensitive data exposed
+- [ ] OWASP Top-10 considerations addressed
+
+## Documentation
+- [ ] Javadoc updated
+- [ ] README updated if needed
+- [ ] API documentation updated
+
+## Checklist
+- [ ] Code follows project standards
+- [ ] 90%+ test coverage maintained
+- [ ] No TODO comments without issue references
+- [ ] Dependencies properly versioned
+- [ ] Structured logging implemented
+```
+
+### Commit Message Guidelines
+
+#### Format
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+```
+
+#### Types
+
+- **feat**: New feature
+- **fix**: Bug fix
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, etc.)
+- **refactor**: Code refactoring
+- **test**: Adding or updating tests
+- **chore**: Build process or auxiliary tool changes
+
+#### Examples
+
+```
+feat(backend): add InsightFace backend with ONNX support
+
+- Implement face detection using RetinaFace model
+- Add embedding extraction with ArcFace
+- Include model auto-download with SHA-256 verification
+- Add comprehensive error handling and logging
+
+Closes #123
+```
+
+```
+fix(autoconfigure): resolve bean creation issue
+
+Fix conditional bean creation when vision backend is disabled.
+
+Fixes #456
+```
+
+### Code Review Process
+
+#### Review Criteria
+
+- ✅ **Security**: No vulnerabilities, proper input validation
+- ✅ **Performance**: No memory leaks, efficient algorithms
+- ✅ **Documentation**: Complete Javadoc, clear README updates
+- ✅ **Logging**: Structured JSON logs with proper levels
+- ✅ **Testing**: Manual testing via examples, integration tests
+- ✅ **Compatibility**: No breaking changes to public APIs
+- ✅ **Style**: Follows project conventions and passes checks
+
+#### Review Process
+
+1. **Automated checks** must pass (tests, style, security)
+2. **At least one maintainer** must approve
+3. **All conversations** must be resolved
+4. **Documentation** must be updated if needed
 
 ## Backend Development
 
@@ -554,88 +713,42 @@ private byte[] downloadImageBytes(String url) throws IOException {
 }
 ```
 
-## Submitting Changes
+## Issue Reporting
 
-### Pull Request Process
+### Bug Reports
 
-1. **Fork and create feature branch:**
+When reporting bugs, please include:
 
-```bash
-git checkout -b feature/my-new-backend
-```
+- **Environment**: OS, Java version, Maven version
+- **Steps to reproduce**: Clear, step-by-step instructions
+- **Expected behavior**: What should happen
+- **Actual behavior**: What actually happens
+- **Logs**: Relevant error logs (sanitized of sensitive data)
+- **Screenshots**: If applicable
 
-2. **Follow commit message format:**
+### Feature Requests
 
-```
-feat(backend): add InsightFace backend with ONNX support
+When requesting features, please include:
 
-- Implement face detection using RetinaFace model
-- Add embedding extraction with ArcFace
-- Include model auto-download with SHA-256 verification
-- Add comprehensive error handling and logging
-
-Closes #123
-```
-
-3. **Ensure code quality:**
-
-```bash
-# Code formatting
-mvn spotless:apply
-
-# Style check
-mvn checkstyle:check
-
-# Build and test
-mvn clean install -DskipTests
-./test.sh --all
-```
-
-4. **Update documentation:**
-   - Update relevant README files
-   - Add/update Javadoc
-   - Update TODO.md if completing tasks
-
-### Code Review Criteria
-
-- ✅ **Security**: No vulnerabilities, proper input validation
-- ✅ **Performance**: No memory leaks, efficient algorithms
-- ✅ **Documentation**: Complete Javadoc, clear README updates
-- ✅ **Logging**: Structured JSON logs with proper levels
-- ✅ **Testing**: Manual testing via examples, integration tests
-- ✅ **Compatibility**: No breaking changes to public APIs
-- ✅ **Style**: Follows project conventions and passes checks
-
-### Release Notes
-
-When contributing, update the appropriate section:
-
-```markdown
-## [1.1.0] - 2024-XX-XX
-
-### Added
-- New InsightFace backend with high-accuracy face recognition
-- Support for GPU acceleration via CUDA/DirectML
-- Batch processing capabilities in all example applications
-
-### Changed
-- Improved OpenCV backend performance by 25%
-- Enhanced error messages with more context
-
-### Fixed
-- Fixed memory leak in long-running face detection operations
-- Resolved compatibility issue with ARM64 processors
-
-### Deprecated
-- `VisionBackend.detectFaces()` - use `detect()` with DetectionQuery instead
-```
+- **Use case**: Why this feature is needed
+- **Proposed solution**: How you envision it working
+- **Alternatives considered**: Other approaches you've thought about
+- **Impact**: How this affects existing functionality
 
 ## Getting Help
 
-- **Documentation**: Check `docs/` directory
-- **Examples**: See `spring-vision-examples/` modules
-- **Issues**: Create GitHub issue with reproduction steps
-- **Discussions**: Use GitHub Discussions for questions
+- **Documentation**: Check `docs/` directory for comprehensive guides
+- **Examples**: See `spring-vision-examples/` modules for working implementations
+- **GitHub Issues**: Create GitHub issue with reproduction steps
+- **GitHub Discussions**: Use GitHub Discussions for questions and general discussion
+
+## Recognition
+
+Contributors will be recognized in:
+
+- **README.md**: For significant contributions
+- **Release notes**: For each release
+- **Contributors list**: On GitHub
 
 ## Code of Conduct
 
@@ -647,4 +760,4 @@ When contributing, update the appropriate section:
 
 ---
 
-Thank you for contributing to Spring Vision! 🎯 
+Thank you for contributing to Spring Vision! 🎯 Your contributions help make computer vision accessible to every Spring Boot developer. 
