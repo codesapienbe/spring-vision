@@ -6,6 +6,7 @@ import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -53,6 +54,12 @@ public class MainView extends VerticalLayout {
     private byte[] lastUploadedImageBytes;
 
     private final Slider confidenceSlider = new Slider(0, 100, 0);
+
+    // Export state and links
+    private String lastResultsJson;
+    private String lastResultsCsv;
+    private Anchor jsonDownloadLink;
+    private Anchor csvDownloadLink;
 
     /**
      * Constructs the main view with all UI components.
@@ -187,6 +194,23 @@ public class MainView extends VerticalLayout {
         resultsContainer.getStyle().set("background-color", "var(--lumo-contrast-10pct)");
         resultsContainer.getStyle().set("border-radius", "0.5rem");
         resultsContainer.setVisible(false);
+
+        // Initialize export links (hidden until results available)
+        jsonDownloadLink = new Anchor();
+        jsonDownloadLink.setText("Download JSON");
+        jsonDownloadLink.getElement().setAttribute("download", true);
+        jsonDownloadLink.getStyle().set("margin-right", "0.5rem");
+        jsonDownloadLink.setVisible(false);
+
+        csvDownloadLink = new Anchor();
+        csvDownloadLink.setText("Download CSV");
+        csvDownloadLink.getElement().setAttribute("download", true);
+        csvDownloadLink.setVisible(false);
+
+        HorizontalLayout exports = new HorizontalLayout(jsonDownloadLink, csvDownloadLink);
+        exports.setVisible(false);
+        exports.setId("exportButtons");
+        resultsContainer.add(exports);
         add(resultsContainer);
     }
 
@@ -315,6 +339,19 @@ public class MainView extends VerticalLayout {
                 renderOverlays(json.getArray("detections"));
             }
 
+            // Update export resources
+            this.lastResultsJson = jsonResponse;
+            this.lastResultsCsv = generateCsv(json);
+
+            HorizontalLayout exports = new HorizontalLayout();
+            exports.setId("exportButtons");
+            jsonDownloadLink = new Anchor(new StreamResource("results.json", () -> new ByteArrayInputStream(lastResultsJson.getBytes(StandardCharsets.UTF_8))), "Download JSON");
+            jsonDownloadLink.getElement().setAttribute("download", true);
+            csvDownloadLink = new Anchor(new StreamResource("results.csv", () -> new ByteArrayInputStream(lastResultsCsv.getBytes(StandardCharsets.UTF_8))), "Download CSV");
+            csvDownloadLink.getElement().setAttribute("download", true);
+            exports.add(jsonDownloadLink, csvDownloadLink);
+            resultsContainer.add(exports);
+
             if (detectionCount == 0) {
                 Paragraph noFaces = new Paragraph("No faces detected in the uploaded image.");
                 noFaces.getStyle().set("text-align", "center");
@@ -391,5 +428,29 @@ public class MainView extends VerticalLayout {
                 previewWrapper.getElement().removeChild(previewWrapper.getElement().getChild(1));
             }
         }
+    }
+
+    private String generateCsv(JsonObject root) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("face_index,confidence,x,y,width,height\n");
+        if (root != null && root.hasKey("detections")) {
+            JsonArray arr = root.getArray("detections");
+            for (int i = 0; i < arr.length(); i++) {
+                JsonObject det = arr.getObject(i);
+                double conf = det.hasKey("confidence") ? det.getNumber("confidence") : 0.0;
+                JsonObject bb = det.hasKey("boundingBox") ? det.getObject("boundingBox") : null;
+                double x = bb != null && bb.hasKey("x") ? bb.getNumber("x") : 0.0;
+                double y = bb != null && bb.hasKey("y") ? bb.getNumber("y") : 0.0;
+                double w = bb != null && bb.hasKey("width") ? bb.getNumber("width") : 0.0;
+                double h = bb != null && bb.hasKey("height") ? bb.getNumber("height") : 0.0;
+                sb.append(i + 1).append(',')
+                  .append(String.format(java.util.Locale.US, "%.6f", conf)).append(',')
+                  .append(String.format(java.util.Locale.US, "%.6f", x)).append(',')
+                  .append(String.format(java.util.Locale.US, "%.6f", y)).append(',')
+                  .append(String.format(java.util.Locale.US, "%.6f", w)).append(',')
+                  .append(String.format(java.util.Locale.US, "%.6f", h)).append('\n');
+            }
+        }
+        return sb.toString();
     }
 }

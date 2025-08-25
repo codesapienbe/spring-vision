@@ -118,6 +118,14 @@
             top: 0;
             pointer-events: none;
         }
+        .config {
+            margin: 15px auto;
+            max-width: 600px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -131,7 +139,7 @@
         <div class="upload-form">
             <div class="file-input">
                 <label for="fileInput">Select an image to detect faces:</label><br>
-                <input type="file" id="fileInput" accept="image/*" title="Choose image for face detection" />
+                <input type="file" id="fileInput" accept="image/*" multiple title="Choose image(s) for face detection" />
             </div>
             <div id="dropZone" class="drop-zone" aria-label="Drop image here for detection">
                 Drag & Drop an image here, or click to select
@@ -142,7 +150,16 @@
                     <canvas id="overlayCanvas"></canvas>
                 </div>
             </div>
+            <div class="config">
+                <label for="confidenceRange">Min confidence (%): <span id="confidenceValue">0</span></label>
+                <input type="range" id="confidenceRange" min="0" max="100" value="0" />
+            </div>
             <button id="detectBtn" class="submit-btn">Detect Faces</button>
+            <button id="batchBtn" class="submit-btn" style="margin-left: 10px;">Batch Detect</button>
+            <div id="batchProgress" style="display: none; margin-top: 10px;">
+                <progress id="progressBar" max="100" value="0" style="width: 100%;"></progress>
+                <div id="progressLabel" style="text-align: center; margin-top: 6px;">0/0</div>
+            </div>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
@@ -161,6 +178,7 @@
     <script>
         const fileInput = document.getElementById('fileInput');
         const detectBtn = document.getElementById('detectBtn');
+        const batchBtn = document.getElementById('batchBtn');
         const errorDiv = document.getElementById('error');
         const resultsDiv = document.getElementById('results');
         const detectionCount = document.getElementById('detectionCount');
@@ -169,9 +187,20 @@
         const previewImage = document.getElementById('previewImage');
         const overlayCanvas = document.getElementById('overlayCanvas');
         const overlayCtx = overlayCanvas.getContext('2d');
+        const confidenceRange = document.getElementById('confidenceRange');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const batchProgress = document.getElementById('batchProgress');
+        const progressBar = document.getElementById('progressBar');
+        const progressLabel = document.getElementById('progressLabel');
 
         let selectedFile = null;
         let previewUrl = null;
+
+        // Initialize confidence value label
+        confidenceValue.textContent = confidenceRange.value;
+        confidenceRange.addEventListener('input', () => {
+            confidenceValue.textContent = confidenceRange.value;
+        });
 
         // Sync selected file from file input
         fileInput.addEventListener('change', () => {
@@ -244,7 +273,9 @@
             hideResults();
 
             try {
-                const response = await fetch('/api/vision/detect/faces', {
+                const thr = Math.max(0, Math.min(1, (parseInt(confidenceRange.value, 10) || 0) / 100));
+                const url = `/api/vision/detect/faces?minConfidence=${encodeURIComponent(thr.toString())}`;
+                const response = await fetch(url, {
                     method: 'POST',
                     body: formData
                 });
@@ -263,6 +294,71 @@
                 detectBtn.textContent = 'Detect Faces';
                 detectBtn.disabled = false;
             }
+        });
+
+        batchBtn.addEventListener('click', async () => {
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
+                showError('Please select one or more images.');
+                return;
+            }
+
+            hideError();
+            hideResults();
+            batchBtn.textContent = 'Batch Detecting...';
+            batchBtn.disabled = true;
+            detectBtn.disabled = true;
+
+            batchProgress.style.display = 'block';
+            progressBar.value = 0;
+            progressLabel.textContent = `0/${files.length}`;
+
+            const thr = Math.max(0, Math.min(1, (parseInt(confidenceRange.value, 10) || 0) / 100));
+            const urlBase = `/api/vision/detect/faces?minConfidence=${encodeURIComponent(thr.toString())}`;
+
+            const summaries = [];
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                try {
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    const resp = await fetch(urlBase, { method: 'POST', body: fd });
+                    if (!resp.ok) {
+                        summaries.push({ name: f.name, error: `${resp.status} ${resp.statusText}` });
+                    } else {
+                        const json = await resp.json();
+                        const count = (json && Array.isArray(json.detections)) ? json.detections.length : (json.detectionCount || 0);
+                        summaries.push({ name: f.name, count });
+                    }
+                } catch (e) {
+                    summaries.push({ name: f.name, error: sanitize(e.message) });
+                }
+                progressBar.value = Math.round(((i + 1) / files.length) * 100);
+                progressLabel.textContent = `${i + 1}/${files.length}`;
+            }
+
+            // Render aggregated results
+            resultsDiv.style.display = 'block';
+            detectionList.innerHTML = '';
+            let total = 0;
+            summaries.forEach((s) => {
+                const div = document.createElement('div');
+                div.className = 'detection-item';
+                if (s.error) {
+                    div.innerHTML = `<strong>${sanitize(s.name)}</strong><br><span class="error">${sanitize(s.error)}</span>`;
+                } else {
+                    total += s.count || 0;
+                    div.innerHTML = `<strong>${sanitize(s.name)}</strong><br><span>${s.count || 0} face(s)</span>`;
+                }
+                detectionList.appendChild(div);
+            });
+            detectionCount.textContent = `Batch completed: ${files.length} file(s), total faces: ${total}`;
+            // Clear overlay for batch outputs
+            overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+            batchBtn.textContent = 'Batch Detect';
+            batchBtn.disabled = false;
+            detectBtn.disabled = false;
         });
 
         function displayResults(data) {
@@ -354,7 +450,7 @@
         }
 
         function sanitize(text) {
-            return String(text).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+            return String(text).replace(/[&<>\"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
         }
     </script>
 </body>

@@ -57,28 +57,28 @@
 
 - [ ] **TODO: Create GWT-based GUI application**
   - [x] Created `spring-vision-examples/gwt-application/` module
-  - [ ] Implement web-based GUI using Google Web Toolkit
-  - [ ] Add drag-and-drop image upload functionality
-  - [ ] Create real-time image preview and detection visualization
-  - [ ] Implement batch processing with progress indicators
-  - [ ] Add detection result overlay on images
-  - [ ] Include configuration panels for detection parameters
-  - [ ] Add export functionality for results
-  - [ ] Implement responsive design for different screen sizes
+  - [x] Implement web-based GUI using Google Web Toolkit
+- [x] Add drag-and-drop image upload functionality
+- [x] Create real-time image preview and detection visualization
+- [x] Implement batch processing with progress indicators
+- [x] Add detection result overlay on images
+- [ ] Include configuration panels for detection parameters
+- [ ] Add export functionality for results
+- [ ] Implement responsive design for different screen sizes
 
 #### 2.3 Vaadin-Based GUI Application
 
 - [ ] **TODO: Create Vaadin-based GUI application**
   - [x] Created `spring-vision-examples/vaadin-application/` module
   - [x] Implement modern web-based GUI using Vaadin Framework
-  - [ ] Add advanced image upload with preview
-  - [ ] Create interactive detection result visualization
-  - [ ] Implement real-time processing with WebSocket updates
-  - [ ] Add comprehensive configuration management
-  - [ ] Include batch processing with detailed progress tracking
-  - [ ] Add result export in multiple formats
-  - [ ] Implement user authentication and session management
-  - [ ] Add responsive design and mobile support
+  - [x] Add advanced image upload with preview
+- [x] Create interactive detection result visualization
+- [ ] Implement real-time processing with WebSocket updates
+- [ ] Add comprehensive configuration management
+- [ ] Include batch processing with detailed progress tracking
+- [x] Add result export in multiple formats
+- [ ] Implement user authentication and session management
+- [ ] Add responsive design and mobile support
 
 ## MEDIUM PRIORITY TODOs
 
