@@ -95,46 +95,16 @@ public class MediaPipeVisionBackend implements VisionBackend {
     
     // Shutdown flag
     private volatile boolean shutdown = false;
+    private volatile boolean initialized = false;
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
-        if (shutdown) {
-            throw new VisionBackendException("MediaPipe backend is shutting down");
-        }
-        
-        String correlationId = generateCorrelationId();
-        
-        logger.info("Starting MediaPipe detection: correlationId={}, imageSize={}, queryType={}, backend=mediapipe", 
-                   correlationId, imageData.data().length, query.getType());
-        
-        long startTime = System.currentTimeMillis();
-        
-        try {
-            validateInput(imageData, query);
-            
-            List<Detection> results = switch (query.getType()) {
-                case FACE -> detectFaces(imageData, query, correlationId);
-                case HAND -> detectHands(imageData, query, correlationId);
-                case POSE -> detectPose(imageData, query, correlationId);
-                case OBJECT -> detectObjects(imageData, query, correlationId);
-                default -> throw new VisionBackendException("Unsupported detection type: " + query.getType());
-            };
-            
-            long processingTime = System.currentTimeMillis() - startTime;
-            detectionCount.addAndGet(results.size());
-            
-            logger.info("MediaPipe detection completed: correlationId={}, detectionCount={}, " +
-                       "processingTimeMs={}, backend=mediapipe", 
-                       correlationId, results.size(), processingTime);
-            
-            return results;
-            
-        } catch (Exception e) {
-            errorCount.incrementAndGet();
-            logger.error("MediaPipe detection failed: correlationId={}, backend=mediapipe, error={}", 
-                        correlationId, e.getMessage(), e);
-            throw new VisionBackendException("MediaPipe detection failed: " + e.getMessage(), e);
-        }
+    public Set<DetectionType> getSupportedDetectionTypes() {
+        return Set.of(DetectionType.FACE, DetectionType.HAND, DetectionType.POSE);
+    }
+    
+    @Override
+    public boolean isHealthy() {
+        return !shutdown && initialized;
     }
     
     @Override
@@ -833,15 +803,18 @@ public class MediaPipeVisionBackend implements VisionBackend {
     }
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+    public List<Detection> detectFaces(ImageData imageData) {
         DetectionQuery query = new DetectionQuery.Builder()
-            .type(detectionType)
+            .type(DetectionType.FACE)
             .build();
         return detect(imageData, query);
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.OBJECT)
+            .build();
+        return detect(imageData, query);
     }
 }

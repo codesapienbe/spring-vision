@@ -64,7 +64,8 @@ public class PerformanceBenchmark {
         
         logger.info("Testing face detection performance...");
         long startTime = System.currentTimeMillis();
-        List<Detection> faceResults = visionTemplate.detect(testImage, faceQuery);
+        VisionResult faceResult = visionTemplate.detect(testImage, faceQuery);
+        List<Detection> faceResults = faceResult.detections();
         long faceDetectionTime = System.currentTimeMillis() - startTime;
         
         report.addMetric("face_detection_time_ms", faceDetectionTime);
@@ -79,7 +80,8 @@ public class PerformanceBenchmark {
         
         logger.info("Testing object detection performance...");
         startTime = System.currentTimeMillis();
-        List<Detection> objectResults = visionTemplate.detect(testImage, objectQuery);
+        VisionResult objectResult = visionTemplate.detect(testImage, objectQuery);
+        List<Detection> objectResults = objectResult.detections();
         long objectDetectionTime = System.currentTimeMillis() - startTime;
         
         report.addMetric("object_detection_time_ms", objectDetectionTime);
@@ -97,7 +99,8 @@ public class PerformanceBenchmark {
         startTime = System.currentTimeMillis();
         List<List<Detection>> batchResults = new ArrayList<>();
         for (ImageData image : batchImages) {
-            batchResults.add(visionTemplate.detect(image, batchQuery));
+            VisionResult batchResult = visionTemplate.detect(image, batchQuery);
+            batchResults.add(batchResult.detections());
         }
         long batchProcessingTime = System.currentTimeMillis() - startTime;
         
@@ -130,7 +133,7 @@ public class PerformanceBenchmark {
             .build();
         
         startTime = System.currentTimeMillis();
-        List<CompletableFuture<List<Detection>>> futures = new ArrayList<>();
+        List<CompletableFuture<VisionResult>> futures = new ArrayList<>();
         
         for (int i = 0; i < threadCount; i++) {
             futures.add(CompletableFuture.supplyAsync(() -> 
@@ -175,7 +178,8 @@ public class PerformanceBenchmark {
         for (int i = 0; i < DEFAULT_BENCHMARK_ITERATIONS; i++) {
             long startTime = System.currentTimeMillis();
             
-            List<Detection> detections = visionTemplate.detect(testImage, query);
+            VisionResult result = visionTemplate.detect(testImage, query);
+            List<Detection> detections = result.detections();
             
             long endTime = System.currentTimeMillis();
             long processingTime = endTime - startTime;
@@ -199,7 +203,7 @@ public class PerformanceBenchmark {
                                     int concurrentUsers, int requestsPerUser) {
         logger.info("Starting load test: {} users, {} requests per user", concurrentUsers, requestsPerUser);
         
-        DetectionQuery query = DetectionQuery.builder()
+        DetectionQuery query = new DetectionQuery.Builder()
             .type(detectionType)
             .minConfidence(0.5)
             .maxDetections(10)
@@ -234,7 +238,7 @@ public class PerformanceBenchmark {
     public StressTestResult runStressTest(ImageData testImage, DetectionType detectionType) {
         logger.info("Starting stress test for detection type: {}", detectionType);
         
-        DetectionQuery query = DetectionQuery.builder()
+        DetectionQuery query = new DetectionQuery.Builder()
             .type(detectionType)
             .minConfidence(0.5)
             .maxDetections(10)
@@ -263,7 +267,7 @@ public class PerformanceBenchmark {
     public MemoryAnalysisResult runMemoryAnalysis(ImageData testImage, DetectionType detectionType, int iterations) {
         logger.info("Starting memory analysis: {} iterations", iterations);
         
-        DetectionQuery query = DetectionQuery.builder()
+        DetectionQuery query = new DetectionQuery.Builder()
             .type(detectionType)
             .minConfidence(0.5)
             .maxDetections(10)
@@ -305,7 +309,7 @@ public class PerformanceBenchmark {
                                                        int durationSeconds) {
         logger.info("Starting resource analysis: {} seconds", durationSeconds);
         
-        DetectionQuery query = DetectionQuery.builder()
+        DetectionQuery query = new DetectionQuery.Builder()
             .type(detectionType)
             .minConfidence(0.5)
             .maxDetections(10)
@@ -762,6 +766,7 @@ public class PerformanceBenchmark {
         private final Map<DetectionType, BenchmarkResult> results = new HashMap<>();
         private final Map<DetectionType, String> errors = new HashMap<>();
         private final Map<String, Object> comparativeAnalysis = new HashMap<>();
+        private final Map<String, Object> metrics = new HashMap<>();
         
         public void addResult(DetectionType detectionType, BenchmarkResult result) {
             results.put(detectionType, result);
@@ -769,6 +774,10 @@ public class PerformanceBenchmark {
         
         public void addError(DetectionType detectionType, String error) {
             errors.put(detectionType, error);
+        }
+        
+        public void addMetric(String name, Object value) {
+            metrics.put(name, value);
         }
         
         public void generateComparativeAnalysis() {
@@ -823,5 +832,6 @@ public class PerformanceBenchmark {
         public Map<DetectionType, BenchmarkResult> getResults() { return results; }
         public Map<DetectionType, String> getErrors() { return errors; }
         public Map<String, Object> getComparativeAnalysis() { return comparativeAnalysis; }
+        public Map<String, Object> getMetrics() { return metrics; }
     }
 } 

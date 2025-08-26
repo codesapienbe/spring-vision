@@ -1,10 +1,18 @@
 package com.springvision.core.capabilities;
 
+import com.springvision.core.Detection;
 import com.springvision.core.ImageData;
-import com.springvision.core.VisionResult;
-import com.springvision.core.exception.BaseVisionException;
 
-/** Capability interface for OCR (text detection/recognition). */
+import java.util.List;
+
+/**
+ * Capability interface for text OCR.
+ *
+ * <p>Backends implementing this interface explicitly advertise support for
+ * text OCR independent of the broader {@code VisionBackend} SPI.</p>
+ */
 public interface TextOcrCapability {
-	VisionResult detectText(ImageData imageData) throws BaseVisionException;
+
+	/** Detects text in the provided image. */
+	List<Detection> detectText(ImageData imageData);
 } 

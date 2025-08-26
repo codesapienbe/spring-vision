@@ -265,17 +265,17 @@ public class VisionMetrics {
         activeThreads.set(activeThreadCount);
         
         // Record as gauges
-        Gauge.builder("vision.resources.memory_usage_bytes")
+        Gauge.builder("vision.resources.memory_usage_bytes", memoryUsage, AtomicLong::get)
             .description("Memory usage in bytes")
-            .register(meterRegistry, memoryUsage, AtomicLong::get);
+            .register(meterRegistry);
             
-        Gauge.builder("vision.resources.cpu_usage_percent")
+        Gauge.builder("vision.resources.cpu_usage_percent", cpuUsage, AtomicLong::get)
             .description("CPU usage percentage")
-            .register(meterRegistry, cpuUsage, AtomicLong::get);
+            .register(meterRegistry);
             
-        Gauge.builder("vision.resources.active_thread_count")
+        Gauge.builder("vision.resources.active_thread_count", activeThreads, AtomicLong::get)
             .description("Active thread count")
-            .register(meterRegistry, activeThreads, AtomicLong::get);
+            .register(meterRegistry);
     }
     
     /**

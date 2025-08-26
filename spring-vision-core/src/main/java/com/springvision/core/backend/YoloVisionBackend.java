@@ -110,6 +110,11 @@ public class YoloVisionBackend implements VisionBackend {
     private volatile boolean shutdown = false;
     
     @Override
+    public Set<DetectionType> getSupportedDetectionTypes() {
+        return Set.of(DetectionType.OBJECT);
+    }
+    
+    @Override
     public List<Detection> detect(ImageData imageData, DetectionQuery query) {
         if (shutdown) {
             throw new VisionBackendException("YOLO backend is shutting down");
@@ -157,6 +162,11 @@ public class YoloVisionBackend implements VisionBackend {
                         correlationId, e.getMessage(), e);
             throw new VisionBackendException("YOLO detection failed: " + e.getMessage(), e);
         }
+    }
+    
+    @Override
+    public boolean isHealthy() {
+        return !shutdown && ortSession != null;
     }
     
     @Override
@@ -363,14 +373,14 @@ public class YoloVisionBackend implements VisionBackend {
                 BoundingBox box = new BoundingBox(x - width/2, y - height/2, width, height);
                 
                 // Create detection
-                Detection detection = new Detection(
+                Detection detectionResult = new Detection(
                     COCO_CLASSES[classId],
                     finalConfidence,
                     box,
-                    Map.of("class_id", classId, "model", currentModelInfo.name())
+                    Map.of("class_id", classId, "model", currentModelInfo.version)
                 );
                 
-                detections.add(detection);
+                detections.add(detectionResult);
             }
         }
         
@@ -561,8 +571,8 @@ public class YoloVisionBackend implements VisionBackend {
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
-        if (!getSupportedTypes().contains(query.type())) {
-            throw new IllegalArgumentException("Unsupported detection type: " + query.type());
+        if (!getSupportedTypes().contains(query.getType())) {
+            throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
         }
     }
     
@@ -716,7 +726,18 @@ public class YoloVisionBackend implements VisionBackend {
     }
     
     @Override
+    public List<Detection> detectFaces(ImageData imageData) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.FACE)
+            .build();
+        return detect(imageData, query);
+    }
+    
+    @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.OBJECT)
+            .build();
+        return detect(imageData, query);
     }
 } 

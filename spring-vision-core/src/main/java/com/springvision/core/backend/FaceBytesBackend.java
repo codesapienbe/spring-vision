@@ -23,6 +23,7 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.exception.BaseVisionException;
+import com.springvision.core.DetectionQuery;
 
 /**
  * VisionBackend implementation backed by the FaceBytes (DeepFace Java) module.
@@ -85,7 +86,22 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
     }
 
     @Override
-    public VisionResult detectFaces(ImageData imageData) throws BaseVisionException {
+    public List<Detection> detectFaces(ImageData imageData) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.FACE)
+            .build();
+        return detect(imageData, query);
+    }
+    
+    @Override
+    public List<Detection> detectObjects(ImageData imageData) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.OBJECT)
+            .build();
+        return detect(imageData, query);
+    }
+
+    private List<Detection> detect(ImageData imageData, DetectionQuery query) {
         if (imageData == null || imageData.isEmpty()) {
             throw new IllegalArgumentException("ImageData must not be null or empty");
         }
@@ -123,27 +139,19 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
             }
             double avg = detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0);
             long took = System.currentTimeMillis() - start;
-            return new VisionResult(DetectionType.FACE, detections, avg, took, Instant.now(), Map.of(
-                "backend", BACKEND_ID,
-                "source", "facebytes"
-            ));
+            return detections;
         } catch (Exception e) {
             // Gracefully handle expected "no faces/embeddings" cases without logging errors
             String msg = e.getMessage() == null ? "" : e.getMessage();
             if (e instanceof IllegalArgumentException && (msg.contains("No faces detected") || msg.contains("No valid face embeddings produced"))) {
                 long took = System.currentTimeMillis() - start;
                 logger.warn("FaceBytes detection returned no results: {}", msg);
-                return VisionResult.empty(DetectionType.FACE, took);
+                return List.of();
             }
             logger.error("FaceBytes detectFaces failed", e);
             long took = System.currentTimeMillis() - start;
-            return VisionResult.empty(DetectionType.FACE, took);
+            return List.of();
         }
-    }
-
-    @Override
-    public VisionResult detectObjects(ImageData imageData) throws BaseVisionException {
-        throw new UnsupportedOperationException("Object detection not supported by FaceBytes backend");
     }
 
     @Override

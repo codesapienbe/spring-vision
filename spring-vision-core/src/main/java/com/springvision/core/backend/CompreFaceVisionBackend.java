@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springvision.core.BackendHealthInfo;
 import com.springvision.core.BoundingBox;
 import com.springvision.core.Detection;
+import com.springvision.core.DetectionQuery;
 import com.springvision.core.DetectionType;
 import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
@@ -198,52 +199,13 @@ public class CompreFaceVisionBackend implements VisionBackend {
     }
 
     @Override
-    public VisionResult detectFaces(ImageData imageData) throws BaseVisionException {
-        validateState();
-        Objects.requireNonNull(imageData, "Image data must not be null");
-
-        long startTime = System.currentTimeMillis();
-        String correlationId = generateCorrelationId();
-
-        try {
-            logger.debug("Detecting faces with CompreFace API [{}]", correlationId);
-
-            // Convert image data to base64
-            String base64Image = Base64.getEncoder().encodeToString(imageData.data());
-
-            // Call CompreFace detect API for face detection
-            JsonNode response = callCompreFaceDetect(base64Image, correlationId);
-
-            List<Detection> detections = parseFaceDetections(response, correlationId);
-            double averageConfidence = calculateAverageConfidence(detections);
-
-            long processingTime = System.currentTimeMillis() - startTime;
-
-            logger.debug("Face detection completed [{}]: {} faces detected, avg confidence: {:.3f}, time: {}ms",
-                correlationId, detections.size(), averageConfidence, processingTime);
-
-            return VisionResult.of(DetectionType.FACE, detections, averageConfidence, processingTime);
-
-        } catch (Exception e) {
-            long processingTime = System.currentTimeMillis() - startTime;
-            logger.error("Face detection failed [{}] after {}ms: {}", correlationId, processingTime, e.getMessage(), e);
-
-            if (e instanceof BaseVisionException) {
-                throw e;
-            }
-            throw new VisionProcessingException(
-                "Face detection failed: " + e.getMessage(),
-                "compreface_api_error",
-                DetectionType.FACE.getCode(),
-                e
-            );
-        }
+    public List<Detection> detectFaces(ImageData imageData) {
+        return detect(imageData, DetectionType.FACE);
     }
-
+    
     @Override
-    public VisionResult detectObjects(ImageData imageData) throws BaseVisionException {
-        // For CompreFace, object detection is the same as face detection
-        return detectFaces(imageData);
+    public List<Detection> detectObjects(ImageData imageData) {
+        return detect(imageData, DetectionType.OBJECT);
     }
 
     @Override

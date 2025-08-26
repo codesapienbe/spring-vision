@@ -51,6 +51,18 @@ public final class DetectionQuery {
 	public int getMaxDetections() { return maxDetections; }
 	public BoundingBox getRoi() { return roi; }
 	public Map<String, Object> getOptions() { return options; }
+	
+	/**
+	 * Gets the NMS (Non-Maximum Suppression) threshold from options.
+	 * Defaults to 0.45 if not specified.
+	 */
+	public double getNmsThreshold() {
+		Object nmsThreshold = options.get("nmsThreshold");
+		if (nmsThreshold instanceof Number) {
+			return ((Number) nmsThreshold).doubleValue();
+		}
+		return 0.45; // Default NMS threshold
+	}
 
 	/** Builder for DetectionQuery with sane defaults. */
 	public static final class Builder {

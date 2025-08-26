@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.ArrayList;
 
 /**
  * Template for computer vision operations providing a unified interface
@@ -198,42 +199,66 @@ public class VisionTemplate {
         switch (detectionType) {
             case FACE -> {
                 if (b instanceof com.springvision.core.capabilities.FaceDetectionCapability cap) {
-                    return cap.detectFaces(imageData);
+                    List<Detection> detections = cap.detectFaces(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case OBJECT -> {
                 if (b instanceof com.springvision.core.capabilities.ObjectDetectionCapability cap) {
-                    return cap.detectObjects(imageData);
+                    List<Detection> detections = cap.detectObjects(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case TEXT -> {
                 if (b instanceof com.springvision.core.capabilities.TextOcrCapability cap) {
-                    return cap.detectText(imageData);
+                    List<Detection> detections = cap.detectText(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case BARCODE -> {
                 if (b instanceof com.springvision.core.capabilities.BarcodeCapability cap) {
-                    return cap.detectBarcodes(imageData);
+                    List<Detection> detections = cap.detectBarcodes(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case LANDMARK -> {
                 if (b instanceof com.springvision.core.capabilities.LandmarkDetectionCapability cap) {
-                    return cap.detectLandmarks(imageData);
+                    List<Detection> detections = cap.detectLandmarks(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case POSE -> {
                 if (b instanceof com.springvision.core.capabilities.PoseEstimationCapability cap) {
-                    return cap.detectPoses(imageData);
+                    List<Detection> detections = cap.detectPoses(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case HAND -> {
                 if (b instanceof com.springvision.core.capabilities.HandDetectionCapability cap) {
-                    return cap.detectHands(imageData);
+                    List<Detection> detections = cap.detectHands(imageData);
+                    return VisionResult.of(detectionType, detections,
+                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                        0);
                 }
             }
             case CUSTOM -> { /* fall through to backend */ }
         }
-        return backend.detect(imageData, detectionType);
+        List<Detection> detections = backend.detect(imageData, detectionType);
+        return VisionResult.of(detectionType, detections,
+            detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+            0);
     }
 
     /** Performs multiple detection types on the provided image data. */
@@ -256,9 +281,22 @@ public class VisionTemplate {
         ));
 
         try {
-            java.util.List<VisionResult> results = backend.detectMultiple(imageData, detectionTypes);
+            java.util.List<List<Detection>> detectionLists = backend.detectMultiple(imageData, detectionTypes);
             long processingTime = System.currentTimeMillis() - startTime;
-            int totalDetections = results == null ? 0 : results.stream().mapToInt(VisionResult::detectionCount).sum();
+            
+            // Convert List<List<Detection>> to List<VisionResult>
+            java.util.List<VisionResult> results = new ArrayList<>();
+            for (int i = 0; i < detectionTypes.size(); i++) {
+                List<Detection> detections = detectionLists.get(i);
+                DetectionType detectionType = detectionTypes.get(i);
+                
+                VisionResult result = VisionResult.of(detectionType, detections,
+                    detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                    processingTime);
+                results.add(result);
+            }
+            
+            int totalDetections = results.stream().mapToInt(VisionResult::detectionCount).sum();
 
             logger.info("Multi-detection completed", Map.of(
                 "correlationId", correlationId,
@@ -324,18 +362,21 @@ public class VisionTemplate {
         ));
 
         try {
-            VisionResult result = backend.detect(imageData, query.getType());
+            List<Detection> detections = backend.detect(imageData, query.getType());
             long processingTime = System.currentTimeMillis() - startTime;
+            
+            // Convert List<Detection> to VisionResult
+            VisionResult result = VisionResult.of(query.getType(), detections, 
+                detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                processingTime);
 
             logger.info("Detection query completed", Map.of(
                 "correlationId", correlationId,
                 "detectionType", query.getType().getDisplayName(),
-                "detectionsFound", result.detectionCount(),
-                "averageConfidence", result.averageConfidence(),
+                "detectionCount", detections.size(),
                 "processingTimeMs", processingTime,
                 "backendId", getBackendId()
             ));
-
             return result;
         } catch (BaseVisionException e) {
             long processingTime = System.currentTimeMillis() - startTime;

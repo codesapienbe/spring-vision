@@ -4,6 +4,7 @@ import com.springvision.core.*;
 import com.springvision.core.enterprise.multitenancy.TenantContext;
 import com.springvision.core.logging.VisionLogger;
 import com.springvision.core.metrics.VisionMetrics;
+import com.springvision.core.exception.VisionBackendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -642,7 +643,7 @@ public class DistributedVisionProcessor {
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
-                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().type()))
+                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().getType()))
                 .min(Comparator.comparingDouble(ProcessingNode::getLoadFactor))
                 .orElse(null);
         }
@@ -655,7 +656,7 @@ public class DistributedVisionProcessor {
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
-                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().type()))
+                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().getType()))
                 .filter(node -> node.getStatus() == NodeStatus.HEALTHY)
                 .min(Comparator.comparingDouble(ProcessingNode::getFailureRate))
                 .orElse(null);

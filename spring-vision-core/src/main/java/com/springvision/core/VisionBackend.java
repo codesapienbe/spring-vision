@@ -195,8 +195,7 @@ public interface VisionBackend {
     }
 
     /** Performs multiple detection types on the provided image data. */
-    default List<VisionResult> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes)
-            throws BaseVisionException {
+    default List<List<Detection>> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes) {
         if (imageData == null) {
             throw new IllegalArgumentException("Image data must not be null");
         }
@@ -213,13 +212,7 @@ public interface VisionBackend {
         }
 
         return detectionTypes.stream()
-            .map(detectionType -> {
-                try {
-                    return detect(imageData, detectionType);
-                } catch (BaseVisionException e) {
-                    throw new RuntimeException(e);
-                }
-            })
+            .map(detectionType -> detect(imageData, detectionType))
             .toList();
     }
 

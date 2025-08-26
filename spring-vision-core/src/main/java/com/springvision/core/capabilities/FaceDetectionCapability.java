@@ -1,8 +1,9 @@
 package com.springvision.core.capabilities;
 
+import com.springvision.core.Detection;
 import com.springvision.core.ImageData;
-import com.springvision.core.VisionResult;
-import com.springvision.core.exception.BaseVisionException;
+
+import java.util.List;
 
 /**
  * Capability interface for face detection.
@@ -13,5 +14,5 @@ import com.springvision.core.exception.BaseVisionException;
 public interface FaceDetectionCapability {
 
 	/** Detects faces in the provided image. */
-	VisionResult detectFaces(ImageData imageData) throws BaseVisionException;
+	List<Detection> detectFaces(ImageData imageData);
 } 

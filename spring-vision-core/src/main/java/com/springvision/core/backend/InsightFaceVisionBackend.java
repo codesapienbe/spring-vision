@@ -91,44 +91,16 @@ public class InsightFaceVisionBackend implements VisionBackend {
     
     // Shutdown flag
     private volatile boolean shutdown = false;
+    private volatile boolean initialized = false;
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
-        if (shutdown) {
-            throw new VisionBackendException("InsightFace backend is shutting down");
-        }
-        
-        String correlationId = generateCorrelationId();
-        
-        logger.info("Starting InsightFace detection: correlationId={}, imageSize={}, queryType={}, backend=insightface", 
-                   correlationId, imageData.data().length, query.getType());
-        
-        long startTime = System.currentTimeMillis();
-        
-        try {
-            validateInput(imageData, query);
-            
-            List<Detection> results = switch (query.getType()) {
-                case FACE -> detectFaces(imageData, query, correlationId);
-                case OBJECT -> detectObjects(imageData, query, correlationId);
-                default -> throw new VisionBackendException("Unsupported detection type: " + query.getType());
-            };
-            
-            long processingTime = System.currentTimeMillis() - startTime;
-            detectionCount.addAndGet(results.size());
-            
-            logger.info("InsightFace detection completed: correlationId={}, detectionCount={}, " +
-                       "processingTimeMs={}, backend=insightface", 
-                       correlationId, results.size(), processingTime);
-            
-            return results;
-            
-        } catch (Exception e) {
-            errorCount.incrementAndGet();
-            logger.error("InsightFace detection failed: correlationId={}, backend=insightface, error={}", 
-                        correlationId, e.getMessage(), e);
-            throw new VisionBackendException("InsightFace detection failed: " + e.getMessage(), e);
-        }
+    public Set<DetectionType> getSupportedDetectionTypes() {
+        return Set.of(DetectionType.FACE);
+    }
+    
+    @Override
+    public boolean isHealthy() {
+        return !shutdown && initialized;
     }
     
     @Override
@@ -729,15 +701,18 @@ public class InsightFaceVisionBackend implements VisionBackend {
     }
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+    public List<Detection> detectFaces(ImageData imageData) {
         DetectionQuery query = new DetectionQuery.Builder()
-            .type(detectionType)
+            .type(DetectionType.FACE)
             .build();
         return detect(imageData, query);
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(DetectionType.OBJECT)
+            .build();
+        return detect(imageData, query);
     }
 } 

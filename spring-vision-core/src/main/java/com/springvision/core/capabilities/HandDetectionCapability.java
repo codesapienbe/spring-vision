@@ -1,10 +1,18 @@
 package com.springvision.core.capabilities;
 
+import com.springvision.core.Detection;
 import com.springvision.core.ImageData;
-import com.springvision.core.VisionResult;
-import com.springvision.core.exception.BaseVisionException;
 
-/** Capability interface for hand detection and gesture tracking. */
+import java.util.List;
+
+/**
+ * Capability interface for hand detection.
+ *
+ * <p>Backends implementing this interface explicitly advertise support for
+ * hand detection independent of the broader {@code VisionBackend} SPI.</p>
+ */
 public interface HandDetectionCapability {
-	VisionResult detectHands(ImageData imageData) throws BaseVisionException;
+
+	/** Detects hands in the provided image. */
+	List<Detection> detectHands(ImageData imageData);
 } 
