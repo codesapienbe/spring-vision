@@ -1,16 +1,15 @@
 package com.springvision.core.backend;
 
 import com.springvision.core.*;
-import com.springvision.core.exception.BaseVisionException;
-import com.springvision.core.exception.VisionProcessingException;
+import com.springvision.core.exception.VisionBackendException;
+import com.springvision.core.logging.VisionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -20,14 +19,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedList;
-import java.util.concurrent.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -100,27 +97,27 @@ public class MediaPipeVisionBackend implements VisionBackend {
     private volatile boolean shutdown = false;
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
+    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
         if (shutdown) {
-            throw new VisionProcessingException("MediaPipe backend is shutting down");
+            throw new VisionBackendException("MediaPipe backend is shutting down");
         }
         
         String correlationId = generateCorrelationId();
         
         logger.info("Starting MediaPipe detection: correlationId={}, imageSize={}, queryType={}, backend=mediapipe", 
-                   correlationId, imageData.getData().length, query.type());
+                   correlationId, imageData.data().length, query.getType());
         
         long startTime = System.currentTimeMillis();
         
         try {
             validateInput(imageData, query);
             
-            List<Detection> results = switch (query.type()) {
+            List<Detection> results = switch (query.getType()) {
                 case FACE -> detectFaces(imageData, query, correlationId);
                 case HAND -> detectHands(imageData, query, correlationId);
                 case POSE -> detectPose(imageData, query, correlationId);
                 case OBJECT -> detectObjects(imageData, query, correlationId);
-                default -> throw new VisionProcessingException("Unsupported detection type: " + query.type());
+                default -> throw new VisionBackendException("Unsupported detection type: " + query.getType());
             };
             
             long processingTime = System.currentTimeMillis() - startTime;
@@ -136,24 +133,26 @@ public class MediaPipeVisionBackend implements VisionBackend {
             errorCount.incrementAndGet();
             logger.error("MediaPipe detection failed: correlationId={}, backend=mediapipe, error={}", 
                         correlationId, e.getMessage(), e);
-            throw new VisionProcessingException("MediaPipe detection failed: " + e.getMessage(), e);
+            throw new VisionBackendException("MediaPipe detection failed: " + e.getMessage(), e);
         }
     }
     
     @Override
     public BackendHealthInfo getHealthInfo() {
-        return BackendHealthInfo.builder()
-            .backendName("MediaPipe")
-            .status(isAvailable() && !shutdown ? HealthStatus.UP : HealthStatus.DOWN)
-            .version("1.1.0")
-            .details(Map.of(
-                "detectionCount", detectionCount.get(),
-                "errorCount", errorCount.get(),
-                "taskPools", taskPools.size(),
-                "modelsDownloaded", modelDownloadCount.get(),
-                "shutdown", shutdown
-            ))
-            .build();
+        Map<String, Object> metrics = Map.of(
+            "detectionCount", detectionCount.get(),
+            "errorCount", errorCount.get(),
+            "taskPools", taskPools.size(),
+            "modelsDownloaded", modelDownloadCount.get(),
+            "shutdown", shutdown
+        );
+        
+        if (isAvailable() && !shutdown) {
+            return BackendHealthInfo.healthy("MediaPipe", "MediaPipe backend is operational", 0, metrics);
+        } else {
+            return BackendHealthInfo.unhealthy("MediaPipe", "MediaPipe backend is not available", 
+                shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
+        }
     }
     
     @Override
@@ -168,7 +167,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
             throws Exception {
         
         Object faceDetector = getOrCreateTaskInstance("faceDetector", this::createFaceDetector);
-        Object mpImage = createMPImage(imageData.getData());
+        Object mpImage = createMPImage(imageData.data());
         
         logger.debug("Invoking face detection: correlationId={}, backend=mediapipe", correlationId);
         
@@ -183,7 +182,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
             throws Exception {
         
         Object handLandmarker = getOrCreateTaskInstance("handLandmarker", this::createHandLandmarker);
-        Object mpImage = createMPImage(imageData.getData());
+        Object mpImage = createMPImage(imageData.data());
         
         logger.debug("Invoking hand landmark detection: correlationId={}, backend=mediapipe", correlationId);
         
@@ -198,7 +197,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
             throws Exception {
         
         Object poseLandmarker = getOrCreateTaskInstance("poseLandmarker", this::createPoseLandmarker);
-        Object mpImage = createMPImage(imageData.getData());
+        Object mpImage = createMPImage(imageData.data());
         
         logger.debug("Invoking pose landmark detection: correlationId={}, backend=mediapipe", correlationId);
         
@@ -317,7 +316,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         Object detectionList = invokeMethod(result, "detections");
         int size = (Integer) invokeMethod(detectionList, "size");
         
-        for (int i = 0; i < size && detections.size() < query.maxDetections(); i++) {
+        for (int i = 0; i < size && detections.size() < query.getMaxDetections(); i++) {
             Object detection = invokeMethod(detectionList, "get", i);
             Object boundingBox = invokeMethod(detection, "boundingBox");
             
@@ -330,7 +329,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
             // Extract confidence
             float confidence = (Float) invokeMethod(detection, "getConfidence");
             
-            if (confidence >= query.minConfidence()) {
+            if (confidence >= query.getMinConfidence()) {
                 BoundingBox box = new BoundingBox(left, top, right - left, bottom - top);
                 
                 Map<String, Object> attributes = new HashMap<>();
@@ -348,9 +347,9 @@ public class MediaPipeVisionBackend implements VisionBackend {
                 }
                 
                 detections.add(new Detection(
-                    DetectionType.FACE,
-                    box,
+                    DetectionType.FACE.name(),
                     confidence,
+                    box,
                     attributes
                 ));
             }
@@ -369,7 +368,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         Object landmarkList = invokeMethod(result, "landmarks");
         int size = (Integer) invokeMethod(landmarkList, "size");
         
-        for (int i = 0; i < size && detections.size() < query.maxDetections(); i++) {
+        for (int i = 0; i < size && detections.size() < query.getMaxDetections(); i++) {
             Object landmarks = invokeMethod(landmarkList, "get", i);
             
             // Extract landmarks
@@ -384,9 +383,9 @@ public class MediaPipeVisionBackend implements VisionBackend {
             attributes.put("category", DetectionCategory.HAND.name());
             
             detections.add(new Detection(
-                DetectionType.HAND,
-                box,
+                DetectionType.HAND.name(),
                 1.0, // Hand landmarker doesn't provide confidence
+                box,
                 attributes
             ));
         }
@@ -404,7 +403,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
         Object landmarkList = invokeMethod(result, "landmarks");
         int size = (Integer) invokeMethod(landmarkList, "size");
         
-        for (int i = 0; i < size && detections.size() < query.maxDetections(); i++) {
+        for (int i = 0; i < size && detections.size() < query.getMaxDetections(); i++) {
             Object landmarks = invokeMethod(landmarkList, "get", i);
             
             // Extract landmarks
@@ -419,9 +418,9 @@ public class MediaPipeVisionBackend implements VisionBackend {
             attributes.put("category", DetectionCategory.POSE.name());
             
             detections.add(new Detection(
-                DetectionType.POSE,
-                box,
+                DetectionType.POSE.name(),
                 1.0, // Pose landmarker doesn't provide confidence
+                box,
                 attributes
             ));
         }
@@ -610,16 +609,16 @@ public class MediaPipeVisionBackend implements VisionBackend {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(query, "DetectionQuery cannot be null");
         
-        if (imageData.getData().length == 0) {
+        if (imageData.data().length == 0) {
             throw new IllegalArgumentException("Image data cannot be empty");
         }
         
-        if (imageData.getData().length > 50 * 1024 * 1024) { // 50MB limit
+        if (imageData.data().length > 50 * 1024 * 1024) { // 50MB limit
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
-        if (!getSupportedTypes().contains(query.type())) {
-            throw new IllegalArgumentException("Unsupported detection type: " + query.type());
+        if (!getSupportedTypes().contains(query.getType())) {
+            throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
         }
     }
     
@@ -733,14 +732,14 @@ public class MediaPipeVisionBackend implements VisionBackend {
      * Simple object pool implementation for MediaPipe task instances.
      */
     private static class ObjectPool<T> {
-        private final Queue<T> pool;
+        private final LinkedBlockingQueue<T> pool;
         private final int maxSize;
         private final int timeoutSeconds;
         private final TaskInstanceFactory factory;
         private final ExecutorService executor;
         
         ObjectPool(int maxSize, int timeoutSeconds, TaskInstanceFactory factory) {
-            this.pool = new LinkedList<>();
+            this.pool = new LinkedBlockingQueue<>();
             this.maxSize = maxSize;
             this.timeoutSeconds = timeoutSeconds;
             this.factory = factory;
@@ -831,5 +830,18 @@ public class MediaPipeVisionBackend implements VisionBackend {
     
     public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
         this.poolTimeoutSeconds = poolTimeoutSeconds;
+    }
+    
+    @Override
+    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(detectionType)
+            .build();
+        return detect(imageData, query);
+    }
+    
+    @Override
+    public List<Detection> detectObjects(ImageData imageData) {
+        return detect(imageData, DetectionType.OBJECT);
     }
 }

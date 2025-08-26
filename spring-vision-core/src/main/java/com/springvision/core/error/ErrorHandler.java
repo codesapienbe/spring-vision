@@ -92,13 +92,13 @@ public class ErrorHandler {
                 // Check if error is retryable
                 if (!isRetryableError(e) || attempt > maxRetries) {
                     nonRetryableErrors.incrementAndGet();
-                    circuitBreaker.recordFailure();
+                    getCircuitBreaker(component).recordFailure();
                     logFinalError(component, operation, e, attempt);
                     throw wrapException(e);
                 }
                 
                 retryableErrors.incrementAndGet();
-                circuitBreaker.recordFailure();
+                getCircuitBreaker(component).recordFailure();
                 logRetryableError(component, operation, e, attempt, maxRetries, delayMs);
                 
                 // Wait before retry

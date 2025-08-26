@@ -2,13 +2,13 @@ package com.springvision.core.backend;
 
 import com.springvision.core.*;
 import com.springvision.core.exception.BaseVisionException;
-import com.springvision.core.exception.VisionProcessingException;
+import com.springvision.core.exception.VisionBackendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * YOLO backend implementation for object detection using ONNX Runtime.
@@ -109,32 +110,37 @@ public class YoloVisionBackend implements VisionBackend {
     private volatile boolean shutdown = false;
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
+    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
         if (shutdown) {
-            throw new VisionProcessingException("YOLO backend is shutting down");
+            throw new VisionBackendException("YOLO backend is shutting down");
         }
         
         String correlationId = generateCorrelationId();
         
         logger.info("Starting YOLO detection: correlationId={}, imageSize={}, queryType={}, backend=yolo", 
-                   correlationId, imageData.getData().length, query.type());
+                   correlationId, imageData.data().length, query.getType());
         
         long startTime = System.currentTimeMillis();
         
         try {
             validateInput(imageData, query);
             
+            if (!query.getType().equals(DetectionType.OBJECT)) {
+                logger.warn("YOLO backend only supports OBJECT detection, but got: {}", query.getType());
+                return new ArrayList<>();
+            }
+            
             // Initialize ONNX session if needed
             initializeSession();
             
             // Preprocess image
-            float[] inputTensor = preprocessImage(imageData.getData());
+            float[] inputTensor = preprocessImage(imageData.data());
             
             // Run inference
             float[][] output = runInference(inputTensor);
             
             // Postprocess results
-            List<Detection> detections = postprocessResults(output, imageData.getData(), query);
+            List<Detection> detections = postprocessResults(output, imageData.data(), query);
             
             long processingTime = System.currentTimeMillis() - startTime;
             detectionCount.addAndGet(detections.size());
@@ -149,24 +155,26 @@ public class YoloVisionBackend implements VisionBackend {
             errorCount.incrementAndGet();
             logger.error("YOLO detection failed: correlationId={}, backend=yolo, error={}", 
                         correlationId, e.getMessage(), e);
-            throw new VisionProcessingException("YOLO detection failed: " + e.getMessage(), e);
+            throw new VisionBackendException("YOLO detection failed: " + e.getMessage(), e);
         }
     }
     
     @Override
     public BackendHealthInfo getHealthInfo() {
-        return BackendHealthInfo.builder()
-            .backendName("YOLO")
-            .status(isAvailable() && !shutdown ? HealthStatus.UP : HealthStatus.DOWN)
-            .version("1.1.0")
-            .details(Map.of(
-                "detectionCount", detectionCount.get(),
-                "errorCount", errorCount.get(),
-                "modelName", modelName,
-                "modelDownloaded", modelDownloadCount.get(),
-                "shutdown", shutdown
-            ))
-            .build();
+        Map<String, Object> metrics = Map.of(
+            "detectionCount", detectionCount.get(),
+            "errorCount", errorCount.get(),
+            "modelName", modelName,
+            "modelDownloaded", modelDownloadCount.get(),
+            "shutdown", shutdown
+        );
+        
+        if (isAvailable() && !shutdown) {
+            return BackendHealthInfo.healthy("YOLO", "YOLO backend is operational", 0, metrics);
+        } else {
+            return BackendHealthInfo.unhealthy("YOLO", "YOLO backend is not available", 
+                shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
+        }
     }
     
     @Override
@@ -350,86 +358,86 @@ public class YoloVisionBackend implements VisionBackend {
             // Calculate final confidence
             float finalConfidence = confidence * maxClassProb;
             
-            if (finalConfidence >= query.minConfidence() && detections.size() < query.maxDetections()) {
+            if (finalConfidence >= query.getMinConfidence() && detections.size() < query.getMaxDetections()) {
                 // Create bounding box
                 BoundingBox box = new BoundingBox(x - width/2, y - height/2, width, height);
                 
-                // Create attributes
-                Map<String, Object> attributes = new HashMap<>();
-                attributes.put("confidence", finalConfidence);
-                attributes.put("classId", classId);
-                attributes.put("className", COCO_CLASSES[classId]);
-                attributes.put("category", DetectionCategory.OBJECT.name());
-                
-                detections.add(new Detection(
-                    DetectionType.OBJECT,
-                    box,
+                // Create detection
+                Detection detection = new Detection(
+                    COCO_CLASSES[classId],
                     finalConfidence,
-                    attributes
-                ));
+                    box,
+                    Map.of("class_id", classId, "model", currentModelInfo.name())
+                );
+                
+                detections.add(detection);
             }
         }
         
-        // Apply Non-Maximum Suppression
-        return applyNMS(detections, query.nmsThreshold());
+        // Filter by confidence threshold
+        detections = detections.stream()
+            .filter(detection -> detection.confidence() >= query.getMinConfidence())
+            .limit(query.getMaxDetections())
+            .collect(Collectors.toList());
+        
+        // Apply NMS
+        return applyNMS(detections, query);
     }
     
     /**
      * Applies Non-Maximum Suppression to remove overlapping detections.
      */
-    private List<Detection> applyNMS(List<Detection> detections, double nmsThreshold) {
+    private List<Detection> applyNMS(List<Detection> detections, DetectionQuery query) {
         if (detections.isEmpty()) {
             return detections;
         }
         
-        // Sort by confidence
-        detections.sort((a, b) -> Double.compare(b.getConfidence(), a.getConfidence()));
+        // Sort by confidence (highest first)
+        detections.sort((a, b) -> Double.compare(b.confidence(), a.confidence()));
         
-        List<Detection> result = new ArrayList<>();
-        boolean[] suppressed = new boolean[detections.size()];
+        // Apply NMS
+        List<Detection> filteredDetections = new ArrayList<>();
+        boolean[] used = new boolean[detections.size()];
         
         for (int i = 0; i < detections.size(); i++) {
-            if (suppressed[i]) {
-                continue;
-            }
+            if (used[i]) continue;
             
-            result.add(detections.get(i));
+            Detection current = detections.get(i);
+            filteredDetections.add(current);
+            used[i] = true;
             
-            // Suppress overlapping detections
             for (int j = i + 1; j < detections.size(); j++) {
-                if (suppressed[j]) {
-                    continue;
-                }
+                if (used[j]) continue;
                 
-                double iou = calculateIoU(detections.get(i).getBoundingBox(), detections.get(j).getBoundingBox());
-                if (iou > nmsThreshold) {
-                    suppressed[j] = true;
+                Detection other = detections.get(j);
+                if (calculateIoU(current.boundingBox(), other.boundingBox()) > query.getNmsThreshold()) {
+                    used[j] = true;
                 }
             }
         }
         
-        return result;
+        return filteredDetections;
     }
     
     /**
      * Calculates Intersection over Union (IoU) between two bounding boxes.
      */
     private double calculateIoU(BoundingBox box1, BoundingBox box2) {
-        double x1 = Math.max(box1.getX(), box2.getX());
-        double y1 = Math.max(box1.getY(), box2.getY());
-        double x2 = Math.min(box1.getX() + box1.getWidth(), box2.getX() + box2.getWidth());
-        double y2 = Math.min(box1.getY() + box1.getHeight(), box2.getY() + box2.getHeight());
+        // Calculate intersection coordinates
+        double x1 = Math.max(box1.x(), box2.x());
+        double y1 = Math.max(box1.y(), box2.y());
+        double x2 = Math.min(box1.x() + box1.width(), box2.x() + box2.width());
+        double y2 = Math.min(box1.y() + box1.height(), box2.y() + box2.height());
         
-        if (x2 <= x1 || y2 <= y1) {
-            return 0.0;
-        }
+        // Calculate intersection area
+        double intersectionArea = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
         
-        double intersection = (x2 - x1) * (y2 - y1);
-        double area1 = box1.getWidth() * box1.getHeight();
-        double area2 = box2.getWidth() * box2.getHeight();
-        double union = area1 + area2 - intersection;
+        // Calculate union area
+        double box1Area = box1.width() * box1.height();
+        double box2Area = box2.width() * box2.height();
+        double unionArea = box1Area + box2Area - intersectionArea;
         
-        return intersection / union;
+        return intersectionArea / unionArea;
     }
     
     /**
@@ -545,11 +553,11 @@ public class YoloVisionBackend implements VisionBackend {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(query, "DetectionQuery cannot be null");
         
-        if (imageData.getData().length == 0) {
+        if (imageData.data().length == 0) {
             throw new IllegalArgumentException("Image data cannot be empty");
         }
         
-        if (imageData.getData().length > 50 * 1024 * 1024) { // 50MB limit
+        if (imageData.data().length > 50 * 1024 * 1024) { // 50MB limit
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
@@ -697,5 +705,18 @@ public class YoloVisionBackend implements VisionBackend {
     
     public void setInputHeight(int inputHeight) {
         this.inputHeight = inputHeight;
+    }
+    
+    @Override
+    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(detectionType)
+            .build();
+        return detect(imageData, query);
+    }
+    
+    @Override
+    public List<Detection> detectObjects(ImageData imageData) {
+        return detect(imageData, DetectionType.OBJECT);
     }
 } 

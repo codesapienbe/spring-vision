@@ -193,6 +193,16 @@ public abstract class BaseVisionException extends RuntimeException {
         return sb.toString();
     }
 
+    /**
+     * Checks if this exception is retryable.
+     * 
+     * @return true if the operation can be retried, false otherwise
+     */
+    public boolean isRetryable() {
+        // Default implementation - subclasses can override
+        return false;
+    }
+
     @Override
     public String toString() {
         String s = getClass().getName();

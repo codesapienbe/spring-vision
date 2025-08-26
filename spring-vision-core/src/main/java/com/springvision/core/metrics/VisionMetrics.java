@@ -4,6 +4,8 @@ import com.springvision.core.DetectionType;
 import com.springvision.core.logging.VisionLogger;
 import io.micrometer.core.instrument.*;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -26,6 +28,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Component
 public class VisionMetrics {
+    
+    private static final Logger logger = LoggerFactory.getLogger(VisionMetrics.class);
     
     private final MeterRegistry meterRegistry;
     
@@ -209,8 +213,8 @@ public class VisionMetrics {
     public void recordImageSize(String backend, long imageSizeBytes) {
         totalImageSize.addAndGet(imageSizeBytes);
         
-        // Record as histogram
-        Histogram.builder("vision.image.size")
+        // Record as distribution summary
+        DistributionSummary.builder("vision.image.size")
             .tag("backend", backend)
             .description("Image size distribution")
             .register(meterRegistry)
@@ -244,7 +248,7 @@ public class VisionMetrics {
             .register(meterRegistry)
             .record(downloadTimeMs, TimeUnit.MILLISECONDS);
             
-        Histogram.builder("vision.model.download.size")
+        DistributionSummary.builder("vision.model.download.size")
             .tag("backend", backend)
             .tag("model", modelName)
             .description("Model download size")
@@ -328,19 +332,19 @@ public class VisionMetrics {
      * Records batch processing metrics.
      */
     public void recordBatchProcessing(String backend, int totalItems, int processedItems, int failedItems, long totalTimeMs) {
-        Histogram.builder("vision.batch.total_items")
+        DistributionSummary.builder("vision.batch.total_items")
             .tag("backend", backend)
             .description("Batch total items")
             .register(meterRegistry)
             .record(totalItems);
             
-        Histogram.builder("vision.batch.processed_items")
+        DistributionSummary.builder("vision.batch.processed_items")
             .tag("backend", backend)
             .description("Batch processed items")
             .register(meterRegistry)
             .record(processedItems);
             
-        Histogram.builder("vision.batch.failed_items")
+        DistributionSummary.builder("vision.batch.failed_items")
             .tag("backend", backend)
             .description("Batch failed items")
             .register(meterRegistry)
@@ -354,12 +358,10 @@ public class VisionMetrics {
     }
     
     /**
-     * Records custom metric.
+     * Records a custom metric for business KPIs.
      */
-    public void recordCustomMetric(String name, double value, String... tags) {
-        Gauge.builder("vision.custom." + name)
-            .description("Custom metric: " + name)
-            .register(meterRegistry, value, v -> v);
+    public void recordCustomMetric(String name, double value) {
+        logger.info("Custom metric recorded: {} = {}", name, value);
     }
     
     /**

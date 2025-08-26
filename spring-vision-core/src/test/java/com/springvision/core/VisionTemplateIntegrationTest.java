@@ -377,7 +377,7 @@ public class VisionTemplateIntegrationTest {
         // Test valid image data
         ImageData validImage = new ImageData(testImageData, "image/jpeg");
         assertNotNull(validImage, "Valid image should be created");
-        assertEquals(testImageData.length, validImage.getData().length, "Image data should match");
+        assertEquals(testImageData.length, validImage.data().length, "Image data should match");
         assertEquals("image/jpeg", validImage.getFormat(), "Image format should match");
         
         // Test image data with metadata

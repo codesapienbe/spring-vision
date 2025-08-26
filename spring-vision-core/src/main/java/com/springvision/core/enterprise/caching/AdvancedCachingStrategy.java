@@ -238,7 +238,7 @@ public class AdvancedCachingStrategy {
         // Create a hash-based key for efficient storage
         String imageHash = generateImageHash(imageData);
         String queryHash = generateQueryHash(query);
-        return String.format("%s:%s:%s", imageHash, queryHash, query.type().name());
+        return String.format("%s:%s:%s", imageHash, queryHash, query.getType().name());
     }
     
     /**
@@ -246,19 +246,22 @@ public class AdvancedCachingStrategy {
      */
     private String generateImageHash(ImageData imageData) {
         // Simple hash implementation (replace with proper hash function)
-        return String.valueOf(Arrays.hashCode(imageData.getData()));
+        return String.valueOf(Arrays.hashCode(imageData.data()));
     }
     
     /**
      * Generates hash for detection query.
      */
     private String generateQueryHash(DetectionQuery query) {
-        return String.format("%s:%.2f:%d:%.2f",
-            query.type().name(),
-            query.minConfidence(),
-            query.maxDetections(),
-            query.nmsThreshold()
-        );
+        StringBuilder cacheKey = new StringBuilder();
+        cacheKey.append(query.getType().name());
+        cacheKey.append(":").append(query.getMinConfidence());
+        cacheKey.append(":").append(query.getMaxDetections());
+        // Check if query has NMS threshold
+        if (query.getNmsThreshold() > 0) {
+            cacheKey.append("_nms_").append(query.getNmsThreshold());
+        }
+        return cacheKey.toString();
     }
     
     /**
@@ -434,7 +437,7 @@ public class AdvancedCachingStrategy {
     public static class HighFrequencyCachePolicy implements CachePolicy {
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
-            return imageData.getData().length < 1024 * 1024; // Cache images < 1MB
+            return imageData.data().length < 1024 * 1024; // Cache images < 1MB
         }
         
         @Override
@@ -454,7 +457,7 @@ public class AdvancedCachingStrategy {
     public static class StandardCachePolicy implements CachePolicy {
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
-            return imageData.getData().length < 5 * 1024 * 1024; // Cache images < 5MB
+            return imageData.data().length < 5 * 1024 * 1024; // Cache images < 5MB
         }
         
         @Override
@@ -474,7 +477,7 @@ public class AdvancedCachingStrategy {
     public static class LowFrequencyCachePolicy implements CachePolicy {
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
-            return imageData.getData().length < 10 * 1024 * 1024; // Cache images < 10MB
+            return imageData.data().length < 10 * 1024 * 1024; // Cache images < 10MB
         }
         
         @Override

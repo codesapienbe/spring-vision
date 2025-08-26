@@ -2,13 +2,13 @@ package com.springvision.core.backend;
 
 import com.springvision.core.*;
 import com.springvision.core.exception.BaseVisionException;
-import com.springvision.core.exception.VisionProcessingException;
+import com.springvision.core.exception.VisionBackendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -93,25 +93,25 @@ public class InsightFaceVisionBackend implements VisionBackend {
     private volatile boolean shutdown = false;
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
+    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
         if (shutdown) {
-            throw new VisionProcessingException("InsightFace backend is shutting down");
+            throw new VisionBackendException("InsightFace backend is shutting down");
         }
         
         String correlationId = generateCorrelationId();
         
         logger.info("Starting InsightFace detection: correlationId={}, imageSize={}, queryType={}, backend=insightface", 
-                   correlationId, imageData.getData().length, query.type());
+                   correlationId, imageData.data().length, query.getType());
         
         long startTime = System.currentTimeMillis();
         
         try {
             validateInput(imageData, query);
             
-            List<Detection> results = switch (query.type()) {
+            List<Detection> results = switch (query.getType()) {
                 case FACE -> detectFaces(imageData, query, correlationId);
                 case OBJECT -> detectObjects(imageData, query, correlationId);
-                default -> throw new VisionProcessingException("Unsupported detection type: " + query.type());
+                default -> throw new VisionBackendException("Unsupported detection type: " + query.getType());
             };
             
             long processingTime = System.currentTimeMillis() - startTime;
@@ -127,27 +127,28 @@ public class InsightFaceVisionBackend implements VisionBackend {
             errorCount.incrementAndGet();
             logger.error("InsightFace detection failed: correlationId={}, backend=insightface, error={}", 
                         correlationId, e.getMessage(), e);
-            throw new VisionProcessingException("InsightFace detection failed: " + e.getMessage(), e);
+            throw new VisionBackendException("InsightFace detection failed: " + e.getMessage(), e);
         }
     }
     
     @Override
     public BackendHealthInfo getHealthInfo() {
-        return BackendHealthInfo.builder()
-            .backendName("InsightFace")
-            .status(isAvailable() && !shutdown ? HealthStatus.UP : HealthStatus.DOWN)
-            .version("1.1.0")
-            .details(Map.of(
-                "detectionCount", detectionCount.get(),
-                "errorCount", errorCount.get(),
-                "verificationCount", verificationCount.get(),
-                "recognitionCount", recognitionCount.get(),
-                "faceDatabaseSize", faceDatabase.size(),
-                "apiUrl", apiUrl,
-                "modelName", modelName,
-                "shutdown", shutdown
-            ))
-            .build();
+        Map<String, Object> metrics = new HashMap<>();
+        metrics.put("detectionCount", detectionCount.get());
+        metrics.put("errorCount", errorCount.get());
+        metrics.put("verificationCount", verificationCount.get());
+        metrics.put("recognitionCount", recognitionCount.get());
+        metrics.put("faceDatabaseSize", faceDatabase.size());
+        metrics.put("apiUrl", apiUrl);
+        metrics.put("modelName", modelName);
+        metrics.put("shutdown", shutdown);
+        
+        if (isAvailable() && !shutdown) {
+            return BackendHealthInfo.healthy("InsightFace", "InsightFace backend is operational", 0, metrics);
+        } else {
+            return BackendHealthInfo.unhealthy("InsightFace", "InsightFace backend is not available", 
+                shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
+        }
     }
     
     @Override
@@ -163,10 +164,10 @@ public class InsightFaceVisionBackend implements VisionBackend {
         
         // Prepare request payload
         Map<String, Object> requestPayload = new HashMap<>();
-        requestPayload.put("image", Base64.getEncoder().encodeToString(imageData.getData()));
+        requestPayload.put("image", Base64.getEncoder().encodeToString(imageData.data()));
         requestPayload.put("model", modelName);
         requestPayload.put("det_thresh", confidenceThreshold);
-        requestPayload.put("max_num", query.maxDetections());
+        requestPayload.put("max_num", query.getMaxDetections());
         requestPayload.put("age_gender", enableAgeGender);
         requestPayload.put("emotion", enableEmotion);
         requestPayload.put("landmarks", enableLandmarks);
@@ -273,7 +274,7 @@ public class InsightFaceVisionBackend implements VisionBackend {
         List<double[]> embeddings = extractEmbeddings(imageData, correlationId);
         
         if (embeddings.isEmpty()) {
-            throw new VisionProcessingException("No face detected in image for identity: " + identity);
+            throw new VisionBackendException("No face detected in image for identity: " + identity);
         }
         
         // Use the first (most confident) face
@@ -344,7 +345,7 @@ public class InsightFaceVisionBackend implements VisionBackend {
             }
         }
         
-        throw new VisionProcessingException("API call failed after " + maxRetries + " attempts: " + lastException.getMessage(), lastException);
+                    throw new VisionBackendException("API call failed after " + maxRetries + " attempts: " + lastException.getMessage(), lastException);
     }
     
     /**
@@ -372,7 +373,7 @@ public class InsightFaceVisionBackend implements VisionBackend {
             // Extract confidence
             double confidence = (Double) face.get("confidence");
             
-            if (confidence >= query.minConfidence()) {
+            if (confidence >= query.getMinConfidence()) {
                 BoundingBox box = new BoundingBox(x, y, width, height);
                 
                 Map<String, Object> attributes = new HashMap<>();
@@ -406,9 +407,9 @@ public class InsightFaceVisionBackend implements VisionBackend {
                 }
                 
                 detections.add(new Detection(
-                    DetectionType.FACE,
-                    box,
+                    DetectionType.FACE.name(),
                     confidence,
+                    box,
                     attributes
                 ));
             }
@@ -481,16 +482,16 @@ public class InsightFaceVisionBackend implements VisionBackend {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(query, "DetectionQuery cannot be null");
         
-        if (imageData.getData().length == 0) {
+        if (imageData.data().length == 0) {
             throw new IllegalArgumentException("Image data cannot be empty");
         }
         
-        if (imageData.getData().length > 50 * 1024 * 1024) { // 50MB limit
+        if (imageData.data().length > 50 * 1024 * 1024) { // 50MB limit
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
-        if (!getSupportedTypes().contains(query.type())) {
-            throw new IllegalArgumentException("Unsupported detection type: " + query.type());
+        if (!getSupportedTypes().contains(query.getType())) {
+            throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
         }
     }
     
@@ -725,5 +726,18 @@ public class InsightFaceVisionBackend implements VisionBackend {
     
     public void setMaxRetries(int maxRetries) {
         this.maxRetries = maxRetries;
+    }
+    
+    @Override
+    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+        DetectionQuery query = new DetectionQuery.Builder()
+            .type(detectionType)
+            .build();
+        return detect(imageData, query);
+    }
+    
+    @Override
+    public List<Detection> detectObjects(ImageData imageData) {
+        return detect(imageData, DetectionType.OBJECT);
     }
 } 

@@ -10,6 +10,7 @@ import org.slf4j.MDC;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -60,21 +61,20 @@ public class VisionLogger {
     public static void logOperationStart(String component, String operation, ImageData imageData, DetectionQuery query) {
         String correlationId = getOrCreateCorrelationId();
         
-        Map<String, Object> logData = Map.of(
-            "timestamp", Instant.now().toString(),
-            "level", LogLevel.INFO.name(),
-            "component", component,
-            "operation", operation,
-            "correlation_id", correlationId,
-            "user_id", getUserId(),
-            "request_id", getRequestId(),
-            "image_size", imageData.getData().length,
-            "image_format", imageData.getFormat(),
-            "detection_type", query.type().name(),
-            "min_confidence", query.minConfidence(),
-            "max_detections", query.maxDetections(),
-            "message", "Vision operation started"
-        );
+        Map<String, Object> logData = new HashMap<>();
+        logData.put("timestamp", Instant.now().toString());
+        logData.put("level", LogLevel.INFO.name());
+        logData.put("component", component);
+        logData.put("operation", operation);
+        logData.put("correlation_id", correlationId);
+        logData.put("user_id", getUserId());
+        logData.put("request_id", getRequestId());
+        logData.put("image_size", imageData.data().length);
+        logData.put("image_format", imageData.format());
+        logData.put("detection_type", query.getType().name());
+        logData.put("min_confidence", query.getMinConfidence());
+        logData.put("max_detections", query.getMaxDetections());
+        logData.put("message", "Vision operation started");
         
         getComponentLogger(component).info("Vision operation started: {}", logData);
         totalRequests.incrementAndGet();
@@ -86,19 +86,18 @@ public class VisionLogger {
     public static void logOperationSuccess(String component, String operation, List<Detection> results, long processingTimeMs) {
         String correlationId = getOrCreateCorrelationId();
         
-        Map<String, Object> logData = Map.of(
-            "timestamp", Instant.now().toString(),
-            "level", LogLevel.INFO.name(),
-            "component", component,
-            "operation", operation,
-            "correlation_id", correlationId,
-            "user_id", getUserId(),
-            "request_id", getRequestId(),
-            "detection_count", results.size(),
-            "processing_time_ms", processingTimeMs,
-            "success", true,
-            "message", "Vision operation completed successfully"
-        );
+        Map<String, Object> logData = new HashMap<>();
+        logData.put("timestamp", Instant.now().toString());
+        logData.put("level", LogLevel.INFO.name());
+        logData.put("component", component);
+        logData.put("operation", operation);
+        logData.put("correlation_id", correlationId);
+        logData.put("user_id", getUserId());
+        logData.put("request_id", getRequestId());
+        logData.put("detection_count", results.size());
+        logData.put("processing_time_ms", processingTimeMs);
+        logData.put("success", true);
+        logData.put("message", "Vision operation completed successfully");
         
         getComponentLogger(component).info("Vision operation completed successfully: {}", logData);
         successfulRequests.incrementAndGet();
@@ -111,20 +110,19 @@ public class VisionLogger {
     public static void logOperationFailure(String component, String operation, BaseVisionException exception, long processingTimeMs) {
         String correlationId = getOrCreateCorrelationId();
         
-        Map<String, Object> logData = Map.of(
-            "timestamp", Instant.now().toString(),
-            "level", LogLevel.ERROR.name(),
-            "component", component,
-            "operation", operation,
-            "correlation_id", correlationId,
-            "user_id", getUserId(),
-            "request_id", getRequestId(),
-            "error_type", exception.getClass().getSimpleName(),
-            "error_message", exception.getMessage(),
-            "processing_time_ms", processingTimeMs,
-            "success", false,
-            "message", "Vision operation failed"
-        );
+        Map<String, Object> logData = new HashMap<>();
+        logData.put("timestamp", Instant.now().toString());
+        logData.put("level", LogLevel.ERROR.name());
+        logData.put("component", component);
+        logData.put("operation", operation);
+        logData.put("correlation_id", correlationId);
+        logData.put("user_id", getUserId());
+        logData.put("request_id", getRequestId());
+        logData.put("error_type", exception.getClass().getSimpleName());
+        logData.put("error_message", exception.getMessage());
+        logData.put("processing_time_ms", processingTimeMs);
+        logData.put("success", false);
+        logData.put("message", "Vision operation failed");
         
         getComponentLogger(component).error("Vision operation failed: {}", logData, exception);
         failedRequests.incrementAndGet();

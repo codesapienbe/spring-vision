@@ -297,16 +297,18 @@ public class DistributedVisionProcessor {
             }
             
             // Select processing strategy
-            ProcessingStrategy strategy = getProcessingStrategy(task.getQuery().type());
+            ProcessingStrategy strategy = getProcessingStrategy(task.getQuery().getType());
             
-            // Select processing node
-            ProcessingNode selectedNode = strategy.selectNode(loadBalancer.getAvailableNodes(), task);
-            if (selectedNode == null) {
-                throw new RuntimeException("No available processing nodes");
+            // Route based on detection type
+            DetectionType detectionType = task.getQuery().getType();
+            String nodeId = strategy.selectNode(loadBalancer.getAvailableNodes(), task).getNodeId();
+            
+            if (nodeId == null) {
+                throw new VisionBackendException("No available processing node for detection type: " + detectionType);
             }
             
             // Execute task on selected node
-            executeTaskOnNode(task, selectedNode, resultFuture);
+            executeTaskOnNode(task, processingNodes.get(nodeId), resultFuture);
             
         } catch (Exception e) {
             logger.error("Failed to process task: {}", taskId, e);
@@ -375,9 +377,9 @@ public class DistributedVisionProcessor {
             
             // Simulate detection results
             List<Detection> detections = new ArrayList<>();
-            if (task.getQuery().type() == DetectionType.FACE) {
-                detections.add(new Detection(DetectionType.FACE, 
-                    new BoundingBox(0.1, 0.2, 0.3, 0.4), 0.95, Map.of()));
+            if (task.getQuery().getType() == DetectionType.FACE) {
+                detections.add(new Detection(DetectionType.FACE.name(), 
+                    0.95, new BoundingBox(0.1, 0.2, 0.3, 0.4), Map.of()));
             }
             
             long processingTime = System.currentTimeMillis() - startTime;

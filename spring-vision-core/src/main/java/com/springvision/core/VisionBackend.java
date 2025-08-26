@@ -105,10 +105,10 @@ public interface VisionBackend {
     BackendHealthInfo getHealthInfo();
 
     /** Performs face detection on the provided image data. */
-    VisionResult detectFaces(ImageData imageData) throws BaseVisionException;
+    List<Detection> detectFaces(ImageData imageData);
 
     /** Performs object detection on the provided image data. */
-    VisionResult detectObjects(ImageData imageData) throws BaseVisionException;
+    List<Detection> detectObjects(ImageData imageData);
 
     /**
      * Performs a generic detection operation based on the specified detection type.
@@ -116,7 +116,7 @@ public interface VisionBackend {
      * <p>Default implementation routes via capability interfaces when available.
      * Implementations may override for backend-specific routing.</p>
      */
-    default VisionResult detect(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
+    default List<Detection> detect(ImageData imageData, DetectionType detectionType) {
         if (imageData == null) {
             throw new IllegalArgumentException("Image data must not be null");
         }
@@ -131,45 +131,24 @@ public interface VisionBackend {
 
         switch (detectionType) {
             case FACE -> {
-                if (this instanceof com.springvision.core.capabilities.FaceDetectionCapability cap) {
-                    return cap.detectFaces(imageData);
-                }
-                throw new UnsupportedOperationException("FACE detection not supported by capabilities of backend '" + getBackendId() + "'");
+                return detectFaces(imageData);
             }
             case OBJECT -> {
-                if (this instanceof com.springvision.core.capabilities.ObjectDetectionCapability cap) {
-                    return cap.detectObjects(imageData);
-                }
-                throw new UnsupportedOperationException("OBJECT detection not supported by capabilities of backend '" + getBackendId() + "'");
+                return detectObjects(imageData);
             }
             case TEXT -> {
-                if (this instanceof com.springvision.core.capabilities.TextOcrCapability cap) {
-                    return cap.detectText(imageData);
-                }
                 return detectText(imageData);
             }
             case BARCODE -> {
-                if (this instanceof com.springvision.core.capabilities.BarcodeCapability cap) {
-                    return cap.detectBarcodes(imageData);
-                }
                 return detectBarcodes(imageData);
             }
             case LANDMARK -> {
-                if (this instanceof com.springvision.core.capabilities.LandmarkDetectionCapability cap) {
-                    return cap.detectLandmarks(imageData);
-                }
                 return detectLandmarks(imageData);
             }
             case POSE -> {
-                if (this instanceof com.springvision.core.capabilities.PoseEstimationCapability cap) {
-                    return cap.detectPoses(imageData);
-                }
                 return detectPoses(imageData);
             }
             case HAND -> {
-                if (this instanceof com.springvision.core.capabilities.HandDetectionCapability cap) {
-                    return cap.detectHands(imageData);
-                }
                 return detectHands(imageData);
             }
             case CUSTOM -> {
@@ -180,37 +159,37 @@ public interface VisionBackend {
     }
 
     /** Performs text recognition (OCR) on the provided image data. */
-    default VisionResult detectText(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectText(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Text detection is not supported by backend '%s'", getBackendId()));
     }
 
     /** Performs barcode/QR code detection on the provided image data. */
-    default VisionResult detectBarcodes(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectBarcodes(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Barcode detection is not supported by backend '%s'", getBackendId()));
     }
 
     /** Performs landmark detection on the provided image data. */
-    default VisionResult detectLandmarks(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectLandmarks(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Landmark detection is not supported by backend '%s'", getBackendId()));
     }
 
     /** Performs pose estimation on the provided image data. */
-    default VisionResult detectPoses(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectPoses(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Pose detection is not supported by backend '%s'", getBackendId()));
     }
 
     /** Performs hand detection on the provided image data. */
-    default VisionResult detectHands(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectHands(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Hand detection is not supported by backend '%s'", getBackendId()));
     }
 
     /** Performs custom detection on the provided image data. */
-    default VisionResult detectCustom(ImageData imageData) throws BaseVisionException {
+    default List<Detection> detectCustom(ImageData imageData) {
         throw new UnsupportedOperationException(
             String.format("Custom detection is not supported by backend '%s'", getBackendId()));
     }

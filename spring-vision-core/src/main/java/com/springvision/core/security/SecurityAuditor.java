@@ -13,6 +13,7 @@ import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,7 +36,7 @@ public class SecurityAuditor {
     private static final Logger logger = LoggerFactory.getLogger(SecurityAuditor.class);
     
     // Security metrics
-    private final AtomicLong securityEvents = new AtomicLong(0);
+    private final AtomicLong securityEventCount = new AtomicLong(0);
     private final AtomicLong vulnerabilityCount = new AtomicLong(0);
     private final AtomicLong blockedRequests = new AtomicLong(0);
     
@@ -91,12 +92,12 @@ public class SecurityAuditor {
         }
         
         // Check image size
-        if (imageData.getData().length > 50 * 1024 * 1024) { // 50MB limit
+        if (imageData.data().length > 50 * 1024 * 1024) { // 50MB limit
             result.addVulnerability("LARGE_IMAGE_SIZE", "Image size exceeds limit", SecuritySeverity.MEDIUM);
         }
         
         // Check for malicious file signatures
-        if (containsMaliciousSignature(imageData.getData())) {
+        if (containsMaliciousSignature(imageData.data())) {
             result.addVulnerability("MALICIOUS_FILE_SIGNATURE", "File contains malicious signature", SecuritySeverity.CRITICAL);
             blockedRequests.incrementAndGet();
         }
@@ -108,8 +109,8 @@ public class SecurityAuditor {
         
         // Log security event
         if (!result.getVulnerabilities().isEmpty()) {
-            securityEvents.incrementAndGet();
-            logSecurityEvent("INPUT_VALIDATION", "Input validation failed", result.getVulnerabilities());
+            Map<String, Object> details = Map.of("vulnerability_count", result.getVulnerabilities().size());
+            logSecurityEvent("INPUT_VALIDATION", "Input validation failed", details);
         }
         
         return result;
@@ -227,7 +228,7 @@ public class SecurityAuditor {
         
         // Test oversized input
         byte[] oversizedData = new byte[100 * 1024 * 1024]; // 100MB
-        ImageData oversizedImage = new ImageData(oversizedData, "image/jpeg");
+        ImageData oversizedImage = new ImageData(oversizedData, "image/jpeg", oversizedData.length, "jpeg");
         SecurityValidationResult result = validateInput(oversizedImage, null);
         
         if (result.getVulnerabilities().isEmpty()) {
@@ -237,7 +238,7 @@ public class SecurityAuditor {
         
         // Test malicious file signatures
         byte[] maliciousData = createMaliciousTestData();
-        ImageData maliciousImage = new ImageData(maliciousData, "image/jpeg");
+        ImageData maliciousImage = new ImageData(maliciousData, "image/jpeg", maliciousData.length, "jpeg");
         result = validateInput(maliciousImage, null);
         
         if (result.getVulnerabilities().isEmpty()) {
@@ -329,7 +330,7 @@ public class SecurityAuditor {
         // Test memory exhaustion
         try {
             byte[] largeData = new byte[200 * 1024 * 1024]; // 200MB
-            ImageData largeImage = new ImageData(largeData, "image/jpeg");
+            ImageData largeImage = new ImageData(largeData, "image/jpeg", largeData.length, "jpeg");
             validateInput(largeImage, null);
         } catch (OutOfMemoryError e) {
             vulnerabilities.add(new SecurityVulnerability("MEMORY_EXHAUSTION", 
@@ -383,22 +384,18 @@ public class SecurityAuditor {
      */
     private void validateQueryParameters(DetectionQuery query, SecurityValidationResult result) {
         // Check confidence threshold
-        if (query.minConfidence() < 0.0 || query.minConfidence() > 1.0) {
+        if (query.getMinConfidence() < 0.0 || query.getMinConfidence() > 1.0) {
             result.addVulnerability("INVALID_CONFIDENCE_THRESHOLD", 
                 "Confidence threshold out of valid range", SecuritySeverity.MEDIUM);
         }
         
         // Check max detections
-        if (query.maxDetections() <= 0 || query.maxDetections() > 1000) {
+        if (query.getMaxDetections() <= 0 || query.getMaxDetections() > 1000) {
             result.addVulnerability("INVALID_MAX_DETECTIONS", 
                 "Max detections out of valid range", SecuritySeverity.MEDIUM);
         }
         
-        // Check NMS threshold
-        if (query.nmsThreshold() < 0.0 || query.nmsThreshold() > 1.0) {
-            result.addVulnerability("INVALID_NMS_THRESHOLD", 
-                "NMS threshold out of valid range", SecuritySeverity.MEDIUM);
-        }
+        // Note: NMS threshold is not available in DetectionQuery, so we skip this check
     }
     
     /**
@@ -533,11 +530,11 @@ public class SecurityAuditor {
      */
     public Map<String, Object> getSecurityMetrics() {
         return Map.of(
-            "security_events", securityEvents.get(),
+            "security_events", securityEventCount.get(),
             "vulnerability_count", vulnerabilityCount.get(),
             "blocked_requests", blockedRequests.get(),
             "vulnerabilities", vulnerabilities.size(),
-            "security_events_count", securityEvents.size()
+            "security_events_map_size", securityEvents.size()
         );
     }
     

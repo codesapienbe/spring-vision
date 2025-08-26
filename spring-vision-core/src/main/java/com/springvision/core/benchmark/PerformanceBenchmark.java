@@ -51,19 +51,100 @@ public class PerformanceBenchmark {
     public BenchmarkReport runFullBenchmark(byte[] testImageData) {
         logger.info("Starting comprehensive performance benchmark");
         
-        ImageData testImage = new ImageData(testImageData, "image/jpeg");
+        // Create test image data
+        ImageData testImage = new ImageData(testImageData, "image/jpeg", testImageData.length, "JPEG");
         BenchmarkReport report = new BenchmarkReport();
         
-        // Test all detection types
-        for (DetectionType detectionType : DetectionType.values()) {
-            try {
-                BenchmarkResult result = benchmarkDetectionType(testImage, detectionType);
-                report.addResult(detectionType, result);
-            } catch (Exception e) {
-                logger.warn("Benchmark failed for detection type: {}", detectionType, e);
-                report.addError(detectionType, e.getMessage());
-            }
+        // Test face detection
+        DetectionQuery faceQuery = new DetectionQuery.Builder()
+            .type(DetectionType.FACE)
+            .minConfidence(0.5)
+            .maxDetections(10)
+            .build();
+        
+        logger.info("Testing face detection performance...");
+        long startTime = System.currentTimeMillis();
+        List<Detection> faceResults = visionTemplate.detect(testImage, faceQuery);
+        long faceDetectionTime = System.currentTimeMillis() - startTime;
+        
+        report.addMetric("face_detection_time_ms", faceDetectionTime);
+        report.addMetric("face_detection_count", faceResults.size());
+        
+        // Test object detection
+        DetectionQuery objectQuery = new DetectionQuery.Builder()
+            .type(DetectionType.OBJECT)
+            .minConfidence(0.5)
+            .maxDetections(20)
+            .build();
+        
+        logger.info("Testing object detection performance...");
+        startTime = System.currentTimeMillis();
+        List<Detection> objectResults = visionTemplate.detect(testImage, objectQuery);
+        long objectDetectionTime = System.currentTimeMillis() - startTime;
+        
+        report.addMetric("object_detection_time_ms", objectDetectionTime);
+        report.addMetric("object_detection_count", objectResults.size());
+        
+        // Test batch processing
+        logger.info("Testing batch processing performance...");
+        List<ImageData> batchImages = Arrays.asList(testImage, testImage, testImage);
+        DetectionQuery batchQuery = new DetectionQuery.Builder()
+            .type(DetectionType.FACE)
+            .minConfidence(0.5)
+            .maxDetections(5)
+            .build();
+        
+        startTime = System.currentTimeMillis();
+        List<List<Detection>> batchResults = new ArrayList<>();
+        for (ImageData image : batchImages) {
+            batchResults.add(visionTemplate.detect(image, batchQuery));
         }
+        long batchProcessingTime = System.currentTimeMillis() - startTime;
+        
+        report.addMetric("batch_processing_time_ms", batchProcessingTime);
+        report.addMetric("batch_image_count", batchImages.size());
+        
+        // Test memory usage
+        logger.info("Testing memory usage...");
+        Runtime runtime = Runtime.getRuntime();
+        long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+        
+        // Perform multiple detections to measure memory impact
+        for (int i = 0; i < 10; i++) {
+            visionTemplate.detect(testImage, faceQuery);
+        }
+        
+        long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
+        long memoryUsed = memoryAfter - memoryBefore;
+        
+        report.addMetric("memory_usage_bytes", memoryUsed);
+        
+        // Test concurrent processing
+        logger.info("Testing concurrent processing performance...");
+        int threadCount = 4;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        DetectionQuery concurrentQuery = new DetectionQuery.Builder()
+            .type(DetectionType.FACE)
+            .minConfidence(0.5)
+            .maxDetections(5)
+            .build();
+        
+        startTime = System.currentTimeMillis();
+        List<CompletableFuture<List<Detection>>> futures = new ArrayList<>();
+        
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(CompletableFuture.supplyAsync(() -> 
+                visionTemplate.detect(testImage, concurrentQuery), executor));
+        }
+        
+        // Wait for all futures to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        long concurrentProcessingTime = System.currentTimeMillis() - startTime;
+        
+        executor.shutdown();
+        
+        report.addMetric("concurrent_processing_time_ms", concurrentProcessingTime);
+        report.addMetric("concurrent_thread_count", threadCount);
         
         // Generate comparative analysis
         report.generateComparativeAnalysis();
@@ -78,7 +159,7 @@ public class PerformanceBenchmark {
     public BenchmarkResult benchmarkDetectionType(ImageData testImage, DetectionType detectionType) {
         logger.info("Benchmarking detection type: {}", detectionType);
         
-        DetectionQuery query = DetectionQuery.builder()
+        DetectionQuery query = new DetectionQuery.Builder()
             .type(detectionType)
             .minConfidence(0.5)
             .maxDetections(10)
