@@ -138,21 +138,21 @@
 
 #### 3.2 YOLO Backend Implementation Roadmap (`spring-vision-core/src/main/java/com/springvision/core/backend/YoloVisionBackend.java`)
 
-- [ ] **Backend scaffolding**
-  - [ ] Create `YoloVisionBackend` implementing `VisionBackend`; initially support `DetectionType.OBJECT`
-  - [ ] Maintain strict backward compatibility; do not change public APIs or `VisionProperties`
+- [x] **Backend scaffolding**
+  - [x] Create `YoloVisionBackend` implementing `VisionBackend`; initially support `DetectionType.OBJECT`
+  - [x] Maintain strict backward compatibility; do not change public APIs or `VisionProperties`
 
-- [ ] **Inference engine integration (reflection-based, optional deps)**
-  - [ ] Primary: ONNX Runtime (`ai.onnxruntime.*`) via reflection; load `.onnx` models without hard dependency
-  - [ ] Alternative (future): TensorFlow Lite (`org.tensorflow.lite.*`) and OpenVINO, behind reflection guards
-  - [ ] Select first available engine at runtime; expose engine name/version in `BackendHealthInfo` metrics
+- [x] **Inference engine integration (reflection-based, optional deps)**
+  - [x] Primary: ONNX Runtime (`ai.onnxruntime.*`) via reflection; load `.onnx` models without hard dependency
+  - [x] Alternative (future): TensorFlow Lite (`org.tensorflow.lite.*`) and OpenVINO, behind reflection guards
+  - [x] Select first available engine at runtime; expose engine name/version in `BackendHealthInfo` metrics
 
-- [ ] **Pre/Post-processing pipeline**
-  - [ ] Implement letterbox resize with aspect-ratio preservation and configurable stride
-  - [ ] Normalize inputs (scale/mean/std) per model requirements; support RGB/BGR switches
-  - [ ] Decode YOLO outputs (v5/v8/v9) with anchors/grids as needed; compute boxes in original image space
-  - [ ] Implement class score filtering and NMS (Greedy/Soft-NMS configurable internally)
-  - [ ] Map results to `Detection`
+- [x] **Pre/Post-processing pipeline**
+  - [x] Implement letterbox resize with aspect-ratio preservation and configurable stride
+  - [x] Normalize inputs (scale/mean/std) per model requirements; support RGB/BGR switches
+  - [x] Decode YOLO outputs (v5/v8/v9) with anchors/grids as needed; compute boxes in original image space
+  - [x] Implement class score filtering and NMS (Greedy/Soft-NMS configurable internally)
+  - [x] Map results to `Detection`
 
 #### 3.3 InsightFace Backend Implementation Roadmap
 
@@ -254,22 +254,17 @@
 - [x] **CompreFace Backend** - External recognition service
 - [x] **DeepFace Backend** - Python-based deep learning
 - [x] **MediaPipe Backend** - Google's ML framework (✅ COMPLETE)
+- [x] **YOLO Backend** - Real-time object detection with ONNX Runtime (✅ COMPLETE)
 
 ## NEXT PRIORITY TASKS
 
-### 1. Implement YOLO Backend (High Priority)
-- [ ] Create YoloVisionBackend with ONNX Runtime integration
-- [ ] Implement pre/post-processing pipeline
-- [ ] Add model management and caching
-- [ ] Include performance optimization
-
-### 2. Framework Improvements (Medium Priority)
+### 1. Framework Improvements (High Priority)
 - [ ] Add comprehensive logging throughout the framework
 - [ ] Implement proper error handling and recovery mechanisms
 - [ ] Add performance monitoring and metrics collection
 - [ ] Enhance security features and validation
 
-### 3. InsightFace Backend (Medium Priority)
+### 2. InsightFace Backend (Medium Priority)
 - [ ] Create InsightFace backend for high-accuracy face recognition
 - [ ] Implement ArcFace embedding extraction
 - [ ] Add face identification and clustering
