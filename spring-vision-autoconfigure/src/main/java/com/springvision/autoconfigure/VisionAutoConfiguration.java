@@ -119,7 +119,7 @@ public class VisionAutoConfiguration {
      * Skips vision backend creation when failFast is disabled.
      * This allows applications to provide their own fallback implementations.
      */
-    @ConditionalOnProperty(prefix = "vision", name = "fail-fast", havingValue = "false")
+    @ConditionalOnExpression("${vision.enabled:true} && !${vision.fail-fast:true}")
     @ConditionalOnMissingBean(VisionBackend.class)
     public void skipVisionBackendCreation() {
         logger.info("=== VisionAutoConfiguration: Skipping VisionBackend creation (fail-fast=false) ===");
