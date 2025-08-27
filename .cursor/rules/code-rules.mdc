@@ -1,17 +1,17 @@
 ---
-description:
-globs:
+description: 
+globs: 
 alwaysApply: true
 ---
 # Rules for FaceBytes Java Project
 
-# FaceBytes Java Implementation - Cursor AI Rules
-# Project: Converting Python FaceBytes library to Java
-# Timeline: 4 hours (6 batches x 40 minutes)
+# Spring Vision Implementation - Cursor AI Rules
+# Project: Building Spring framework module
+# Timeline: 2 hours per day
 # Developer: Senior Java developer (codesapienbe)
 
 ## PROJECT CONTEXT
-You are helping convert the Python FaceBytes library to Java. This is a time-critical project (4 hours total) focused on creating a functional prototype, NOT production-ready code. The goal is to replicate FaceBytes's core API in Java with working face detection, verification, and basic analysis.
+You are helping convert the build a Spring framework module (open-source). This is a time-critical project (1-2 hours per day) focused on creating a functional prototype, NOT production-ready code. The goal is to build a spring module where anyone can just add the dependency and inject beans to use all the features of Computer Vision. Our own implmentation, FaceBytes, and OpenCV backends should always be implemented and use real workflows.
 
 ## CORE PRINCIPLES - NEVER DEVIATE FROM THESE
 
@@ -22,7 +22,7 @@ You are helping convert the Python FaceBytes library to Java. This is a time-cri
 - Focus on Java ecosystem libraries (OpenCV Java, DJL, ONNX Runtime)
 
 ### 2. MAINTAIN API COMPATIBILITY
-- Keep method signatures similar to original FaceBytes Python API
+- Keep method signatures similar to original DeepFace Python API
 - Preserve the same function names: verify(), find(), analyze(), represent(), extractFaces()
 - Maintain the same parameter patterns and return types (adapted for Java)
 

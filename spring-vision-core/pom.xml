@@ -107,6 +107,27 @@
             <artifactId>logstash-logback-encoder</artifactId>
             <version>7.4</version>
         </dependency>
+        
+        <!-- HNSW library for high-performance nearest neighbor search -->
+        <dependency>
+            <groupId>com.stepstone.search.hnswlib</groupId>
+            <artifactId>hnswlib-java</artifactId>
+            <version>1.4.0</version>
+        </dependency>
+        
+        <!-- Chronicle Map for high-performance key-value storage -->
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>chronicle-map</artifactId>
+            <version>3.24ea4</version>
+        </dependency>
+        
+        <!-- LZ4 compression for efficient index storage -->
+        <dependency>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>1.8.0</version>
+        </dependency>
     </dependencies>
 
     <build>

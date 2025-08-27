@@ -1940,8 +1940,8 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     }
 
     /**
-     * Performs actual face detection using available OpenCV detectors.
-     * This method contains the real implementation to avoid infinite recursion.
+     * Performs actual face detection using enhanced multi-detector fusion.
+     * This method combines YuNet, DNN-SSD, and Haar cascade results for maximum accuracy.
      */
     private List<Detection> performFaceDetection(ImageData imageData) {
         if (imageData == null || imageData.isEmpty()) {
@@ -1970,103 +1970,525 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             buffer.releaseReference();
             rawPointer.deallocate();
 
-            List<Detection> detections = new ArrayList<>();
-            
-            // Try YuNet detector first (more accurate)
-            if (yuNetDetector != null && !yuNetDetector.isNull()) {
-                try {
-                    List<Rect> rects = new ArrayList<>();
-                    List<Float> scores = new ArrayList<>();
-                    
-                    // Multi-scale detection for better results
-                    double[] scales = {1.0, 0.8, 1.2};
-                    for (double scale : scales) {
-                        collectYuNetCandidates(image, scale, rects, scores);
-                    }
-                    
-                    // Convert to Detection objects
-                    for (int i = 0; i < rects.size(); i++) {
-                        Rect rect = rects.get(i);
-                        Float score = scores.get(i);
-                        
-                        BoundingBox bbox = clampAndCreateBox(
-                            (double) rect.x() / image.cols(),
-                            (double) rect.y() / image.rows(),
-                            (double) rect.width() / image.cols(),
-                            (double) rect.height() / image.rows()
-                        );
-                        
-                        if (bbox != null) {
-                            Map<String, Object> attributes = new HashMap<>();
-                            attributes.put("confidence", score);
-                            attributes.put("detector", "yunet");
-                            
-                            detections.add(new Detection(
-                                DetectionType.FACE.getCode(),
-                                score,
-                                bbox,
-                                attributes
-                            ));
-                        }
-                    }
-                } catch (Exception e) {
-                    logger.debug("YuNet detection failed, falling back to cascade: {}", e.getMessage());
-                }
-            }
-            
-            // Fallback to Haar cascade if YuNet failed or unavailable
-            if (detections.isEmpty() && faceCascade != null && !faceCascade.isNull()) {
-                try {
-                    Mat grayImage = new Mat();
-                    org.bytedeco.opencv.global.opencv_imgproc.cvtColor(image, grayImage, 
-                        org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY);
-                    
-                    org.bytedeco.opencv.opencv_core.RectVector faces = new org.bytedeco.opencv.opencv_core.RectVector();
-                    
-                    // Detect faces using Haar cascade
-                    faceCascade.detectMultiScale(grayImage, faces, 1.1, 3, 0, 
-                        new Size(30, 30), new Size());
-                    
-                    // Convert to Detection objects
-                    for (int i = 0; i < faces.size(); i++) {
-                        Rect rect = faces.get(i);
-                        
-                        BoundingBox bbox = clampAndCreateBox(
-                            (double) rect.x() / image.cols(),
-                            (double) rect.y() / image.rows(),
-                            (double) rect.width() / image.cols(),
-                            (double) rect.height() / image.rows()
-                        );
-                        
-                        if (bbox != null) {
-                            Map<String, Object> attributes = new HashMap<>();
-                            attributes.put("confidence", 0.8f); // Default confidence for Haar cascade
-                            attributes.put("detector", "haar_cascade");
-                            
-                            detections.add(new Detection(
-                                DetectionType.FACE.getCode(),
-                                0.8f,
-                                bbox,
-                                attributes
-                            ));
-                        }
-                    }
-                    
-                    grayImage.releaseReference();
-                    faces.deallocate();
-                } catch (Exception e) {
-                    logger.debug("Haar cascade detection failed: {}", e.getMessage());
-                }
-            }
+            // Enhanced multi-detector fusion for maximum accuracy
+            List<Detection> fusedDetections = performMultiDetectorFusion(image);
             
             image.releaseReference();
             
-            logger.info("Detected {} faces using OpenCV backend", detections.size());
-            return detections;
+            logger.info("Detected {} faces using enhanced multi-detector fusion", fusedDetections.size());
+            return fusedDetections;
             
         } catch (Exception e) {
             logger.error("Face detection failed: {}", e.getMessage(), e);
             return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Enhanced multi-detector fusion combining YuNet, DNN-SSD, and Haar cascade.
+     * Uses consensus voting and quality assessment for improved accuracy.
+     */
+    private List<Detection> performMultiDetectorFusion(Mat image) {
+        List<CandidateDetection> allCandidates = new ArrayList<>();
+        
+        // 1. YuNet Detection (highest accuracy)
+        List<CandidateDetection> yunetCandidates = detectWithYuNet(image);
+        allCandidates.addAll(yunetCandidates);
+        logger.debug("YuNet detected {} candidates", yunetCandidates.size());
+        
+        // 2. DNN-SSD Detection (good for challenging conditions)
+        List<CandidateDetection> dnnCandidates = detectWithDNN(image);
+        allCandidates.addAll(dnnCandidates);
+        logger.debug("DNN-SSD detected {} candidates", dnnCandidates.size());
+        
+        // 3. Haar Cascade Detection (fallback for edge cases)
+        List<CandidateDetection> haarCandidates = detectWithHaarCascade(image);
+        allCandidates.addAll(haarCandidates);
+        logger.debug("Haar Cascade detected {} candidates", haarCandidates.size());
+        
+        // 4. Fusion and consensus-based filtering
+        List<Detection> fusedResults = fuseDetectionCandidates(image, allCandidates);
+        
+        logger.debug("Fusion produced {} final detections from {} candidates", 
+                    fusedResults.size(), allCandidates.size());
+        
+        return fusedResults;
+    }
+
+    /**
+     * Candidate detection structure for fusion processing.
+     */
+    private static class CandidateDetection {
+        final Rect rect;
+        final float confidence;
+        final String detector;
+        final Map<String, Object> attributes;
+        double qualityScore;
+        
+        CandidateDetection(Rect rect, float confidence, String detector, Map<String, Object> attributes) {
+            this.rect = rect;
+            this.confidence = confidence;
+            this.detector = detector;
+            this.attributes = new HashMap<>(attributes);
+            this.qualityScore = 0.0;
+        }
+    }
+
+    /**
+     * YuNet face detection with multi-scale processing.
+     */
+    private List<CandidateDetection> detectWithYuNet(Mat image) {
+        List<CandidateDetection> candidates = new ArrayList<>();
+        
+        if (yuNetDetector == null || yuNetDetector.isNull()) {
+            return candidates;
+        }
+        
+        try {
+            List<Rect> rects = new ArrayList<>();
+            List<Float> scores = new ArrayList<>();
+            
+            // Multi-scale detection for better coverage
+            double[] scales = {1.0, 0.9, 1.1, 0.8, 1.2};
+            for (double scale : scales) {
+                collectYuNetCandidates(image, scale, rects, scores);
+            }
+            
+            // Convert to candidates with quality assessment
+            Mat grayImage = new Mat();
+            cvtColor(image, grayImage, COLOR_BGR2GRAY);
+            
+            for (int i = 0; i < rects.size(); i++) {
+                Rect rect = rects.get(i);
+                float score = scores.get(i);
+                
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("detector_confidence", score);
+                attributes.put("scale_factor", "multi");
+                
+                CandidateDetection candidate = new CandidateDetection(rect, score, "yunet", attributes);
+                candidate.qualityScore = assessFaceQuality(grayImage, rect);
+                candidates.add(candidate);
+            }
+            
+            grayImage.releaseReference();
+            
+        } catch (Exception e) {
+            logger.debug("YuNet detection failed: {}", e.getMessage());
+        }
+        
+        return candidates;
+    }
+
+    /**
+     * DNN-SSD face detection with enhanced preprocessing.
+     */
+    private List<CandidateDetection> detectWithDNN(Mat image) {
+        List<CandidateDetection> candidates = new ArrayList<>();
+        
+        if (dnnFaceNet == null) {
+            return candidates;
+        }
+        
+        try {
+            Net net = dnnFaceNet.get();
+            if (net == null || net.empty()) {
+                return candidates;
+            }
+            
+            List<Rect> rects = new ArrayList<>();
+            List<Float> scores = new ArrayList<>();
+            
+            // Multi-scale DNN detection
+            double[] scales = {1.0, 0.85, 1.15};
+            for (double scale : scales) {
+                collectDnnCandidates(image, scale, net, rects, scores);
+            }
+            
+            // Convert to candidates with quality assessment
+            Mat grayImage = new Mat();
+            cvtColor(image, grayImage, COLOR_BGR2GRAY);
+            
+            for (int i = 0; i < rects.size(); i++) {
+                Rect rect = rects.get(i);
+                float score = scores.get(i);
+                
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("detector_confidence", score);
+                attributes.put("model_type", "resnet_ssd");
+                
+                CandidateDetection candidate = new CandidateDetection(rect, score, "dnn_ssd", attributes);
+                candidate.qualityScore = assessFaceQuality(grayImage, rect);
+                candidates.add(candidate);
+            }
+            
+            grayImage.releaseReference();
+            
+        } catch (Exception e) {
+            logger.debug("DNN-SSD detection failed: {}", e.getMessage());
+        }
+        
+        return candidates;
+    }
+
+    /**
+     * Haar cascade face detection with quality validation.
+     */
+    private List<CandidateDetection> detectWithHaarCascade(Mat image) {
+        List<CandidateDetection> candidates = new ArrayList<>();
+        
+        if (faceCascade == null || faceCascade.isNull()) {
+            return candidates;
+        }
+        
+        try {
+            Mat grayImage = new Mat();
+            cvtColor(image, grayImage, COLOR_BGR2GRAY);
+            
+            // Apply histogram equalization for better detection
+            Mat equalizedGray = new Mat();
+            equalizeHist(grayImage, equalizedGray);
+            
+            RectVector faces = new RectVector();
+            
+            // Multi-scale Haar cascade detection
+            faceCascade.detectMultiScale(equalizedGray, faces, 1.1, 3, 0, 
+                new Size(30, 30), new Size());
+            
+            for (int i = 0; i < faces.size(); i++) {
+                Rect rect = faces.get(i);
+                
+                // Validate with eye detection for higher precision
+                if (!isFaceLikely(grayImage, rect)) {
+                    continue;
+                }
+                
+                float confidence = 0.75f; // Base confidence for Haar cascade
+                
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("detector_confidence", confidence);
+                attributes.put("validated_with_eyes", true);
+                
+                CandidateDetection candidate = new CandidateDetection(rect, confidence, "haar_cascade", attributes);
+                candidate.qualityScore = assessFaceQuality(grayImage, rect);
+                candidates.add(candidate);
+            }
+            
+            faces.deallocate();
+            grayImage.releaseReference();
+            equalizedGray.releaseReference();
+            
+        } catch (Exception e) {
+            logger.debug("Haar cascade detection failed: {}", e.getMessage());
+        }
+        
+        return candidates;
+    }
+
+    /**
+     * Advanced face quality assessment for recognition accuracy.
+     * Returns a score from 0.0 (poor) to 1.0 (excellent).
+     */
+    private double assessFaceQuality(Mat grayImage, Rect faceRect) {
+        try {
+            // Extract face region
+            int x = Math.max(0, faceRect.x());
+            int y = Math.max(0, faceRect.y());
+            int w = Math.min(grayImage.cols() - x, faceRect.width());
+            int h = Math.min(grayImage.rows() - y, faceRect.height());
+            
+            if (w <= 0 || h <= 0) {
+                return 0.0;
+            }
+            
+            Mat faceRegion = new Mat(grayImage, new Rect(x, y, w, h));
+            
+            // 1. Blur assessment (Laplacian variance)
+            double blurScore = computeBlurScore(faceRegion);
+            
+            // 2. Resolution assessment
+            double resolutionScore = computeResolutionScore(w, h);
+            
+            // 3. Illumination assessment
+            double illuminationScore = computeIlluminationScore(faceRegion);
+            
+            // 4. Pose assessment (frontal vs profile)
+            double poseScore = computePoseScore(faceRegion);
+            
+            // 5. Aspect ratio assessment (face shape validity)
+            double aspectScore = computeAspectScore(w, h);
+            
+            // Combine scores with weighted importance for recognition
+            double qualityScore = 
+                0.3 * blurScore +       // Most important for recognition
+                0.25 * resolutionScore + // Critical for feature extraction
+                0.2 * illuminationScore + // Important for consistency
+                0.15 * poseScore +      // Affects recognition accuracy
+                0.1 * aspectScore;      // Basic validity check
+            
+            faceRegion.releaseReference();
+            
+            return Math.max(0.0, Math.min(1.0, qualityScore));
+            
+        } catch (Exception e) {
+            logger.debug("Quality assessment failed: {}", e.getMessage());
+            return 0.5; // Default moderate quality
+        }
+    }
+
+    /**
+     * Compute blur score using Laplacian variance.
+     */
+    private double computeBlurScore(Mat faceRegion) {
+        try {
+            Mat laplacian = new Mat();
+            org.bytedeco.opencv.global.opencv_imgproc.Laplacian(faceRegion, laplacian, 
+                org.bytedeco.opencv.global.opencv_core.CV_64F);
+            
+            Mat meanMat = new Mat();
+            Mat stddevMat = new Mat();
+            org.bytedeco.opencv.global.opencv_core.meanStdDev(laplacian, meanMat, stddevMat);
+            
+            double variance = 0.0;
+            if (!stddevMat.empty()) {
+                java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
+                if (db != null && db.remaining() > 0) {
+                    double stddev = db.get(0);
+                    variance = stddev * stddev;
+                }
+            }
+            
+            // Normalize variance to [0,1] - higher is less blurry
+            double blurScore = Math.min(1.0, variance / 500.0); // Threshold tuned for faces
+            
+            laplacian.releaseReference();
+            meanMat.releaseReference();
+            stddevMat.releaseReference();
+            
+            return blurScore;
+            
+        } catch (Exception e) {
+            return 0.5;
+        }
+    }
+
+    /**
+     * Compute resolution score based on face size.
+     */
+    private double computeResolutionScore(int width, int height) {
+        int minDimension = Math.min(width, height);
+        
+        // Optimal face size for recognition: 112x112 or larger
+        if (minDimension >= 112) return 1.0;
+        if (minDimension >= 80) return 0.8;
+        if (minDimension >= 64) return 0.6;
+        if (minDimension >= 48) return 0.4;
+        if (minDimension >= 32) return 0.2;
+        return 0.1;
+    }
+
+    /**
+     * Compute illumination score for even lighting.
+     */
+    private double computeIlluminationScore(Mat faceRegion) {
+        try {
+            double meanIntensity = org.bytedeco.opencv.global.opencv_core.mean(faceRegion).get(0);
+            
+            // Optimal range: 80-180 (avoiding very dark or very bright)
+            double optimal = 128.0;
+            double deviation = Math.abs(meanIntensity - optimal) / optimal;
+            double illuminationScore = Math.max(0.0, 1.0 - deviation);
+            
+            return illuminationScore;
+            
+        } catch (Exception e) {
+            return 0.5;
+        }
+    }
+
+    /**
+     * Compute pose score (frontal faces score higher).
+     */
+    private double computePoseScore(Mat faceRegion) {
+        try {
+            int width = faceRegion.cols();
+            int height = faceRegion.rows();
+            
+            // Simple symmetry check for frontal pose
+            Mat leftHalf = new Mat(faceRegion, new Rect(0, 0, width/2, height));
+            Mat rightHalf = new Mat(faceRegion, new Rect(width/2, 0, width/2, height));
+            
+            // Flip right half for comparison
+            Mat rightFlipped = new Mat();
+            flip(rightHalf, rightFlipped, 1);
+            
+            // Compare histograms
+            Mat leftHist = new Mat();
+            Mat rightHist = new Mat();
+            
+            org.bytedeco.opencv.global.opencv_imgproc.calcHist(leftHalf, new org.bytedeco.opencv.opencv_core.MatVector(leftHalf), new Mat(), leftHist, new org.bytedeco.opencv.opencv_core.IntVector(256), new org.bytedeco.opencv.opencv_core.FloatVector(0, 256));
+            org.bytedeco.opencv.global.opencv_imgproc.calcHist(rightFlipped, new org.bytedeco.opencv.opencv_core.MatVector(rightFlipped), new Mat(), rightHist, new org.bytedeco.opencv.opencv_core.IntVector(256), new org.bytedeco.opencv.opencv_core.FloatVector(0, 256));
+            
+            double correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist, 
+                org.bytedeco.opencv.global.opencv_imgproc.HISTCMP_CORREL);
+            
+            leftHalf.releaseReference();
+            rightHalf.releaseReference();
+            rightFlipped.releaseReference();
+            leftHist.releaseReference();
+            rightHist.releaseReference();
+            
+            return Math.max(0.0, Math.min(1.0, correlation));
+            
+        } catch (Exception e) {
+            return 0.7; // Default good pose score
+        }
+    }
+
+    /**
+     * Compute aspect ratio score for face shape validity.
+     */
+    private double computeAspectScore(int width, int height) {
+        double aspectRatio = (double) width / height;
+        
+        // Typical face aspect ratios: 0.7 to 1.3
+        if (aspectRatio >= 0.7 && aspectRatio <= 1.3) return 1.0;
+        if (aspectRatio >= 0.6 && aspectRatio <= 1.5) return 0.8;
+        if (aspectRatio >= 0.5 && aspectRatio <= 1.8) return 0.5;
+        return 0.2;
+    }
+
+    /**
+     * Fuse detection candidates using consensus voting and quality ranking.
+     */
+    private List<Detection> fuseDetectionCandidates(Mat image, List<CandidateDetection> candidates) {
+        if (candidates.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        // 1. Group overlapping candidates
+        List<List<CandidateDetection>> groups = groupOverlappingCandidates(candidates);
+        
+        // 2. Select best candidate from each group
+        List<Detection> finalDetections = new ArrayList<>();
+        
+        for (List<CandidateDetection> group : groups) {
+            CandidateDetection bestCandidate = selectBestCandidate(group);
+            
+            if (bestCandidate != null && bestCandidate.qualityScore > 0.3) { // Quality threshold
+                BoundingBox bbox = clampAndCreateBox(
+                    (double) bestCandidate.rect.x() / image.cols(),
+                    (double) bestCandidate.rect.y() / image.rows(),
+                    (double) bestCandidate.rect.width() / image.cols(),
+                    (double) bestCandidate.rect.height() / image.rows()
+                );
+                
+                if (bbox != null) {
+                    Map<String, Object> attributes = new HashMap<>(bestCandidate.attributes);
+                    attributes.put("quality_score", bestCandidate.qualityScore);
+                    attributes.put("consensus_votes", group.size());
+                    attributes.put("primary_detector", bestCandidate.detector);
+                    
+                    // Combine confidence with quality for final score
+                    double finalConfidence = (bestCandidate.confidence + bestCandidate.qualityScore) / 2.0;
+                    
+                    finalDetections.add(new Detection(
+                        DetectionType.FACE.getCode(),
+                        (float) finalConfidence,
+                        bbox,
+                        attributes
+                    ));
+                }
+            }
+        }
+        
+        // 3. Sort by confidence and limit results
+        finalDetections.sort((a, b) -> Float.compare(b.confidence(), a.confidence()));
+        
+        return finalDetections;
+    }
+
+    /**
+     * Group overlapping candidates based on IoU threshold.
+     */
+    private List<List<CandidateDetection>> groupOverlappingCandidates(List<CandidateDetection> candidates) {
+        List<List<CandidateDetection>> groups = new ArrayList<>();
+        boolean[] assigned = new boolean[candidates.size()];
+        
+        for (int i = 0; i < candidates.size(); i++) {
+            if (assigned[i]) continue;
+            
+            List<CandidateDetection> group = new ArrayList<>();
+            group.add(candidates.get(i));
+            assigned[i] = true;
+            
+            // Find all overlapping candidates
+            for (int j = i + 1; j < candidates.size(); j++) {
+                if (assigned[j]) continue;
+                
+                if (calculateIoU(candidates.get(i).rect, candidates.get(j).rect) > 0.5) {
+                    group.add(candidates.get(j));
+                    assigned[j] = true;
+                }
+            }
+            
+            groups.add(group);
+        }
+        
+        return groups;
+    }
+
+    /**
+     * Calculate Intersection over Union (IoU) between two rectangles.
+     */
+    private double calculateIoU(Rect rect1, Rect rect2) {
+        double x1 = Math.max(rect1.x(), rect2.x());
+        double y1 = Math.max(rect1.y(), rect2.y());
+        double x2 = Math.min(rect1.x() + rect1.width(), rect2.x() + rect2.width());
+        double y2 = Math.min(rect1.y() + rect1.height(), rect2.y() + rect2.height());
+        
+        if (x2 <= x1 || y2 <= y1) return 0.0;
+        
+        double intersection = (x2 - x1) * (y2 - y1);
+        double area1 = rect1.width() * rect1.height();
+        double area2 = rect2.width() * rect2.height();
+        double union = area1 + area2 - intersection;
+        
+        return union > 0 ? intersection / union : 0.0;
+    }
+
+    /**
+     * Select the best candidate from a group based on combined score.
+     */
+    private CandidateDetection selectBestCandidate(List<CandidateDetection> group) {
+        if (group.isEmpty()) return null;
+        
+        CandidateDetection best = null;
+        double bestScore = -1.0;
+        
+        for (CandidateDetection candidate : group) {
+            // Combined score: detector priority + confidence + quality
+            double detectorWeight = getDetectorWeight(candidate.detector);
+            double combinedScore = detectorWeight * 0.4 + candidate.confidence * 0.3 + candidate.qualityScore * 0.3;
+            
+            if (combinedScore > bestScore) {
+                bestScore = combinedScore;
+                best = candidate;
+            }
+        }
+        
+        return best;
+    }
+
+    /**
+     * Get detector weight for fusion priority.
+     */
+    private double getDetectorWeight(String detector) {
+        switch (detector) {
+            case "yunet": return 1.0;      // Highest priority - most accurate
+            case "dnn_ssd": return 0.8;    // Second priority - good for difficult cases
+            case "haar_cascade": return 0.6; // Fallback - reliable but less accurate
+            default: return 0.5;
         }
     }
     

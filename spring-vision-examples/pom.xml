@@ -20,6 +20,7 @@
 
     <modules>
         <module>basic-face-detection</module>
+        <module>one-million-challenge</module>
         <module>gwt-application</module>
         <module>vaadin-application</module>
         <module>picocli-application</module>
