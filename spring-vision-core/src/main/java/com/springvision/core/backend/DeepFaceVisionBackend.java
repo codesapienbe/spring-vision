@@ -201,12 +201,35 @@ public class DeepFaceVisionBackend implements VisionBackend, com.springvision.co
 
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
-        return detect(imageData, DetectionType.FACE);
+        validateState();
+        Objects.requireNonNull(imageData, "Image data must not be null");
+
+        String correlationId = generateCorrelationId();
+        logger.debug("Detecting faces with DeepFace API [{}]", correlationId);
+
+        try {
+            String base64Image = Base64.getEncoder().encodeToString(imageData.data());
+            JsonNode response = callDeepFaceAnalyze(base64Image, correlationId);
+            List<Detection> detections = parseFaceDetections(response, correlationId);
+            
+            logger.info("Detected {} faces using DeepFace backend [{}]", detections.size(), correlationId);
+            return detections;
+            
+        } catch (Exception e) {
+            logger.error("Face detection failed [{}]: {}", correlationId, e.getMessage(), e);
+            throw new VisionProcessingException(
+                "Face detection failed: " + e.getMessage(),
+                "deepface_detection_error",
+                DetectionType.FACE.getCode(),
+                e
+            );
+        }
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        // DeepFace can detect faces as objects, so reuse face detection
+        return detectFaces(imageData);
     }
 
     @Override

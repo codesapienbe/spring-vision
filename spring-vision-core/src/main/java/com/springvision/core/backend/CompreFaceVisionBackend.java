@@ -200,12 +200,36 @@ public class CompreFaceVisionBackend implements VisionBackend {
 
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
-        return detect(imageData, DetectionType.FACE);
+        validateState();
+        Objects.requireNonNull(imageData, "Image data must not be null");
+
+        String correlationId = generateCorrelationId();
+        logger.debug("Detecting faces with CompreFace API [{}]", correlationId);
+
+        try {
+            String base64Image = Base64.getEncoder().encodeToString(imageData.data());
+            JsonNode response = callCompreFaceDetect(base64Image, correlationId);
+            List<Detection> detections = parseFaceDetections(response, correlationId);
+            
+            logger.info("Detected {} faces using CompreFace backend [{}]", detections.size(), correlationId);
+            return detections;
+            
+        } catch (Exception e) {
+            logger.error("Face detection failed [{}]: {}", correlationId, e.getMessage(), e);
+            throw new VisionProcessingException(
+                "Face detection failed: " + e.getMessage(),
+                "compreface_detection_error",
+                DetectionType.FACE.getCode(),
+                e
+            );
+        }
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        // CompreFace primarily supports face detection
+        logger.debug("Object detection not supported by CompreFace backend");
+        return Collections.emptyList();
     }
 
     @Override

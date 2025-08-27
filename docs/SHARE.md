@@ -100,4 +100,4 @@ The project includes comprehensive examples, documentation, and is ready for pro
 
 ---
 
-*Remember to customize these with your actual progress and add relevant hashtags like #OpenSource #ComputerVision #SpringBoot #Java*
+*Remember to customize these with your actual progress and add relevant hashtags like #OpenSource #ComputerVision #SpringBoot #Java* 

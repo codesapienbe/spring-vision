@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -302,12 +304,12 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
 
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
-        return detect(imageData, DetectionType.FACE);
+        return performFaceDetection(imageData);
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
+        return performObjectDetection(imageData);
     }
 
     @Override
@@ -1901,6 +1903,153 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         } catch (Exception e) {
             throw new VisionBackendException("Failed to mark faces: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Performs actual face detection using available OpenCV detectors.
+     * This method contains the real implementation to avoid infinite recursion.
+     */
+    private List<Detection> performFaceDetection(ImageData imageData) {
+        if (imageData == null || imageData.isEmpty()) {
+            logger.warn("Image data is null or empty, returning empty detection list");
+            return Collections.emptyList();
+        }
+
+        if (!isHealthy()) {
+            logger.warn("Backend is not healthy, returning empty detection list");
+            return Collections.emptyList();
+        }
+
+        try {
+            // Decode image to Mat
+            org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
+            Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
+            Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
+            
+            if (image == null || image.empty()) {
+                rawPointer.deallocate();
+                buffer.releaseReference();
+                logger.warn("Failed to decode image data");
+                return Collections.emptyList();
+            }
+            
+            buffer.releaseReference();
+            rawPointer.deallocate();
+
+            List<Detection> detections = new ArrayList<>();
+            
+            // Try YuNet detector first (more accurate)
+            if (yuNetDetector != null && !yuNetDetector.isNull()) {
+                try {
+                    List<Rect> rects = new ArrayList<>();
+                    List<Float> scores = new ArrayList<>();
+                    
+                    // Multi-scale detection for better results
+                    double[] scales = {1.0, 0.8, 1.2};
+                    for (double scale : scales) {
+                        collectYuNetCandidates(image, scale, rects, scores);
+                    }
+                    
+                    // Convert to Detection objects
+                    for (int i = 0; i < rects.size(); i++) {
+                        Rect rect = rects.get(i);
+                        Float score = scores.get(i);
+                        
+                        BoundingBox bbox = clampAndCreateBox(
+                            (double) rect.x() / image.cols(),
+                            (double) rect.y() / image.rows(),
+                            (double) rect.width() / image.cols(),
+                            (double) rect.height() / image.rows()
+                        );
+                        
+                        if (bbox != null) {
+                            Map<String, Object> attributes = new HashMap<>();
+                            attributes.put("confidence", score);
+                            attributes.put("detector", "yunet");
+                            
+                            detections.add(new Detection(
+                                DetectionType.FACE.getCode(),
+                                score,
+                                bbox,
+                                attributes
+                            ));
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.debug("YuNet detection failed, falling back to cascade: {}", e.getMessage());
+                }
+            }
+            
+            // Fallback to Haar cascade if YuNet failed or unavailable
+            if (detections.isEmpty() && faceCascade != null && !faceCascade.isNull()) {
+                try {
+                    Mat grayImage = new Mat();
+                    org.bytedeco.opencv.global.opencv_imgproc.cvtColor(image, grayImage, 
+                        org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY);
+                    
+                    org.bytedeco.opencv.opencv_core.RectVector faces = new org.bytedeco.opencv.opencv_core.RectVector();
+                    
+                    // Detect faces using Haar cascade
+                    faceCascade.detectMultiScale(grayImage, faces, 1.1, 3, 0, 
+                        new Size(30, 30), new Size());
+                    
+                    // Convert to Detection objects
+                    for (int i = 0; i < faces.size(); i++) {
+                        Rect rect = faces.get(i);
+                        
+                        BoundingBox bbox = clampAndCreateBox(
+                            (double) rect.x() / image.cols(),
+                            (double) rect.y() / image.rows(),
+                            (double) rect.width() / image.cols(),
+                            (double) rect.height() / image.rows()
+                        );
+                        
+                        if (bbox != null) {
+                            Map<String, Object> attributes = new HashMap<>();
+                            attributes.put("confidence", 0.8f); // Default confidence for Haar cascade
+                            attributes.put("detector", "haar_cascade");
+                            
+                            detections.add(new Detection(
+                                DetectionType.FACE.getCode(),
+                                0.8f,
+                                bbox,
+                                attributes
+                            ));
+                        }
+                    }
+                    
+                    grayImage.releaseReference();
+                    faces.deallocate();
+                } catch (Exception e) {
+                    logger.debug("Haar cascade detection failed: {}", e.getMessage());
+                }
+            }
+            
+            image.releaseReference();
+            
+            logger.info("Detected {} faces using OpenCV backend", detections.size());
+            return detections;
+            
+        } catch (Exception e) {
+            logger.error("Face detection failed: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+    
+    /**
+     * Performs actual object detection (placeholder for now).
+     * OpenCV backend primarily focuses on face detection.
+     */
+    private List<Detection> performObjectDetection(ImageData imageData) {
+        if (imageData == null || imageData.isEmpty()) {
+            logger.warn("Image data is null or empty for object detection");
+            return Collections.emptyList();
+        }
+        
+        // OpenCV backend doesn't currently support object detection
+        // This would typically use YOLO or other object detection models
+        logger.debug("Object detection not implemented in OpenCV backend");
+        return Collections.emptyList();
     }
 
     @Override
