@@ -16,7 +16,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * <pre>{@code
  * vision:
  *   enabled: true
- *   backend: opencv
+ *   backend: opencv  # Optional: defaults to 'opencv' if not specified
+ *   fail-fast: true  # Optional: defaults to true for production safety
  *   opencv:
  *     enabled: true
  *     face-cascade-path: /haarcascade_frontalface_default.xml
@@ -40,10 +41,18 @@ public class VisionProperties {
     private boolean enabled = true;
 
     /**
-     * The vision backend to use (opencv, mediapipe, yolo).
+     * The vision backend to use.
+     * Supported backends: opencv (default), mediapipe, yolo, deepface.
+     * If not specified, defaults to 'opencv'.
      */
     private String backend = "opencv";
 
+    /**
+     * Whether to fail fast on backend initialization errors.
+     * When true, application startup will fail if the selected backend cannot be initialized.
+     * When false, allows fallback to basic implementations in examples.
+     */
+    private boolean failFast = true;
 
 
     /**
@@ -97,8 +106,23 @@ public class VisionProperties {
         this.backend = backend;
     }
 
+    /**
+     * Gets whether to fail fast on backend initialization errors.
+     *
+     * @return true if fail fast, false otherwise
+     */
+    public boolean isFailFast() {
+        return failFast;
+    }
 
-
+    /**
+     * Sets whether to fail fast on backend initialization errors.
+     *
+     * @param failFast whether to fail fast
+     */
+    public void setFailFast(boolean failFast) {
+        this.failFast = failFast;
+    }
 
 
     /**

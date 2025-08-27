@@ -19,6 +19,7 @@ import com.springvision.core.backend.MediaPipeVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 
 /**
  * Spring Boot auto-configuration for Spring Vision framework.
@@ -33,6 +34,11 @@ import io.micrometer.core.instrument.MeterRegistry;
  * The auto-configuration supports multiple backends and can be customized
  * through application properties. It includes health indicators, metrics, and
  * proper lifecycle management.</p>
+ *
+ * <p>
+ * <strong>Backend Selection:</strong> If no backend is explicitly configured via
+ * {@code vision.backend} property, OpenCV will be used as the default backend.
+ * Supported backends include: opencv (default), mediapipe, yolo, deepface.</p>
  *
  * <p>
  * Example usage:</p>
@@ -66,39 +72,58 @@ public class VisionAutoConfiguration {
     }
 
     /**
-     * Creates the primary vision backend based on configuration.
-     *
-     * <p>
-     * This method creates the vision backend specified in the configuration.
-     * Currently supports OpenCV backend, with plans for additional backends
-     * (MediaPipe, YOLO, etc.) in future releases.</p>
-     *
-     * @param properties the vision configuration properties
-     * @return the configured vision backend
+     * Creates the primary vision backend when failFast is enabled (default).
+     * Fails application startup if backend initialization fails.
      */
     @Bean
     @Primary
     @ConditionalOnMissingBean(VisionBackend.class)
-    @ConditionalOnProperty(prefix = "vision", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public VisionBackend visionBackend(VisionProperties properties) {
-        logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean ===");
-        logger.info("Configuring vision backend: {}", properties.getBackend());
+    @ConditionalOnExpression("${vision.enabled:true} && ${vision.fail-fast:true}")
+    public VisionBackend visionBackendFailFast(VisionProperties properties) {
+        logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean (fail-fast mode) ===");
+        
+        // Normalize backend name, defaulting to opencv if null or empty
+        String backendName = properties.getBackend();
+        if (backendName == null || backendName.trim().isEmpty()) {
+            backendName = "opencv";
+            logger.info("No backend specified, using default: opencv");
+        } else {
+            logger.info("Configuring vision backend: {}", backendName);
+        }
 
-        return switch (properties.getBackend().toLowerCase()) {
-            case "opencv" ->
-                createOpenCvBackend(properties);
-            case "mediapipe" ->
-                createMediaPipeBackend(properties);
-            case "deepface" ->
-                createDeepFaceBackend(properties);
-            case "yolo" ->
-                createYoloBackend(properties);
-
+        return switch (backendName.toLowerCase().trim()) {
+            case "opencv" -> {
+                logger.info("Initializing OpenCV backend (default)");
+                yield createOpenCvBackend(properties);
+            }
+            case "mediapipe" -> {
+                logger.info("Initializing MediaPipe backend");
+                yield createMediaPipeBackend(properties);
+            }
+            case "deepface" -> {
+                logger.info("Initializing DeepFace backend");
+                yield createDeepFaceBackend(properties);
+            }
+            case "yolo" -> {
+                logger.info("Initializing YOLO backend");
+                yield createYoloBackend(properties);
+            }
             default -> {
-                logger.warn("Unknown backend '{}'", properties.getBackend());
+                logger.warn("Unknown backend '{}', falling back to OpenCV (default)", backendName);
                 yield createOpenCvBackend(properties);
             }
         };
+    }
+
+    /**
+     * Skips vision backend creation when failFast is disabled.
+     * This allows applications to provide their own fallback implementations.
+     */
+    @ConditionalOnProperty(prefix = "vision", name = "fail-fast", havingValue = "false")
+    @ConditionalOnMissingBean(VisionBackend.class)
+    public void skipVisionBackendCreation() {
+        logger.info("=== VisionAutoConfiguration: Skipping VisionBackend creation (fail-fast=false) ===");
+        logger.info("Application may provide its own VisionBackend implementation as fallback");
     }
 
     /**
@@ -174,109 +199,58 @@ public class VisionAutoConfiguration {
      *
      * @param properties the vision configuration properties
      * @return the configured OpenCV backend
+     * @throws IllegalStateException if OpenCV backend cannot be initialized
      */
-        private VisionBackend createOpenCvBackend(VisionProperties properties) {
+    private VisionBackend createOpenCvBackend(VisionProperties properties) {
         logger.info("Creating OpenCV vision backend");
 
         try {
-            // Try direct instantiation of OpenCV backend
             OpenCvVisionBackend backend = new OpenCvVisionBackend();
             backend.initialize();
             logger.info("OpenCV backend initialized successfully");
             return backend;
-        } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError | Exception e) {
-            logger.warn("Failed to create or initialize OpenCV backend - using OpenCV with degraded functionality: {}", e.getMessage());
-            return createOpenCvBackendWithDegradedFunctionality(e);
+        } catch (UnsatisfiedLinkError e) {
+            String errorMessage = String.format(
+                "OpenCV native libraries not found. Please ensure OpenCV is properly installed. " +
+                "You can disable vision auto-configuration with 'vision.enabled=false' or " +
+                "choose a different backend with 'vision.backend=mediapipe'. Error: %s", 
+                e.getMessage()
+            );
+            logger.error(errorMessage, e);
+            throw new IllegalStateException(errorMessage, e);
+        } catch (NoClassDefFoundError e) {
+            String errorMessage = String.format(
+                "OpenCV Java bindings not found on classpath. Please add opencv-platform dependency. " +
+                "You can disable vision auto-configuration with 'vision.enabled=false'. Error: %s", 
+                e.getMessage()
+            );
+            logger.error(errorMessage, e);
+            throw new IllegalStateException(errorMessage, e);
+        } catch (ExceptionInInitializerError e) {
+            String errorMessage = String.format(
+                "OpenCV initialization failed during static initialization. " +
+                "This usually indicates a native library compatibility issue. Error: %s", 
+                e.getMessage()
+            );
+            logger.error(errorMessage, e);
+            throw new IllegalStateException(errorMessage, e);
+        } catch (Exception e) {
+            String errorMessage = String.format(
+                "Unexpected error during OpenCV backend initialization. " +
+                "Please check your OpenCV installation and configuration. Error: %s", 
+                e.getMessage()
+            );
+            logger.error(errorMessage, e);
+            throw new IllegalStateException(errorMessage, e);
         }
-    }
-
-    /**
-     * Creates an OpenCV vision backend with degraded functionality.
-     *
-     * <p>
-     * This method creates a VisionBackend implementation that provides
-     * minimal functionality due to a failed initialization attempt.</p>
-     *
-     * @param initializationError the error that occurred during OpenCV initialization
-     * @return a VisionBackend implementation with degraded functionality
-     */
-    private VisionBackend createOpenCvBackendWithDegradedFunctionality(Throwable initializationError) {
-        logger.info("Creating OpenCV backend with degraded functionality");
-
-        return new VisionBackend() {
-            private static final String BACKEND_ID = "opencv";
-            private static final String DISPLAY_NAME = "OpenCV Vision Backend (Degraded)";
-            private static final String VERSION = "4.8.1";
-
-            @Override
-            public String getBackendId() {
-                return BACKEND_ID;
-            }
-
-            @Override
-            public String getDisplayName() {
-                return DISPLAY_NAME;
-            }
-
-            @Override
-            public String getVersion() {
-                return VERSION;
-            }
-
-            @Override
-            public java.util.Set<com.springvision.core.DetectionType> getSupportedDetectionTypes() {
-                return java.util.Set.of(com.springvision.core.DetectionType.FACE, com.springvision.core.DetectionType.OBJECT);
-            }
-
-            @Override
-            public boolean isHealthy() {
-                return false; // OpenCV backend is not healthy due to initialization failure
-            }
-
-            @Override
-            public com.springvision.core.BackendHealthInfo getHealthInfo() {
-                return com.springvision.core.BackendHealthInfo.unhealthy(
-                    BACKEND_ID,
-                    "OpenCV backend - degraded functionality",
-                    "OpenCV backend failed to initialize: " + initializationError.getMessage(),
-                    0
-                );
-            }
-
-            @Override
-            public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
-                logger.warn("OpenCV backend: Face detection not available - OpenCV failed to initialize");
-                throw new com.springvision.core.exception.VisionBackendException(
-                    "Face detection not available - OpenCV backend failed to initialize: " + initializationError.getMessage(),
-                    "opencv_initialization_failed",
-                    null,
-                    initializationError
-                );
-            }
-
-            @Override
-            public com.springvision.core.VisionResult detectObjects(com.springvision.core.ImageData imageData) {
-                logger.warn("OpenCV backend: Object detection not available - OpenCV failed to initialize");
-                throw new com.springvision.core.exception.VisionBackendException(
-                    "Object detection not available - OpenCV backend failed to initialize: " + initializationError.getMessage(),
-                    "opencv_initialization_failed",
-                    null,
-                    initializationError
-                );
-            }
-        };
     }
 
     /**
      * Creates a MediaPipe vision backend with the specified configuration.
      *
-     * <p>
-     * This is a placeholder for future MediaPipe integration. Currently throws
-     * an UnsupportedOperationException.</p>
-     *
      * @param properties the vision configuration properties
      * @return the configured MediaPipe backend
-     * @throws UnsupportedOperationException as MediaPipe is not yet implemented
+     * @throws UnsupportedOperationException if MediaPipe is not yet implemented
      */
     private VisionBackend createMediaPipeBackend(VisionProperties properties) {
         logger.info("Creating MediaPipe vision backend");
@@ -299,46 +273,18 @@ public class VisionAutoConfiguration {
     /**
      * Creates a DeepFace vision backend with the specified configuration.
      *
-     * <p>
-     * This method creates a DeepFace backend that connects to a DeepFace API
-     * server running in a Docker container.</p>
-     *
      * @param properties the vision configuration properties
      * @return the configured DeepFace backend
+     * @throws UnsupportedOperationException as DeepFace is not yet implemented
      */
     private VisionBackend createDeepFaceBackend(VisionProperties properties) {
         logger.info("Creating DeepFace vision backend");
         logger.warn("DeepFace backend is not yet fully integrated - using placeholder");
         throw new UnsupportedOperationException("DeepFace backend is not yet fully integrated");
-
-        /*
-        try {
-            // Use default configuration for now
-            String apiUrl = "http://localhost:5000";
-            Duration timeout = Duration.ofSeconds(30);
-
-            DeepFaceVisionBackend backend = new DeepFaceVisionBackend(apiUrl, timeout);
-            backend.initialize();
-
-            if (!backend.isHealthy()) {
-                logger.warn("DeepFace backend initialized but unhealthy: {}", backend.getHealthInfo().errorMessage());
-            }
-
-            logger.info("DeepFace backend created successfully with API URL: {}", apiUrl);
-            return backend;
-        } catch (Exception e) {
-            logger.error("Failed to create or initialize DeepFace backend: {}", e.getMessage(), e);
-            throw new RuntimeException("DeepFace backend initialization failed: " + e.getMessage(), e);
-        }
-        */
     }
 
     /**
      * Creates a YOLO vision backend with the specified configuration.
-     *
-     * <p>
-     * This is a placeholder for future YOLO integration. Currently throws an
-     * UnsupportedOperationException.</p>
      *
      * @param properties the vision configuration properties
      * @return the configured YOLO backend

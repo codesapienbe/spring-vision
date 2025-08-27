@@ -85,23 +85,15 @@ public class VisionConfig {
         }
 
         @Override
-        public com.springvision.core.VisionResult detectFaces(com.springvision.core.ImageData imageData) {
-            return com.springvision.core.VisionResult.of(
-                com.springvision.core.DetectionType.FACE,
-                java.util.List.of(),
-                0.0,
-                0L
-            );
+        public java.util.List<com.springvision.core.Detection> detectFaces(com.springvision.core.ImageData imageData) {
+            // Return empty list for fallback implementation
+            return java.util.List.of();
         }
 
         @Override
-        public com.springvision.core.VisionResult detectObjects(com.springvision.core.ImageData imageData) {
-            return com.springvision.core.VisionResult.of(
-                com.springvision.core.DetectionType.OBJECT,
-                java.util.List.of(),
-                0.0,
-                0L
-            );
+        public java.util.List<com.springvision.core.Detection> detectObjects(com.springvision.core.ImageData imageData) {
+            // Return empty list for fallback implementation
+            return java.util.List.of();
         }
     }
 }

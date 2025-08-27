@@ -11,7 +11,8 @@ spring:
 # Vision Framework Configuration
 vision:
   enabled: true
-  backend: ${VISION_BACKEND:opencv}
+  backend: opencv
+  fail-fast: false  # Allow fallback to BasicBackend in examples
   opencv:
     enabled: true
     confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}

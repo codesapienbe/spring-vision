@@ -185,7 +185,7 @@ public class VisionTemplateIntegrationTest {
     void testErrorHandlingWithInvalidInput() {
         // Test with null image data
         assertThrows(IllegalArgumentException.class, () -> {
-            visionTemplate.detect(null, new DetectionQuery.Builder()
+            visionTemplate.detect((ImageData) null, new DetectionQuery.Builder()
                 .type(DetectionType.FACE)
                 .build());
         }, "Should throw exception for null image data");
