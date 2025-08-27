@@ -1593,8 +1593,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             rawPointer.deallocate();
 
             // Detect faces
-            VisionResult faceResult = detectFaces(imageData);
-            List<Detection> faces = faceResult.detections();
+            List<Detection> faces = detectFaces(imageData);
             
             if (faces.isEmpty()) {
                 logger.debug("No faces detected for obscuring");
@@ -1702,8 +1701,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             rawPointer.deallocate();
 
             // Detect faces
-            VisionResult faceResult = detectFaces(imageData);
-            List<Detection> faces = faceResult.detections();
+            List<Detection> faces = detectFaces(imageData);
 
             if (faces.isEmpty()) {
                 logger.debug("No faces detected for tagging");
@@ -1835,8 +1833,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             rawPointer.deallocate();
 
             // Detect faces
-            VisionResult faceResult = detectFaces(imageData);
-            List<Detection> faces = faceResult.detections();
+            List<Detection> faces = detectFaces(imageData);
 
             if (faces.isEmpty()) {
                 logger.debug("No faces detected for marking");
@@ -1929,8 +1926,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             rawPointer.deallocate();
 
             // Detect faces (reuse existing detection pipeline)
-            VisionResult faceResult = detectFaces(imageData);
-            java.util.List<Detection> faces = faceResult.detections();
+            java.util.List<Detection> faces = detectFaces(imageData);
             java.util.List<float[]> vectors = new java.util.ArrayList<>(Math.max(1, faces.size()));
 
             if (faces.isEmpty()) {

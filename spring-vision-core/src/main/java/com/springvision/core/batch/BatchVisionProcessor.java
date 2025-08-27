@@ -17,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import com.springvision.core.Detection;
 
 /**
  * Batch processor for vision operations.
@@ -411,15 +412,24 @@ public class BatchVisionProcessor {
                         VisionResult result;
                         switch (detectionType) {
                             case FACE:
-                                result = backend.detectFaces(imageData);
+                                List<Detection> faceDetections = backend.detectFaces(imageData);
+                                result = VisionResult.of(detectionType, faceDetections,
+                                    faceDetections.isEmpty() ? 0.0 : faceDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                                    0);
                                 break;
                             case OBJECT:
-                                result = backend.detectObjects(imageData);
+                                List<Detection> objectDetections = backend.detectObjects(imageData);
+                                result = VisionResult.of(detectionType, objectDetections,
+                                    objectDetections.isEmpty() ? 0.0 : objectDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                                    0);
                                 break;
                             case TEXT:
                                 // For text detection, we'll use object detection as a fallback
                                 // In a real implementation, this would use OCR
-                                result = backend.detectObjects(imageData);
+                                List<Detection> textDetections = backend.detectObjects(imageData);
+                                result = VisionResult.of(detectionType, textDetections,
+                                    textDetections.isEmpty() ? 0.0 : textDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
+                                    0);
                                 break;
                             default:
                                 throw new IllegalArgumentException("Unsupported detection type: " + detectionType);

@@ -110,58 +110,23 @@ public class YoloVisionBackend implements VisionBackend {
     private volatile boolean shutdown = false;
     
     @Override
+    public String getBackendId() {
+        return "yolo";
+    }
+    
+    @Override
+    public String getDisplayName() {
+        return "YOLO Vision Backend";
+    }
+    
+    @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
         return Set.of(DetectionType.OBJECT);
     }
     
     @Override
-    public List<Detection> detect(ImageData imageData, DetectionQuery query) {
-        if (shutdown) {
-            throw new VisionBackendException("YOLO backend is shutting down");
-        }
-        
-        String correlationId = generateCorrelationId();
-        
-        logger.info("Starting YOLO detection: correlationId={}, imageSize={}, queryType={}, backend=yolo", 
-                   correlationId, imageData.data().length, query.getType());
-        
-        long startTime = System.currentTimeMillis();
-        
-        try {
-            validateInput(imageData, query);
-            
-            if (!query.getType().equals(DetectionType.OBJECT)) {
-                logger.warn("YOLO backend only supports OBJECT detection, but got: {}", query.getType());
-                return new ArrayList<>();
-            }
-            
-            // Initialize ONNX session if needed
-            initializeSession();
-            
-            // Preprocess image
-            float[] inputTensor = preprocessImage(imageData.data());
-            
-            // Run inference
-            float[][] output = runInference(inputTensor);
-            
-            // Postprocess results
-            List<Detection> detections = postprocessResults(output, imageData.data(), query);
-            
-            long processingTime = System.currentTimeMillis() - startTime;
-            detectionCount.addAndGet(detections.size());
-            
-            logger.info("YOLO detection completed: correlationId={}, detectionCount={}, " +
-                       "processingTimeMs={}, backend=yolo", 
-                       correlationId, detections.size(), processingTime);
-            
-            return detections;
-            
-        } catch (Exception e) {
-            errorCount.incrementAndGet();
-            logger.error("YOLO detection failed: correlationId={}, backend=yolo, error={}", 
-                        correlationId, e.getMessage(), e);
-            throw new VisionBackendException("YOLO detection failed: " + e.getMessage(), e);
-        }
+    public String getVersion() {
+        return "1.0.0";
     }
     
     @Override
@@ -185,11 +150,6 @@ public class YoloVisionBackend implements VisionBackend {
             return BackendHealthInfo.unhealthy("YOLO", "YOLO backend is not available", 
                 shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
         }
-    }
-    
-    @Override
-    public Set<DetectionType> getSupportedTypes() {
-        return Set.of(DetectionType.OBJECT);
     }
     
     /**
@@ -571,7 +531,7 @@ public class YoloVisionBackend implements VisionBackend {
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
-        if (!getSupportedTypes().contains(query.getType())) {
+        if (!getSupportedDetectionTypes().contains(query.getType())) {
             throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
         }
     }
@@ -719,25 +679,70 @@ public class YoloVisionBackend implements VisionBackend {
     
     @Override
     public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(detectionType)
-            .build();
-        return detect(imageData, query);
+        if (detectionType == DetectionType.OBJECT) {
+            return detectObjects(imageData);
+        } else {
+            throw new UnsupportedOperationException("YOLO backend only supports OBJECT detection, but got: " + detectionType);
+        }
     }
     
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(DetectionType.FACE)
-            .build();
-        return detect(imageData, query);
+        return detect(imageData, DetectionType.FACE);
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(DetectionType.OBJECT)
-            .build();
-        return detect(imageData, query);
+        if (shutdown) {
+            throw new VisionBackendException("YOLO backend is shutting down");
+        }
+        
+        String correlationId = generateCorrelationId();
+        
+        logger.info("Starting YOLO object detection: correlationId={}, imageSize={}, backend=yolo", 
+                   correlationId, imageData.data().length);
+        
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Initialize ONNX session if needed
+            initializeSession();
+            
+            // Preprocess image
+            float[] inputTensor = preprocessImage(imageData.data());
+            
+            // Run inference
+            float[][] output = runInference(inputTensor);
+            
+            // Create a DetectionQuery for postprocessing
+            DetectionQuery query = new DetectionQuery.Builder()
+                .type(DetectionType.OBJECT)
+                .minConfidence(confidenceThreshold)
+                .maxDetections(maxDetections)
+                .build();
+            
+            // Postprocess results
+            List<Detection> detections = postprocessResults(output, imageData.data(), query);
+            
+            // Apply NMS
+            detections = applyNMS(detections, query);
+            
+            long processingTime = System.currentTimeMillis() - startTime;
+            detectionCount.incrementAndGet();
+            
+            logger.info("YOLO object detection completed: correlationId={}, detections={}, time={}ms, backend=yolo", 
+                       correlationId, detections.size(), processingTime);
+            
+            return detections;
+            
+        } catch (Exception e) {
+            long processingTime = System.currentTimeMillis() - startTime;
+            errorCount.incrementAndGet();
+            
+            logger.error("YOLO object detection failed: correlationId={}, time={}ms, error={}, backend=yolo", 
+                        correlationId, processingTime, e.getMessage(), e);
+            
+            throw new VisionBackendException("YOLO object detection failed: " + e.getMessage(), e);
+        }
     }
 } 

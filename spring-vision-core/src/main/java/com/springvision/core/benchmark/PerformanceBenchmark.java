@@ -214,7 +214,8 @@ public class PerformanceBenchmark {
         
         // Submit tasks for each user
         for (int user = 0; user < concurrentUsers; user++) {
-            futures.add(executor.submit(() -> simulateUser(testImage, query, requestsPerUser, user)));
+            final int userId = user;
+            futures.add(executor.submit(() -> simulateUser(testImage, query, requestsPerUser, userId)));
         }
         
         // Collect results

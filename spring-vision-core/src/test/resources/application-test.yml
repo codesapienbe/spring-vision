@@ -1,0 +1,43 @@
+# Test configuration for Spring Vision Core
+spring:
+  application:
+    name: spring-vision-core-test
+
+# Vision configuration for testing
+vision:
+  backend:
+    default: opencv
+    opencv:
+      enabled: true
+      cascade-path: classpath:haarcascade_frontalface_default.xml
+    facebytes:
+      enabled: false
+    compreface:
+      enabled: false
+    deepface:
+      enabled: false
+    mediapipe:
+      enabled: false
+    yolo:
+      enabled: false
+    insightface:
+      enabled: false
+
+# Logging configuration for tests
+logging:
+  level:
+    com.springvision: DEBUG
+    org.springframework: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Metrics configuration for testing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: false 

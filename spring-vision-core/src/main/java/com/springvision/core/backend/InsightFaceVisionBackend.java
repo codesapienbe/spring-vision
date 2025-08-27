@@ -94,8 +94,23 @@ public class InsightFaceVisionBackend implements VisionBackend {
     private volatile boolean initialized = false;
     
     @Override
+    public String getBackendId() {
+        return "insightface";
+    }
+    
+    @Override
+    public String getDisplayName() {
+        return "InsightFace Vision Backend";
+    }
+    
+    @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
         return Set.of(DetectionType.FACE);
+    }
+    
+    @Override
+    public String getVersion() {
+        return "1.0.0";
     }
     
     @Override
@@ -121,11 +136,6 @@ public class InsightFaceVisionBackend implements VisionBackend {
             return BackendHealthInfo.unhealthy("InsightFace", "InsightFace backend is not available", 
                 shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
         }
-    }
-    
-    @Override
-    public Set<DetectionType> getSupportedTypes() {
-        return Set.of(DetectionType.FACE, DetectionType.OBJECT);
     }
     
     /**
@@ -462,7 +472,7 @@ public class InsightFaceVisionBackend implements VisionBackend {
             throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
         }
         
-        if (!getSupportedTypes().contains(query.getType())) {
+        if (!getSupportedDetectionTypes().contains(query.getType())) {
             throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
         }
     }
@@ -702,17 +712,11 @@ public class InsightFaceVisionBackend implements VisionBackend {
     
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(DetectionType.FACE)
-            .build();
-        return detect(imageData, query);
+        return detect(imageData, DetectionType.FACE);
     }
     
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(DetectionType.OBJECT)
-            .build();
-        return detect(imageData, query);
+        return detect(imageData, DetectionType.OBJECT);
     }
 } 
