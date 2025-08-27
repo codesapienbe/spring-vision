@@ -234,12 +234,12 @@ public class PicoCLIApplication implements CommandLineRunner {
                 .build();
         options.addOption(verifyBatchOption);
 
-        // Face obscuring option
+        // Face obscuring option with enhanced 2x obscurity
         Option obscureOption = Option.builder()
                 .longOpt("obscure")
                 .numberOfArgs(2)
                 .argName("INPUT OUTPUT")
-                .desc("Obscure faces in an image and save the result")
+                .desc("Obscure faces with 2x enhanced privacy protection (double Gaussian blur + adaptive pixelation)")
                 .build();
         options.addOption(obscureOption);
 
@@ -774,7 +774,7 @@ public class PicoCLIApplication implements CommandLineRunner {
             ImageData obscuredImage = visionTemplate.obscureFaces(inputImage);
             Files.write(outputPath, obscuredImage.data());
             
-            System.out.println("Successfully obscured faces and saved to: " + outputPath);
+            System.out.println("Successfully applied 2x enhanced face obscuring and saved to: " + outputPath);
             
         } catch (IOException ioe) {
             System.err.println("I/O error: " + ioe.getMessage());

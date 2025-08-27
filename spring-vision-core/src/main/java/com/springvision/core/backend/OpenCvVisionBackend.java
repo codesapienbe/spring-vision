@@ -1624,22 +1624,56 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                         Rect faceRect = new Rect(x, y, width, height);
                         Mat faceRegion = new Mat(image, faceRect);
                         
-                        // Apply Gaussian blur to the face region
+                        // Apply enhanced obscuring: 2x stronger blur + pixelation
                         Mat blurredFace = new Mat();
+                        Mat doubleBlurredFace = new Mat();
+                        
+                        // First pass: Heavy Gaussian blur (2x larger kernel size)
                         org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
                             faceRegion,
                             blurredFace,
-                            new Size(31, 31),
+                            new Size(61, 61), // Increased from 31x31 to 61x61 for 2x obscurity
                             0.0, 0.0,
                             org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT
                         );
                         
-                        // Copy blurred face back to original image
-                        blurredFace.copyTo(faceRegion);
+                        // Second pass: Apply additional blur for compound effect
+                        org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
+                            blurredFace,
+                            doubleBlurredFace,
+                            new Size(31, 31), // Secondary blur for extra obscurity
+                            0.0, 0.0,
+                            org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT
+                        );
                         
-                        // Cleanup
+                        // Optional: Add pixelation effect for maximum obscurity
+                        Mat pixelated = new Mat();
+                        int pixelSize = Math.max(8, Math.min(width, height) / 12); // Adaptive pixel size
+                        
+                        // Downscale then upscale for pixelation effect
+                        org.bytedeco.opencv.global.opencv_imgproc.resize(
+                            doubleBlurredFace, 
+                            pixelated, 
+                            new Size(Math.max(1, width / pixelSize), Math.max(1, height / pixelSize)),
+                            0, 0,
+                            org.bytedeco.opencv.global.opencv_imgproc.INTER_LINEAR
+                        );
+                        org.bytedeco.opencv.global.opencv_imgproc.resize(
+                            pixelated, 
+                            doubleBlurredFace, 
+                            new Size(width, height),
+                            0, 0,
+                            org.bytedeco.opencv.global.opencv_imgproc.INTER_NEAREST // Use nearest neighbor for blocky effect
+                        );
+                        
+                        // Copy heavily obscured face back to original image
+                        doubleBlurredFace.copyTo(faceRegion);
+                        
+                        // Cleanup all intermediate matrices
                         faceRegion.releaseReference();
                         blurredFace.releaseReference();
+                        doubleBlurredFace.releaseReference();
+                        pixelated.releaseReference();
                     }
                 }
             }
