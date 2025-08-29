@@ -108,11 +108,11 @@
             <version>7.4</version>
         </dependency>
         
-        <!-- HNSW library for high-performance nearest neighbor search -->
+        <!-- HNSW library via JNA - correct Maven coordinates -->
         <dependency>
-            <groupId>com.stepstone.search.hnswlib</groupId>
-            <artifactId>hnswlib-java</artifactId>
-            <version>1.4.0</version>
+            <groupId>com.stepstone.search.hnswlib.jna</groupId>
+            <artifactId>hnswlib-jna</artifactId>
+            <version>1.4.2</version>
         </dependency>
         
         <!-- Chronicle Map for high-performance key-value storage -->

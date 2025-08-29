@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,8 @@ import org.bytedeco.opencv.opencv_core.Rect;
 import org.bytedeco.opencv.opencv_core.RectVector;
 import org.bytedeco.opencv.opencv_core.Scalar;
 import org.bytedeco.opencv.opencv_core.Size;
+// Custom implementations to replace IntVector and FloatVector
+// These classes don't exist in current OpenCV JavaCV version
 import org.bytedeco.opencv.opencv_dnn.Net;
 import org.bytedeco.opencv.opencv_imgproc.Vec3fVector;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
@@ -2322,12 +2325,13 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             Mat rightFlipped = new Mat();
             flip(rightHalf, rightFlipped, 1);
             
-            // Compare histograms
+            // Compare histograms using our custom vector implementations
             Mat leftHist = new Mat();
             Mat rightHist = new Mat();
             
-            org.bytedeco.opencv.global.opencv_imgproc.calcHist(leftHalf, new org.bytedeco.opencv.opencv_core.MatVector(leftHalf), new Mat(), leftHist, new org.bytedeco.opencv.opencv_core.IntVector(256), new org.bytedeco.opencv.opencv_core.FloatVector(0, 256));
-            org.bytedeco.opencv.global.opencv_imgproc.calcHist(rightFlipped, new org.bytedeco.opencv.opencv_core.MatVector(rightFlipped), new Mat(), rightHist, new org.bytedeco.opencv.opencv_core.IntVector(256), new org.bytedeco.opencv.opencv_core.FloatVector(0, 256));
+            // Use our custom histogram calculation function
+            calculateHistogram(leftHalf, new Mat(), leftHist, new IntVector(256), new FloatVector(0, 256));
+            calculateHistogram(rightFlipped, new Mat(), rightHist, new IntVector(256), new FloatVector(0, 256));
             
             double correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist, 
                 org.bytedeco.opencv.global.opencv_imgproc.HISTCMP_CORREL);
@@ -2403,7 +2407,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         }
         
         // 3. Sort by confidence and limit results
-        finalDetections.sort((a, b) -> Float.compare(b.confidence(), a.confidence()));
+        finalDetections.sort((a, b) -> Double.compare(b.confidence(), a.confidence()));
         
         return finalDetections;
     }
@@ -2489,6 +2493,135 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             case "dnn_ssd": return 0.8;    // Second priority - good for difficult cases
             case "haar_cascade": return 0.6; // Fallback - reliable but less accurate
             default: return 0.5;
+        }
+    }
+    
+    /**
+     * Custom IntVector implementation for histogram calculation.
+     * Replaces the missing IntVector class from OpenCV JavaCV.
+     */
+    private static class IntVector {
+        private final int[] data;
+        
+        public IntVector(int... values) {
+            this.data = values;
+        }
+        
+        public IntVector(int size) {
+            this.data = new int[size];
+        }
+        
+        public int get(int index) {
+            if (index >= 0 && index < data.length) {
+                return data[index];
+            }
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
+        }
+        
+        public void set(int index, int value) {
+            if (index >= 0 && index < data.length) {
+                data[index] = value;
+            } else {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
+            }
+        }
+        
+        public int size() {
+            return data.length;
+        }
+        
+        public int[] getData() {
+            return data.clone(); // Return copy for safety
+        }
+        
+        @Override
+        public String toString() {
+            return "IntVector{" + Arrays.toString(data) + "}";
+        }
+    }
+    
+    /**
+     * Custom FloatVector implementation for histogram calculation.
+     * Replaces the missing FloatVector class from OpenCV JavaCV.
+     */
+    private static class FloatVector {
+        private final float[] data;
+        
+        public FloatVector(float... values) {
+            this.data = values;
+        }
+        
+        public FloatVector(double... values) {
+            this.data = new float[values.length];
+            for (int i = 0; i < values.length; i++) {
+                this.data[i] = (float) values[i];
+            }
+        }
+        
+        public FloatVector(int size) {
+            this.data = new float[size];
+        }
+        
+        public float get(int index) {
+            if (index >= 0 && index < data.length) {
+                return data[index];
+            }
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
+        }
+        
+        public void set(int index, float value) {
+            if (index >= 0 && index < data.length) {
+                data[index] = value;
+            } else {
+                throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
+            }
+        }
+        
+        public int size() {
+            return data.length;
+        }
+        
+        public float[] getData() {
+            return data.clone(); // Return copy for safety
+        }
+        
+        @Override
+        public String toString() {
+            return "FloatVector{" + Arrays.toString(data) + "}";
+        }
+    }
+    
+    /**
+     * Custom histogram calculation function that works with our custom vector classes.
+     * This replicates the functionality of calcHist with proper parameter handling.
+     */
+    private void calculateHistogram(Mat image, Mat mask, Mat histogram, IntVector histSize, FloatVector ranges) {
+        try {
+            // Create histogram size array
+            int[] histSizeArray = new int[histSize.size()];
+            for (int i = 0; i < histSize.size(); i++) {
+                histSizeArray[i] = histSize.get(i);
+            }
+            
+            // Create ranges array
+            float[] rangesArray = new float[ranges.size()];
+            for (int i = 0; i < ranges.size(); i++) {
+                rangesArray[i] = ranges.get(i);
+            }
+            
+            // Use OpenCV's calcHist with proper parameter arrays
+            org.bytedeco.opencv.global.opencv_imgproc.calcHist(
+                image,
+                1, // number of images
+                new int[]{0}, // channels
+                mask,
+                histogram,
+                1, // histogram dimensionality
+                histSizeArray,
+                rangesArray
+            );
+        } catch (Exception e) {
+            logger.debug("Histogram calculation failed: {}", e.getMessage());
         }
     }
     

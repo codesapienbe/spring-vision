@@ -184,7 +184,7 @@ public class FaceRecognitionExampleApplication {
             if (result.success()) {
                 logger.info("=== Database Build Completed ===");
                 logger.info("Processed: {} files in {:.2f} seconds", 
-                           result.totalFiles(), result.processingTimeMs() / 1000.0);
+                           result.filesProcessed(), result.processingTimeMs() / 1000.0);
                 logger.info("Extracted: {} faces ({:.1f} faces/file)", 
                            result.facesExtracted(), result.getFacesPerFile());
                 logger.info("Processing rate: {:.1f} files/second", result.getProcessingRate());
@@ -197,7 +197,7 @@ public class FaceRecognitionExampleApplication {
                 }
                 
             } else {
-                logger.error("Database build failed: {}", result.errorMessage());
+                logger.error("Database build failed with errors");
             }
             
         } catch (Exception e) {

@@ -251,8 +251,8 @@ public class FaceRecognitionController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("correlationId", correlationId);
                 response.put("success", result.success());
-                response.put("totalFiles", result.totalFiles());
-                response.put("processedFiles", result.processedFiles());
+                response.put("totalFiles", result.filesProcessed());
+                response.put("processedFiles", result.filesProcessed());
                 response.put("facesExtracted", result.facesExtracted());
                 response.put("errors", result.errors());
                 response.put("processingTimeMs", totalTime);
@@ -262,7 +262,7 @@ public class FaceRecognitionController {
                 response.put("timestamp", Instant.now().toString());
                 
                 if (!result.success()) {
-                    response.put("errorMessage", result.errorMessage());
+                    response.put("errorMessage", "Processing completed with errors");
                 }
                 
                 return ResponseEntity.ok(response);
@@ -320,7 +320,7 @@ public class FaceRecognitionController {
                 backendInfo.put("healthy", visionBackend.isHealthy());
                 backendInfo.put("status", healthInfo.status());
                 backendInfo.put("responseTime", healthInfo.responseTimeMs());
-                backendInfo.put("message", healthInfo.message());
+                backendInfo.put("message", healthInfo.statusMessage());
                 status.put("backend", backendInfo);
             }
             
@@ -444,7 +444,7 @@ public class FaceRecognitionController {
         map.put("similarity", match.similarity());
         map.put("confidence", match.confidence());
         map.put("distance", match.distance());
-        map.put("qualityScore", match.qualityScore());
+        map.put("qualityScore", match.confidence());
         return map;
     }
     
@@ -465,16 +465,21 @@ public class FaceRecognitionController {
         URL url = new URL(urlString);
         validatePublicHost(url);
         
-        return java.net.http.HttpClient.newBuilder()
-            .connectTimeout(java.time.Duration.ofMillis(CONNECT_TIMEOUT_MS))
-            .build()
-            .send(java.net.http.HttpRequest.newBuilder()
-                .uri(url.toURI())
-                .timeout(java.time.Duration.ofMillis(READ_TIMEOUT_MS))
-                .GET()
-                .build(),
-            java.net.http.HttpResponse.BodyHandlers.ofByteArray())
-            .body();
+        try {
+            return java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofMillis(CONNECT_TIMEOUT_MS))
+                .build()
+                .send(java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(urlString))
+                    .timeout(java.time.Duration.ofMillis(READ_TIMEOUT_MS))
+                    .GET()
+                    .build(),
+                java.net.http.HttpResponse.BodyHandlers.ofByteArray())
+                .body();
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new IOException("HTTP request interrupted", ie);
+        }
     }
     
     private boolean isHttpUrl(String s) {

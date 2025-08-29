@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -401,7 +402,7 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
             double nh = clamp01((double) faceRegion.height() / image.getHeight());
             
             var bbox = new com.springvision.core.BoundingBox(nx, ny, nw, nh);
-            double confidence = clamp01(faceRegion.confidence());
+            double confidence = clamp01((double) faceRegion.confidence());
             
             // Enhanced attributes for recognition
             Map<String, Object> attributes = new HashMap<>();
@@ -409,7 +410,7 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
             attributes.put("backend", "facebytes");
             attributes.put("face_index", i);
             attributes.put("embedding_dimension", embeddingResult.embedding().length);
-            attributes.put("face_area_ratio", (nw * nh));
+            attributes.put("face_area_ratio", nw * nh);
             
             // Add quality metrics
             attributes.put("resolution_score", computeFaceResolutionScore(faceRegion));
@@ -434,7 +435,7 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
         }
         
         // Sort by confidence (best first)
-        detections.sort((a, b) -> Float.compare(b.confidence(), a.confidence()));
+        detections.sort((a, b) -> Double.compare(b.confidence(), a.confidence()));
         
         return detections;
     }
