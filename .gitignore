@@ -226,3 +226,8 @@ Thumbs.db
 spring-vision-deepface/python-consumer/.venv/
 
 DOWNLOADS.md
+
+# Dataset
+
+/dataset
+dataset/

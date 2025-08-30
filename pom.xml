@@ -382,6 +382,7 @@
 
         <profile>
             <id>dataset</id>
+            <!-- No automatic activation - must be explicitly triggered with -Pdataset -->
             <build>
                 <plugins>
                     <plugin>
@@ -400,8 +401,11 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_C-TfENWHx64fmYrDn5UBFxPBCERGf2FP7zwEkP_CFfGql3Dy_5E1surDPIxPltN6NECBrbkMwKFcRYuNjNEssGQjgc5zFr-w_hpFlc7QMUkCS.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adk9vEDBoe9jmTOikK0xPhp5Lao4TP6EHkMbYnwwZaqOaADZWhimdRV7lFhvkfTSnnYflLoBKRgDFjSbsFy-iBOB&amp;ccb=10-5&amp;oh=00_AfW0Wwk--gDj5EP4fjewErmOfoawxYs2TzyGC1cln-KLJw&amp;oe=68D63472&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>dev_queries_50k_0.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
+                            
+
                             
                             <!-- Download dev queries groundtruth -->
                             <execution>
@@ -414,6 +418,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-Orlmzs8FZX8TSqgUMmXEZ6TcgFLMnVCKxqwHj_FUYL7TPR4aywwZzBq_0pe2N50vwG6W-cZuZeBOaC3GnJxKa_zPfarBx_iaBsDdBNGSe6MuOwyhHPQ.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Admm2dj2RU1S5R7kCE-pwXISGttVU2BQ9ylH6jEcZieNEsh_Y_NvW67cXJEGINN8tFsfBtt19pUfIDzNxfL5iu1q&amp;ccb=10-5&amp;oh=00_AfVTCiAHsbb_siIFvoWbHIXcoHKfz1FN6Z8AUaqWxgbmbQ&amp;oe=68D62832&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>dev_queries_groundtruth.csv</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -428,6 +433,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_7Dx-upUUmai5U-F2syWGc7u-VxIazLPI9PwfBX2TvZpY4h9n6Md9adhcUy3K75B807xB_CRYjlm3oUmzDClfU1m14jHvCYJCyyWprqQn0-FB2.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkLwhAxK5z4kvKQqr_BxOac__DAGQ_LyW1kyUc519a0kp0Rih4EqVyiIsKccPgAJ1V8MMqCyOIlHgUA1SP15hkU&amp;ccb=10-5&amp;oh=00_AfU5ws4KtAzIVcX0Czi_VfAQ_pRviJH02KB9xm8SX4CpzA&amp;oe=68D64036&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>test_queries_50k_0.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -442,6 +448,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An873fJAs24-WUqEIJMzajWafXQDbUpemaS8-zdUtI5TXqGYurHsFL_Ih64fNZmYvu8ft_dArobyDK2mDPZrZ8n-JIpWvhz2znY7kGkMNl7MU_MgmpC9Sg.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdlKVFBnqj32vQ9_QPGSadSpXjtBa-Z8L4sGDYbay_cK3d634UCHZy9IBRv_60bMNBa-kf8lMwP16XVgLYa9KPUq&amp;ccb=10-5&amp;oh=00_AfVP5M179P2YjNkK_iIrXmxUWPn2WfLktnWDuAyBH7MAMQ&amp;oe=68D6414E&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>test_queries_groundtruth.csv</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -722,6 +729,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_lQCsxCPcyL-ZkfFtTKfC-vIJwxarSq8ZxmWzguI1eknyBJAVmyM176uR4j_k4Mof8WG9NdnLpaxv3HHtUlidUdzS3kTW9COpZ9cU24pgB.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdljagSg99RtaQivSGmGn3wX9bLplEOAo0xe88Ls0Kq302kAYXwZB1tK8QG4mj1e7tlUosNY2D55GykbpxL0GeDK&amp;ccb=10-5&amp;oh=00_AfW1nEx-nl2oz3q29cZ-48kHS56YCvanxAFbkkImOpqm8A&amp;oe=68D63833&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>refs_50k_17.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -736,6 +744,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8wbmDUcR02PiforPMK51geWyo8w-Z1Xb9HJUhY40l0lpoDHZoGcTe58hK__l5EdMfhQZFA60ExsHi05bVG6cv_kpz7wIb3DgZWpgMj3mYC.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adnx8mr-Oo7edbj0LclpAChenHN8sU-9eJY-K2ifoN0YlQdeZ991NuGfg7i1gUiXn8xeyAiksXaC1GinLXT40fQ-&amp;ccb=10-5&amp;oh=00_AfU2-23GgQviILFK6NsPkadadq2FU6-GfzYqVfSKuBNhEw&amp;oe=68D6463A&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>refs_50k_18.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -750,6 +759,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8eobQmHvBmwm-WngSd9s8YZN4zrrBbVTEM-oHxPf-6WPqM70ULgUdKb1M-g0Ee3CEWOxOEu8A-dWzr9Tq6vO7uGoyk_yJli2NlK5dN8sYT.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adm1GrkVfuTrlM1mqIbU6eObNN0a_ki-L6xjIm6jzZQfFWxxaWdCD9_GrsGxkj_DOasYFTGBPxGahn9tEq-eBhuD&amp;ccb=10-5&amp;oh=00_AfVOygTiCWAZBjy8OLtTEWYo6GqxrvWSF9Ux8_XHo026Mg&amp;oe=68D6478B&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>refs_50k_19.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -764,6 +774,7 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9Bmbe9vm85YAuM2kVgHyVfjBCwSkZIGIBHD4jmgNl-5sanAWdX6zHqD52QOqHuvDsaQpYvD-sr8vgH2MGWiCcX__B6rr2-kVEK24UniHa5dQ.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkonPqoSVBQVlz6R_bIPTpuZoUn4JDSu94zgY2QdlzyCbdpk-mH4QgpLcHw0l9giAFp3gS88IFwHLF94T19TOLk&amp;ccb=10-5&amp;oh=00_AfXdvXxnhdgj_hwaKJPFrt4Wd1fVlul-4-vlKvKGtcHUjA&amp;oe=68D63ED4&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>train_50k_0.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
                             
@@ -778,6 +789,38 @@
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An81t51hFtVuUh1wzRrfqAGrhe1Q8HGpqioAGA-5nI8sZ9wzsjRlpLGkAUasTL7ItTWgUmMdWrteioJniDsDdNDRJUENqiOz94WKd0kGCbeIcQ.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdnHfoJymaY3H6NJ_AlXhzPNxCyDiGzR7B-PaQkTdLOhkklC4tCLUO5fqmxKYJ-WhufyBvDsRV39KS0dfVng-1nB&amp;ccb=10-5&amp;oh=00_AfXwrDGg4hylOEhy9evg5YTGzMHT9cVs9a8--k4r27szcQ&amp;oe=68D653AD&amp;_nc_sid=e9ffdc</url>
                                     <outputFileName>train_50k_1.zip</outputFileName>
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                    <skipIfExists>true</skipIfExists>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <!-- Maven Antrun Plugin for extracting zip files -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <!-- Extract all zip files to face_dataset directory -->
+                            <execution>
+                                <id>extract-dataset-files</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <!-- Create face_dataset directory if it doesn't exist -->
+                                        <mkdir dir="${project.basedir}/dataset/face_dataset"/>
+                                        
+                                        <!-- Extract all zip files -->
+                                        <unzip dest="${project.basedir}/dataset/face_dataset" overwrite="false">
+                                            <fileset dir="${project.basedir}/dataset" includes="*.zip"/>
+                                        </unzip>
+                                        
+                                        <!-- Log extraction completion -->
+                                        <echo message="Dataset files extracted to ${project.basedir}/dataset/face_dataset"/>
+                                    </target>
                                 </configuration>
                             </execution>
                         </executions>
