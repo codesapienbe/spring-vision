@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Rules for FaceBytes Java Project
+# Rules for Java Project
 
 # Spring Vision Implementation - Cursor AI Rules
 # Project: Building Spring framework module
