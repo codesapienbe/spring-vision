@@ -379,6 +379,412 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>dataset</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.6.8</version>
+                        <executions>
+                            <!-- Download dev queries -->
+                            <execution>
+                                <id>download-dev-queries</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_C-TfENWHx64fmYrDn5UBFxPBCERGf2FP7zwEkP_CFfGql3Dy_5E1surDPIxPltN6NECBrbkMwKFcRYuNjNEssGQjgc5zFr-w_hpFlc7QMUkCS.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adk9vEDBoe9jmTOikK0xPhp5Lao4TP6EHkMbYnwwZaqOaADZWhimdRV7lFhvkfTSnnYflLoBKRgDFjSbsFy-iBOB&amp;ccb=10-5&amp;oh=00_AfW0Wwk--gDj5EP4fjewErmOfoawxYs2TzyGC1cln-KLJw&amp;oe=68D63472&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>dev_queries_50k_0.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download dev queries groundtruth -->
+                            <execution>
+                                <id>download-dev-groundtruth</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-Orlmzs8FZX8TSqgUMmXEZ6TcgFLMnVCKxqwHj_FUYL7TPR4aywwZzBq_0pe2N50vwG6W-cZuZeBOaC3GnJxKa_zPfarBx_iaBsDdBNGSe6MuOwyhHPQ.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Admm2dj2RU1S5R7kCE-pwXISGttVU2BQ9ylH6jEcZieNEsh_Y_NvW67cXJEGINN8tFsfBtt19pUfIDzNxfL5iu1q&amp;ccb=10-5&amp;oh=00_AfVTCiAHsbb_siIFvoWbHIXcoHKfz1FN6Z8AUaqWxgbmbQ&amp;oe=68D62832&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>dev_queries_groundtruth.csv</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download test queries -->
+                            <execution>
+                                <id>download-test-queries</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_7Dx-upUUmai5U-F2syWGc7u-VxIazLPI9PwfBX2TvZpY4h9n6Md9adhcUy3K75B807xB_CRYjlm3oUmzDClfU1m14jHvCYJCyyWprqQn0-FB2.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkLwhAxK5z4kvKQqr_BxOac__DAGQ_LyW1kyUc519a0kp0Rih4EqVyiIsKccPgAJ1V8MMqCyOIlHgUA1SP15hkU&amp;ccb=10-5&amp;oh=00_AfU5ws4KtAzIVcX0Czi_VfAQ_pRviJH02KB9xm8SX4CpzA&amp;oe=68D64036&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>test_queries_50k_0.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download test queries groundtruth -->
+                            <execution>
+                                <id>download-test-groundtruth</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An873fJAs24-WUqEIJMzajWafXQDbUpemaS8-zdUtI5TXqGYurHsFL_Ih64fNZmYvu8ft_dArobyDK2mDPZrZ8n-JIpWvhz2znY7kGkMNl7MU_MgmpC9Sg.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdlKVFBnqj32vQ9_QPGSadSpXjtBa-Z8L4sGDYbay_cK3d634UCHZy9IBRv_60bMNBa-kf8lMwP16XVgLYa9KPUq&amp;ccb=10-5&amp;oh=00_AfVP5M179P2YjNkK_iIrXmxUWPn2WfLktnWDuAyBH7MAMQ&amp;oe=68D6414E&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>test_queries_groundtruth.csv</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download attributions -->
+                            <execution>
+                                <id>download-attributions</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_WVsxBcVHEpV7GlQd2jiiXZA9cWjBA4aNSBaKmfP_mjDMPZiCPwGEEKN6tDZMz2RRev8a19zsOy5ZOaO5h8zdUSqIlgGf8fUgcTxy9KbMDT1V879aINiQLynoWqDU.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn0Oz3XLnR4IGvRbijNvTU5trhiDcV_3uL8nVMhzC7E5XHXqTuyKc5uqw3WHcpufgp0LHh3NnRSSMz7EPd4hsHC&amp;ccb=10-5&amp;oh=00_AfUtXcCmxn8Yub1h8DsyqOhZUavbjfb_68-Q-wNdumvhfQ&amp;oe=68D64675&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>disc21_testset_yfcc_attributions.csv</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download YFCC attributions -->
+                            <execution>
+                                <id>download-yfcc-attributions</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-7T8d0Is_pI9ryUs6haW7IGZ0l5r7A6tL-EBq4DZMJ51c8MyQ3U8r99pshHGmK4IypCOyEfhJyfrL0o6emX_q4eYVyg3sONkZLdfIxvrMhghxn-C3hH5s.csv?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adm0V4O7XP0_dN2uqOLwGAdS1ZHv8wE2-aads8ZjV43hQjLIASnId3UAwpH5LbIO-tQRbuULcHuMFZr2zlr77tWS&amp;ccb=10-5&amp;oh=00_AfXxx9nvUu3dhoUZRbllwk5JtXGbbuA5G-YZOBPggBuJgA&amp;oe=68D641F6&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>disc21_yfcc_attributions.csv</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_0.zip -->
+                            <execution>
+                                <id>download-refs-50k-0</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9vkgBxMWHzTS1GFIFsXZLCVPS6gErePMI75jrr3rG_1xFb2ZOkVTjpCD8vmyURTBYwWNejCDNxkyyt6oEl4Bm2UK7jgWVz0365-v-aUss.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkKvt1qtFXxXxWGiHOresWPRJM7hwENNGxf0b5SSQ64bDfvX6qPJcCsxu7QGzW_U4sVu_9AUct0-vbXqB-YR9Cj&amp;ccb=10-5&amp;oh=00_AfWL6vugVS0iGRgx0zn0UVFj3A4Ux09ijJ1rqnQ_1BLp2w&amp;oe=68D64745&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_0.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_01.zip -->
+                            <execution>
+                                <id>download-refs-50k-01</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_Wr_WBbAHD8E8RSrKmNDfaBag8XY1LnOcoGosFRiEFZIOFltl0EIqBs9ABsiMXkBiEBt5rVbe4y5iu0x40UN-YgpyveqLOvKt2TI2nafA.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn85r39o9ed5RW6l7zidYJZPtD_AHdhM2rbfCwFrySrf-FeGGYEx4udxe13MDFaZham6xWIt-TZSi2i13ORrBxZ&amp;ccb=10-5&amp;oh=00_AfWJ8NPlHHOjAwxIT6lrAjAmZOeswaxr2m1IaWGUDviM5w&amp;oe=68D64689&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_01.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_02.zip -->
+                            <execution>
+                                <id>download-refs-50k-02</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_7WGYlE7jejObaK40MIcNvASAhwYG0xY_UTmhHdmK98v1kB2eo83IgMvbc4aiNBFLPdghUfJITw7U-MtjRec607x78fPeYGnWo6m3a36A.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adk6rkbwRABqVs8LDYoy2JVb-jwf9XY3PIQvEiMLPbeMJXkbccqqLqfRX3WuPEsSzSIWBLFz-BkdWO4a-0CHsX0l&amp;ccb=10-5&amp;oh=00_AfVKwP_8WeYWMETSJEL4DwvDYGgInC_Cx30d9H-qmH7f1w&amp;oe=68D64E41&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_02.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_03.zip -->
+                            <execution>
+                                <id>download-refs-50k-03</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_BK-CJQoI9DH1FpMZfmzLolWI1_XcmHlvGNv8RL7X_itivPBd2Hi9LlEY9K8voOstYE9bzeGgckF28C3kQyvPkgrn5xiS4ImFzrmMgDuI.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdmXJb8iFNGJTYsKNd26kPXEec63ALoWCtaMt_jdMxJ98ngStDQpiH4dibzoFVHVLwj2bRtZtZ9IgXz_R0-dMaRa&amp;ccb=10-5&amp;oh=00_AfULEcG6syIs-OnZhqOvIFGZ0_VbRekH_n7lP42sFUdGmA&amp;oe=68D63CD3&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_03.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_04.zip -->
+                            <execution>
+                                <id>download-refs-50k-04</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9tIZcNxFDpvP_hOoLNtVu_4_a7xjBoF7YnK2OZaFzd-A5Ozm154Djhr670nZR62YVQbrI9atn1bvv-rN_DcOwt6YuUM0ILVefAnIt27WU.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adldy2_ncyYJSjlwKtXJ4VRrMfnuPZ92uYWpNCtkqi3JQGtdTFletdsrgXKw6t5ZqZg5HN0QIZLoDuwBElpynd_f&amp;ccb=10-5&amp;oh=00_AfXQDib5eNnFpGn9pRcNYDu95HkhYU0UU0lHqTpWG8ZuLA&amp;oe=68D63E80&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_04.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_05.zip -->
+                            <execution>
+                                <id>download-refs-50k-05</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-pxjcfCiobr1nxS7h9gK-UUodgUuaoLYyH3D_d5PxO54ExfHWAuEnjyVl6J9IQrXJypFgO0ggfyyWIhA-VLDPBm4XDp6mU32ac0n_X5Y8.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdnmRs0zQ2iSa878yPVPecr9cX3EwhRnzPIUNY7YUULSVbQpvxcsMFPwxSLooZHEyeQZG1bTnMtM2PB1Go_2qHQ4&amp;ccb=10-5&amp;oh=00_AfVVp79-k43RzY8bAZG7-wSUQwDFe5fZWr0utpK0qSI_7w&amp;oe=68D630B6&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_05.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_06.zip -->
+                            <execution>
+                                <id>download-refs-50k-06</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-SGPQnsK4IefSvuO-7_4MnRBft8YSSidlp2CDwTCN5LYhvkA9L5NYIZ8Iltz7zTAQ-06mWXb-XwGncq8h1yxDvCBbhx2nTs3E7VBJaMAY.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn4F2e3iHoDaKd6NWFzb2711GT2Ic3O21L-4a6_0Kd6_ctiF5YqcsDhGAviFs1QROP76CwjG_SjhtTO8NiL1Vi3&amp;ccb=10-5&amp;oh=00_AfWrpDNcMbAzC0qfi3Nl5XgU7Xkp8LGSQvo9AAiwUz0M2w&amp;oe=68D655B3&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_06.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_07.zip -->
+                            <execution>
+                                <id>download-refs-50k-07</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An-SGPQnsK4IefSvuO-7_4MnRBft8YSSidlp2CDwTCN5LYhvkA9L5NYIZ8Iltz7zTAQ-06mWXb-XwGncq8h1yxDvCBbhx2nTs3E7VBJaMAY.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn4F2e3iHoDaKd6NWFzb2711GT2Ic3O21L-4a6_0Kd6_ctiF5YqcsDhGAviFs1QROP76CwjG_SjhtTO8NiL1Vi3&amp;ccb=10-5&amp;oh=00_AfWrpDNcMbAzC0qfi3Nl5XgU7Xkp8LGSQvo9AAiwUz0M2w&amp;oe=68D655B3&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_07.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_08.zip -->
+                            <execution>
+                                <id>download-refs-50k-08</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9JKZ53qfWPCXOIfWvDQeeV83szo3CyHPFZZIVdx8NnEBeFM-EcyJDPiQqhHXjqfAUYqUCCAtr3TV7Gw2mZFtCPcq3N-URW5ZOSaKLah3E.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adkh1s98hfonDVHMNznY6sOrTK8lOvnEDIVpH3j9k6-pCbDJc7TrP5XtAKdHOV-b1yXhTWjAqV2fRce4hMOdfOSx&amp;ccb=10-5&amp;oh=00_AfXdnoaaPRg71o8ymRNdlT_Bi5k5ick3k2jUDq_404oufQ&amp;oe=68D61DC7&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_08.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_09.zip -->
+                            <execution>
+                                <id>download-refs-50k-09</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_KPT-RcKgH7471Omw1P2EZO9YOFqu9Taee9VlzmTdzbbrR-ScnIRdSWPQ_n3K9ftHc8MQrI5dLmOvMAnuNj12_t9y6W9IZBqWud93asNw.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn7UVFdMkJ2jDxF8VICqV12MFJYcLUfygHoKdt8M_SZqpcBkR9iUcN53gr-N-D2ytFKwqc36AAQnh0zslVPJ7dB&amp;ccb=10-5&amp;oh=00_AfVcyRGF1tXAH9uyuYT-wlqiZisaetilPz59aQaSKyC7VQ&amp;oe=68D6242B&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_09.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_10.zip -->
+                            <execution>
+                                <id>download-refs-50k-10</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_J5QynSqCky32LJLm3yaCQUh7v3diyoK0Ziw0e4ELYyPrIouC_YbYPNk7d54-OskoGgdD7t3pFvfNij63csUkJwUpn8lIiHQqlOolwKAxa.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdnZhG1Z0vfo-TrRB6LSTVdjyRpBaWSb1NJeDdaSrVlbKbWiPjdWpmKA8UoX1UtjSBsc__VIPN69wTJXe7eOTgyy&amp;ccb=10-5&amp;oh=00_AfXVSS3d3X45mC9fYKuBA8t3oc3S5D89lYJQG4L38vuctw&amp;oe=68D63622&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_10.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_11.zip -->
+                            <execution>
+                                <id>download-refs-50k-11</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9HmE5IdG3f1BLhSzy6onve1VIjUNn0-7cLRHjJTtJZujlE4heVuJbrwe2gk2IwlYRb00LoxksgbiDF6oQmbT61LLjT2m-oo6ZQkeC30e5O.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adl4gnmdp4TxHFHdy3Ez2tpWeUIoL4kwJJFja4xbUf66uX1r0W3gLQ2f0Tz7dXSlxcruQGCb7uGrRlW2nNOq_cg8&amp;ccb=10-5&amp;oh=00_AfXkZnAsuc1_7tRXHNFypNyVFnoWJK7dmsv7dNqDggKSAg&amp;oe=68D649FF&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_11.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_12.zip -->
+                            <execution>
+                                <id>download-refs-50k-12</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9peGKIJR3mqkGAxf1ZKG-tTqgfyGr5k4d-0x9mBDzkaetfQDaokL2RvrHdIgn3QnVRHiaisKg9yigXQWzla2yW6Ow-hatsqvcNXugiE6vF.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkP5UqlRBKu7GJDot2fFTYd8vRho388Dr1Qgs8JU2_jb68KEP2cFqqcfC3NFUtTrfOW-smkHPRxBLm4KDhB00Az&amp;ccb=10-5&amp;oh=00_AfVsuLQSqb8-QJfmDDTlNiZRBAiFy2RtNsSgWAowXCPsuA&amp;oe=68D648C6&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_12.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_13.zip -->
+                            <execution>
+                                <id>download-refs-50k-13</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8PWol-yJUKw0jdO7oLFrIJLadCWlSyQij5bu6NnOQlrSvsRH8NzM0-Z2nVeJIkz-hz9o8vkj6QvvLmxix0GXetU36xE_bq9btTMmpy4RXF.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdlioMAf-JtiCuXV6JgbQHdLuW-jvBTd5JYbkxeJXg4Jcj_COxC7bayQlbzAG_MLxJcUwqlu7I1REM13UZShkOJf&amp;ccb=10-5&amp;oh=00_AfVdBTI_kPi3crQNa9EcRqKy-t7PJOEUskZjOZmQy-I7cA&amp;oe=68D63978&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_13.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_14.zip -->
+                            <execution>
+                                <id>download-refs-50k-14</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8oLy3MDGArAjjmOCfD--IwE3SRV0Ve721BKimAtZ1bv19UaHAj71x0veCbSZcQ5kwCFd08mbZavIJNi8uWfIuOrNYc2KZxcYkPU2-9iygS.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkMBKJ9BYOh7sM7qzaZ2ReUvplK5SqxXz2Y_mn9t_6CYmb9DF5qwDvsNZ90PRXrgmYEFSdixL7C7NVcBxXzIkhj&amp;ccb=10-5&amp;oh=00_AfVxq0vuF700M_OgAa3Mdm1Od2keMrrvszed0Bv6J1WxCg&amp;oe=68D62D1F&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_14.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_15.zip -->
+                            <execution>
+                                <id>download-refs-50k-15</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8T6HDDnTCb_FBzTeEkBH25GPc1jbFDrgP-zcDwYw6uoNZcALrFIlXS580GNbfIaslmC8EZ8eLfqUIgnqEc9TpfL98Lg55NhdUe5BL2Xmmn.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn2w_DwKimR5zBO3PO0-eQgjRIqdXu6nt0EJF2jwBFqkiGmZ8zvaJuPMQh7hQIMVVySBI5a1WH2lFgg0UsIL29l&amp;ccb=10-5&amp;oh=00_AfVQbOtFhVQQt87dl2Ik87oRNIFQm-_RhwqsAibJEiraOA&amp;oe=68D61DA8&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_15.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_16.zip -->
+                            <execution>
+                                <id>download-refs-50k-16</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9gidsv4LdQWLx987MzpUfsts0Y0mvutW6w-03tZ0tZLLG3YXm_Gj3FYE1RQKqisKvCZSRliIrlXgZoukdigR-BDgCerO9vzXR1MNBHm723.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adkr47DtM9pfQbpoM1UGQrN0fWofOA10xWtE3nY4yXIaoMhHc1UOL7OKPP3b9y75HeGnkSWU_II8NGT7AJRCNxXD&amp;ccb=10-5&amp;oh=00_AfVEeco4mmPsxa_hJOz2A90H6hBMECFKB79R233KAldLRg&amp;oe=68D64AB7&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_16.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_17.zip -->
+                            <execution>
+                                <id>download-refs-50k-17</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_lQCsxCPcyL-ZkfFtTKfC-vIJwxarSq8ZxmWzguI1eknyBJAVmyM176uR4j_k4Mof8WG9NdnLpaxv3HHtUlidUdzS3kTW9COpZ9cU24pgB.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdljagSg99RtaQivSGmGn3wX9bLplEOAo0xe88Ls0Kq302kAYXwZB1tK8QG4mj1e7tlUosNY2D55GykbpxL0GeDK&amp;ccb=10-5&amp;oh=00_AfW1nEx-nl2oz3q29cZ-48kHS56YCvanxAFbkkImOpqm8A&amp;oe=68D63833&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_17.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_18.zip -->
+                            <execution>
+                                <id>download-refs-50k-18</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8wbmDUcR02PiforPMK51geWyo8w-Z1Xb9HJUhY40l0lpoDHZoGcTe58hK__l5EdMfhQZFA60ExsHi05bVG6cv_kpz7wIb3DgZWpgMj3mYC.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adnx8mr-Oo7edbj0LclpAChenHN8sU-9eJY-K2ifoN0YlQdeZ991NuGfg7i1gUiXn8xeyAiksXaC1GinLXT40fQ-&amp;ccb=10-5&amp;oh=00_AfU2-23GgQviILFK6NsPkadadq2FU6-GfzYqVfSKuBNhEw&amp;oe=68D6463A&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_18.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download refs_50k_19.zip -->
+                            <execution>
+                                <id>download-refs-50k-19</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An8eobQmHvBmwm-WngSd9s8YZN4zrrBbVTEM-oHxPf-6WPqM70ULgUdKb1M-g0Ee3CEWOxOEu8A-dWzr9Tq6vO7uGoyk_yJli2NlK5dN8sYT.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adm1GrkVfuTrlM1mqIbU6eObNN0a_ki-L6xjIm6jzZQfFWxxaWdCD9_GrsGxkj_DOasYFTGBPxGahn9tEq-eBhuD&amp;ccb=10-5&amp;oh=00_AfVOygTiCWAZBjy8OLtTEWYo6GqxrvWSF9Ux8_XHo026Mg&amp;oe=68D6478B&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>refs_50k_19.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download train_50k_0.zip -->
+                            <execution>
+                                <id>download-train-50k-0</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An9Bmbe9vm85YAuM2kVgHyVfjBCwSkZIGIBHD4jmgNl-5sanAWdX6zHqD52QOqHuvDsaQpYvD-sr8vgH2MGWiCcX__B6rr2-kVEK24UniHa5dQ.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdkonPqoSVBQVlz6R_bIPTpuZoUn4JDSu94zgY2QdlzyCbdpk-mH4QgpLcHw0l9giAFp3gS88IFwHLF94T19TOLk&amp;ccb=10-5&amp;oh=00_AfXdvXxnhdgj_hwaKJPFrt4Wd1fVlul-4-vlKvKGtcHUjA&amp;oe=68D63ED4&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>train_50k_0.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                            
+                            <!-- Download train_50k_1.zip -->
+                            <execution>
+                                <id>download-train-50k-1</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <configuration>
+                                    <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An81t51hFtVuUh1wzRrfqAGrhe1Q8HGpqioAGA-5nI8sZ9wzsjRlpLGkAUasTL7ItTWgUmMdWrteioJniDsDdNDRJUENqiOz94WKd0kGCbeIcQ.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=AdnHfoJymaY3H6NJ_AlXhzPNxCyDiGzR7B-PaQkTdLOhkklC4tCLUO5fqmxKYJ-WhufyBvDsRV39KS0dfVng-1nB&amp;ccb=10-5&amp;oh=00_AfXwrDGg4hylOEhy9evg5YTGzMHT9cVs9a8--k4r27szcQ&amp;oe=68D653AD&amp;_nc_sid=e9ffdc</url>
+                                    <outputFileName>train_50k_1.zip</outputFileName>
+                                    <outputDirectory>${project.basedir}/dataset</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    </plugins>
+                </build>
+            </profile>
     </profiles>
 
     <licenses>
