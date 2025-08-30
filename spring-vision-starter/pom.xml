@@ -24,12 +24,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Spring Vision Autoconfigure -->
-        <dependency>
-            <groupId>com.springvision</groupId>
-            <artifactId>spring-vision-autoconfigure</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <!-- Spring Boot Web Starter -->
         <dependency>

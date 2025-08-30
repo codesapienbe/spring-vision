@@ -35,23 +35,14 @@ public interface FaceEmbeddingIndex {
      * @param embeddings list of photo ID and embedding pairs
      * @throws IllegalArgumentException if any embedding is invalid
      */
-    void addEmbeddings(List<EmbeddingEntry> embeddings);
+    void addEmbeddingsBatch(List<EmbeddingEntry> embeddings);
     
     /**
-     * Build or rebuild the search index from added embeddings.
-     * Must be called after adding embeddings and before searching.
-     * This operation may take significant time for large datasets.
+     * Remove an embedding from the index.
      * 
-     * @throws RuntimeException if index building fails
+     * @param photoId identifier of the embedding to remove
      */
-    void buildIndex();
-    
-    /**
-     * Build the index asynchronously.
-     * 
-     * @return CompletableFuture that completes when index building is done
-     */
-    CompletableFuture<Void> buildIndexAsync();
+    void removeEmbedding(String photoId);
     
     /**
      * Search for similar face embeddings.
@@ -60,7 +51,7 @@ public interface FaceEmbeddingIndex {
      * @param topK number of top similar results to return
      * @return list of search results ordered by similarity (best first)
      * @throws IllegalArgumentException if queryEmbedding is null/invalid or topK <= 0
-     * @throws IllegalStateException if index is not built
+     * @throws IllegalStateException if index is not ready
      */
     List<SearchResult> search(float[] queryEmbedding, int topK);
     
@@ -88,7 +79,7 @@ public interface FaceEmbeddingIndex {
      * 
      * @param indexPath path where to save the index
      * @throws RuntimeException if saving fails
-     * @throws IllegalStateException if index is not built
+     * @throws IllegalStateException if index is not ready
      */
     void saveIndex(Path indexPath);
     
@@ -102,12 +93,15 @@ public interface FaceEmbeddingIndex {
     void loadIndex(Path indexPath);
     
     /**
-     * Remove an embedding from the index.
-     * 
-     * @param photoId identifier of the embedding to remove
-     * @return true if the embedding was found and removed, false otherwise
+     * Clear all embeddings from the index.
      */
-    boolean removeEmbedding(String photoId);
+    void clear();
+    
+    /**
+     * Rebuild the index from existing embeddings.
+     * Must be called after adding embeddings and before searching.
+     */
+    void rebuild();
     
     /**
      * Get the number of embeddings in the index.
@@ -117,16 +111,9 @@ public interface FaceEmbeddingIndex {
     long size();
     
     /**
-     * Get the dimension of embeddings supported by this index.
-     * 
-     * @return embedding vector dimension (e.g., 512 for ArcFace)
-     */
-    int getEmbeddingDimension();
-    
-    /**
      * Check if the index is ready for searching.
      * 
-     * @return true if index is built and ready for queries
+     * @return true if index is ready for queries
      */
     boolean isReady();
     
@@ -136,11 +123,6 @@ public interface FaceEmbeddingIndex {
      * @return statistics object with performance metrics
      */
     IndexStatistics getStatistics();
-    
-    /**
-     * Clear all embeddings from the index.
-     */
-    void clear();
     
     /**
      * Close the index and release resources.
@@ -164,7 +146,7 @@ public interface FaceEmbeddingIndex {
     /**
      * Represents a search result with similarity information.
      */
-    record SearchResult(String photoId, double distance, double similarity) implements Comparable<SearchResult> {
+    record SearchResult(String photoId, double similarity, double distance) implements Comparable<SearchResult> {
         
         public SearchResult {
             if (photoId == null) {
@@ -195,7 +177,7 @@ public interface FaceEmbeddingIndex {
          */
         public static SearchResult fromCosineDistance(String photoId, double cosineDistance) {
             double similarity = Math.max(0.0, 1.0 - cosineDistance / 2.0);
-            return new SearchResult(photoId, cosineDistance, similarity);
+            return new SearchResult(photoId, similarity, cosineDistance);
         }
         
         /**
@@ -208,7 +190,7 @@ public interface FaceEmbeddingIndex {
          */
         public static SearchResult fromEuclideanDistance(String photoId, double euclideanDistance) {
             double similarity = Math.max(0.0, 1.0 - euclideanDistance / 2.0);
-            return new SearchResult(photoId, euclideanDistance, similarity);
+            return new SearchResult(photoId, similarity, euclideanDistance);
         }
     }
     
@@ -219,8 +201,9 @@ public interface FaceEmbeddingIndex {
         long totalEmbeddings,
         int embeddingDimension,
         long memoryUsageBytes,
-        long buildTimeMillis,
         double averageQueryTimeMillis,
-        long totalQueries
+        long totalQueries,
+        boolean built,
+        boolean ready
     ) {}
 } 

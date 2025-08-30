@@ -41,6 +41,13 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Spring Boot Actuator for health indicators -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Spring WebFlux for reactive HTTP client -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

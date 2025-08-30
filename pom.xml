@@ -45,7 +45,6 @@
 
     <modules>
         <module>spring-vision-core</module>
-        <module>spring-vision-autoconfigure</module>
         <module>spring-vision-starter</module>
         <module>spring-vision-facebytes</module>
         <module>spring-vision-examples</module>

@@ -104,7 +104,7 @@ public class FaceDatabaseBuilder {
                 
                 // Build the final index
                 logger.info("Building face embedding index...");
-                embeddingIndex.buildIndex();
+                embeddingIndex.rebuild();
                 
                 long processingTime = System.currentTimeMillis() - startTime;
                 
@@ -243,7 +243,7 @@ public class FaceDatabaseBuilder {
             float[] embedding = embeddings.get(i);
             
             // Assess quality
-            double qualityScore = qualityAssessor.assessQuality(detection, imageData);
+            double qualityScore = qualityAssessor.assessQuality(detection);
             
             if (qualityScore >= config.minQualityThreshold()) {
                 // Create photo ID from file path and face index
@@ -263,7 +263,7 @@ public class FaceDatabaseBuilder {
         
         // Add embeddings to index
         if (!qualityEmbeddings.isEmpty()) {
-            embeddingIndex.addEmbeddings(qualityEmbeddings);
+            embeddingIndex.addEmbeddingsBatch(qualityEmbeddings);
             facesExtracted.addAndGet(qualityEmbeddings.size());
         }
     }

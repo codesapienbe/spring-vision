@@ -1,0 +1,2 @@
+com.springvision.core.config.VisionAutoConfiguration
+com.springvision.core.config.FaceRecognitionAutoConfiguration 
