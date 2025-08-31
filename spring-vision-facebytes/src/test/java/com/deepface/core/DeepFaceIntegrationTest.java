@@ -221,10 +221,23 @@ class DeepFaceIntegrationTest {
         g2d.setColor(backgroundColor);
         g2d.fillRect(0, 0, 200, 200);
         
-        // Add text
+        // Create a simple face-like pattern (oval with eyes and mouth)
+        g2d.setColor(new Color(255, 220, 177)); // Skin tone
+        g2d.fillOval(50, 30, 100, 120); // Face oval
+        
+        // Eyes
+        g2d.setColor(Color.BLACK);
+        g2d.fillOval(70, 60, 15, 15); // Left eye
+        g2d.fillOval(115, 60, 15, 15); // Right eye
+        
+        // Mouth
+        g2d.setColor(Color.RED);
+        g2d.fillOval(85, 100, 30, 20); // Mouth
+        
+        // Add text label
         g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.BOLD, 16));
-        g2d.drawString(text, 50, 100);
+        g2d.setFont(new Font("Arial", Font.BOLD, 12));
+        g2d.drawString(text, 70, 180);
         
         g2d.dispose();
         

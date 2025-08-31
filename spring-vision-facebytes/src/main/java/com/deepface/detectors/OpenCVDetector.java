@@ -25,7 +25,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 
 public final class OpenCVDetector implements FaceDetector {
 
-    private static final String CASCADE_CLASSPATH = "/haarcascade_frontalface_default.xml";
+    private static final String CASCADE_CLASSPATH = "/models/haarcascades/haarcascade_frontalface_default.xml";
+    private static final String CASCADE_GENERATED = "models/haarcascades/haarcascade_frontalface_default.xml";
     private static final String CASCADE_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml";
 
@@ -75,8 +76,18 @@ public final class OpenCVDetector implements FaceDetector {
                 return tmp.toAbsolutePath().toString();
             }
         } catch (IOException ignored) {}
+        
+        // 2) Try generated resources
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(CASCADE_GENERATED)) {
+            if (is != null) {
+                Path tmp = Files.createTempFile("haarcascade", ".xml");
+                Files.copy(is, tmp, StandardCopyOption.REPLACE_EXISTING);
+                tmp.toFile().deleteOnExit();
+                return tmp.toAbsolutePath().toString();
+            }
+        } catch (IOException ignored) {}
 
-        // 2) Cache in user home
+        // 3) Cache in user home
         try {
             Path cacheDir = Path.of(System.getProperty("user.home", "."), ".spring-vision", "facebytes", "models");
             Files.createDirectories(cacheDir);

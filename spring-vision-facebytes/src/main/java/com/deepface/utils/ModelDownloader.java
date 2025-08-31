@@ -1,6 +1,7 @@
 package com.deepface.utils;
 
 import com.deepface.exceptions.DeepFaceException;
+import com.deepface.enums.ModelType;
 import com.deepface.utils.Logs;
 
 import java.io.File;
@@ -279,14 +280,5 @@ public final class ModelDownloader {
      */
     public static String getCacheDirectory() {
         return CACHE_DIR;
-    }
-
-    /**
-     * Enum for supported model types.
-     */
-    public enum ModelType {
-        VGG_FACE,
-        ARCFACE,
-        FACENET
     }
 } 

@@ -73,6 +73,29 @@
                     <release>21</release>
                 </configuration>
             </plugin>
+            
+            <!-- Download Haar cascade classifier at build time -->
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <executions>
+                    <execution>
+                        <id>download-haar-face</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml</url>
+                            <outputDirectory>${project.build.directory}/generated-resources/models/haarcascades</outputDirectory>
+                            <outputFileName>haarcascade_frontalface_default.xml</outputFileName>
+                            <skipCache>true</skipCache>
+                            <overwrite>false</overwrite>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
