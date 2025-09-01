@@ -1,5 +1,6 @@
 package com.deepface.detectors;
 
+import com.deepface.core.FaceRegion;
 import com.deepface.enums.DetectorBackend;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;

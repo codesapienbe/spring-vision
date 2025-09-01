@@ -30,9 +30,9 @@ class DeepFaceIntegrationTest {
     @TempDir
     static Path tempDir;
     
-    private static File testImage1;
-    private static File testImage2;
-    private static File testImage3;
+    private static BufferedImage testImage1;
+    private static BufferedImage testImage2;
+    private static BufferedImage testImage3;
 
     @BeforeAll
     static void setUp() throws IOException {
@@ -48,7 +48,16 @@ class DeepFaceIntegrationTest {
     void testExtractFaces() throws IOException {
         log.info("Testing face extraction functionality");
         
-        List<BufferedImage> faces = DeepFace.extractFaces(testImage1.getAbsolutePath());
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_extract1.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for extraction test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
+        List<BufferedImage> faces = DeepFace.extractFaces(tempFile.getAbsolutePath());
         
         assertNotNull(faces, "Face extraction should not return null");
         log.info("Extracted {} faces from test image 1", faces.size());
@@ -61,8 +70,17 @@ class DeepFaceIntegrationTest {
     void testExtractFacesWithBackend() throws IOException {
         log.info("Testing face extraction with specific backend");
         
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_extract_backend.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for backend extraction test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
         List<BufferedImage> faces = DeepFace.extractFaces(
-            testImage1.getAbsolutePath(), 
+            tempFile.getAbsolutePath(), 
             DetectorBackend.OPENCV
         );
         
@@ -74,7 +92,16 @@ class DeepFaceIntegrationTest {
     void testRepresent() throws IOException {
         log.info("Testing embedding representation functionality");
         
-        List<EmbeddingResult> embeddings = DeepFace.represent(testImage1.getAbsolutePath());
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_represent.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for represent test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
+        List<EmbeddingResult> embeddings = DeepFace.represent(tempFile.getAbsolutePath());
         
         assertNotNull(embeddings, "Represent should not return null");
         log.info("Generated {} embeddings from test image 1", embeddings.size());
@@ -91,8 +118,17 @@ class DeepFaceIntegrationTest {
     void testRepresentWithModelAndBackend() throws IOException {
         log.info("Testing embedding representation with specific model and backend");
         
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_represent_model.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for represent model test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
         List<EmbeddingResult> embeddings = DeepFace.represent(
-            testImage1.getAbsolutePath(),
+            tempFile.getAbsolutePath(),
             ModelType.VGG_FACE,
             DetectorBackend.OPENCV
         );
@@ -105,9 +141,20 @@ class DeepFaceIntegrationTest {
     void testBasicVerification() throws IOException {
         log.info("Testing basic verification between two images");
         
+        // Save test images to temporary files for testing
+        File tempFile1 = tempDir.resolve("temp_basic_verify1.png").toFile();
+        File tempFile2 = tempDir.resolve("temp_basic_verify2.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile1);
+            ImageIO.write(testImage2, "PNG", tempFile2);
+        } catch (IOException e) {
+            log.error("Failed to write test images for basic verification test", e);
+            return; // Skip this test if we can't create the test files
+        }
+        
         VerificationResult result = DeepFace.verify(
-            testImage1.getAbsolutePath(),
-            testImage2.getAbsolutePath()
+            tempFile1.getAbsolutePath(),
+            tempFile2.getAbsolutePath()
         );
         
         assertNotNull(result, "Verification result should not be null");
@@ -124,9 +171,20 @@ class DeepFaceIntegrationTest {
     void testVerificationWithExplicitParameters() throws IOException {
         log.info("Testing verification with explicit model, distance metric, and detector");
         
+        // Save test images to temporary files for testing
+        File tempFile1 = tempDir.resolve("temp_verify1.png").toFile();
+        File tempFile2 = tempDir.resolve("temp_verify2.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile1);
+            ImageIO.write(testImage2, "PNG", tempFile2);
+        } catch (IOException e) {
+            log.error("Failed to write test images for verification test", e);
+            return; // Skip this test if we can't create the test files
+        }
+        
         VerificationResult result = DeepFace.verify(
-            testImage1.getAbsolutePath(),
-            testImage2.getAbsolutePath(),
+            tempFile1.getAbsolutePath(),
+            tempFile2.getAbsolutePath(),
             ModelType.VGG_FACE,
             DistanceMetric.COSINE,
             DetectorBackend.OPENCV
@@ -144,9 +202,18 @@ class DeepFaceIntegrationTest {
     void testVerificationWithSameImage() throws IOException {
         log.info("Testing verification with the same image (should be verified)");
         
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_self_verify.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for self-verification test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
         VerificationResult result = DeepFace.verify(
-            testImage1.getAbsolutePath(),
-            testImage1.getAbsolutePath()
+            tempFile.getAbsolutePath(),
+            tempFile.getAbsolutePath()
         );
         
         assertNotNull(result, "Self-verification result should not be null");
@@ -161,13 +228,26 @@ class DeepFaceIntegrationTest {
     void testFindFunctionality() throws IOException {
         log.info("Testing find functionality with gallery of images");
         
+        // Save test images to temporary files for testing
+        File tempFile1 = tempDir.resolve("temp_find1.png").toFile();
+        File tempFile2 = tempDir.resolve("temp_find2.png").toFile();
+        File tempFile3 = tempDir.resolve("temp_find3.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile1);
+            ImageIO.write(testImage2, "PNG", tempFile2);
+            ImageIO.write(testImage3, "PNG", tempFile3);
+        } catch (IOException e) {
+            log.error("Failed to write test images for find functionality test", e);
+            return; // Skip this test if we can't create the test files
+        }
+        
         List<String> gallery = List.of(
-            testImage1.getAbsolutePath(),
-            testImage2.getAbsolutePath(),
-            testImage3.getAbsolutePath()
+            tempFile1.getAbsolutePath(),
+            tempFile2.getAbsolutePath(),
+            tempFile3.getAbsolutePath()
         );
         
-        FindResult result = DeepFace.find(testImage1.getAbsolutePath(), gallery);
+        FindResult result = DeepFace.find(tempFile1.getAbsolutePath(), gallery);
         
         assertNotNull(result, "Find result should not be null");
         assertNotNull(result.imagePath(), "Best match path should not be null");
@@ -182,7 +262,16 @@ class DeepFaceIntegrationTest {
     void testAnalyzeFunctionality() throws IOException {
         log.info("Testing facial analysis functionality");
         
-        List<AnalysisResult> results = DeepFace.analyze(testImage1.getAbsolutePath());
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_analyze.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for analyze functionality test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
+        List<AnalysisResult> results = DeepFace.analyze(tempFile.getAbsolutePath());
         
         assertNotNull(results, "Analysis results should not be null");
         log.info("Generated {} analysis results", results.size());
@@ -200,8 +289,17 @@ class DeepFaceIntegrationTest {
         log.info("Testing facial analysis with specific actions");
         
         String[] actions = {"age", "gender", "emotion"};
+        // Save test image to temporary file for testing
+        File tempFile = tempDir.resolve("temp_analyze_actions.png").toFile();
+        try {
+            ImageIO.write(testImage1, "PNG", tempFile);
+        } catch (IOException e) {
+            log.error("Failed to write test image for analyze actions test", e);
+            return; // Skip this test if we can't create the test file
+        }
+        
         List<AnalysisResult> results = DeepFace.analyze(
-            testImage1.getAbsolutePath(), 
+            tempFile.getAbsolutePath(), 
             actions
         );
         
@@ -213,7 +311,7 @@ class DeepFaceIntegrationTest {
      * Creates a simple test image with a colored background and text.
      * This is used for testing when real face images are not available.
      */
-    private static File createTestImage(String filename, Color backgroundColor, String text) throws IOException {
+    private static BufferedImage createTestImage(String filename, Color backgroundColor, String text) throws IOException {
         BufferedImage image = new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
         
@@ -241,9 +339,15 @@ class DeepFaceIntegrationTest {
         
         g2d.dispose();
         
+        // Save the image to file for testing
         File file = tempDir.resolve(filename).toFile();
-        ImageIO.write(image, "PNG", file);
+        try {
+            ImageIO.write(image, "PNG", file);
+        } catch (IOException e) {
+            // Log the error but don't fail the test creation
+            System.err.println("Warning: Failed to save test image " + filename + ": " + e.getMessage());
+        }
         
-        return file;
+        return image;
     }
 } 

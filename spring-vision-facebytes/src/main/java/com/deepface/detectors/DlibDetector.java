@@ -70,7 +70,6 @@ public final class DlibDetector implements FaceDetector {
 
             // Detect faces using HOG
             RectVector faces = new RectVector();
-            double[] weights = new double[0];
             
             // Use HOG detection with optimized parameters
             hogDetector.detectMultiScale(gray, faces, HIT_THRESHOLD, WIN_STRIDE, PADDING, SCALE, FINAL_THRESHOLD, false);
@@ -78,7 +77,7 @@ public final class DlibDetector implements FaceDetector {
             List<FaceRegion> detectedFaces = new ArrayList<>();
             for (long i = 0; i < faces.size(); i++) {
                 Rect rect = faces.get(i);
-                double confidence = weights.length > i ? weights[(int) i] : 0.8; // Default confidence if weights unavailable
+                double confidence = 0.8; // Default confidence for HOG detection
                 
                 // Filter by minimum face size and confidence
                 if (rect.width() >= 20 && rect.height() >= 20 && confidence > 0.5) {
@@ -118,14 +117,13 @@ public final class DlibDetector implements FaceDetector {
             equalizeHist(gray, gray);
 
             RectVector faces = new RectVector();
-            double[] weights = new double[0];
             
             hogDetector.detectMultiScale(gray, faces, HIT_THRESHOLD, WIN_STRIDE, PADDING, scale, threshold, false);
 
             List<FaceRegion> detectedFaces = new ArrayList<>();
             for (long i = 0; i < faces.size(); i++) {
                 Rect rect = faces.get(i);
-                double confidence = weights.length > i ? weights[(int) i] : 0.8;
+                double confidence = 0.8; // Default confidence for HOG detection
                 
                 if (rect.width() >= 20 && rect.height() >= 20 && confidence > threshold) {
                     detectedFaces.add(new FaceRegion(

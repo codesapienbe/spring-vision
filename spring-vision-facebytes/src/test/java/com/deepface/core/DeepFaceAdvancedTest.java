@@ -35,10 +35,10 @@ class DeepFaceAdvancedTest {
     @TempDir
     static Path tempDir;
     
-    private static File testImage1;
-    private static File testImage2;
-    private static File testImage3;
-    private static File testImage4;
+    private static BufferedImage testImage1;
+    private static BufferedImage testImage2;
+    private static BufferedImage testImage3;
+    private static BufferedImage testImage4;
 
     @BeforeAll
     static void setUp() throws IOException {
@@ -61,13 +61,22 @@ class DeepFaceAdvancedTest {
             log.info("Testing detector backend: {}", backend);
             
             try {
+                // Save the test image to a temporary file for testing
+                File tempFile = tempDir.resolve("temp_" + backend.name().toLowerCase() + ".png").toFile();
+                try {
+                    ImageIO.write(testImage1, "PNG", tempFile);
+                } catch (IOException e) {
+                    log.error("Failed to write test image for backend {}", backend, e);
+                    continue; // Skip this backend if we can't create the test file
+                }
+                
                 // Test face extraction with specific backend
-                List<BufferedImage> faces = DeepFace.extractFaces(testImage1.getAbsolutePath(), backend);
+                List<BufferedImage> faces = DeepFace.extractFaces(tempFile.getAbsolutePath(), backend);
                 assertNotNull(faces, "Face extraction with " + backend + " should not return null");
                 log.info("Backend {} extracted {} faces", backend, faces.size());
                 
                 // Test embedding generation with specific backend
-                List<EmbeddingResult> embeddings = DeepFace.represent(testImage1.getAbsolutePath(), backend);
+                List<EmbeddingResult> embeddings = DeepFace.represent(tempFile.getAbsolutePath(), backend);
                 assertNotNull(embeddings, "Embedding generation with " + backend + " should not return null");
                 log.info("Backend {} generated {} embeddings", backend, embeddings.size());
                 
@@ -92,8 +101,17 @@ class DeepFaceAdvancedTest {
             log.info("Testing model type: {}", model);
             
             try {
+                // Save the test image to a temporary file for testing
+                File tempFile = tempDir.resolve("temp_model_" + model.name().toLowerCase() + ".png").toFile();
+                try {
+                    ImageIO.write(testImage1, "PNG", tempFile);
+                } catch (IOException e) {
+                    log.error("Failed to write test image for model {}", model, e);
+                    continue; // Skip this model if we can't create the test file
+                }
+                
                 List<EmbeddingResult> embeddings = DeepFace.represent(
-                    testImage1.getAbsolutePath(), model, backend);
+                    tempFile.getAbsolutePath(), model, backend);
                 
                 assertNotNull(embeddings, "Embedding generation with " + model + " should not return null");
                 log.info("Model {} generated {} embeddings", model, embeddings.size());
@@ -127,9 +145,20 @@ class DeepFaceAdvancedTest {
             log.info("Testing distance metric: {}", metric);
             
             try {
+                // Save test images to temporary files for testing
+                File tempFile1 = tempDir.resolve("temp_verify1_" + metric.name().toLowerCase() + ".png").toFile();
+                File tempFile2 = tempDir.resolve("temp_verify2_" + metric.name().toLowerCase() + ".png").toFile();
+                try {
+                    ImageIO.write(testImage1, "PNG", tempFile1);
+                    ImageIO.write(testImage2, "PNG", tempFile2);
+                } catch (IOException e) {
+                    log.error("Failed to write test images for metric {}", metric, e);
+                    continue; // Skip this metric if we can't create the test files
+                }
+                
                 VerificationResult result = DeepFace.verify(
-                    testImage1.getAbsolutePath(), 
-                    testImage2.getAbsolutePath(), 
+                    tempFile1.getAbsolutePath(), 
+                    tempFile2.getAbsolutePath(), 
                     model, metric, backend);
                 
                 assertNotNull(result, "Verification with " + metric + " should not return null");
@@ -165,11 +194,20 @@ class DeepFaceAdvancedTest {
                 log.info("Testing compatibility between {} and {}", backend1, backend2);
                 
                 try {
+                    // Save test image to temporary file for testing
+                    File tempFile = tempDir.resolve("temp_cross_" + backend1.name().toLowerCase() + "_" + backend2.name().toLowerCase() + ".png").toFile();
+                    try {
+                        ImageIO.write(testImage1, "PNG", tempFile);
+                    } catch (IOException e) {
+                        log.error("Failed to write test image for cross-backend test", e);
+                        continue; // Skip this test if we can't create the test file
+                    }
+                    
                     // Extract faces with first backend
-                    List<BufferedImage> faces1 = DeepFace.extractFaces(testImage1.getAbsolutePath(), backend1);
+                    List<BufferedImage> faces1 = DeepFace.extractFaces(tempFile.getAbsolutePath(), backend1);
                     
                     // Extract faces with second backend
-                    List<BufferedImage> faces2 = DeepFace.extractFaces(testImage1.getAbsolutePath(), backend2);
+                    List<BufferedImage> faces2 = DeepFace.extractFaces(tempFile.getAbsolutePath(), backend2);
                     
                     // Both should return valid results
                     assertNotNull(faces1, "Backend " + backend1 + " should return valid results");
@@ -192,11 +230,28 @@ class DeepFaceAdvancedTest {
     void testBatchProcessing() {
         log.info("Testing batch processing capabilities");
         
+        // Create temporary files for batch processing
+        File[] tempFiles = new File[4];
+        tempFiles[0] = tempDir.resolve("temp_batch1.png").toFile();
+        tempFiles[1] = tempDir.resolve("temp_batch2.png").toFile();
+        tempFiles[2] = tempDir.resolve("temp_batch3.png").toFile();
+        tempFiles[3] = tempDir.resolve("temp_batch4.png").toFile();
+        
+        try {
+            ImageIO.write(testImage1, "PNG", tempFiles[0]);
+            ImageIO.write(testImage2, "PNG", tempFiles[1]);
+            ImageIO.write(testImage3, "PNG", tempFiles[2]);
+            ImageIO.write(testImage4, "PNG", tempFiles[3]);
+        } catch (IOException e) {
+            log.error("Failed to write test images for batch processing", e);
+            throw new RuntimeException("Failed to create test images for batch processing", e);
+        }
+        
         String[] imagePaths = {
-            testImage1.getAbsolutePath(),
-            testImage2.getAbsolutePath(),
-            testImage3.getAbsolutePath(),
-            testImage4.getAbsolutePath()
+            tempFiles[0].getAbsolutePath(),
+            tempFiles[1].getAbsolutePath(),
+            tempFiles[2].getAbsolutePath(),
+            tempFiles[3].getAbsolutePath()
         };
         
         // Test batch face extraction
@@ -232,13 +287,22 @@ class DeepFaceAdvancedTest {
                 log.info("Benchmarking {} + {} configuration", backend, model);
                 
                 try {
+                    // Save test image to temporary file for testing
+                    File tempFile = tempDir.resolve("temp_benchmark_" + backend.name().toLowerCase() + "_" + model.name().toLowerCase() + ".png").toFile();
+                    try {
+                        ImageIO.write(testImage1, "PNG", tempFile);
+                    } catch (IOException e) {
+                        log.error("Failed to write test image for benchmark", e);
+                        continue; // Skip this configuration if we can't create the test file
+                    }
+                    
                     // Warm up
-                    DeepFace.represent(testImage1.getAbsolutePath(), model, backend);
+                    DeepFace.represent(tempFile.getAbsolutePath(), model, backend);
                     
                     // Measure performance
                     long startTime = System.nanoTime();
                     List<EmbeddingResult> embeddings = DeepFace.represent(
-                        testImage1.getAbsolutePath(), model, backend);
+                        tempFile.getAbsolutePath(), model, backend);
                     long endTime = System.nanoTime();
                     
                     long durationMs = (endTime - startTime) / 1_000_000;
@@ -288,7 +352,12 @@ class DeepFaceAdvancedTest {
             // Create a very small image that might cause issues
             BufferedImage smallImage = new BufferedImage(5, 5, BufferedImage.TYPE_INT_RGB);
             File smallImageFile = tempDir.resolve("small.png").toFile();
-            ImageIO.write(smallImage, "PNG", smallImageFile);
+            try {
+                ImageIO.write(smallImage, "PNG", smallImageFile);
+            } catch (IOException e) {
+                log.error("Failed to write small test image", e);
+                return; // Skip this test if we can't create the test file
+            }
             
             List<BufferedImage> faces = DeepFace.extractFaces(smallImageFile.getAbsolutePath());
             assertNotNull(faces, "Small image should be handled gracefully");
@@ -315,7 +384,12 @@ class DeepFaceAdvancedTest {
                 BufferedImage testImage = createTestImage("size_test_" + size + ".png", 
                     Color.ORANGE, "Size Test " + size, size, size);
                 File testFile = tempDir.resolve("size_test_" + size + ".png").toFile();
-                ImageIO.write(testImage, "PNG", testFile);
+                try {
+                    ImageIO.write(testImage, "PNG", testFile);
+                } catch (IOException e) {
+                    log.error("Failed to write test image for size {}x{}", size, size, e);
+                    continue; // Skip this size if we can't create the test file
+                }
                 
                 List<BufferedImage> faces = DeepFace.extractFaces(testFile.getAbsolutePath());
                 assertNotNull(faces, "Face extraction should work for size " + size);
@@ -335,7 +409,12 @@ class DeepFaceAdvancedTest {
             g.dispose();
             
             File grayFile = tempDir.resolve("gray_test.png").toFile();
-            ImageIO.write(grayImage, "PNG", grayFile);
+            try {
+                ImageIO.write(grayImage, "PNG", grayFile);
+            } catch (IOException e) {
+                log.error("Failed to write grayscale test image", e);
+                return; // Skip this test if we can't create the test file
+            }
             
             List<BufferedImage> faces = DeepFace.extractFaces(grayFile.getAbsolutePath());
             assertNotNull(faces, "Grayscale image should be handled");
@@ -351,7 +430,7 @@ class DeepFaceAdvancedTest {
     /**
      * Create a test image with specified characteristics
      */
-    private static File createTestImage(String filename, Color color, String label, int width, int height) 
+    private static BufferedImage createTestImage(String filename, Color color, String label, int width, int height) 
             throws IOException {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
@@ -374,8 +453,15 @@ class DeepFaceAdvancedTest {
         
         g.dispose();
         
+        // Save the image to file for testing
         File file = tempDir.resolve(filename).toFile();
-        ImageIO.write(image, "PNG", file);
-        return file;
+        try {
+            ImageIO.write(image, "PNG", file);
+        } catch (IOException e) {
+            // Log the error but don't fail the test creation
+            System.err.println("Warning: Failed to save test image " + filename + ": " + e.getMessage());
+        }
+        
+        return image;
     }
 } 
