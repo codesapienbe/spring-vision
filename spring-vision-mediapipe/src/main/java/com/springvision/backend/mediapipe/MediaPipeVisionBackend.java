@@ -59,6 +59,10 @@ public class MediaPipeVisionBackend implements VisionBackend {
         "pose_landmarker_lite.task", new ModelInfo(
             "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
             "sha256:6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
+        ),
+        "efficientdet_lite0.tflite", new ModelInfo(
+            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+            "sha256:5d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
         )
     );
     
@@ -78,6 +82,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
     private Class<?> faceDetectorClass;
     private Class<?> handLandmarkerClass;
     private Class<?> poseLandmarkerClass;
+    private Class<?> objectDetectorClass;
     
     // Task instances (thread-safe with object pooling)
     private final Map<String, ObjectPool<Object>> taskPools = new ConcurrentHashMap<>();
@@ -109,7 +114,7 @@ public class MediaPipeVisionBackend implements VisionBackend {
     
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
-        return Set.of(DetectionType.FACE, DetectionType.HAND, DetectionType.POSE);
+        return Set.of(DetectionType.FACE, DetectionType.HAND, DetectionType.POSE, DetectionType.OBJECT);
     }
     
     @Override
@@ -228,13 +233,18 @@ public class MediaPipeVisionBackend implements VisionBackend {
     }
     
     /**
-     * Detects objects in the image (placeholder for future implementation).
+     * Detects objects in the image using MediaPipe Object Detector.
      */
     private List<Detection> detectObjects(ImageData imageData, DetectionQuery query, String correlationId) 
             throws Exception {
         
-        logger.warn("Object detection not yet implemented in MediaPipe backend: correlationId={}", correlationId);
-        return Collections.emptyList();
+        Object objectDetector = getOrCreateTaskInstance("objectDetector", this::createObjectDetector);
+        Object mpImage = createMPImage(imageData.data());
+        
+        logger.debug("Invoking object detection: correlationId={}, backend=mediapipe", correlationId);
+        
+        Object result = invokeMethod(objectDetector, "detect", mpImage);
+        return mapObjectDetectorResult(result, query);
     }
     
     /**
@@ -294,6 +304,20 @@ public class MediaPipeVisionBackend implements VisionBackend {
         Object options = createPoseLandmarkerOptions(baseOptions);
         
         return poseLandmarkerClass.getConstructor(options.getClass()).newInstance(options);
+    }
+
+    /**
+     * Creates a MediaPipe Object Detector instance.
+     */
+    private Object createObjectDetector() throws Exception {
+        if (objectDetectorClass == null) {
+            objectDetectorClass = Class.forName("com.google.mediapipe.tasks.vision.objectdetector.ObjectDetector");
+        }
+        
+        Object baseOptions = createBaseOptions("efficientdet_lite0.tflite");
+        Object options = createObjectDetectorOptions(baseOptions);
+        
+        return objectDetectorClass.getConstructor(options.getClass()).newInstance(options);
     }
     
     /**
@@ -447,6 +471,62 @@ public class MediaPipeVisionBackend implements VisionBackend {
             ));
         }
         
+        return detections;
+    }
+
+    /**
+     * Maps MediaPipe ObjectDetector result to Spring Vision Detection objects.
+     */
+    private List<Detection> mapObjectDetectorResult(Object result, DetectionQuery query) throws Exception {
+        List<Detection> detections = new ArrayList<>();
+        
+        // Get detections list from result
+        Object detectionList = invokeMethod(result, "detections");
+        int count = (Integer) invokeMethod(detectionList, "size");
+        
+        for (int i = 0; i < count; i++) {
+            Object detection = invokeMethod(detectionList, "get", i);
+            
+            // Get bounding box
+            Object boundingBox = invokeMethod(detection, "boundingBox");
+            Object originX = invokeMethod(boundingBox, "getOriginX");
+            Object originY = invokeMethod(boundingBox, "getOriginY");
+            Object width = invokeMethod(boundingBox, "getWidth");
+            Object height = invokeMethod(boundingBox, "getHeight");
+            
+            // Get category and score
+            Object category = invokeMethod(detection, "categories");
+            Object categoryList = invokeMethod(category, "get", 0);
+            String label = (String) invokeMethod(categoryList, "getCategoryName");
+            float score = (Float) invokeMethod(categoryList, "getScore");
+            
+            // Create bounding box
+            BoundingBox box = new BoundingBox(
+                ((Number) originX).floatValue(),
+                ((Number) originY).floatValue(),
+                ((Number) width).floatValue(),
+                ((Number) height).floatValue()
+            );
+            
+            // Create detection attributes
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("model", "efficientdet_lite0");
+            attributes.put("backend", "mediapipe");
+            attributes.put("category_id", invokeMethod(categoryList, "getIndex"));
+            attributes.put("display_name", invokeMethod(categoryList, "getDisplayName"));
+            
+            // Create detection
+            Detection visionDetection = new Detection(
+                label,
+                score,
+                box,
+                attributes
+            );
+            
+            detections.add(visionDetection);
+        }
+        
+        logger.debug("Mapped {} object detections from MediaPipe result", detections.size());
         return detections;
     }
     
@@ -703,6 +783,40 @@ public class MediaPipeVisionBackend implements VisionBackend {
         invokeMethod(options, "setRunningMode", "IMAGE");
         invokeMethod(options, "setMinPoseDetectionConfidence", confidenceThreshold);
         invokeMethod(options, "setMinPosePresenceConfidence", confidenceThreshold);
+        
+        return options;
+    }
+
+    /**
+     * Creates ObjectDetector options with confidence threshold and max results.
+     */
+    private Object createObjectDetectorOptions(Object baseOptions) throws Exception {
+        Class<?> optionsClass = Class.forName("com.google.mediapipe.tasks.vision.objectdetector.ObjectDetector$ObjectDetectorOptions");
+        Object options = optionsClass.getConstructor().newInstance();
+        
+        // Set base options
+        invokeMethod(options, "setBaseOptions", baseOptions);
+        
+        // Set confidence threshold
+        invokeMethod(options, "setScoreThreshold", (float) confidenceThreshold);
+        
+        // Set max results
+        invokeMethod(options, "setMaxResults", maxDetections);
+        
+        // Set category allowlist (common object classes)
+        List<String> allowedCategories = List.of(
+            "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat",
+            "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+            "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack",
+            "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball",
+            "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket",
+            "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple",
+            "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake",
+            "chair", "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop",
+            "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink",
+            "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"
+        );
+        invokeMethod(options, "setCategoryAllowlist", allowedCategories);
         
         return options;
     }
