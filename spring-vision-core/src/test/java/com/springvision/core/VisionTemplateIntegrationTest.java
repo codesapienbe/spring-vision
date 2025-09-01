@@ -1,6 +1,6 @@
 package com.springvision.core;
 
-import com.springvision.core.backend.*;
+import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.error.ErrorHandler;
 import com.springvision.core.logging.VisionLogger;
 import com.springvision.core.metrics.VisionMetrics;
@@ -32,9 +32,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {VisionTemplate.class, OpenCvVisionBackend.class, 
-                          FaceBytesBackend.class, CompreFaceVisionBackend.class,
-                          DeepFaceVisionBackend.class, MediaPipeVisionBackend.class,
-                          YoloVisionBackend.class, InsightFaceVisionBackend.class,
                           ErrorHandler.class, VisionMetrics.class})
 @ActiveProfiles("test")
 public class VisionTemplateIntegrationTest {
@@ -332,13 +329,7 @@ public class VisionTemplateIntegrationTest {
     void testHealthCheckFunctionality() {
         // Test backend health checks
         List<VisionBackend> backends = List.of(
-            new OpenCvVisionBackend(),
-            new FaceBytesBackend(),
-            new CompreFaceVisionBackend(),
-            new DeepFaceVisionBackend(),
-            new MediaPipeVisionBackend(),
-            new YoloVisionBackend(),
-            new InsightFaceVisionBackend()
+            new OpenCvVisionBackend()
         );
         
         for (VisionBackend backend : backends) {

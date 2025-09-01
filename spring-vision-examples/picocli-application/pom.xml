@@ -43,6 +43,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Spring Vision FaceBytes Backend -->
+        <dependency>
+            <groupId>com.springvision</groupId>
+            <artifactId>spring-vision-facebytes</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Docker Compose dependency removed - services managed externally -->
 
         <!-- Spring Boot Validation -->

@@ -1,10 +1,11 @@
 /**
- * Backend implementations for the Spring Vision framework.
+ * Default backend implementation for the Spring Vision framework.
  *
- * <p>This package contains concrete implementations of the {@link com.springvision.core.VisionBackend}
- * interface, providing computer vision capabilities through various underlying technologies.</p>
+ * <p>This package contains the default OpenCV backend implementation of the 
+ * {@link com.springvision.core.VisionBackend} interface. Other backend implementations
+ * are available as separate modules (spring-vision-mediapipe, spring-vision-deepface, etc.).</p>
  *
- * <h2>Available Backends</h2>
+ * <h2>Default Backend</h2>
  *
  * <h3>OpenCV Backend</h3>
  * <p>The {@link com.springvision.core.backend.OpenCvVisionBackend} provides computer vision
@@ -14,6 +15,17 @@
  *   <li>Object detection using various OpenCV algorithms</li>
  *   <li>Basic image processing operations</li>
  *   <li>Real-time performance for most applications</li>
+ * </ul>
+ *
+ * <h2>Additional Backends</h2>
+ * <p>Additional backend implementations are available as separate modules:</p>
+ * <ul>
+ *   <li><code>spring-vision-mediapipe</code> - MediaPipe backend for advanced face/hand/pose detection</li>
+ *   <li><code>spring-vision-deepface</code> - DeepFace backend for face recognition and analysis</li>
+ *   <li><code>spring-vision-compreface</code> - CompreFace backend for face recognition</li>
+ *   <li><code>spring-vision-insightface</code> - InsightFace backend for high-accuracy face recognition</li>
+ *   <li><code>spring-vision-yolo</code> - YOLO backend for object detection</li>
+ *   <li><code>spring-vision-facebytes</code> - FaceBytes backend (Java rewrite of DeepFace)</li>
  * </ul>
  *
  * <h3>Testing</h3>

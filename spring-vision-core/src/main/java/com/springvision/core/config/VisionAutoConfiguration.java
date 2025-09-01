@@ -15,7 +15,6 @@ import org.springframework.context.event.EventListener;
 
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.MediaPipeVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -96,20 +95,8 @@ public class VisionAutoConfiguration {
                 logger.info("Initializing OpenCV backend (default)");
                 yield createOpenCvBackend(properties);
             }
-            case "mediapipe" -> {
-                logger.info("Initializing MediaPipe backend");
-                yield createMediaPipeBackend(properties);
-            }
-            case "deepface" -> {
-                logger.info("Initializing DeepFace backend");
-                yield createDeepFaceBackend(properties);
-            }
-            case "yolo" -> {
-                logger.info("Initializing YOLO backend");
-                yield createYoloBackend(properties);
-            }
             default -> {
-                logger.warn("Unknown backend '{}', falling back to OpenCV (default)", backendName);
+                logger.warn("Backend '{}' not supported in core module. Use OpenCV (default) or add the appropriate backend module.", backendName);
                 yield createOpenCvBackend(properties);
             }
         };
@@ -244,56 +231,5 @@ public class VisionAutoConfiguration {
             throw new IllegalStateException(errorMessage, e);
         }
     }
-
-    /**
-     * Creates a MediaPipe vision backend with the specified configuration.
-     *
-     * @param properties the vision configuration properties
-     * @return the configured MediaPipe backend
-     * @throws UnsupportedOperationException if MediaPipe is not yet implemented
-     */
-    private VisionBackend createMediaPipeBackend(VisionProperties properties) {
-        logger.info("Creating MediaPipe vision backend");
-        try {
-            MediaPipeVisionBackend backend = new MediaPipeVisionBackend();
-            backend.initialize();
-            if (!backend.isHealthy()) {
-                logger.warn("MediaPipe backend initialized but unhealthy: {}", backend.getHealthInfo().errorMessage());
-            }
-            return backend;
-        } catch (UnsupportedOperationException e) {
-            logger.warn("MediaPipe backend is not yet implemented");
-            throw e;
-        } catch (Exception e) {
-            logger.error("Failed to create or initialize MediaPipe backend: {}", e.getMessage(), e);
-            throw new UnsupportedOperationException("MediaPipe backend initialization failed: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Creates a DeepFace vision backend with the specified configuration.
-     *
-     * @param properties the vision configuration properties
-     * @return the configured DeepFace backend
-     * @throws UnsupportedOperationException as DeepFace is not yet implemented
-     */
-    private VisionBackend createDeepFaceBackend(VisionProperties properties) {
-        logger.info("Creating DeepFace vision backend");
-        logger.warn("DeepFace backend is not yet fully integrated - using placeholder");
-        throw new UnsupportedOperationException("DeepFace backend is not yet fully integrated");
-    }
-
-    /**
-     * Creates a YOLO vision backend with the specified configuration.
-     *
-     * @param properties the vision configuration properties
-     * @return the configured YOLO backend
-     * @throws UnsupportedOperationException as YOLO is not yet implemented
-     */
-    private VisionBackend createYoloBackend(VisionProperties properties) {
-        logger.warn("YOLO backend is not yet implemented");
-        throw new UnsupportedOperationException("YOLO backend is not yet implemented");
-    }
-
 
 }

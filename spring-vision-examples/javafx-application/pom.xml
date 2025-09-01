@@ -33,6 +33,23 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Spring Vision Backend Dependencies -->
+        <dependency>
+            <groupId>com.springvision</groupId>
+            <artifactId>spring-vision-facebytes</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.springvision</groupId>
+            <artifactId>spring-vision-compreface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.springvision</groupId>
+            <artifactId>spring-vision-deepface</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Boot Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -29,9 +29,9 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
-import com.springvision.core.backend.CompreFaceVisionBackend;
-import com.springvision.core.backend.DeepFaceVisionBackend;
-import com.springvision.core.backend.FaceBytesBackend;
+import com.springvision.backend.compreface.CompreFaceVisionBackend;
+import com.springvision.backend.deepface.DeepFaceVisionBackend;
+import com.springvision.backend.facebytes.FaceBytesVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.exception.VisionProcessingException;
 
@@ -241,8 +241,8 @@ public class JavaFXApplication {
             VisionBackend backend;
             switch (backendId) {
                 case "facebytes": {
-                    FaceBytesBackend fb = new FaceBytesBackend();
-                    logger.info("FaceBytes backend selected", Map.of("component", "JavaFXApplication"));
+                    FaceBytesVisionBackend fb = new FaceBytesVisionBackend();
+                    logger.info("FaceBytes backend initialized successfully", Map.of("component", "JavaFXApplication"));
                     backend = fb;
                     break;
                 }

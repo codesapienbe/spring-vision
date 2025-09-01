@@ -1,4 +1,4 @@
-package com.springvision.core.backend;
+package com.springvision.backend.compreface;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,6 +16,7 @@ import com.springvision.core.exception.VisionBackendException;
 import com.springvision.core.exception.VisionProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -49,6 +50,7 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0.0
  * @see VisionBackend
  */
+@Component
 public class CompreFaceVisionBackend implements VisionBackend {
 
     private static final Logger logger = LoggerFactory.getLogger(CompreFaceVisionBackend.class);
@@ -609,4 +611,4 @@ public class CompreFaceVisionBackend implements VisionBackend {
         return String.format("CompreFaceVisionBackend{baseUrl='%s', timeout=%s, initialized=%s}",
             baseUrl, timeout, initialized);
     }
-}
+} 

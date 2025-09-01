@@ -1,4 +1,4 @@
-package com.springvision.core.backend;
+package com.springvision.backend.facebytes;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import com.deepface.core.DeepFace;
 import com.deepface.core.EmbeddingResult;
@@ -32,9 +33,10 @@ import com.springvision.core.DetectionQuery;
  * <p>This backend provides face detection by delegating to FaceBytes' OpenCV Haar cascade
  * face detector and mapping results into Spring Vision core domain objects.</p>
  */
-public final class FaceBytesBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.EmbeddingCapability {
+@Component
+public final class FaceBytesVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.EmbeddingCapability {
 
-    private static final Logger logger = LoggerFactory.getLogger(FaceBytesBackend.class);
+    private static final Logger logger = LoggerFactory.getLogger(FaceBytesVisionBackend.class);
 
     private static final String BACKEND_ID = "facebytes";
     private static final String DISPLAY_NAME = "FaceBytes Backend";
@@ -500,4 +502,4 @@ public final class FaceBytesBackend implements VisionBackend, com.springvision.c
         if (v > 1.0) return 1.0;
         return v;
     }
-}
+} 

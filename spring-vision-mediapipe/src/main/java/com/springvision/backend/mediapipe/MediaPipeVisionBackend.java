@@ -1,4 +1,4 @@
-package com.springvision.core.backend;
+package com.springvision.backend.mediapipe;
 
 import com.springvision.core.*;
 import com.springvision.core.exception.VisionBackendException;
@@ -137,6 +137,48 @@ public class MediaPipeVisionBackend implements VisionBackend {
         } else {
             return BackendHealthInfo.unhealthy("MediaPipe", "MediaPipe backend is not available", 
                 shutdown ? "Backend is shutting down" : "Backend is not available", 0, metrics);
+        }
+    }
+
+    @Override
+    public List<Detection> detectFaces(ImageData imageData) {
+        return detect(imageData, DetectionType.FACE);
+    }
+    
+    @Override
+    public List<Detection> detectObjects(ImageData imageData) {
+        return detect(imageData, DetectionType.OBJECT);
+    }
+
+    @Override
+    public List<Detection> detect(ImageData imageData, DetectionType type) {
+        validateInput(imageData, new DetectionQuery.Builder().type(type).build());
+        
+        String correlationId = generateCorrelationId();
+        detectionCount.incrementAndGet();
+        
+        try {
+            switch (type) {
+                case FACE -> {
+                    return detectFaces(imageData, new DetectionQuery.Builder().type(type).build(), correlationId);
+                }
+                case HAND -> {
+                    return detectHands(imageData, new DetectionQuery.Builder().type(type).build(), correlationId);
+                }
+                case POSE -> {
+                    return detectPose(imageData, new DetectionQuery.Builder().type(type).build(), correlationId);
+                }
+                case OBJECT -> {
+                    return detectObjects(imageData, new DetectionQuery.Builder().type(type).build(), correlationId);
+                }
+                default -> {
+                    throw new IllegalArgumentException("Unsupported detection type: " + type);
+                }
+            }
+        } catch (Exception e) {
+            errorCount.incrementAndGet();
+            logger.error("Detection failed: correlationId={}, type={}, error={}", correlationId, type, e.getMessage(), e);
+            throw new VisionBackendException("Detection failed: " + e.getMessage(), e);
         }
     }
     
@@ -811,14 +853,4 @@ public class MediaPipeVisionBackend implements VisionBackend {
     public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
         this.poolTimeoutSeconds = poolTimeoutSeconds;
     }
-    
-    @Override
-    public List<Detection> detectFaces(ImageData imageData) {
-        return detect(imageData, DetectionType.FACE);
-    }
-    
-    @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        return detect(imageData, DetectionType.OBJECT);
-    }
-}
+} 

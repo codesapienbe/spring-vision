@@ -47,6 +47,11 @@
         <module>spring-vision-core</module>
         <module>spring-vision-starter</module>
         <module>spring-vision-facebytes</module>
+        <module>spring-vision-mediapipe</module>
+        <module>spring-vision-insightface</module>
+        <module>spring-vision-compreface</module>
+        <module>spring-vision-deepface</module>
+        <module>spring-vision-yolo</module>
         <module>spring-vision-examples</module>
     </modules>
 

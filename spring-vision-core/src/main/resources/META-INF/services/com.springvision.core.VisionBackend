@@ -1,5 +1,1 @@
-com.springvision.core.backend.FaceBytesBackend
 com.springvision.core.backend.OpenCvVisionBackend
-com.springvision.core.backend.MediaPipeVisionBackend
-com.springvision.core.backend.DeepFaceVisionBackend
-com.springvision.core.backend.CompreFaceVisionBackend
