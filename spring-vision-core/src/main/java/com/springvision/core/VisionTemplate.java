@@ -119,8 +119,12 @@ public class VisionTemplate {
 
     /** Performs a generic detection operation based on the specified detection type. */
     public VisionResult detect(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
-        Objects.requireNonNull(detectionType, "Detection type must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
+        if (detectionType == null) {
+            throw new IllegalArgumentException("Detection type must not be null");
+        }
 
         if (!supportsDetectionType(detectionType)) {
             throw new IllegalArgumentException(
@@ -264,7 +268,9 @@ public class VisionTemplate {
     /** Performs multiple detection types on the provided image data. */
     public java.util.List<VisionResult> detectMultiple(ImageData imageData, java.util.List<DetectionType> detectionTypes)
             throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
         if (detectionTypes == null || detectionTypes.isEmpty()) {
             throw new IllegalArgumentException("Detection types must not be null or empty");
         }
@@ -336,9 +342,15 @@ public class VisionTemplate {
 
     /** Performs a generic detection using a rich query. */
     public VisionResult detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
-        Objects.requireNonNull(query, "Detection query must not be null");
-        Objects.requireNonNull(query.getType(), "Detection query type must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
+        if (query == null) {
+            throw new IllegalArgumentException("Detection query must not be null");
+        }
+        if (query.getType() == null) {
+            throw new IllegalArgumentException("Detection query type must not be null");
+        }
 
         if (!supportsDetectionType(query.getType())) {
             throw new IllegalArgumentException(
@@ -414,7 +426,9 @@ public class VisionTemplate {
 
     /** Extracts face embeddings using the backend's implementation or default support. */
     public List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
         String correlationId = generateCorrelationId();
         long startTime = System.currentTimeMillis();
         logger.info("Starting embedding extraction", Map.of(
@@ -436,8 +450,12 @@ public class VisionTemplate {
 
     /** Verifies whether two images belong to the same identity. */
     public boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
-        Objects.requireNonNull(a, "First image must not be null");
-        Objects.requireNonNull(b, "Second image must not be null");
+        if (a == null) {
+            throw new IllegalArgumentException("First image must not be null");
+        }
+        if (b == null) {
+            throw new IllegalArgumentException("Second image must not be null");
+        }
         String correlationId = generateCorrelationId();
         long startTime = System.currentTimeMillis();
         logger.info("Starting verification", Map.of(
@@ -459,7 +477,9 @@ public class VisionTemplate {
 
     /** Obscures faces in the provided image data. */
     public ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
         String correlationId = generateCorrelationId();
         long startTime = System.currentTimeMillis();
         logger.info("Starting face obscuring", Map.of(
@@ -492,8 +512,12 @@ public class VisionTemplate {
 
     /** Generic annotate call for clients wanting TAG/MARK/OBSCURE with categories. */
     public ImageData annotate(ImageData imageData, com.springvision.core.AnnotationRequest request) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "Image data must not be null");
-        Objects.requireNonNull(request, "Annotation request must not be null");
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Annotation request must not be null");
+        }
         if (!(backend instanceof com.springvision.core.capabilities.AnnotationCapability cap)) {
             throw new com.springvision.core.exception.VisionProcessingException(
                 "Annotation capability not supported by backend",

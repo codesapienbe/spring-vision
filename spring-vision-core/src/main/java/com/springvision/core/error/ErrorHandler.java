@@ -89,7 +89,7 @@ public class ErrorHandler {
                 // Categorize error
                 categorizeError(component, e);
                 
-                // Check if error is retryable
+                // Check if error is retryable and if we have retries left
                 if (!isRetryableError(e) || attempt > maxRetries) {
                     nonRetryableErrors.incrementAndGet();
                     getCircuitBreaker(component).recordFailure();
@@ -101,7 +101,7 @@ public class ErrorHandler {
                 getCircuitBreaker(component).recordFailure();
                 logRetryableError(component, operation, e, attempt, maxRetries, delayMs);
                 
-                // Wait before retry
+                // Wait before retry (only if we're not on the last attempt)
                 if (attempt <= maxRetries) {
                     try {
                         Thread.sleep(delayMs);

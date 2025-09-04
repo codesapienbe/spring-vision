@@ -41,7 +41,8 @@ class DistanceMetricsTest {
         
         double distance = DistanceMetrics.cosineDistance(vec1, vec2);
         
-        assertEquals(1.0, distance, 1e-10, "Cosine distance should be 1 for opposite vectors");
+        // For opposite vectors, cosine similarity is -1, so cosine distance is 1 - (-1) = 2
+        assertEquals(2.0, distance, 1e-10, "Cosine distance should be 2 for opposite vectors");
     }
 
     @Test
@@ -53,7 +54,12 @@ class DistanceMetricsTest {
         double distance = DistanceMetrics.cosineDistance(vec1, vec2);
         
         // Expected: 1 - cos(45°) = 1 - 0.7071067811865476 ≈ 0.2928932188134524
-        assertEquals(0.2928932188134524, distance, 1e-10, "Cosine distance should match expected value");
+        // But the second vector is not actually a unit vector, let me recalculate
+        // Magnitude of vec2: sqrt(0.5² + 0.5² + 0.7071067811865476²) = sqrt(0.25 + 0.25 + 0.5) = sqrt(1) = 1
+        // Dot product: 1.0 * 0.5 + 0.0 * 0.5 + 0.0 * 0.7071067811865476 = 0.5
+        // Cosine similarity: 0.5 / (1 * 1) = 0.5
+        // Cosine distance: 1 - 0.5 = 0.5
+        assertEquals(0.5, distance, 1e-10, "Cosine distance should match expected value");
     }
 
     @Test
