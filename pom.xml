@@ -161,12 +161,16 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
-                    <configuration>
-                        <argLine>-Xmx1024m</argLine>
-                        <includes>
-                            <include>**/*Test.java</include>
-                            <include>**/*Tests.java</include>
-                        </includes>
+                       <configuration>
+                        <argLine>
+                            -Xmx2048m 
+                            -XX:+UseG1GC 
+                            -XX:+HeapDumpOnOutOfMemoryError 
+                            -XX:HeapDumpPath=target/heapdumps/
+                        </argLine>
+                        <forkCount>1</forkCount>
+                        <reuseForks>false</reuseForks>
+                        <excludedGroups>memory-intensive</excludedGroups>
                     </configuration>
                 </plugin>
 

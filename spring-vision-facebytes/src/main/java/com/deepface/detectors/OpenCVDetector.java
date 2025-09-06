@@ -23,6 +23,13 @@ import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 
+/**
+ * OpenCV-based face detector using Haar cascade classifiers.
+ * Provides robust face detection with proper native resource management.
+ * 
+ * @author FaceBytes Team
+ * @since 1.0.0
+ */
 public final class OpenCVDetector implements FaceDetector {
 
     private static final String CASCADE_CLASSPATH = "/models/haarcascades/haarcascade_frontalface_default.xml";
@@ -34,38 +41,89 @@ public final class OpenCVDetector implements FaceDetector {
     private final OpenCVFrameConverter.ToMat toMat = new OpenCVFrameConverter.ToMat();
     private final Java2DFrameConverter toFrame = new Java2DFrameConverter();
 
+    /**
+     * Creates a new OpenCV face detector with proper native library initialization.
+     * 
+     * @throws IllegalStateException if the Haar cascade classifier cannot be loaded
+     */
     public OpenCVDetector() {
-        Loader.load(org.bytedeco.opencv.opencv_objdetect.CascadeClassifier.class);
-        String cascadePath = ensureCascadeAvailable();
-        this.classifier = new CascadeClassifier(cascadePath);
-        if (this.classifier.empty()) {
-            throw new IllegalStateException("Failed to load Haar cascade from: " + cascadePath);
+        try {
+            Loader.load(org.bytedeco.opencv.opencv_objdetect.CascadeClassifier.class);
+            String cascadePath = ensureCascadeAvailable();
+            this.classifier = new CascadeClassifier(cascadePath);
+            if (this.classifier.empty()) {
+                throw new IllegalStateException("Failed to load Haar cascade from: " + cascadePath);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize OpenCV detector: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Detects faces in the given image using OpenCV Haar cascade classifier.
+     * Properly manages native resources to prevent memory leaks and crashes.
+     * 
+     * @param image the input image to analyze
+     * @return list of detected face regions
+     */
     @Override
     public List<FaceRegion> detectFaces(BufferedImage image) {
         if (image == null) {
             return List.of();
         }
-        Mat matColor = toMat.convert(toFrame.convert(image));
-        Mat gray = new Mat();
-        cvtColor(matColor, gray, COLOR_BGR2GRAY);
-        equalizeHist(gray, gray);
 
-        RectVector faces = new RectVector();
-        // Tuned parameters: slightly more conservative minNeighbors to reduce false positives,
-        // and smaller minSize to allow small faces in crowds.
-        classifier.detectMultiScale(gray, faces, 1.1, 4, 0, new Size(20, 20), new Size());
+        Mat matColor = null;
+        Mat gray = null;
+        RectVector faces = null;
+        
+        try {
+            // Convert BufferedImage to OpenCV Mat
+            matColor = toMat.convert(toFrame.convert(image));
+            gray = new Mat();
+            
+            // Convert to grayscale and equalize histogram
+            cvtColor(matColor, gray, COLOR_BGR2GRAY);
+            equalizeHist(gray, gray);
 
-        List<FaceRegion> list = new ArrayList<>();
-        for (long i = 0; i < faces.size(); i++) {
-            Rect r = faces.get(i);
-            list.add(new FaceRegion(r.x(), r.y(), r.width(), r.height(), 0.9, null));
+            // Detect faces using Haar cascade
+            faces = new RectVector();
+            // Tuned parameters: slightly more conservative minNeighbors to reduce false positives,
+            // and smaller minSize to allow small faces in crowds.
+            classifier.detectMultiScale(gray, faces, 1.1, 4, 0, new Size(20, 20), new Size());
+
+            // Convert detection results to FaceRegion objects
+            List<FaceRegion> result = new ArrayList<>();
+            for (long i = 0; i < faces.size(); i++) {
+                Rect r = faces.get(i);
+                result.add(new FaceRegion(r.x(), r.y(), r.width(), r.height(), 0.9, null));
+            }
+            return result;
+            
+        } catch (Exception e) {
+            // Log error and return empty list to prevent crashes
+            System.err.println("Face detection failed: " + e.getMessage());
+            return List.of();
+        } finally {
+            // Properly deallocate native resources
+            if (matColor != null) {
+                matColor.deallocate();
+            }
+            if (gray != null) {
+                gray.deallocate();
+            }
+            if (faces != null) {
+                faces.deallocate();
+            }
         }
-        return list;
     }
 
+    /**
+     * Ensures the Haar cascade classifier file is available locally.
+     * Tries multiple sources: classpath, generated resources, and downloads if needed.
+     * 
+     * @return path to the cascade classifier file
+     * @throws IllegalStateException if the cascade file cannot be obtained
+     */
     private String ensureCascadeAvailable() {
         // 1) Try classpath
         try (InputStream is = getClass().getResourceAsStream(CASCADE_CLASSPATH)) {

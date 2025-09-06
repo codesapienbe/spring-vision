@@ -2,6 +2,11 @@ package com.deepface.detectors;
 
 import com.deepface.enums.DetectorBackend;
 
+import java.lang.ref.WeakReference;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Factory for face detectors with singleton caching to avoid repeated native/ONNX initializations.
  */
@@ -9,11 +14,8 @@ public final class DetectorFactory {
 
     private DetectorFactory() {}
 
-    // Cached singletons to stabilize ONNX/Native resource usage
-    private static volatile OpenCVDetector OPENCV_SINGLETON;
-    private static volatile RetinaFaceDetector RETINAFACE_SINGLETON;
-    private static volatile DlibDetector DLIB_SINGLETON;
-    private static volatile MtcnnDetector MTCNN_SINGLETON;
+    // Memory-friendly cache using weak references so detectors can be GC'd under memory pressure
+    private static final Map<DetectorBackend, WeakReference<FaceDetector>> detectorCache = new ConcurrentHashMap<>();
 
     /** Returns the default detector backend instance (RetinaFace if available; falls back internally when missing). */
     public static FaceDetector createDefault() {
@@ -26,7 +28,7 @@ public final class DetectorFactory {
         }
     }
 
-    /** Returns a detector instance for the requested backend, reusing singletons. */
+    /** Returns a detector instance for the requested backend, reusing cached instances when available. */
     public static FaceDetector create(DetectorBackend backend) {
         if (backend == null) return createDefault();
         try {
@@ -49,29 +51,33 @@ public final class DetectorFactory {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static OpenCVDetector getOpenCv() {
-        OpenCVDetector inst = OPENCV_SINGLETON;
+        DetectorBackend key = DetectorBackend.OPENCV;
+        FaceDetector inst = deref(key);
         if (inst == null) {
             synchronized (DetectorFactory.class) {
-                inst = OPENCV_SINGLETON;
+                inst = deref(key);
                 if (inst == null) {
                     inst = new OpenCVDetector();
-                    OPENCV_SINGLETON = inst;
+                    detectorCache.put(key, new WeakReference<>(inst));
                 }
             }
         }
-        return inst;
+        return (OpenCVDetector) inst;
     }
 
+    @SuppressWarnings("unchecked")
     private static RetinaFaceDetector getRetinaFace() {
-        RetinaFaceDetector inst = RETINAFACE_SINGLETON;
+        DetectorBackend key = DetectorBackend.RETINAFACE;
+        FaceDetector inst = deref(key);
         if (inst == null) {
             synchronized (DetectorFactory.class) {
-                inst = RETINAFACE_SINGLETON;
+                inst = deref(key);
                 if (inst == null) {
                     try {
                         inst = new RetinaFaceDetector();
-                        RETINAFACE_SINGLETON = inst;
+                        detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
                         System.err.println("RetinaFace detector initialization failed: " + e.getMessage());
@@ -80,18 +86,20 @@ public final class DetectorFactory {
                 }
             }
         }
-        return inst;
+        return (RetinaFaceDetector) inst;
     }
 
+    @SuppressWarnings("unchecked")
     private static DlibDetector getDlib() {
-        DlibDetector inst = DLIB_SINGLETON;
+        DetectorBackend key = DetectorBackend.DLIB;
+        FaceDetector inst = deref(key);
         if (inst == null) {
             synchronized (DetectorFactory.class) {
-                inst = DLIB_SINGLETON;
+                inst = deref(key);
                 if (inst == null) {
                     try {
                         inst = new DlibDetector();
-                        DLIB_SINGLETON = inst;
+                        detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
                         System.err.println("Dlib detector initialization failed: " + e.getMessage());
@@ -100,18 +108,20 @@ public final class DetectorFactory {
                 }
             }
         }
-        return inst;
+        return (DlibDetector) inst;
     }
 
+    @SuppressWarnings("unchecked")
     private static MtcnnDetector getMtcnn() {
-        MtcnnDetector inst = MTCNN_SINGLETON;
+        DetectorBackend key = DetectorBackend.MTCNN;
+        FaceDetector inst = deref(key);
         if (inst == null) {
             synchronized (DetectorFactory.class) {
-                inst = MTCNN_SINGLETON;
+                inst = deref(key);
                 if (inst == null) {
                     try {
                         inst = new MtcnnDetector();
-                        MTCNN_SINGLETON = inst;
+                        detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
                         System.err.println("MTCNN detector initialization failed: " + e.getMessage());
@@ -120,6 +130,34 @@ public final class DetectorFactory {
                 }
             }
         }
-        return inst;
+        return (MtcnnDetector) inst;
+    }
+
+    /**
+     * Clears the detector cache to free memory.
+     * Should be called during test cleanup or when memory is low.
+     */
+    public static void clearCache() {
+        detectorCache.clear();
+        // Hint the GC; callers should not rely on immediate GC but this helps under tests
+        System.gc();
+        System.runFinalization();
+    }
+
+    /**
+     * Gets the current cache size for monitoring. Cleans up cleared weak references first.
+     */
+    public static int getCacheSize() {
+        // Remove entries whose weak references have been cleared
+        detectorCache.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().get() == null);
+        return detectorCache.size();
+    }
+
+    /**
+     * Helper to dereference a detector from the cache.
+     */
+    private static FaceDetector deref(DetectorBackend key) {
+        WeakReference<FaceDetector> ref = detectorCache.get(key);
+        return ref == null ? null : ref.get();
     }
 }
