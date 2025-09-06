@@ -19,6 +19,7 @@ import ai.onnxruntime.OnnxValue;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.springvision.core.util.OnnxRuntimeGuard;
 
 /**
  * RetinaFace ONNX detector. Uses a common 640x640 input variant with outputs:
@@ -46,8 +47,20 @@ public final class RetinaFaceDetector implements FaceDetector {
                 this.env = null; this.session = null; this.inputName = null;
                 return;
             }
-            this.env = OrtEnvironment.getEnvironment();
-            this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
+            try {
+                Object envObj = OnnxRuntimeGuard.createEnvironment();
+                if (envObj instanceof OrtEnvironment) {
+                    this.env = (OrtEnvironment) envObj;
+                    this.session = (OrtSession) OnnxRuntimeGuard.createSession(this.env, modelPath);
+                } else {
+                    this.env = OrtEnvironment.getEnvironment();
+                    this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
+                }
+            } catch (Throwable t) {
+                // Fallback to direct API which will throw on missing runtime
+                this.env = OrtEnvironment.getEnvironment();
+                this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
+            }
             this.inputName = session.getInputNames().iterator().next();
             Logs.info("RetinaFaceDetector", "onnx.loaded", Map.of("path", modelPath));
             // Ensure resources are closed at JVM shutdown

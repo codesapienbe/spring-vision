@@ -8,6 +8,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.springvision.core.util.OnnxRuntimeGuard;
 
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -50,7 +51,12 @@ public final class MtcnnDetector implements FaceDetector {
 
     public MtcnnDetector() {
         try {
-            this.environment = OrtEnvironment.getEnvironment();
+            Object envObj = OnnxRuntimeGuard.createEnvironment();
+            if (envObj instanceof OrtEnvironment) {
+                this.environment = (OrtEnvironment) envObj;
+            } else {
+                this.environment = OrtEnvironment.getEnvironment();
+            }
             initializeModels();
         } catch (Exception e) {
             log.error("Failed to initialize MTCNN detector", e);
@@ -61,9 +67,16 @@ public final class MtcnnDetector implements FaceDetector {
     private void initializeModels() {
         try {
             // Try to load MTCNN models
-            pnetSession = environment.createSession(MTCNN_PNET_PATH);
-            rnetSession = environment.createSession(MTCNN_RNET_PATH);
-            onetSession = environment.createSession(MTCNN_ONET_PATH);
+            try {
+                pnetSession = (OrtSession) OnnxRuntimeGuard.createSession(environment, MTCNN_PNET_PATH);
+                rnetSession = (OrtSession) OnnxRuntimeGuard.createSession(environment, MTCNN_RNET_PATH);
+                onetSession = (OrtSession) OnnxRuntimeGuard.createSession(environment, MTCNN_ONET_PATH);
+            } catch (Throwable t) {
+                // Fallback to direct API if guard not compatible
+                pnetSession = environment.createSession(MTCNN_PNET_PATH);
+                rnetSession = environment.createSession(MTCNN_RNET_PATH);
+                onetSession = environment.createSession(MTCNN_ONET_PATH);
+            }
             initialized = true;
             log.info("MTCNN models loaded successfully");
         } catch (Exception e) {

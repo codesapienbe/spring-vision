@@ -367,3 +367,31 @@ The **Spring Vision framework** is now a **complete, enterprise-grade computer v
 The framework is ready for **production deployment** and can be used to build sophisticated computer vision applications across multiple domains including security, healthcare, retail, automotive, and entertainment.
 
 **Next Phase Focus:** Operational excellence through comprehensive logging, monitoring, error handling, and production readiness features. 
+
+## NEXT STEPS (BATCH 5 - MODEL INTEGRATION)
+
+- [ ] **Integrate ONNX Runtime for embeddings (reflection guarded)**  
+  - [ ] Add reflection-based loader for `ai.onnxruntime` to avoid hard dependency  
+  - [ ] Provide config property `vision.model.onnx.enabled` (default: true)  
+  - [ ] Validate model file checksum (SHA-256) on download/install
+
+- [ ] **SFace/OpenCV FaceRecognizer fallback**  
+  - [ ] Prefer `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` when available  
+  - [ ] Implement fallback to FaceBytes embeddings if SFace missing
+
+- [ ] **Face preprocessing & alignment**  
+  - [ ] Implement eye-based alignment and standardized crop size  
+  - [ ] Add configurable normalization (mean/std) and color-space selection (RGB/BGR)
+
+- [ ] **Model management & security**  
+  - [ ] Use HTTPS with strict timeouts for model downloads  
+  - [ ] Store model checksums alongside artifacts and fail on mismatch  
+  - [ ] Provide opt-out system property to disable auto-downloads
+
+- [ ] **Observability**  
+  - [ ] Emit Micrometer metrics for model load time and inference latency  
+  - [ ] Add structured logs (JSON) with `component=ModelLoader` and correlation id
+
+- [ ] **Backward compatibility & API stability**  
+  - [ ] Keep existing public API signatures unchanged (`verify()`, `find()`, `analyze()`, `represent()`, `extractFaces()`)  
+  - [ ] Add feature flags; default behavior remains unchanged 

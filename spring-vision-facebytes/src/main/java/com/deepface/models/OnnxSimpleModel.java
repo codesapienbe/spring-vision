@@ -5,6 +5,7 @@ import ai.onnxruntime.*;
 import java.io.File;
 import java.nio.FloatBuffer;
 import java.util.Collections;
+import com.springvision.core.util.OnnxRuntimeGuard;
 
 public final class OnnxSimpleModel implements AutoCloseable {
 
@@ -16,9 +17,33 @@ public final class OnnxSimpleModel implements AutoCloseable {
         if (modelPath == null || modelPath.isBlank() || !new File(modelPath).isFile()) {
             throw new IllegalArgumentException("Invalid ONNX model path: " + modelPath);
         }
-        this.env = OrtEnvironment.getEnvironment();
-        this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
-        this.inputName = session.getInputNames().iterator().next();
+        OrtEnvironment createdEnv = null;
+        OrtSession createdSession = null;
+        try {
+            Object e = OnnxRuntimeGuard.createEnvironment();
+            if (e instanceof OrtEnvironment) {
+                createdEnv = (OrtEnvironment) e;
+                Object s = OnnxRuntimeGuard.createSession(createdEnv, modelPath);
+                if (s instanceof OrtSession) {
+                    createdSession = (OrtSession) s;
+                } else {
+                    // fallback to direct API
+                    createdEnv = OrtEnvironment.getEnvironment();
+                    createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
+                }
+            } else {
+                createdEnv = OrtEnvironment.getEnvironment();
+                createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
+            }
+        } catch (Throwable t) {
+            // fallback to direct API which may throw OrtException
+            createdEnv = OrtEnvironment.getEnvironment();
+            createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
+        }
+
+        this.env = createdEnv;
+        this.session = createdSession;
+        this.inputName = this.session.getInputNames().iterator().next();
     }
 
     public float[] run(float[] nchw, long[] shape) throws OrtException {

@@ -7,6 +7,7 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.deepface.config.DeepFaceConfig;
 import com.deepface.utils.Logs;
+import com.springvision.core.util.OnnxRuntimeGuard;
 
 import java.io.File;
 import java.nio.FloatBuffer;
@@ -165,7 +166,7 @@ public final class ModelManager {
                     installShutdownHook();
                     return;
                 }
-                env = OrtEnvironment.getEnvironment();
+                env = (OrtEnvironment) OnnxRuntimeGuard.createEnvironment();
                 if (vggPath != null && !vggPath.isBlank()) {
                     File f = new File(vggPath);
                     if (f.exists() && f.isFile()) { vggSession = env.createSession(vggPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.vgg.loaded", Map.of("path", vggPath)); }
@@ -173,32 +174,32 @@ public final class ModelManager {
                 }
                 if (arcPath != null && !arcPath.isBlank()) {
                     File f2 = new File(arcPath);
-                    if (f2.exists() && f2.isFile()) { arcfaceSession = env.createSession(arcPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.arcface.loaded", Map.of("path", arcPath)); }
+                    if (f2.exists() && f2.isFile()) { arcfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, arcPath); Logs.info("ModelManager", "onnx.arcface.loaded", Map.of("path", arcPath)); }
                     else { Logs.warn("ModelManager", "onnx.arcface.file_not_found", Map.of("path", arcPath)); }
                 }
                 if (fnPath != null && !fnPath.isBlank()) {
                     File f3 = new File(fnPath);
-                    if (f3.exists() && f3.isFile()) { facenetSession = env.createSession(fnPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.facenet.loaded", Map.of("path", fnPath)); }
+                    if (f3.exists() && f3.isFile()) { facenetSession = (OrtSession) OnnxRuntimeGuard.createSession(env, fnPath); Logs.info("ModelManager", "onnx.facenet.loaded", Map.of("path", fnPath)); }
                     else { Logs.warn("ModelManager", "onnx.facenet.file_not_found", Map.of("path", fnPath)); }
                 }
                 if (fn512Path != null && !fn512Path.isBlank()) {
                     File f4 = new File(fn512Path);
-                    if (f4.exists() && f4.isFile()) { facenet512Session = env.createSession(fn512Path, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.facenet512.loaded", Map.of("path", fn512Path)); }
+                    if (f4.exists() && f4.isFile()) { facenet512Session = (OrtSession) OnnxRuntimeGuard.createSession(env, fn512Path); Logs.info("ModelManager", "onnx.facenet512.loaded", Map.of("path", fn512Path)); }
                     else { Logs.warn("ModelManager", "onnx.facenet512.file_not_found", Map.of("path", fn512Path)); }
                 }
                 if (ofPath != null && !ofPath.isBlank()) {
                     File f5 = new File(ofPath);
-                    if (f5.exists() && f5.isFile()) { openfaceSession = env.createSession(ofPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.openface.loaded", Map.of("path", ofPath)); }
+                    if (f5.exists() && f5.isFile()) { openfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, ofPath); Logs.info("ModelManager", "onnx.openface.loaded", Map.of("path", ofPath)); }
                     else { Logs.warn("ModelManager", "onnx.openface.file_not_found", Map.of("path", ofPath)); }
                 }
                 if (sfPath != null && !sfPath.isBlank()) {
                     File f6 = new File(sfPath);
-                    if (f6.exists() && f6.isFile()) { sfaceSession = env.createSession(sfPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.sface.loaded", Map.of("path", sfPath)); }
+                    if (f6.exists() && f6.isFile()) { sfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, sfPath); Logs.info("ModelManager", "onnx.sface.loaded", Map.of("path", sfPath)); }
                     else { Logs.warn("ModelManager", "onnx.sface.file_not_found", Map.of("path", sfPath)); }
                 }
                 if (dfPath != null && !dfPath.isBlank()) {
                     File f7 = new File(dfPath);
-                    if (f7.exists() && f7.isFile()) { deepfaceSession = env.createSession(dfPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.deepface.loaded", Map.of("path", dfPath)); }
+                    if (f7.exists() && f7.isFile()) { deepfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, dfPath); Logs.info("ModelManager", "onnx.deepface.loaded", Map.of("path", dfPath)); }
                     else { Logs.warn("ModelManager", "onnx.deepface.file_not_found", Map.of("path", dfPath)); }
                 }
                 installShutdownHook();

@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-
+import com.springvision.core.util.OnnxRuntimeGuard;
 import jakarta.annotation.PreDestroy;
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
@@ -233,14 +233,14 @@ public class YoloVisionBackend implements VisionBackend {
             return;
         }
         
-        if (!isAvailable()) {
+        if (!OnnxRuntimeGuard.isAvailable()) {
             throw new VisionBackendException("ONNX Runtime is not available. Please add onnxruntime dependency.");
         }
         
         // Initialize ONNX Runtime environment
         if (ortEnvironment == null) {
-            ortEnvironmentClass = Class.forName("ai.onnxruntime.OrtEnvironment");
-            ortEnvironment = ortEnvironmentClass.getMethod("getEnvironment").invoke(null);
+            ortEnvironment = OnnxRuntimeGuard.createEnvironment();
+            ortEnvironmentClass = ortEnvironment.getClass();
         }
         
         // Load YOLO model
@@ -263,18 +263,14 @@ public class YoloVisionBackend implements VisionBackend {
             downloadModel(modelName);
         }
         
-        // Load ONNX session
-        ortSessionClass = Class.forName("ai.onnxruntime.OrtSession");
-        Class<?> sessionOptionsClass = Class.forName("ai.onnxruntime.OrtSession$SessionOptions");
-        Object sessionOptions = sessionOptionsClass.getDeclaredConstructor().newInstance();
-        
-        ortSession = ortSessionClass.getConstructor(
-            ortEnvironmentClass, 
-            String.class, 
-            sessionOptionsClass
-        ).newInstance(ortEnvironment, modelFilePath, sessionOptions);
-        
-        logger.info("YOLO model loaded successfully: path={}, backend=yolo", modelFilePath);
+        // Create ONNX session via guard (reflection-guarded)
+        ortSession = OnnxRuntimeGuard.createSession(ortEnvironment, modelFilePath);
+        if (ortSession != null) {
+            ortSessionClass = ortSession.getClass();
+            logger.info("YOLO model loaded successfully: path={}, backend=yolo", modelFilePath);
+        } else {
+            throw new VisionBackendException("Failed to create ONNX session for YOLO model");
+        }
     }
     
     /**
@@ -339,7 +335,7 @@ public class YoloVisionBackend implements VisionBackend {
             .invoke(null, ortEnvironment, floatBuffer, shape);
         
         // Run inference
-        Object result = ortSessionClass.getMethod("run", Map.class)
+        Object result = ortSession.getClass().getMethod("run", Map.class)
             .invoke(ortSession, Map.of("images", inputTensor));
         
         // Extract output tensor
@@ -587,12 +583,7 @@ public class YoloVisionBackend implements VisionBackend {
      * Checks if ONNX Runtime is available.
      */
     private boolean isAvailable() {
-        try {
-            Class.forName("ai.onnxruntime.OrtEnvironment");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+        return OnnxRuntimeGuard.isAvailable();
     }
     
     /**
@@ -604,14 +595,10 @@ public class YoloVisionBackend implements VisionBackend {
         shutdown = true;
         
         try {
-            if (ortSession != null) {
-                ortSessionClass.getMethod("close").invoke(ortSession);
-                ortSession = null;
-            }
-            if (ortEnvironment != null) {
-                ortEnvironmentClass.getMethod("close").invoke(ortEnvironment);
-                ortEnvironment = null;
-            }
+            OnnxRuntimeGuard.closeSessionQuietly(ortSession);
+            ortSession = null;
+            OnnxRuntimeGuard.closeEnvironmentQuietly(ortEnvironment);
+            ortEnvironment = null;
         } catch (Exception e) {
             logger.warn("Error during YOLO backend shutdown: {}", e.getMessage());
         }
