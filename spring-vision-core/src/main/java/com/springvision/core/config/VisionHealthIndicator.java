@@ -1,4 +1,4 @@
-package com.springvision.autoconfigure;
+package com.springvision.core.config;
 
 import com.springvision.core.BackendHealthInfo;
 import com.springvision.core.VisionBackend;

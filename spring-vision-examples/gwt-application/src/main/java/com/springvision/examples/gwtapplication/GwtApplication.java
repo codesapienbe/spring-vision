@@ -37,7 +37,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
  */
 @SpringBootApplication(
     scanBasePackages = {
-        "com.springvision.autoconfigure",  // auto-config beans & props
+        "com.springvision.core.config",  // auto-config beans & props
         "com.springvision.core",          // core domain + backend
         "com.springvision.starter",        // REST API (VisionController)
         "com.springvision.examples.gwtapplication" // local GWT code

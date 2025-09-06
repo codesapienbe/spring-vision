@@ -1,4 +1,4 @@
-package com.springvision.autoconfigure;
+package com.springvision.core.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

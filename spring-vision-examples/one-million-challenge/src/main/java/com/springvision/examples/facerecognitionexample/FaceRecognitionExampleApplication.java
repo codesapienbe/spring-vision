@@ -43,7 +43,7 @@ import com.springvision.core.recognition.FaceRecognitionEngine;
  * @since 1.0.0
  */
 @SpringBootApplication(scanBasePackages = {
-    "com.springvision.autoconfigure",
+    "com.springvision.core.config",
     "com.springvision.core", 
     "com.springvision.starter",
     "com.springvision.examples.facerecognitionexample"

@@ -1,4 +1,4 @@
-package com.springvision.autoconfigure;
+package com.springvision.core.config;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -156,7 +156,7 @@
  * @author Spring Vision Team
  * @since 1.0.0
  * @see com.springvision.core
- * @see com.springvision.autoconfigure
+ * @see com.springvision.core.config
  * @see org.springframework.boot.autoconfigure
  */
 package com.springvision.starter;

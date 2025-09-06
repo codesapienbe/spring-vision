@@ -36,7 +36,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(
     scanBasePackages = {
-        "com.springvision.autoconfigure",  // auto-config beans & props
+        "com.springvision.core.config",  // auto-config beans & props
         "com.springvision.core",          // core domain + backend
         "com.springvision.starter",        // REST API (VisionController)
         "com.springvision.examples.vaadinapplication" // local Vaadin code

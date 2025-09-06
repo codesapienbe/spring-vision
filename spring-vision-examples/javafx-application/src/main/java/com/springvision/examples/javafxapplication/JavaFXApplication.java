@@ -23,7 +23,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import com.springvision.autoconfigure.VisionProperties;
+import com.springvision.core.config.VisionProperties;
 import com.springvision.core.Detection;
 import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
