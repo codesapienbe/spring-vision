@@ -48,10 +48,19 @@ public class VisionTemplate {
     private static final Logger logger = LoggerFactory.getLogger(VisionTemplate.class);
 
     private final VisionBackend backend;
+    private final VectorService vectorService;
 
     /** Constructs a new VisionTemplate with the specified backend. */
     public VisionTemplate(VisionBackend backend) {
+        this(backend, null);
+    }
+
+    /**
+     * New constructor that accepts an optional VectorService implementation.
+     */
+    public VisionTemplate(VisionBackend backend, VectorService vectorService) {
         this.backend = Objects.requireNonNull(backend, "Vision backend must not be null");
+        this.vectorService = vectorService;
         logger.info("Initialized VisionTemplate with backend: {}", backend.getBackendId());
     }
 
@@ -98,6 +107,22 @@ public class VisionTemplate {
     /** Detects faces in the provided image data. */
     public VisionResult detectFaces(ImageData imageData) throws BaseVisionException {
         return detect(imageData, DetectionType.FACE);
+    }
+
+    /**
+     * Store an embedding using the configured VectorService (if available).
+     */
+    public String storeFaceEmbedding(String personId, float[] embedding, String modelName, String imageHash, Double confidence, java.util.Map<String,Object> metadata) {
+        if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
+        return vectorService.storeFaceEmbedding(personId, embedding, modelName, imageHash, confidence, metadata);
+    }
+
+    /**
+     * Lookup similar faces using the configured VectorService (if available).
+     */
+    public java.util.List<java.util.Map<String,Object>> lookupFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, java.util.Set<String> includePersonIds, java.util.Set<String> excludePersonIds) {
+        if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
+        return vectorService.findSimilarFaces(queryEmbedding, modelName, metric, threshold, limit, includePersonIds, excludePersonIds);
     }
 
     /** Detects faces in the provided byte array. */
