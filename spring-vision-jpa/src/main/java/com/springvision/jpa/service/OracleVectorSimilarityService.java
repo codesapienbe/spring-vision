@@ -3,46 +3,43 @@ package com.springvision.jpa.service;
 import com.springvision.jpa.dto.SimilaritySearchRequest;
 import com.springvision.jpa.dto.SimilaritySearchResult;
 import com.springvision.jpa.entity.FaceEmbedding;
-import com.springvision.jpa.repository.PostgreSQLFaceEmbeddingRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * PostgreSQL-backed vector service using pgvector extension.
+ * Oracle-backed vector similarity service (placeholder implementation).
  */
 @Service
-@ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "pgvector")
-@ConditionalOnClass(name = "org.postgresql.util.PGobject")
-public class PostgreSQLVectorSimilarityService implements VectorSimilarityService {
+@ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "oracle")
+@ConditionalOnClass(name = "oracle.jdbc.OracleConnection")
+public class OracleVectorSimilarityService implements VectorSimilarityService {
 
-    private final PostgreSQLFaceEmbeddingRepository repository;
+    private final com.springvision.jpa.repository.OracleFaceEmbeddingRepository repository;
     private final JdbcTemplate jdbcTemplate;
 
-    public PostgreSQLVectorSimilarityService(PostgreSQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate) {
+    public OracleVectorSimilarityService(com.springvision.jpa.repository.OracleFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public String storeFaceEmbedding(com.springvision.jpa.dto.StoreFaceEmbeddingRequest request) {
-        // Try native insert with correct pgvector type handling; fall back to JPA save
-        String vectorString = formatPgVector(request.embedding());
         byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(request.embedding());
+        byte[] oracleVector = VectorConversionHelpers.serializeFloatArrayToBytes(request.embedding());
 
-        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, pgvector_embedding, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now()) RETURNING id";
+        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, oracle_embedding, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE) RETURNING id INTO ?";
 
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -54,19 +51,7 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
                     ps.setString(2, request.modelName());
                     ps.setInt(3, request.embedding() == null ? 0 : request.embedding().length);
                     ps.setBytes(4, blob);
-
-                    // attempt to create PGobject via reflection to set type 'vector'
-                    try {
-                        Class<?> pgObjectClass = Class.forName("org.postgresql.util.PGobject");
-                        Object pgObject = pgObjectClass.getDeclaredConstructor().newInstance();
-                        pgObjectClass.getMethod("setType", String.class).invoke(pgObject, "vector");
-                        pgObjectClass.getMethod("setValue", String.class).invoke(pgObject, vectorString);
-                        ps.setObject(5, pgObject, Types.OTHER);
-                    } catch (Exception e) {
-                        // fallback: set string value
-                        ps.setString(5, vectorString);
-                    }
-
+                    ps.setBytes(5, oracleVector);
                     ps.setString(6, request.imageHash());
                     if (request.confidence() == null) ps.setNull(7, Types.DOUBLE);
                     else ps.setDouble(7, request.confidence());
@@ -77,7 +62,7 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
             Object key = keyHolder.getKeys() != null ? keyHolder.getKeys().get("id") : keyHolder.getKey();
             if (key != null) return key.toString();
         } catch (Exception e) {
-            // fallback to JPA repository save
+            // fallback
         }
 
         FaceEmbedding embedding = new FaceEmbedding();
@@ -85,7 +70,7 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
         embedding.setModelName(request.modelName());
         embedding.setDimension(request.embedding() == null ? 0 : request.embedding().length);
         embedding.setEmbeddingBlob(blob);
-        embedding.setPgVectorEmbedding(request.embedding());
+        embedding.setOracleEmbedding(oracleVector);
         embedding.setImageHash(request.imageHash());
         embedding.setConfidence(request.confidence());
 
@@ -95,32 +80,25 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
 
     @Override
     public List<SimilaritySearchResult> findSimilarFaces(SimilaritySearchRequest request) {
-        String vectorString = formatPgVector(request.queryEmbedding());
-
-        List<Object[]> results = repository.findSimilarByCosineSimilarity(vectorString, request.modelName(), request.threshold(), request.limit());
-
-        return results.stream()
-            .map(this::mapToSimilarityResult)
-            .collect(Collectors.toList());
+        byte[] vectorBytes = floatArrayToOracleVector(request.queryEmbedding());
+        List<Object[]> results = repository.findSimilarByCosineSimilarity(vectorBytes, request.modelName(), request.threshold(), request.limit());
+        return results.stream().map(this::mapToSimilarityResult).collect(Collectors.toList());
     }
 
     private SimilaritySearchResult mapToSimilarityResult(Object[] row) {
-        // Expecting: id, person_id, model_name, created_at, confidence, distance
         String id = row[0] == null ? null : row[0].toString();
         String personId = row[1] == null ? null : row[1].toString();
         String modelName = row[2] == null ? null : row[2].toString();
         java.time.LocalDateTime createdAt = row[3] == null ? null : (java.time.LocalDateTime) row[3];
         Double confidence = row[4] == null ? null : ((Number) row[4]).doubleValue();
         Double distance = row[5] == null ? null : ((Number) row[5]).doubleValue();
-
         double similarity = distance == null ? 0.0 : 1.0 - distance;
-
         return new SimilaritySearchResult(id, personId, similarity, distance, modelName, createdAt, java.util.Map.of("confidence", confidence));
     }
 
-    private String formatPgVector(float[] embedding) {
-        if (embedding == null) return "[]";
-        return "[" + Arrays.stream(embedding).mapToObj(String::valueOf).collect(Collectors.joining(",")) + "]";
+    private byte[] floatArrayToOracleVector(float[] embedding) {
+        // Placeholder conversion; Oracle VECTOR format will be handled in later batch
+        return VectorConversionHelpers.serializeFloatArrayToBytes(embedding);
     }
 
     @Override
