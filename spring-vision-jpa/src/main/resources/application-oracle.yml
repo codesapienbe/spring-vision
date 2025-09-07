@@ -1,0 +1,17 @@
+spring:
+  vision:
+    vector:
+      provider: oracle
+      oracle:
+        enabled: true
+        index-type: hnsw
+        target-accuracy: 95
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/FREEPDB1
+    username: vector
+    password: vector
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false 

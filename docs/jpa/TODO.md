@@ -765,7 +765,7 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
   ```
 
 ### 7.3 Update Auto-Configuration for Template
-- [ ] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/config/VisionJpaAutoConfiguration.java`
+- [x] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/config/VisionJpaAutoConfiguration.java`
   ```java
   // Add to existing configuration:
   
@@ -987,7 +987,6 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
   
   List<FaceMatchResult> matches = visionTemplate.lookupFaces(imageBytes, options);
   ```
-  ```
 
 ### 9.2 Create Configuration Properties Documentation
 - [ ] **File**: `spring-vision-jpa/src/main/resources/META-INF/spring-configuration-metadata.json`
@@ -1011,13 +1010,14 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
   ```
 
 ### 9.3 Create Application Properties Examples
-- [ ] **File**: `spring-vision-jpa/src/main/resources/application-postgresql.yml`
+- [x] **File**: `spring-vision-jpa/src/main/resources/application-postgresql.yml`
   ```yaml
   spring:
     vision:
       vector:
         provider: pgvector
         postgresql:
+          enabled: true
           index-type: hnsw
           hnsw-m: 16
           hnsw-ef-construction: 64
@@ -1032,13 +1032,14 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
       show-sql: false
   ```
 
-- [ ] **File**: `spring-vision-jpa/src/main/resources/application-oracle.yml`
+- [x] **File**: `spring-vision-jpa/src/main/resources/application-oracle.yml`
   ```yaml
   spring:
     vision:
       vector:
         provider: oracle
         oracle:
+          enabled: true
           index-type: hnsw
           target-accuracy: 95
     datasource:
@@ -1049,7 +1050,7 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
   ```
 
 ### 9.4 Update Main Documentation
-- [ ] **File**: `README.md` - Add JPA section
+- [x] **File**: `README.md` - Add JPA section
   ```markdown
   ## JPA Vector Similarity Support
   
@@ -1088,7 +1089,7 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
 - [ ] **Test**: `mvn clean test` (all tests pass)
 
 ### Final.2 Create Migration Guide
-- [ ] **File**: `docs/JPA_MIGRATION.md`
+- [x] **File**: `docs/JPA_MIGRATION.md`
   ```markdown
   # Migrating to JPA Vector Similarity
   
