@@ -100,6 +100,10 @@ public final class DeepFaceConfig {
     private static final String DEEPFACE_SIZE_ENV = "FACEBYTES_DEEPFACE_SIZE";
     private static final String DEEPFACE_SIZE_SYS = "facebytes.deepface.size";
 
+    // Global ONNX enable/disable switch (env/sys)
+    private static final String ONNX_ENABLED_ENV = "VISION_MODEL_ONNX_ENABLED";
+    private static final String ONNX_ENABLED_SYS = "vision.model.onnx.enabled";
+
     // RetinaFace detection model configuration
     private static final String RETINAFACE_ENV = "FACEBYTES_RETINAFACE_ONNX_PATH";
     private static final String RETINAFACE_SYS = "facebytes.retinaface.onnx";
@@ -219,6 +223,11 @@ public final class DeepFaceConfig {
     public int retinaFaceInputSize() { return (int) readDouble(RETINAFACE_SIZE_ENV, RETINAFACE_SIZE_SYS, 640); }
     public double retinaFaceScoreThreshold() { return readDouble(RETINAFACE_SCORE_ENV, RETINAFACE_SCORE_SYS, 0.7); }
     public double retinaFaceNmsThreshold() { return readDouble(RETINAFACE_NMS_ENV, RETINAFACE_NMS_SYS, 0.4); }
+
+    /**
+     * Returns whether ONNX model loading/inference is enabled. Defaults to true.
+     */
+    public boolean onnxEnabled() { return readBoolean(ONNX_ENABLED_ENV, ONNX_ENABLED_SYS, true); }
 
     private static String readString(String env, String sys, String def) {
         String v = System.getProperty(sys);

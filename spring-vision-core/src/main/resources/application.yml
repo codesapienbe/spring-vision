@@ -1,0 +1,7 @@
+# Default Spring Vision core properties
+# Keeps ONNX model inference enabled by default. Can be overridden with
+# environment variable `VISION_MODEL_ONNX_ENABLED` or system property `vision.model.onnx.enabled`.
+vision:
+  model:
+    onnx:
+      enabled: true 

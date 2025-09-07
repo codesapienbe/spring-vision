@@ -140,6 +140,12 @@ public final class ModelManager {
     private static void ensureInitialized() {
         if (initAttempted.compareAndSet(false, true)) {
             try {
+                // If ONNX usage is disabled via configuration, skip initialization
+                if (!DeepFaceConfig.current().onnxEnabled()) {
+                    Logs.info("ModelManager", "onnx.disabled", Map.of("enabled", false));
+                    installShutdownHook();
+                    return;
+                }
                 String vggPath = DeepFaceConfig.current().vggOnnxPath();
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getProperty(VGG_ONNX_SYS); }
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getenv(VGG_ONNX_ENV); }
