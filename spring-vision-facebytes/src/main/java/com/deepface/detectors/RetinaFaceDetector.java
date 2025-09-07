@@ -39,35 +39,54 @@ public final class RetinaFaceDetector implements FaceDetector {
     private static volatile OpenCVDetector OPENCV_FALLBACK;
 
     public RetinaFaceDetector() {
+        OrtEnvironment createdEnv = null;
+        OrtSession createdSession = null;
+        String createdInputName = null;
+        String modelPath = null;
         try {
-            String modelPath = DeepFaceConfig.current().retinaFaceOnnxPath();
+            modelPath = DeepFaceConfig.current().retinaFaceOnnxPath();
             if (modelPath == null || modelPath.isBlank()) {
                 Logs.warn("RetinaFaceDetector", "onnx.missing", Map.of());
                 // Fallback to OpenCV if not configured
-                this.env = null; this.session = null; this.inputName = null;
-                return;
-            }
-            try {
-                Object envObj = OnnxRuntimeGuard.createEnvironment();
-                if (envObj instanceof OrtEnvironment) {
-                    this.env = (OrtEnvironment) envObj;
-                    this.session = (OrtSession) OnnxRuntimeGuard.createSession(this.env, modelPath);
-                } else {
-                    this.env = OrtEnvironment.getEnvironment();
-                    this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
+                createdEnv = null; createdSession = null; createdInputName = null;
+            } else {
+                try {
+                    Object envObj = OnnxRuntimeGuard.createEnvironment();
+                    if (envObj instanceof OrtEnvironment) {
+                        createdEnv = (OrtEnvironment) envObj;
+                        Object s = OnnxRuntimeGuard.createSession(createdEnv, modelPath);
+                        if (s instanceof OrtSession) {
+                            createdSession = (OrtSession) s;
+                        } else {
+                            createdEnv = OrtEnvironment.getEnvironment();
+                            createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
+                        }
+                    } else {
+                        createdEnv = OrtEnvironment.getEnvironment();
+                        createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
+                    }
+                } catch (Throwable t) {
+                    // Fallback to direct API which will throw on missing runtime
+                    createdEnv = OrtEnvironment.getEnvironment();
+                    createdSession = createdEnv.createSession(modelPath, new OrtSession.SessionOptions());
                 }
-            } catch (Throwable t) {
-                // Fallback to direct API which will throw on missing runtime
-                this.env = OrtEnvironment.getEnvironment();
-                this.session = env.createSession(modelPath, new OrtSession.SessionOptions());
+                if (createdSession != null) {
+                    createdInputName = createdSession.getInputNames().iterator().next();
+                }
             }
-            this.inputName = session.getInputNames().iterator().next();
-            Logs.info("RetinaFaceDetector", "onnx.loaded", Map.of("path", modelPath));
-            // Ensure resources are closed at JVM shutdown
-            installShutdownHook();
         } catch (Exception e) {
             Logs.error("RetinaFaceDetector", "onnx.init_failed", e, Map.of());
             throw new IllegalStateException("Failed to initialize RetinaFace ONNX", e);
+        }
+
+        this.env = createdEnv;
+        this.session = createdSession;
+        this.inputName = createdInputName;
+
+        if (this.session != null) {
+            Logs.info("RetinaFaceDetector", "onnx.loaded", Map.of("path", modelPath));
+            // Ensure resources are closed at JVM shutdown
+            installShutdownHook();
         }
     }
 
