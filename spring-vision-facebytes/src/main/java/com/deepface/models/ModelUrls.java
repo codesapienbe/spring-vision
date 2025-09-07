@@ -21,7 +21,9 @@ public final class ModelUrls {
      * validated against these values. Populate with authoritative checksums as models are released.
      */
     public static Map<String, String> checksums() {
-        // TODO: Populate with real checksums for each model when available.
+        // No authoritative checksums are available in this prototype. Return an immutable
+        // empty map to indicate checksum validation is disabled until official values are
+        // provided. When adding checksums, ensure values are SHA-256 hex strings.
         return Map.of();
     }
 }

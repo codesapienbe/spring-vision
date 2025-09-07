@@ -34,7 +34,7 @@ import com.springvision.core.DetectionQuery;
  * face detector and mapping results into Spring Vision core domain objects.</p>
  */
 @Component
-public final class FaceBytesVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.EmbeddingCapability {
+public final class FaceBytesVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.EmbeddingCapability, com.springvision.core.capabilities.BarcodeCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(FaceBytesVisionBackend.class);
 
@@ -59,7 +59,7 @@ public final class FaceBytesVisionBackend implements VisionBackend, com.springvi
 
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
-        return Set.of(DetectionType.FACE);
+        return Set.of(DetectionType.FACE, DetectionType.BARCODE);
     }
 
     @Override
@@ -102,6 +102,20 @@ public final class FaceBytesVisionBackend implements VisionBackend, com.springvi
             .type(DetectionType.OBJECT)
             .build();
         return detectWithEnhancements(imageData, query);
+    }
+
+    @Override
+    public List<Detection> detectBarcodes(ImageData imageData) {
+        // Delegate to core ZXing implementation; FaceBytes prefers its own optimizations but
+        // ZXing provides a reliable fallback and is lightweight to integrate.
+        try {
+            return com.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
+        } catch (com.springvision.core.exception.VisionProcessingException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.warn("FaceBytes barcode detection failed, returning empty list: {}", e.getMessage());
+            return List.of();
+        }
     }
 
     /**

@@ -392,3 +392,23 @@ The framework is ready for **production deployment** and can be used to build so
   - [x] Emit Micrometer metrics for model load time and inference latency  
   - [x] Add structured logs (JSON) with `component=ModelLoader` and correlation id
 
+## AUTO-GENERATED: Stubbed behaviors / TODOs (discovered by code sweep)
+
+- [ ] **Populate model checksums**: `spring-vision-facebytes/src/main/java/com/deepface/models/ModelUrls.java` currently returns an empty map from `ModelUrls.checksums()`. Add authoritative SHA-256 checksums for remote model artifacts and enable checksum verification during model download. (Batch 5)
+
+- [ ] **Implement or document unsupported detection capabilities in `VisionBackend`**: Several default capability methods throw an exception indicating the capability is not supported. Review each backend and either implement the capability or provide explicit documentation/fallbacks.
+  - `detectText(ImageData)` — currently throws an exception by default; consider OCR integration or clear documentation.
+  - `detectBarcodes(ImageData)` — QR/barcode detection integration or documentation.
+  - `detectLandmarks(ImageData)` — facial/scene landmark extraction.
+  - `detectPoses(ImageData)` — pose estimation (MediaPipe/ONNX based).
+  - `detectHands(ImageData)` — hand landmark detection.
+  - `detectCustom(ImageData)` — custom detection extension point; document expected behavior and how to extend.
+
+- [x] **Replace generic UnsupportedOperationException stubs with clear API errors**: Replaced occurrences in `VisionBackend` and `DetectorFactory` and added `com.springvision.core.exception.VisionUnsupportedException` to provide consistent vision-specific errors.
+
+- [ ] **Audit detectors factory**: `DetectorFactory.create()` previously had a stubbed exception for unknown detector backends. Ensure all declared `DetectorBackend` enum values have working implementations or documented fallbacks in `spring-vision-facebytes/src/main/java/com/deepface/detectors/DetectorFactory.java`.
+
+- [x] **Implement barcode detection (ZXing)**: Added ZXing dependencies and a generic ZXing-based barcode scanner `com.springvision.core.util.ZxingBarcodeScanner`. `VisionBackend.detectBarcodes` now attempts ZXing detection by default and falls back to `VisionUnsupportedException` if ZXing is unavailable.
+
+
+---

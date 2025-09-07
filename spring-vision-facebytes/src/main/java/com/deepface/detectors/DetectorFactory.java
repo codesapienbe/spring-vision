@@ -42,7 +42,9 @@ public final class DetectorFactory {
                 case MTCNN:
                     return getMtcnn();
                 default:
-                    throw new UnsupportedOperationException("Detector backend not implemented: " + backend);
+                    throw new com.springvision.core.exception.VisionUnsupportedException(
+                        "Unsupported or unknown detector backend: " + backend,
+                        "create", backend == null ? null : backend.name());
             }
         } catch (Exception e) {
             // If the requested detector fails, fall back to OpenCV

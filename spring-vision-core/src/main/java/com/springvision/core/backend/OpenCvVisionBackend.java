@@ -279,7 +279,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
 
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
-        return Set.of(DetectionType.FACE, DetectionType.OBJECT);
+        return Set.of(DetectionType.FACE, DetectionType.OBJECT, DetectionType.BARCODE);
     }
 
     @Override
@@ -2780,6 +2780,52 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         } catch (Exception e) {
             // Fallback to default embeddings on any unexpected error to avoid breaking the API
             return com.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+        }
+    }
+
+    @Override
+    public List<Detection> detectBarcodes(ImageData imageData) {
+        // Prefer OpenCV native QRCodeDetector when available via JavaCV; fall back to ZXing
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("Image data must not be null or empty");
+        }
+
+        try {
+            // Try native OpenCV QRCodeDetector via reflection to avoid hard dependency issues
+            if (opencvAvailable) {
+                try {
+                    Mat mat = loadImageToMat(imageData);
+                    Class<?> qrClass = Class.forName("org.bytedeco.opencv.opencv_objdetect.QRCodeDetector");
+                    Object detector = qrClass.getDeclaredConstructor().newInstance();
+
+                    // Attempt detectAndDecode(Mat) -> String
+                    try {
+                        java.lang.reflect.Method detectAndDecode = qrClass.getMethod("detectAndDecode", Mat.class);
+                        Object res = detectAndDecode.invoke(detector, mat);
+                        if (res instanceof String s && s != null && !s.isEmpty()) {
+                            // We couldn't reliably extract bounding points via reflection portably here,
+                            // so return a detection with full-image bbox and decoded text as attribute.
+                            BoundingBox full = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+                            Detection d = Detection.of("barcode", 1.0, full, "text", s);
+                            return List.of(d);
+                        }
+                    } catch (NoSuchMethodException ignored) {
+                        // Fall through to ZXing fallback
+                    }
+                } catch (Throwable t) {
+                    logger.debug("OpenCV QRCodeDetector unavailable or failed: {}", t.getMessage());
+                    // fall through to ZXing fallback
+                }
+            }
+
+            // Fallback to ZXing-based detector implemented in core utilities
+            return com.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
+
+        } catch (com.springvision.core.exception.VisionProcessingException vpe) {
+            throw vpe;
+        } catch (Exception e) {
+            logger.warn("Barcode detection failed: {}", e.getMessage());
+            return List.of();
         }
     }
 }

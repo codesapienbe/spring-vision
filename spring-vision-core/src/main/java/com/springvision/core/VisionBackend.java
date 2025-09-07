@@ -154,44 +154,60 @@ public interface VisionBackend {
             case CUSTOM -> {
                 return detectCustom(imageData);
             }
-            default -> throw new UnsupportedOperationException("Unsupported detection type: " + detectionType);
+            default -> throw new com.springvision.core.exception.VisionUnsupportedException(
+                "Unsupported detection type: " + detectionType, "detect", detectionType == null ? null : detectionType.name());
         }
     }
 
     /** Performs text recognition (OCR) on the provided image data. */
     default List<Detection> detectText(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Text detection is not supported by backend '%s'", getBackendId()));
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Text detection is not supported by backend '%s'", getBackendId()),
+            "detectText", null);
     }
 
     /** Performs barcode/QR code detection on the provided image data. */
     default List<Detection> detectBarcodes(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Barcode detection is not supported by backend '%s'", getBackendId()));
+        try {
+            // Attempt a generic ZXing-based implementation located in core utilities.
+            return com.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
+        } catch (com.springvision.core.exception.VisionProcessingException e) {
+            // If ZXing is present but processing failed, rethrow processing exception
+            throw e;
+        } catch (NoClassDefFoundError | Exception e) {
+            // ZXing not available or other unexpected error - indicate unsupported capability
+            throw new com.springvision.core.exception.VisionUnsupportedException(
+                String.format("Barcode detection is not supported by backend '%s'", getBackendId()),
+                "detectBarcodes", null);
+        }
     }
 
     /** Performs landmark detection on the provided image data. */
     default List<Detection> detectLandmarks(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Landmark detection is not supported by backend '%s'", getBackendId()));
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Landmark detection is not supported by backend '%s'", getBackendId()),
+            "detectLandmarks", null);
     }
 
     /** Performs pose estimation on the provided image data. */
     default List<Detection> detectPoses(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Pose detection is not supported by backend '%s'", getBackendId()));
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Pose detection is not supported by backend '%s'", getBackendId()),
+            "detectPoses", null);
     }
 
     /** Performs hand detection on the provided image data. */
     default List<Detection> detectHands(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Hand detection is not supported by backend '%s'", getBackendId()));
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Hand detection is not supported by backend '%s'", getBackendId()),
+            "detectHands", null);
     }
 
     /** Performs custom detection on the provided image data. */
     default List<Detection> detectCustom(ImageData imageData) {
-        throw new UnsupportedOperationException(
-            String.format("Custom detection is not supported by backend '%s'", getBackendId()));
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Custom detection is not supported by backend '%s'", getBackendId()),
+            "detectCustom", null);
     }
 
     /** Performs multiple detection types on the provided image data. */
