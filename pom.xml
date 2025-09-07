@@ -53,6 +53,7 @@
         <module>spring-vision-deepface</module>
         <module>spring-vision-yolo</module>
         <module>spring-vision-examples</module>
+        <module>spring-vision-jpa</module>
     </modules>
 
     <dependencyManagement>
