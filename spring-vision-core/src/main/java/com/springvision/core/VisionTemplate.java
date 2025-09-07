@@ -56,6 +56,16 @@ public class VisionTemplate {
     }
 
     /**
+     * No-arg constructor used by Spring tests and frameworks that require a default
+     * constructor. This wires a reasonable default backend (OpenCV) for test/demo
+     * purposes only. Production users should explicitly construct VisionTemplate
+     * with their preferred `VisionBackend` implementation.
+     */
+    public VisionTemplate() {
+        this(new com.springvision.core.backend.OpenCvVisionBackend());
+    }
+
+    /**
      * New constructor that accepts an optional VectorService implementation.
      */
     public VisionTemplate(VisionBackend backend, VectorService vectorService) {

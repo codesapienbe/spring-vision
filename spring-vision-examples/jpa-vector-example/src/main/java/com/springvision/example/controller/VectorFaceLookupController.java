@@ -1,9 +1,10 @@
 package com.springvision.example.controller;
 
+import com.springvision.core.Detection;
+import com.springvision.core.ImageData;
+import com.springvision.core.VisionTemplate;
 import com.springvision.jpa.dto.FaceLookupOptions;
 import com.springvision.jpa.dto.FaceRegistrationOptions;
-import com.springvision.jpa.dto.FaceMatchResult;
-import com.springvision.jpa.template.VectorEnabledVisionTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,23 +18,42 @@ import java.util.List;
 @RequestMapping("/api/faces")
 public class VectorFaceLookupController {
 
-    private final VectorEnabledVisionTemplate visionTemplate;
+    private final VisionTemplate visionTemplate;
 
-    public VectorFaceLookupController(VectorEnabledVisionTemplate visionTemplate) {
+    public VectorFaceLookupController(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
     }
 
     @PostMapping("/lookup")
-    public ResponseEntity<List<FaceMatchResult>> lookupFaces(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<java.util.Map<String,Object>>> lookupFaces(@RequestParam("file") MultipartFile file) {
         try {
+            byte[] data = file.getBytes();
+            ImageData img = ImageData.fromBytes(data);
+
+            // Extract embeddings and use the first one for lookup
+            List<float[]> embeddings = visionTemplate.extractEmbeddings(img);
+            if (embeddings == null || embeddings.isEmpty()) {
+                return ResponseEntity.ok(List.of());
+            }
+
+            float[] emb = embeddings.get(0);
             FaceLookupOptions options = new FaceLookupOptions();
             options.setModelName("arcface");
             options.setMetric(com.springvision.jpa.enums.SimilarityMetric.COSINE);
             options.setThreshold(0.75);
             options.setLimit(10);
 
-            List<FaceMatchResult> results = visionTemplate.lookupFaces(file.getBytes(), options);
-            return ResponseEntity.ok(results);
+            List<java.util.Map<String,Object>> matches = visionTemplate.lookupFaces(
+                emb, 
+                options.getModelName(), 
+                options.getMetric().name(), 
+                options.getThreshold(), 
+                options.getLimit(), 
+                options.getIncludePersonIds(), 
+                options.getExcludePersonIds()
+            );
+
+            return ResponseEntity.ok(matches);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
@@ -42,10 +62,26 @@ public class VectorFaceLookupController {
     @PostMapping("/register")
     public ResponseEntity<String> registerPerson(@RequestParam String personId, @RequestParam("file") MultipartFile file) {
         try {
+            byte[] data = file.getBytes();
+            ImageData img = ImageData.fromBytes(data);
+
+            var vr = visionTemplate.detectFaces(img);
+            List<Detection> detections = vr.detections();
+            if (detections.isEmpty()) return ResponseEntity.badRequest().body("No face detected");
+
+            Detection best = detections.stream().max((a,b)->Double.compare(a.confidence(), b.confidence())).get();
+
+            List<float[]> embeddings = visionTemplate.extractEmbeddings(img);
+            if (embeddings == null || embeddings.isEmpty()) return ResponseEntity.badRequest().body("No embedding extracted");
+
+            float[] emb = embeddings.get(0);
+
             FaceRegistrationOptions options = new FaceRegistrationOptions();
             options.setModelName("arcface");
-            String embeddingId = visionTemplate.registerFace(personId, file.getBytes(), options);
-            return ResponseEntity.ok(embeddingId);
+
+            String id = visionTemplate.storeFaceEmbedding(personId, emb, options.getModelName(), com.springvision.jpa.util.VectorUtils.calculateImageHash(data), best.confidence(), java.util.Map.of("source","web_upload"));
+
+            return ResponseEntity.ok(id);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed to register face: " + e.getMessage());
         }

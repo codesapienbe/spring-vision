@@ -85,12 +85,26 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
 
     private String formatMySqlVector(float[] embedding) {
         if (embedding == null) return "";
-        return "(" + java.util.Arrays.stream(embedding).mapToObj(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append('(');
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(String.valueOf(embedding[i]));
+        }
+        sb.append(')');
+        return sb.toString();
     }
 
     private String formatMySqlVectorJson(float[] embedding) {
         if (embedding == null) return "[]";
-        return "[" + java.util.Arrays.stream(embedding).mapToObj(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(String.valueOf(embedding[i]));
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     private SimilaritySearchResult mapToSimilarityResult(Object[] row) {

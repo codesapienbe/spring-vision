@@ -120,7 +120,14 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
 
     private String formatPgVector(float[] embedding) {
         if (embedding == null) return "[]";
-        return "[" + Arrays.stream(embedding).mapToObj(String::valueOf).collect(Collectors.joining(",")) + "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (int i = 0; i < embedding.length; i++) {
+            if (i > 0) sb.append(',');
+            sb.append(String.valueOf(embedding[i]));
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     @Override

@@ -43,7 +43,31 @@ public class VectorSchemaManager {
             case POSTGRESQL -> createPostgreSQLSchema();
             case ORACLE -> createOracleSchema();
             case MYSQL -> createMySQLSchema();
+            case H2 -> createH2Schema();
             default -> log.info("No vector schema actions for vendor: {}", vendor);
+        }
+    }
+
+    private void createH2Schema() {
+        // Create a minimal table compatible with the JPA entity for H2 in-memory tests
+        try {
+            executeSQL("CREATE TABLE IF NOT EXISTS face_embeddings ("
+                + "id UUID PRIMARY KEY,"
+                + "person_id VARCHAR(255) NOT NULL,"
+                + "model_name VARCHAR(255) NOT NULL,"
+                + "dimension INTEGER,"
+                + "embedding_blob BLOB NOT NULL,"
+                + "pgvector_embedding BINARY,"
+                + "oracle_embedding BLOB,"
+                + "mysql_embedding BLOB,"
+                + "image_hash VARCHAR(255),"
+                + "confidence DOUBLE,"
+                + "created_at TIMESTAMP,"
+                + "updated_at TIMESTAMP,"
+                + "version BIGINT)"
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create H2 test schema: {}", e.getMessage());
         }
     }
 

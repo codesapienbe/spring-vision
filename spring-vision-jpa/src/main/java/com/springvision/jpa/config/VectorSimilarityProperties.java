@@ -65,6 +65,6 @@ public class VectorSimilarityProperties {
     }
 
     public enum VectorProvider {
-        AUTO, PGVECTOR, ORACLE, MYSQL, JPA
+        AUTO, PGVECTOR, ORACLE, MYSQL, JPA, H2
     }
 } 

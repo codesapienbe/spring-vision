@@ -1,8 +1,12 @@
 package com.springvision.jpa.config;
 
-import com.springvision.jpa.service.*;
-import com.springvision.jpa.service.VectorSimilarityService.VectorServiceHealth;
-import com.springvision.jpa.service.VectorSimilarityService.VerificationRequest;
+import com.springvision.jpa.service.JpaVectorSimilarityService;
+import com.springvision.jpa.service.MySQLVectorSimilarityService;
+import com.springvision.jpa.service.OracleVectorSimilarityService;
+import com.springvision.jpa.service.PostgreSQLVectorSimilarityService;
+import com.springvision.jpa.service.DatabaseVendorDetector;
+import com.springvision.jpa.service.VectorSimilarityService;
+import com.springvision.jpa.config.VectorSimilarityProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -10,8 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.sql.DataSource;
 
 /**
  * Auto-configuration for JPA vector similarity services.
@@ -24,10 +26,10 @@ public class VisionJpaAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public com.springvision.jpa.service.VectorSimilarityService vectorSimilarityService(
+    public VectorSimilarityService vectorSimilarityService(
             VectorSimilarityProperties properties,
             com.springvision.jpa.repository.FaceEmbeddingRepository repository,
-            com.springvision.jpa.service.DatabaseVendorDetector vendorDetector,
+            DatabaseVendorDetector vendorDetector,
             ObjectProvider<PostgreSQLVectorSimilarityService> pgProvider,
             ObjectProvider<OracleVectorSimilarityService> oracleProvider,
             ObjectProvider<MySQLVectorSimilarityService> mysqlProvider,
@@ -55,12 +57,22 @@ public class VisionJpaAutoConfiguration {
                     return mysqlProvider.getIfAvailable();
                 }
                 break;
+            case H2:
+                // H2 doesn't provide native vector support; if explicitly configured
+                // to 'h2' prefer the H2-variant service if available, otherwise fall
+                // back to the JPA implementation.
+                if (configuredProvider.equals("h2")) {
+                    // Try to obtain a JPA-backed provider (H2VectorSimilarityService is conditional)
+                    VectorSimilarityService h2svc = jpaProvider.getIfAvailable();
+                    if (h2svc != null) return h2svc;
+                }
+                break;
             default:
                 break;
         }
 
         // Fallback to JPA implementation
-        com.springvision.jpa.service.VectorSimilarityService jpa = jpaProvider.getIfAvailable();
+        JpaVectorSimilarityService jpa = jpaProvider.getIfAvailable();
         if (jpa != null) return jpa;
 
         // As a last resort create a new JpaVectorSimilarityService using repository
