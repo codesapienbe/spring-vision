@@ -7,6 +7,9 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.deepface.config.DeepFaceConfig;
 import com.deepface.utils.Logs;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.springvision.core.util.OnnxRuntimeGuard;
 
 import java.io.File;
@@ -14,6 +17,7 @@ import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Minimal ONNX Runtime manager for FaceBytes models.
@@ -46,6 +50,8 @@ public final class ModelManager {
     private static volatile OrtSession deepfaceSession;
     private static final AtomicBoolean initAttempted = new AtomicBoolean(false);
     private static final AtomicBoolean hookInstalled = new AtomicBoolean(false);
+    // Micrometer registry (default to simple registry; can be overridden by tests/host app)
+    private static volatile MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     private ModelManager() {}
 
@@ -72,68 +78,147 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Replace the internal MeterRegistry (for integration with application metrics/Prometheus).
+     */
+    public static void setMeterRegistry(MeterRegistry registry) {
+        if (registry != null) meterRegistry = registry;
+    }
+
+    public static MeterRegistry getMeterRegistry() { return meterRegistry; }
+
     public static void shutdown() { safeClose(); }
 
     public static float[] runVggFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (vggSession == null) throw new OrtException("VGGFace ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = vggSession.run(Collections.singletonMap(inputName(vggSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "vggface").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "vggface", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "vggface"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "vggface"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runArcFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (arcfaceSession == null) throw new OrtException("ArcFace ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = arcfaceSession.run(Collections.singletonMap(inputName(arcfaceSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "arcface").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "arcface", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "arcface"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "arcface"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runFacenetEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (facenetSession == null) throw new OrtException("Facenet ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = facenetSession.run(Collections.singletonMap(inputName(facenetSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "facenet").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "facenet", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "facenet"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "facenet"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runFacenet512Embedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (facenet512Session == null) throw new OrtException("Facenet512 ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = facenet512Session.run(Collections.singletonMap(inputName(facenet512Session), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "facenet512").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "facenet512", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "facenet512"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "facenet512"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runOpenFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (openfaceSession == null) throw new OrtException("OpenFace ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = openfaceSession.run(Collections.singletonMap(inputName(openfaceSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "openface").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "openface", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "openface"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "openface"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runSFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (sfaceSession == null) throw new OrtException("SFace ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = sfaceSession.run(Collections.singletonMap(inputName(sfaceSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "sface").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "sface", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "sface"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "sface"));
+            throw new OrtException(t.getMessage());
         }
     }
 
     public static float[] runDeepFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (deepfaceSession == null) throw new OrtException("DeepFace ONNX session is not available");
+        long t0 = System.nanoTime();
         try (OnnxTensor input = OnnxTensor.createTensor(env, FloatBuffer.wrap(nchw), shape)) {
             OrtSession.Result res = deepfaceSession.run(Collections.singletonMap(inputName(deepfaceSession), input));
+            long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+            Timer.builder("facebytes.model.inference.time").tag("model", "deepface").register(meterRegistry).record(durationMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelInference", "inference.completed", Map.of("model", "deepface", "duration_ms", durationMs));
             float[] out = flattenFirstFloat(res); res.close(); return out;
+        } catch (OrtException e) {
+            Logs.error("ModelInference", "inference.failed", e, Map.of("model", "deepface"));
+            throw e;
+        } catch (Throwable t) {
+            Logs.error("ModelInference", "inference.failed", t, Map.of("model", "deepface"));
+            throw new OrtException(t.getMessage());
         }
     }
 
@@ -181,40 +266,83 @@ public final class ModelManager {
                     return;
                 }
                 env = (OrtEnvironment) OnnxRuntimeGuard.createEnvironment();
+                // Load VGG
                 if (vggPath != null && !vggPath.isBlank()) {
                     File f = new File(vggPath);
-                    if (f.exists() && f.isFile()) { vggSession = env.createSession(vggPath, new OrtSession.SessionOptions()); Logs.info("ModelManager", "onnx.vgg.loaded", Map.of("path", vggPath)); }
-                    else { Logs.warn("ModelManager", "onnx.vgg.file_not_found", Map.of("path", vggPath)); }
+                    if (f.exists() && f.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "vggface", "path", vggPath));
+                        long t0 = System.nanoTime();
+                        vggSession = env.createSession(vggPath, new OrtSession.SessionOptions());
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "vggface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "vggface", "path", vggPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "vggface", "path", vggPath)); }
                 }
                 if (arcPath != null && !arcPath.isBlank()) {
                     File f2 = new File(arcPath);
-                    if (f2.exists() && f2.isFile()) { arcfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, arcPath); Logs.info("ModelManager", "onnx.arcface.loaded", Map.of("path", arcPath)); }
-                    else { Logs.warn("ModelManager", "onnx.arcface.file_not_found", Map.of("path", arcPath)); }
+                    if (f2.exists() && f2.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "arcface", "path", arcPath));
+                        long t0 = System.nanoTime();
+                        arcfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, arcPath);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "arcface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "arcface", "path", arcPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "arcface", "path", arcPath)); }
                 }
                 if (fnPath != null && !fnPath.isBlank()) {
                     File f3 = new File(fnPath);
-                    if (f3.exists() && f3.isFile()) { facenetSession = (OrtSession) OnnxRuntimeGuard.createSession(env, fnPath); Logs.info("ModelManager", "onnx.facenet.loaded", Map.of("path", fnPath)); }
-                    else { Logs.warn("ModelManager", "onnx.facenet.file_not_found", Map.of("path", fnPath)); }
+                    if (f3.exists() && f3.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "facenet", "path", fnPath));
+                        long t0 = System.nanoTime();
+                        facenetSession = (OrtSession) OnnxRuntimeGuard.createSession(env, fnPath);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "facenet").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "facenet", "path", fnPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "facenet", "path", fnPath)); }
                 }
                 if (fn512Path != null && !fn512Path.isBlank()) {
                     File f4 = new File(fn512Path);
-                    if (f4.exists() && f4.isFile()) { facenet512Session = (OrtSession) OnnxRuntimeGuard.createSession(env, fn512Path); Logs.info("ModelManager", "onnx.facenet512.loaded", Map.of("path", fn512Path)); }
-                    else { Logs.warn("ModelManager", "onnx.facenet512.file_not_found", Map.of("path", fn512Path)); }
+                    if (f4.exists() && f4.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "facenet512", "path", fn512Path));
+                        long t0 = System.nanoTime();
+                        facenet512Session = (OrtSession) OnnxRuntimeGuard.createSession(env, fn512Path);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "facenet512").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "facenet512", "path", fn512Path, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "facenet512", "path", fn512Path)); }
                 }
                 if (ofPath != null && !ofPath.isBlank()) {
                     File f5 = new File(ofPath);
-                    if (f5.exists() && f5.isFile()) { openfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, ofPath); Logs.info("ModelManager", "onnx.openface.loaded", Map.of("path", ofPath)); }
-                    else { Logs.warn("ModelManager", "onnx.openface.file_not_found", Map.of("path", ofPath)); }
+                    if (f5.exists() && f5.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "openface", "path", ofPath));
+                        long t0 = System.nanoTime();
+                        openfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, ofPath);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "openface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "openface", "path", ofPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "openface", "path", ofPath)); }
                 }
                 if (sfPath != null && !sfPath.isBlank()) {
                     File f6 = new File(sfPath);
-                    if (f6.exists() && f6.isFile()) { sfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, sfPath); Logs.info("ModelManager", "onnx.sface.loaded", Map.of("path", sfPath)); }
-                    else { Logs.warn("ModelManager", "onnx.sface.file_not_found", Map.of("path", sfPath)); }
+                    if (f6.exists() && f6.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "sface", "path", sfPath));
+                        long t0 = System.nanoTime();
+                        sfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, sfPath);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "sface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "sface", "path", sfPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "sface", "path", sfPath)); }
                 }
                 if (dfPath != null && !dfPath.isBlank()) {
                     File f7 = new File(dfPath);
-                    if (f7.exists() && f7.isFile()) { deepfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, dfPath); Logs.info("ModelManager", "onnx.deepface.loaded", Map.of("path", dfPath)); }
-                    else { Logs.warn("ModelManager", "onnx.deepface.file_not_found", Map.of("path", dfPath)); }
+                    if (f7.exists() && f7.isFile()) {
+                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "deepface", "path", dfPath));
+                        long t0 = System.nanoTime();
+                        deepfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, dfPath);
+                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+                        Timer.builder("facebytes.model.load.time").tag("model", "deepface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "deepface", "path", dfPath, "load_time_ms", loadMs));
+                    } else { Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "deepface", "path", dfPath)); }
                 }
                 installShutdownHook();
             } catch (Throwable t) {

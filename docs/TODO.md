@@ -388,9 +388,9 @@ The framework is ready for **production deployment** and can be used to build so
   - [x] Store model checksums alongside artifacts and fail on mismatch (sidecar .sha256 created/used)  
   - [x] Provide opt-out system property to disable auto-download without changing public API
 
-- [ ] **Observability**  
-  - [ ] Emit Micrometer metrics for model load time and inference latency  
-  - [ ] Add structured logs (JSON) with `component=ModelLoader` and correlation id
+- [x] **Observability**  
+  - [x] Emit Micrometer metrics for model load time and inference latency  
+  - [x] Add structured logs (JSON) with `component=ModelLoader` and correlation id
 
 - [ ] **Backward compatibility & API stability**  
   - [ ] Keep existing public API signatures unchanged (`verify()`, `find()`, `analyze()`, `represent()`, `extractFaces()`)  
