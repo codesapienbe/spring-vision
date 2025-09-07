@@ -96,8 +96,7 @@ public class VectorJpaAdapterAutoConfiguration {
     @Bean
     @Primary
     @ConditionalOnProperty(value = "spring.vision.jpa.enhanced-template", havingValue = "true", matchIfMissing = true)
-    @ConditionalOnMissingBean(name = "vectorEnabledVisionTemplate")
-    public VisionTemplate vectorEnabledVisionTemplate(@Qualifier("originalVisionTemplate") VisionTemplate originalTemplate,
+    public VisionTemplate createEnhancedVisionTemplate(@Qualifier("originalVisionTemplate") VisionTemplate originalTemplate,
                                                       ObjectProvider<VectorService> vectorServiceProvider) {
         VectorService vs = vectorServiceProvider.getIfAvailable();
         if (vs != null) {
@@ -105,4 +104,5 @@ public class VectorJpaAdapterAutoConfiguration {
         }
         return originalTemplate;
     }
+
 } 

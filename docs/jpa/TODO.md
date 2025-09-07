@@ -712,17 +712,20 @@ String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arc
   @Bean
   @Primary
   @ConditionalOnProperty(value = "spring.vision.jpa.enhanced-template", havingValue = "true", matchIfMissing = true)
-  public VisionTemplate vectorEnabledVisionTemplate(
-          @Qualifier("originalVisionTemplate") VisionTemplate originalTemplate,
+  public com.springvision.core.VisionTemplate createEnhancedVisionTemplate(
+          @Qualifier("originalVisionTemplate") com.springvision.core.VisionTemplate originalTemplate,
           VectorSimilarityService vectorService) {
-      return new VectorEnabledVisionTemplate(originalTemplate, vectorService);
+      // The enhanced VisionTemplate is created by delegating to the original template and
+      // wiring the active VectorService. The old adapter class has been removed; this
+      // factory returns a VisionTemplate that uses the configured VectorService directly.
+      return new com.springvision.core.VisionTemplate(originalTemplate.getBackend(), (com.springvision.core.VectorService) vectorService);
   }
   
   @Bean("originalVisionTemplate")
   @ConditionalOnMissingBean(name = "originalVisionTemplate")
-  public VisionTemplate originalVisionTemplate() {
+  public com.springvision.core.VisionTemplate originalVisionTemplate() {
       // Return the existing VisionTemplate implementation
-      return new DefaultVisionTemplate(); // or inject existing one
+      return new com.springvision.core.DefaultVisionTemplate(); // or inject existing one
   }
   ```
 
@@ -743,46 +746,65 @@ String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arc
   @RestController
   @RequestMapping("/api/faces")
   public class VectorFaceLookupController {
-      
+
       @Autowired
-      private VectorEnabledVisionTemplate visionTemplate;
-      
+      private com.springvision.core.VisionTemplate visionTemplate;
+
       @PostMapping("/lookup")
       public ResponseEntity<List<PersonMatch>> lookupFaces(@RequestParam("file") MultipartFile file) {
           try {
+              byte[] data = file.getBytes();
+              com.springvision.core.ImageData img = com.springvision.core.ImageData.fromBytes(data);
+              List<float[]> embeddings = visionTemplate.extractEmbeddings(img);
+              if (embeddings == null || embeddings.isEmpty()) return ResponseEntity.ok(List.of());
+
+              float[] emb = embeddings.get(0);
               FaceLookupOptions options = FaceLookupOptions.builder()
                   .modelName("arcface")
-                  .metric(SimilarityMetric.COSINE)
+                  .metric(com.springvision.jpa.enums.SimilarityMetric.COSINE)
                   .threshold(0.75)
                   .limit(10)
                   .build();
-              
-              List<FaceMatchResult> results = visionTemplate.lookupFaces(file.getBytes(), options);
-              
-              List<PersonMatch> matches = results.stream()
-                  .flatMap(result -> result.getMatches().stream())
-                  .map(this::toPersonMatch)
+
+              List<java.util.Map<String,Object>> matches = visionTemplate.lookupFaces(
+                  emb,
+                  options.getModelName(),
+                  options.getMetric().name(),
+                  options.getThreshold(),
+                  options.getLimit(),
+                  options.getIncludePersonIds(),
+                  options.getExcludePersonIds()
+              );
+
+              // Convert matches to PersonMatch as needed
+              List<PersonMatch> personMatches = matches.stream()
+                  .map(m -> toPersonMatch(m))
                   .collect(Collectors.toList());
-              
-              return ResponseEntity.ok(matches);
+
+              return ResponseEntity.ok(personMatches);
           } catch (Exception e) {
               return ResponseEntity.badRequest().build();
           }
       }
-      
+
       @PostMapping("/register")
-      public ResponseEntity<String> registerPerson(
-              @RequestParam String personId,
-              @RequestParam("file") MultipartFile file) {
+      public ResponseEntity<String> registerPerson(@RequestParam String personId, @RequestParam("file") MultipartFile file) {
           try {
-              FaceRegistrationOptions options = FaceRegistrationOptions.builder()
-                  .modelName("arcface")
-                  .metadata(Map.of("source", "web_upload", "timestamp", System.currentTimeMillis()))
-                  .build();
-              
-              String embeddingId = visionTemplate.registerFace(personId, file.getBytes(), options);
-              
-              return ResponseEntity.ok(embeddingId);
+              byte[] data = file.getBytes();
+              com.springvision.core.ImageData img = com.springvision.core.ImageData.fromBytes(data);
+
+              com.springvision.core.VisionResult vr = visionTemplate.detectFaces(img);
+              List<com.springvision.core.Detection> detections = vr.detections();
+              if (detections.isEmpty()) return ResponseEntity.badRequest().body("No face detected");
+
+              com.springvision.core.Detection best = detections.stream().max((a,b)->Double.compare(a.confidence(), b.confidence())).get();
+              List<float[]> embeddings = visionTemplate.extractEmbeddings(img);
+              if (embeddings == null || embeddings.isEmpty()) return ResponseEntity.badRequest().body("No embedding extracted");
+
+              float[] emb = embeddings.get(0);
+              String id = visionTemplate.storeFaceEmbedding(personId, emb, "arcface", com.springvision.jpa.util.VectorUtils.calculateImageHash(data), best.confidence(), java.util.Map.of("source","web_upload"));
+
+              return ResponseEntity.ok(id);
           } catch (Exception e) {
               return ResponseEntity.badRequest().body("Failed to register face: " + e.getMessage());
           }
@@ -923,7 +945,7 @@ String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arc
   ### 3. Use Face Lookup
   ```java
   @Autowired
-  private VectorEnabledVisionTemplate visionTemplate;
+  private com.springvision.core.VisionTemplate visionTemplate;
   
   List<FaceMatchResult> matches = visionTemplate.lookupFaces(imageBytes, options);
   ```
@@ -1117,7 +1139,7 @@ spring:
 ```java
 // Basic usage
 @Autowired
-private VectorEnabledVisionTemplate visionTemplate;
+private com.springvision.core.VisionTemplate visionTemplate;
 
 // Register a face
 FaceRegistrationOptions regOptions = FaceRegistrationOptions.builder()
