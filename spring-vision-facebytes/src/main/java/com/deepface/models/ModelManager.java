@@ -146,6 +146,14 @@ public final class ModelManager {
                     installShutdownHook();
                     return;
                 }
+
+                // Guard: ensure ONNX runtime classes are present before attempting to create an environment
+                if (!OnnxRuntimeGuard.isAvailable()) {
+                    Logs.info("ModelManager", "onnx.runtime_unavailable", Map.of("available", false));
+                    installShutdownHook();
+                    return;
+                }
+
                 String vggPath = DeepFaceConfig.current().vggOnnxPath();
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getProperty(VGG_ONNX_SYS); }
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getenv(VGG_ONNX_ENV); }

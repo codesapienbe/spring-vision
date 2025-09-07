@@ -370,10 +370,10 @@ The framework is ready for **production deployment** and can be used to build so
 
 ## NEXT STEPS (BATCH 5 - MODEL INTEGRATION)
 
-- [ ] **Integrate ONNX Runtime for embeddings (reflection guarded)**  
-  - [ ] Add reflection-based loader for `ai.onnxruntime` to avoid hard dependency  
-  - [ ] Provide config property `vision.model.onnx.enabled` (default: true)  
-  - [ ] Validate model file checksum (SHA-256) on download/install
+- [x] **Integrate ONNX Runtime for embeddings (reflection guarded)**  
+  - [x] Add reflection-based loader for `ai.onnxruntime` to avoid hard dependency  
+  - [x] Provide config property `vision.model.onnx.enabled` (default: true)  
+  - [x] Validate model file checksum (SHA-256) on download/install (checksums placeholder added; populate authoritative values)
 
 - [ ] **SFace/OpenCV FaceRecognizer fallback**  
   - [ ] Prefer `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` when available  

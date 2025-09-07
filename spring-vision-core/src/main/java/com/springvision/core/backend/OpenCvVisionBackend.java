@@ -1336,24 +1336,92 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
 
     /** Compute SFace embedding for a face crop (112x112 BGR). */
     private float[] computeSFaceEmbedding(Mat alignedFace112x112) {
-        if (sFaceRecognizer == null) return null;
-        try {
-            Mat embedding = new Mat();
-            Class<?> cls = Class.forName("org.bytedeco.opencv.opencv_face.FaceRecognizerSF");
-            java.lang.reflect.Method feature = cls.getMethod("feature", Mat.class, Mat.class);
-            feature.invoke(sFaceRecognizer, alignedFace112x112, embedding);
-            int len = (int) embedding.total();
-            float[] vec = new float[len];
-            embedding.data().asByteBuffer().asFloatBuffer().get(vec);
-            embedding.releaseReference();
-            // L2 normalize
-            double norm = 0.0; for (float v : vec) norm += v * v; norm = Math.sqrt(norm);
-            if (norm > 0) { for (int i = 0; i < vec.length; i++) vec[i] /= (float) norm; }
-            return vec;
-        } catch (Throwable t) {
-            logger.debug("SFace embedding failed: {}", t.getMessage());
-            return null;
+        // Primary path: use OpenCV FaceRecognizerSF when available
+        if (sFaceRecognizer != null) {
+            try {
+                Mat embedding = new Mat();
+                Class<?> cls = Class.forName("org.bytedeco.opencv.opencv_face.FaceRecognizerSF");
+                java.lang.reflect.Method feature = cls.getMethod("feature", Mat.class, Mat.class);
+                feature.invoke(sFaceRecognizer, alignedFace112x112, embedding);
+                int len = (int) embedding.total();
+                float[] vec = new float[len];
+                embedding.data().asByteBuffer().asFloatBuffer().get(vec);
+                embedding.releaseReference();
+                // L2 normalize
+                double norm = 0.0; for (float v : vec) norm += v * v; norm = Math.sqrt(norm);
+                if (norm > 0) { for (int i = 0; i < vec.length; i++) vec[i] /= (float) norm; }
+                return vec;
+            } catch (Throwable t) {
+                logger.debug("SFace embedding failed (OpenCV): {}", t.getMessage());
+                // fall through to fallback attempt
+            }
         }
+
+        // Fallback: try to use FaceBytes ModelManager via reflection (no compile-time dependency)
+        try {
+            Class<?> mm = Class.forName("com.deepface.models.ModelManager");
+            java.lang.reflect.Method isAvailable = mm.getMethod("isSFaceAvailable");
+            Boolean available = (Boolean) isAvailable.invoke(null);
+            if (available != null && available) {
+                // Convert Mat to NCHW float array expected by ModelManager
+                float[] nchw = matToNCHWFloat(alignedFace112x112);
+                long[] shape = new long[] {1, 3, alignedFace112x112.rows(), alignedFace112x112.cols()};
+                java.lang.reflect.Method run = mm.getMethod("runSFaceEmbedding", float[].class, long[].class);
+                Object result = run.invoke(null, nchw, shape);
+                if (result instanceof float[] arr && arr.length > 0) {
+                    // ModelManager already returns normalized embedding; return directly
+                    return arr;
+                }
+            }
+        } catch (ClassNotFoundException cnf) {
+            logger.debug("FaceBytes ModelManager not present for SFace fallback: {}", cnf.getMessage());
+        } catch (Throwable t) {
+            logger.debug("SFace fallback via ModelManager failed: {}", t.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert a BGR Mat to a NCHW float array suitable for ONNX-style inference.
+     * The Mat is expected to be HxW with 3 channels (BGR). Values are converted to float
+     * in range [0,255]. Caller is responsible for matching model expected normalization.
+     */
+    private float[] matToNCHWFloat(Mat mat) {
+        int h = mat.rows();
+        int w = mat.cols();
+        int channels = mat.channels();
+        if (channels < 3) {
+            // expand single channel to 3 channels by duplication
+            channels = 3;
+        }
+        float[] out = new float[channels * h * w];
+        try {
+            // Read byte data from Mat; OpenCV Mat stores BGR by default
+            org.bytedeco.javacpp.BytePointer bp = (org.bytedeco.javacpp.BytePointer) mat.data();
+            int stride = w * mat.channels();
+            byte[] rowBuf = new byte[stride];
+            int idxB = 0;
+            int idxG = h * w;
+            int idxR = 2 * h * w;
+            for (int y = 0; y < h; y++) {
+                bp.position(y * stride);
+                bp.get(rowBuf);
+                int p = 0;
+                for (int x = 0; x < w; x++) {
+                    int b = rowBuf[p++] & 0xFF;
+                    int g = rowBuf[p++] & 0xFF;
+                    int r = rowBuf[p++] & 0xFF;
+                    out[idxB++] = (float) b;
+                    out[idxG++] = (float) g;
+                    out[idxR++] = (float) r;
+                }
+            }
+        } catch (Throwable t) {
+            logger.debug("Failed to convert Mat to NCHW float: {}", t.getMessage());
+            return new float[3 * h * w];
+        }
+        return out;
     }
 
     private static double clamp01(double value) {
