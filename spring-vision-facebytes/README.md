@@ -436,3 +436,45 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **FaceBytes** - Bringing DeepFace to the Java ecosystem with enterprise-grade quality and performance. 
+
+## 📣 Actuator & Prometheus Integration Example
+
+To export FaceBytes model load and inference metrics to Prometheus via Spring Boot Actuator + Micrometer, add the following dependencies to your application's `pom.xml`:
+
+```xml
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+  <groupId>io.micrometer</groupId>
+  <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+```
+
+The library auto-configuration provided by FaceBytes (`ModelMetricsAutoConfiguration`) will automatically bind the application's `MeterRegistry` into the FaceBytes `ModelManager` so model metrics are emitted through your application's registry.
+
+Add Prometheus endpoint exposure in `application.yml`:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus,health,info"
+```
+
+Run your Spring Boot application and navigate to `http://localhost:8080/actuator/prometheus`. You should see metrics such as:
+
+- `facebytes_model_load_time_seconds` (timer) — model load durations
+- `facebytes_model_inference_time_seconds{model="arcface"}` — inference durations per model
+
+Example curl to verify:
+
+```bash
+curl -s http://localhost:8080/actuator/prometheus | grep facebytes
+```
+
+Structured logs from model loading and inference will appear via the `Logs` utility (JSON-style) and include `component`, `model`, and `correlation_id` when the latter is set in MDC. Use `ModelManager.setMeterRegistry(yourRegistry)` if you need to bind a custom registry programmatically.
+
+If you'd like, I can also add a short example application project demonstrating full Actuator + FaceBytes integration and a sample Prometheus scrape configuration. 

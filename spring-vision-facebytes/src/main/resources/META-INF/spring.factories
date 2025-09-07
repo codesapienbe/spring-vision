@@ -1,0 +1,3 @@
+# Auto-configuration registrations for FaceBytes
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.deepface.config.ModelMetricsAutoConfiguration 

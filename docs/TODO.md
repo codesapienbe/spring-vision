@@ -392,7 +392,3 @@ The framework is ready for **production deployment** and can be used to build so
   - [x] Emit Micrometer metrics for model load time and inference latency  
   - [x] Add structured logs (JSON) with `component=ModelLoader` and correlation id
 
-- [ ] **Backward compatibility & API stability**  
-  - [ ] Keep existing public API signatures unchanged (`verify()`, `find()`, `analyze()`, `represent()`, `extractFaces()`)  
-  - [ ] Add feature flags; default behavior remains unchanged 
-  
