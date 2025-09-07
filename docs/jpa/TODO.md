@@ -653,82 +653,22 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
 **Goal**: Integrate vector similarity with existing Vision Template
 **Estimated Time**: 5-6 hours
 
-### 7.1 Create Enhanced Vision Template
-- [x] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/template/VectorEnabledVisionTemplate.java`
-  ```java
-  @Service
-  public class VectorEnabledVisionTemplate implements VisionTemplate {
-      
-      private final VisionTemplate delegate;
-      private final VectorSimilarityService vectorService;
-      
-      public VectorEnabledVisionTemplate(VisionTemplate delegate, VectorSimilarityService vectorService) {
-          this.delegate = delegate;
-          this.vectorService = vectorService;
-      }
-      
-      @Override
-      public List<Detection> detectFaces(byte[] imageData) {
-          return delegate.detectFaces(imageData);
-      }
-      
-      // Implement all VisionTemplate methods by delegating
-      
-      /**
-       * NEW: Face lookup using vector similarity search
-       */
-      public List<FaceMatchResult> lookupFaces(byte[] imageData, FaceLookupOptions options) {
-          List<Detection> faces = detectFaces(imageData);
-          
-          List<FaceMatchResult> results = new ArrayList<>();
-          
-          for (Detection face : faces) {
-              if (face.getEmbedding() != null) {
-                  SimilaritySearchRequest request = new SimilaritySearchRequest(
-                      face.getEmbedding(),
-                      options.getModelName(),
-                      options.getMetric(),
-                      options.getThreshold(),
-                      options.getLimit(),
-                      options.getIncludePersonIds(),
-                      options.getExcludePersonIds()
-                  );
-                  
-                  List<SimilaritySearchResult> matches = vectorService.findSimilarFaces(request);
-                  results.add(new FaceMatchResult(face, matches, options.getMetric()));
-              }
-          }
-          
-          return results;
-      }
-      
-      /**
-       * NEW: Register a person's face for future lookups
-       */
-      public String registerFace(String personId, byte[] imageData, FaceRegistrationOptions options) {
-          List<Detection> faces = detectFaces(imageData);
-          
-          Detection bestFace = faces.stream()
-              .max(Comparator.comparing(Detection::getConfidence))
-              .orElseThrow(() -> new VisionProcessingException("No face detected"));
-          
-          if (bestFace.getEmbedding() == null) {
-              throw new VisionProcessingException("No embedding available for detected face");
-          }
-          
-          StoreFaceEmbeddingRequest request = new StoreFaceEmbeddingRequest(
-              personId,
-              bestFace.getEmbedding(),
-              options.getModelName(),
-              VectorUtils.calculateImageHash(imageData),
-              bestFace.getConfidence(),
-              options.getMetadata()
-          );
-          
-          return vectorService.storeFaceEmbedding(request);
-      }
-  }
-  ```
+### 7.1 Vector features merged into VisionTemplate (adapter removed)
+- [x] **Removed**: `VectorEnabledVisionTemplate` has been removed from the codebase; its functionality is merged into `com.springvision.core.VisionTemplate`.
+
+Use `VisionTemplate` directly for embedding storage and face lookup APIs.
+
+Example (use `VisionTemplate` directly):
+```java
+@Autowired
+private com.springvision.core.VisionTemplate visionTemplate;
+
+// Store an embedding via the template
+String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arcface", imageHash, confidence, Map.of());
+
+// Lookup faces (when enhanced-template enabled)
+// List<com.springvision.jpa.dto.FaceMatchResult> matches = visionTemplate.lookupFaces(imageData, lookupOptions);
+```
 
 ### 7.2 Create Face Lookup DTOs
 - [x] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/dto/FaceLookupOptions.java`

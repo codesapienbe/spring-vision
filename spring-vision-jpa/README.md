@@ -37,23 +37,10 @@ spring:
 
 ```java
 @Autowired
-private com.springvision.jpa.template.VectorEnabledVisionTemplate visionTemplate;
+private com.springvision.core.VisionTemplate visionTemplate;
 
-// Register or lookup faces
-String embeddingId = visionTemplate.registerFace("person-123", imageBytes, options);
-List<com.springvision.jpa.dto.FaceMatchResult> matches = visionTemplate.lookupFaces(queryImage, lookupOptions);
+// Use the VisionTemplate's vector methods (storeFaceEmbedding / lookupFaces)
+String embeddingId = visionTemplate.storeFaceEmbedding("person-123", /* embedding */ new float[]{}, "arcface", "imageHash", 0.95, java.util.Map.of());
+// Or perform a higher-level lookup provided by the template when enabled:
+// List<com.springvision.jpa.dto.FaceMatchResult> matches = visionTemplate.lookupFaces(queryImage, lookupOptions);
 ```
-
-Testing & H2
-------------
-For tests and lightweight development you can use H2 as an alternative provider. Set:
-
-```
-spring.datasource.url=jdbc:h2:mem:testdb
-spring.vision.vector.provider=h2
-spring.jpa.hibernate.ddl-auto=create-drop
-```
-
-Contributing
-------------
-Follow the batch plan in `docs/jpa/TODO.md`. Each change should be small, compile cleanly, and include Javadoc for public types. 
