@@ -375,13 +375,13 @@ The framework is ready for **production deployment** and can be used to build so
   - [x] Provide config property `vision.model.onnx.enabled` (default: true)  
   - [x] Validate model file checksum (SHA-256) on download/install (checksums placeholder added; populate authoritative values)
 
-- [ ] **SFace/OpenCV FaceRecognizer fallback**  
-  - [ ] Prefer `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` when available  
-  - [ ] Implement fallback to FaceBytes embeddings if SFace missing
+- [x] **SFace/OpenCV FaceRecognizer fallback**  
+  - [x] Prefer `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` when available  
+  - [x] Implement fallback to FaceBytes embeddings if SFace missing
 
-- [ ] **Face preprocessing & alignment**  
-  - [ ] Implement eye-based alignment and standardized crop size  
-  - [ ] Add configurable normalization (mean/std) and color-space selection (RGB/BGR)
+- [x] **Face preprocessing & alignment**  
+  - [x] Implement eye-based alignment and standardized crop size  
+  - [x] Add configurable normalization (mean/std) and color-space selection (RGB/BGR)
 
 - [ ] **Model management & security**  
   - [ ] Use HTTPS with strict timeouts for model downloads  
@@ -395,3 +395,4 @@ The framework is ready for **production deployment** and can be used to build so
 - [ ] **Backward compatibility & API stability**  
   - [ ] Keep existing public API signatures unchanged (`verify()`, `find()`, `analyze()`, `represent()`, `extractFaces()`)  
   - [ ] Add feature flags; default behavior remains unchanged 
+  

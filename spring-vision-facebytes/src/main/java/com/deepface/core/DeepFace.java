@@ -620,7 +620,7 @@ public final class DeepFace {
             }
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
-                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target, ModelType.ARCFACE);
             } else if (pre != null) {
                 processed = pre.alignAndResize(face, target, target);
             } else {
@@ -664,7 +664,7 @@ public final class DeepFace {
             }
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
-                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target, ModelType.ARCFACE);
             } else if (pre != null) {
                 processed = pre.alignAndResize(face, target, target);
             } else {
@@ -711,7 +711,7 @@ public final class DeepFace {
             BufferedImage face = cropWithMargin(img, r, margin);
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
-                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target);
+                processed = pre.alignWithLandmarks(face, r.landmarks(), target, target, model != null ? model : ModelType.ARCFACE);
             } else if (pre != null) {
                 processed = pre.alignAndResize(face, target, target);
             } else {
@@ -1021,7 +1021,7 @@ public final class DeepFace {
             BufferedImage crop = cropWithMargin(image, r, margin);
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
-                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224);
+                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224, ModelType.ARCFACE);
             } else if (pre != null) {
                 processed = pre.alignAndResize(crop, 224, 224);
             } else {
@@ -1098,7 +1098,7 @@ public final class DeepFace {
             BufferedImage crop = cropWithMargin(image, r, margin);
             BufferedImage processed;
             if (pre != null && r.landmarks() != null && r.landmarks().length >= 10) {
-                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224);
+                processed = pre.alignWithLandmarks(crop, r.landmarks(), 224, 224, ModelType.ARCFACE);
             } else if (pre != null) {
                 processed = pre.alignAndResize(crop, 224, 224);
             } else {

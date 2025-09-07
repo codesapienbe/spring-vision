@@ -1,0 +1,21 @@
+# Default configuration for FaceBytes module (can be overridden by env vars or system properties)
+# Environment variables map to properties using the typical Spring relaxed binding:
+#   FACEBYTES_TEMPLATE_ARCFACE -> facebytes.template.arcface
+#   FACEBYTES_NORM_MEAN -> facebytes.norm.mean
+
+# Landmark templates expressed as comma-separated values for a 112px reference crop:
+# leftEyeX,leftEyeY,rightEyeX,rightEyeY,noseX,noseY
+facebytes:
+  template:
+    arcface: "38.2946,51.6963,73.5318,51.5014,56.0252,71.7366"
+    sface:   "36.0,50.0,76.0,50.0,56.0,74.0"
+    vgg:     "34.0,48.0,78.0,48.0,56.0,70.0"
+
+  # Normalization defaults applied by DeepFaceConfig when creating model inputs
+  norm:
+    mean: "0.0,0.0,0.0"
+    std:  "1.0,1.0,1.0"
+
+  # Color space used for model inputs (RGB or BGR)
+  color:
+    space: "RGB" 

@@ -70,6 +70,16 @@ public final class DeepFaceConfig {
     private static final String VGG_ENV = "FACEBYTES_VGGFACE_ONNX_PATH";
     private static final String VGG_SYS = "facebytes.vggface.onnx";
 
+    // Auto-download and network settings for model management
+    private static final String AUTO_DOWNLOAD_ENV = "FACEBYTES_AUTO_DOWNLOAD";
+    private static final String AUTO_DOWNLOAD_SYS = "facebytes.auto_download";
+    private static final String DOWNLOAD_CONNECT_TIMEOUT_ENV = "FACEBYTES_DOWNLOAD_CONNECT_TIMEOUT_MS";
+    private static final String DOWNLOAD_CONNECT_TIMEOUT_SYS = "facebytes.download.connect_timeout_ms";
+    private static final String DOWNLOAD_READ_TIMEOUT_ENV = "FACEBYTES_DOWNLOAD_READ_TIMEOUT_MS";
+    private static final String DOWNLOAD_READ_TIMEOUT_SYS = "facebytes.download.read_timeout_ms";
+    private static final String DOWNLOAD_ALLOW_INSECURE_ENV = "FACEBYTES_DOWNLOAD_ALLOW_INSECURE";
+    private static final String DOWNLOAD_ALLOW_INSECURE_SYS = "facebytes.download.allow_insecure";
+
     private static final String ARCFACE_ENV = "FACEBYTES_ARCFACE_ONNX_PATH";
     private static final String ARCFACE_SYS = "facebytes.arcface.onnx";
     private static final String ARCFACE_SIZE_ENV = "FACEBYTES_ARCFACE_SIZE";
@@ -113,6 +123,22 @@ public final class DeepFaceConfig {
     private static final String RETINAFACE_SCORE_SYS = "facebytes.retinaface.score";
     private static final String RETINAFACE_NMS_ENV = "FACEBYTES_RETINAFACE_NMS_THR";
     private static final String RETINAFACE_NMS_SYS = "facebytes.retinaface.nms";
+
+    // Normalization and color-space configuration
+    private static final String NORM_MEAN_ENV = "FACEBYTES_NORM_MEAN";
+    private static final String NORM_MEAN_SYS = "facebytes.norm.mean";
+    private static final String NORM_STD_ENV = "FACEBYTES_NORM_STD";
+    private static final String NORM_STD_SYS = "facebytes.norm.std";
+    private static final String COLORSPACE_ENV = "FACEBYTES_COLOR_SPACE";
+    private static final String COLORSPACE_SYS = "facebytes.color.space";
+
+    // Landmark template override per model (comma-separated x1,y1,x2,y2,x3,y3 for base 112px template)
+    private static final String ARCFACE_TEMPLATE_ENV = "FACEBYTES_TEMPLATE_ARCFACE";
+    private static final String ARCFACE_TEMPLATE_SYS = "facebytes.template.arcface";
+    private static final String SFACE_TEMPLATE_ENV = "FACEBYTES_TEMPLATE_SFACE";
+    private static final String SFACE_TEMPLATE_SYS = "facebytes.template.sface";
+    private static final String VGG_TEMPLATE_ENV = "FACEBYTES_TEMPLATE_VGG";
+    private static final String VGG_TEMPLATE_SYS = "facebytes.template.vgg";
 
     private final double cosineThreshold;
     private final double euclideanThreshold;
@@ -201,6 +227,18 @@ public final class DeepFaceConfig {
 
     public String vggOnnxPath() { return readString(VGG_ENV, VGG_SYS, null); }
 
+    /** Whether the framework may auto-download remote model artifacts. Defaults to true. */
+    public boolean autoDownloadEnabled() { return readBoolean(AUTO_DOWNLOAD_ENV, AUTO_DOWNLOAD_SYS, true); }
+
+    /** Connect timeout in milliseconds for model downloads. Default 10000. */
+    public int modelDownloadConnectTimeoutMs() { return (int) readDouble(DOWNLOAD_CONNECT_TIMEOUT_ENV, DOWNLOAD_CONNECT_TIMEOUT_SYS, 10000); }
+
+    /** Read timeout in milliseconds for model downloads. Default 20000. */
+    public int modelDownloadReadTimeoutMs() { return (int) readDouble(DOWNLOAD_READ_TIMEOUT_ENV, DOWNLOAD_READ_TIMEOUT_SYS, 20000); }
+
+    /** Allow non-HTTPS downloads (not recommended). Defaults to false. */
+    public boolean allowInsecureDownloads() { return readBoolean(DOWNLOAD_ALLOW_INSECURE_ENV, DOWNLOAD_ALLOW_INSECURE_SYS, false); }
+
     public String arcFaceOnnxPath() { return readString(ARCFACE_ENV, ARCFACE_SYS, null); }
     public int arcFaceInputSize() { return (int) readDouble(ARCFACE_SIZE_ENV, ARCFACE_SIZE_SYS, 112); }
 
@@ -229,6 +267,43 @@ public final class DeepFaceConfig {
      */
     public boolean onnxEnabled() { return readBoolean(ONNX_ENABLED_ENV, ONNX_ENABLED_SYS, true); }
 
+    /**
+     * Normalization mean per channel as three comma-separated values (R,G,B) in 0..1 range. Default 0,0,0.
+     */
+    public double[] normalizationMean() {
+        return readDoubles(NORM_MEAN_ENV, NORM_MEAN_SYS, new double[]{0.0, 0.0, 0.0});
+    }
+
+    /**
+     * Normalization std per channel as three comma-separated values (R,G,B). Default 1,1,1.
+     */
+    public double[] normalizationStd() {
+        return readDoubles(NORM_STD_ENV, NORM_STD_SYS, new double[]{1.0, 1.0, 1.0});
+    }
+
+    /**
+     * Color space for model input: "RGB" or "BGR". Defaults to RGB.
+     */
+    public String colorSpace() { return readString(COLORSPACE_ENV, COLORSPACE_SYS, "RGB"); }
+
+    /**
+     * Returns model-specific landmark template points for a 112px reference crop as
+     * an array {leftEyeX,leftEyeY,rightEyeX,rightEyeY,noseX,noseY}.
+     * Values can be overridden via environment/system properties as comma-separated list.
+     */
+    public double[] templatePoints(com.deepface.enums.ModelType model) {
+        if (model == null) model = com.deepface.enums.ModelType.ARCFACE;
+        switch (model) {
+            case SFACE:
+                return readDoublesFull(SFACE_TEMPLATE_ENV, SFACE_TEMPLATE_SYS, new double[]{36.0,50.0,76.0,50.0,56.0,74.0});
+            case VGG_FACE:
+                return readDoublesFull(VGG_TEMPLATE_ENV, VGG_TEMPLATE_SYS, new double[]{34.0,48.0,78.0,48.0,56.0,70.0});
+            case ARCFACE:
+            default:
+                return readDoublesFull(ARCFACE_TEMPLATE_ENV, ARCFACE_TEMPLATE_SYS, new double[]{38.2946,51.6963,73.5318,51.5014,56.0252,71.7366});
+        }
+    }
+
     private static String readString(String env, String sys, String def) {
         String v = System.getProperty(sys);
         if (v == null) v = System.getenv(env);
@@ -255,5 +330,39 @@ public final class DeepFaceConfig {
         if (v == null) v = System.getenv(env);
         if (v == null || v.isBlank()) return def;
         try { return DetectorBackend.valueOf(v.trim().toUpperCase()); } catch (Exception e) { return def; }
+    }
+
+    private static double[] readDoubles(String env, String sys, double[] def) {
+        String v = System.getProperty(sys);
+        if (v == null) v = System.getenv(env);
+        if (v == null || v.isBlank()) return def;
+        try {
+            String[] parts = v.split(",");
+            double[] out = new double[Math.min(parts.length, 3)];
+            for (int i = 0; i < out.length; i++) out[i] = Double.parseDouble(parts[i].trim());
+            if (out.length < 3) {
+                double[] full = new double[3];
+                System.arraycopy(out, 0, full, 0, out.length);
+                for (int i = out.length; i < 3; i++) full[i] = out[out.length - 1];
+                return full;
+            }
+            return out;
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    private static double[] readDoublesFull(String env, String sys, double[] def) {
+        String v = System.getProperty(sys);
+        if (v == null) v = System.getenv(env);
+        if (v == null || v.isBlank()) return def;
+        try {
+            String[] parts = v.split(",");
+            double[] out = new double[Math.max(def.length, parts.length)];
+            for (int i = 0; i < out.length; i++) out[i] = (i < parts.length && !parts[i].isBlank()) ? Double.parseDouble(parts[i].trim()) : (i < def.length ? def[i] : 0.0);
+            return out;
+        } catch (Exception e) {
+            return def;
+        }
     }
 }

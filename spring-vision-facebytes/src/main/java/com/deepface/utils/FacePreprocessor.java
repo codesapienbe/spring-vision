@@ -23,6 +23,8 @@ import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 
+import com.deepface.enums.ModelType;
+
 public final class FacePreprocessor {
 
     private static final String EYE_CASCADE_CLASSPATH = "/haarcascade_eye.xml";
@@ -38,6 +40,10 @@ public final class FacePreprocessor {
         this.eyeClassifier = new CascadeClassifier(ensureEyeCascade());
     }
 
+    /**
+     * Aligns and resizes to a target size. This uses eye-based rotation estimation
+     * when landmarks are not available and then resizes to the requested dimensions.
+     */
     public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
         BufferedImage src = face;
         try {
@@ -50,18 +56,39 @@ public final class FacePreprocessor {
     }
 
     /**
+     * Aligns and resizes using external landmarks if provided (landmarks are 5 points: x1,y1,...).
+     */
+    public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+        if (landmarks5 != null && landmarks5.length >= 10) {
+            return alignWithLandmarks(face, landmarks5, width, height);
+        }
+        return alignAndResize(face, width, height);
+    }
+
+    /**
      * Aligns a face using 5-point landmarks (x1,y1,...,x5,y5). Uses three points (eyes + nose) to build affine.
      * Landmarks are in the input image coordinate space.
      */
     public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+        // Default to ArcFace template for backward compatibility
+        return alignWithLandmarks(face, landmarks5, targetW, targetH, ModelType.ARCFACE);
+    }
+
+    /**
+     * Aligns using landmarks and a model-specific target template. Supports different
+     * templates per model (e.g., ARCFACE, SFACE). Landmarks are expected as 5 points
+     * (x1,y1,x2,y2,x3,...).
+     */
+    public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
         if (landmarks5 == null || landmarks5.length < 10) {
             return resize(face, targetW, targetH);
         }
-        // ArcFace 112x112 template
-        double scale = targetW / 112.0;
-        Point2D.Double dstLeftEye = new Point2D.Double(38.2946 * scale, 51.6963 * scale);
-        Point2D.Double dstRightEye = new Point2D.Double(73.5318 * scale, 51.5014 * scale);
-        Point2D.Double dstNose = new Point2D.Double(56.0252 * scale, 71.7366 * scale);
+
+        double scale = targetW / 112.0; // base template scale (112 is common anchor)
+        Point2D.Double[] dst = getTemplatePointsForModel(model, scale);
+        Point2D.Double dstLeftEye = dst[0];
+        Point2D.Double dstRightEye = dst[1];
+        Point2D.Double dstNose = dst[2];
 
         Point2D.Double srcLeftEye = new Point2D.Double(landmarks5[0], landmarks5[1]);
         Point2D.Double srcRightEye = new Point2D.Double(landmarks5[2], landmarks5[3]);
@@ -75,6 +102,29 @@ public final class FacePreprocessor {
         g.drawImage(face, at, null);
         g.dispose();
         return out;
+    }
+
+    /** Returns model-specific destination points {leftEye,rightEye,nose} scaled by provided factor. */
+    private Point2D.Double[] getTemplatePointsForModel(ModelType model, double scale) {
+        // Try to obtain overrides from DeepFaceConfig if present
+        try {
+            com.deepface.config.DeepFaceConfig cfg = com.deepface.config.DeepFaceConfig.current();
+            double[] pts = cfg.templatePoints(com.deepface.enums.ModelType.valueOf(model.name()));
+            if (pts != null && pts.length >= 6) {
+                return new Point2D.Double[] {
+                    new Point2D.Double(pts[0] * scale / 112.0 * 112.0, pts[1] * scale / 112.0 * 112.0),
+                    new Point2D.Double(pts[2] * scale / 112.0 * 112.0, pts[3] * scale / 112.0 * 112.0),
+                    new Point2D.Double(pts[4] * scale / 112.0 * 112.0, pts[5] * scale / 112.0 * 112.0)
+                };
+            }
+        } catch (Throwable ignored) {}
+
+        // Fallback to built-in defaults (ArcFace-centred values)
+        return new Point2D.Double[]{
+            new Point2D.Double(38.2946 * scale, 51.6963 * scale),
+            new Point2D.Double(73.5318 * scale, 51.5014 * scale),
+            new Point2D.Double(56.0252 * scale, 71.7366 * scale)
+        };
     }
 
     private static AffineTransform computeAffineFrom3Points(Point2D p1, Point2D p2, Point2D p3,
