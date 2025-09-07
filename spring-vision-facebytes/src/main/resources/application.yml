@@ -18,4 +18,11 @@ facebytes:
 
   # Color space used for model inputs (RGB or BGR)
   color:
-    space: "RGB" 
+    space: "RGB"
+
+  # Model download and management defaults
+  auto_download: true
+  download:
+    connect_timeout_ms: 10000
+    read_timeout_ms: 20000
+    allow_insecure: false 

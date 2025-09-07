@@ -383,10 +383,10 @@ The framework is ready for **production deployment** and can be used to build so
   - [x] Implement eye-based alignment and standardized crop size  
   - [x] Add configurable normalization (mean/std) and color-space selection (RGB/BGR)
 
-- [ ] **Model management & security**  
-  - [ ] Use HTTPS with strict timeouts for model downloads  
-  - [ ] Store model checksums alongside artifacts and fail on mismatch  
-  - [ ] Provide opt-out system property to disable auto-downloads
+- [x] **Model management & security**  
+  - [x] Use HTTPS with strict timeouts for model downloads  
+  - [x] Store model checksums alongside artifacts and fail on mismatch (sidecar .sha256 created/used)  
+  - [x] Provide opt-out system property to disable auto-download without changing public API
 
 - [ ] **Observability**  
   - [ ] Emit Micrometer metrics for model load time and inference latency  
