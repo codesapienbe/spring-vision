@@ -16,18 +16,18 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for PostgreSQL + pgvector. Disabled by default; remove
+ * Integration tests for PostgreSQL (native postgres provider). Disabled by default; remove
  * the {@code @Disabled} annotation to run against a real Postgres instance
  * with the pgvector extension installed.
  */
 @SpringBootTest
-@Disabled("PGVector integration tests are disabled by default; enable when Postgres+pgvector is available")
+@Disabled("Postgres integration tests are disabled by default; enable when Postgres+pgvector is available")
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:postgresql://localhost:5432/springvision_test",
     "spring.datasource.username=postgres",
     "spring.datasource.password=postgres",
     "spring.jpa.hibernate.ddl-auto=update",
-    "spring.vision.vector.provider=pgvector"
+    "spring.vision.vector.provider=postgres"
 })
 class PostgresPgVectorIntegrationTest {
 

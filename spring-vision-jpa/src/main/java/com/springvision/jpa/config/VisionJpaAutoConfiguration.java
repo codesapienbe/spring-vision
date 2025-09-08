@@ -44,7 +44,7 @@ public class VisionJpaAutoConfiguration {
 
         switch (vendor) {
             case POSTGRESQL:
-                if (configuredProvider.equals("pgvector") && pgProvider.getIfAvailable() != null) {
+                if (configuredProvider.equals("postgres") && pgProvider.getIfAvailable() != null) {
                     return pgProvider.getIfAvailable();
                 }
                 break;

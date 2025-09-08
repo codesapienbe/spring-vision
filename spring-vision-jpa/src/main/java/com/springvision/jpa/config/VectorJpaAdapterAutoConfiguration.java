@@ -55,7 +55,7 @@ public class VectorJpaAdapterAutoConfiguration {
     @Bean
     @ConditionalOnBean(PostgreSQLVectorSimilarityService.class)
     @ConditionalOnMissingBean(VectorService.class)
-    public VectorService pgVectorServiceAdapter(PostgreSQLVectorSimilarityService svc) {
+    public VectorService postgresServiceAdapter(PostgreSQLVectorSimilarityService svc) {
         return new VectorServiceAdapter(svc);
     }
 

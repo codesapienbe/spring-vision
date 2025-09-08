@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * PostgreSQL-backed vector service using pgvector extension.
  */
 @Service
-@ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "pgvector")
+@ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "postgres")
 @ConditionalOnClass(name = "org.postgresql.util.PGobject")
 public class PostgreSQLVectorSimilarityService implements VectorSimilarityService {
 
@@ -38,7 +38,7 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
         // Constructor-injected adapter via registry for safety and immutability
-        this.nativeVectorAdapter = registry.getAdapter("pgvector");
+        this.nativeVectorAdapter = registry.getAdapter("postgres");
     }
 
     @Override

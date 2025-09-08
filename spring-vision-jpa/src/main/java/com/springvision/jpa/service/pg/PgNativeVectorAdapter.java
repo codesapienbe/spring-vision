@@ -7,24 +7,25 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * Adapter for PostgreSQL pgvector provider.
+ * Adapter for PostgreSQL provider (postgres). Produces a representation usable by
+ * pgvector extension when available.
  */
 @Component
 public class PgNativeVectorAdapter implements NativeVectorAdapter {
 
     @Override
     public String provider() {
-        return "pgvector";
+        return "postgres";
     }
 
     @Override
     public Object toQueryParam(byte[] nativeVector) {
-        return NativeVectorMapper.toPgVectorString(nativeVector);
+        return NativeVectorMapper.toPostgresVectorString(nativeVector);
     }
 
     @Override
     public Object toInsertValue(byte[] nativeVector) {
-        String vec = NativeVectorMapper.toPgVectorString(nativeVector);
+        String vec = NativeVectorMapper.toPostgresVectorString(nativeVector);
         try {
             Class<?> pgObjectClass = Class.forName("org.postgresql.util.PGobject");
             Object pgObject = pgObjectClass.getDeclaredConstructor().newInstance();

@@ -4,7 +4,7 @@ import com.springvision.jpa.util.VectorUtils;
 
 /**
  * Utility to map a portable native byte[] vector into provider-specific formats
- * (Postgres pgvector string, MySQL JSON array, Oracle byte array) and back.
+ * (Postgres vector string, MySQL JSON array, Oracle byte array) and back.
  */
 public final class NativeVectorMapper {
 
@@ -14,7 +14,7 @@ public final class NativeVectorMapper {
         return VectorUtils.deserializeFloatArray(bytes);
     }
 
-    public static String toPgVectorString(float[] embedding) {
+    public static String toPostgresVectorString(float[] embedding) {
         if (embedding == null) return "[]";
         StringBuilder sb = new StringBuilder();
         sb.append('[');
@@ -26,9 +26,13 @@ public final class NativeVectorMapper {
         return sb.toString();
     }
 
-    public static String toPgVectorString(byte[] nativeBytes) {
-        return toPgVectorString(bytesToFloatArray(nativeBytes));
+    public static String toPostgresVectorString(byte[] nativeBytes) {
+        return toPostgresVectorString(bytesToFloatArray(nativeBytes));
     }
+
+    // Backwards-compatible aliases
+    public static String toPgVectorString(float[] embedding) { return toPostgresVectorString(embedding); }
+    public static String toPgVectorString(byte[] nativeBytes) { return toPostgresVectorString(nativeBytes); }
 
     public static String toMySqlJson(float[] embedding) {
         if (embedding == null) return "[]";
