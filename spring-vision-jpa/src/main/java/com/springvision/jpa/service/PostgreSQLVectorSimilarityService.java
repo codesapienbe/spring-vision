@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * PostgreSQL-backed vector service using pgvector extension.
+ * PostgreSQL-backed vector service using the Postgres provider (pgvector extension when available).
  */
 @Service
 @ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "postgres")

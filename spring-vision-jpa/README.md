@@ -4,7 +4,7 @@ This module provides JPA-based persistence and vector-similarity integration for
 
 - A JPA `FaceEmbedding` entity for storing face embeddings and metadata.
 - Repository interfaces for basic CRUD and vendor-specific queries.
-- Multiple provider implementations (JPA fallback, PostgreSQL/pgvector, Oracle, MySQL, H2 for tests).
+- Multiple provider implementations (JPA fallback, PostgreSQL/postgres, Oracle, MySQL, H2 for tests).
 - Auto-configuration and schema management helpers.
 
 Quick start
@@ -26,7 +26,7 @@ Quick start
 spring:
   vision:
     vector:
-      provider: pgvector   # options: pgvector, oracle, mysql, jpa, h2
+      provider: postgres   # options: postgres, oracle, mysql, jpa, h2
   datasource:
     url: jdbc:postgresql://localhost:5432/springvision
     username: postgres

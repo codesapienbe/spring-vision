@@ -1,6 +1,6 @@
 # JPA Vector Example (Spring Vision)
 
-This example demonstrates a complete flow: upload a photo, register a face (store embedding) and run a similarity lookup using the JPA-backed vector provider. It includes a simple UI and an optional Postgres+pgvector test setup.
+This example demonstrates a complete flow: upload a photo, register a face (store embedding) and run a similarity lookup using the JPA-backed vector provider. It includes a simple UI and an optional Postgres (pgvector extension) test setup.
 
 - Example module: `spring-vision-examples/jpa-vector-example`
 - Example UI: `src/main/resources/static/index.html`
@@ -36,7 +36,7 @@ mvn -pl spring-vision-examples/jpa-vector-example spring-boot:run -Dspring-boot.
 
 - `http://localhost:8080/` — simple page to register a person and run a lookup.
 
-Integration tests (PGVector)
+Integration tests (Postgres/pgvector)
 
 - A disabled integration test exists at `spring-vision-jpa/src/test/java/com/springvision/jpa/PostgresPgVectorIntegrationTest.java`.
 - To enable and run it:
@@ -49,7 +49,7 @@ mvn -pl spring-vision-jpa test -Dspring.profiles.active=postgresql
 ```
 
 Notes
-- The example uses a fallback JPA implementation when native DB features are unavailable. The pgvector native flows try to use JDBC-level `PGobject` bindings and fall back to `repository.save()` when that fails.
+- The example uses a fallback JPA implementation when native DB features are unavailable. The Postgres native flows try to use JDBC-level `PGobject` bindings (pgvector extension) and fall back to `repository.save()` when that fails.
 - The `docker compose` uses the `ankane/pgvector` image which bundles the `pgvector` extension.
 
 Troubleshooting

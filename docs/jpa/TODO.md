@@ -49,10 +49,12 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
       @Column(nullable = false)
       private Integer dimension;
       
-      // Start with BLOB storage only (will add vector types in later batches)
       @Lob
       @Column(name = "embedding_blob", nullable = false)
       private byte[] embeddingBlob;
+      
+      @jakarta.persistence.Column(name = "native_vector")
+      private byte[] nativeVector;
       
       @Column
       private String imageHash;
@@ -310,7 +312,7 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
 
 ---
 
-## BATCH 4: PostgreSQL PGVector Support
+## BATCH 4: PostgreSQL Native (postgres/pgvector) Support
 **Goal**: Add native PostgreSQL vector support with custom UserType
 **Estimated Time**: 6-8 hours
 
@@ -324,46 +326,13 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
   </dependency>
   ```
 
-### 4.2 Create PGVector UserType
-- [x] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/hibernate/PgVectorType.java`
-  ```java
-  public class PgVectorType implements UserType<float[]> {
-      
-      @Override
-      public int getSqlType() {
-          return Types.OTHER;
-      }
-      
-      @Override
-      public Class<float[]> returnedClass() {
-          return float[].class;
-      }
-      
-      @Override
-      public float[] nullSafeGet(ResultSet rs, String[] names, 
-                                SharedSessionContractImplementor session, Object owner) 
-                                throws SQLException {
-          String vectorString = rs.getString(names[0]);
-          if (vectorString == null) return null;
-          return parsePgVector(vectorString);
-      }
-      
-      @Override
-      public void nullSafeSet(PreparedStatement st, float[] value, int index, 
-                             SharedSessionContractImplementor session) 
-                             throws SQLException {
-          if (value == null) {
-              st.setNull(index, Types.OTHER);
-          } else {
-              // Create PGobject for vector type
-              Object pgObject = createPgVectorObject(value);
-              st.setObject(index, pgObject);
-          }
-      }
-      
-      // Helper methods for PGVector format conversion
-  }
-  ```
+### 4.2 PostgreSQL native support (postgres/pgvector)
+ - [x] The project previously included a `PgVectorType` UserType helper. The current
+   design consolidates native storage into a single `native_vector` column and uses
+   `NativeVectorAdapter` to convert `native_vector` to provider-specific formats at
+   runtime (e.g., Postgres `PGobject` for pgvector). The legacy `PgVectorType` helper
+   has been removed and replaced by the adapter-based approach. Any remaining references
+   to `pgvector` in comments or docs are informational and refer to the Postgres extension.
 
 ### 4.3 Update FaceEmbedding Entity for PostgreSQL
 - [x] **File**: `spring-vision-jpa/src/main/java/com/springvision/jpa/entity/FaceEmbedding.java`
@@ -435,7 +404,7 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
 ### 4.6 Build and Test Batch 4
 - [x] **Command**: `mvn clean compile -pl spring-vision-jpa`
 - [x] **Test**: PostgreSQL integration test with vector operations
-- [x] **Verify**: PGVector similarity search works correctly
+- [x] **Verify**: Postgres (pgvector) similarity search works correctly using `native_vector` and adapter conversion
 
 ---
 
@@ -621,14 +590,8 @@ This TODO implements JPA support for Spring Vision with focus on vector similari
       private void createPostgreSQLSchema() {
           if (properties.getPostgresql().isEnabled()) {
               executeSQL("CREATE EXTENSION IF NOT EXISTS vector");
-              executeSQL("""
-                  CREATE INDEX IF NOT EXISTS idx_face_embeddings_pgvector 
-                  ON face_embeddings USING hnsw (pgvector_embedding vector_cosine_ops)
-                  WITH (m = %d, ef_construction = %d)
-                  """.formatted(
-                      properties.getPostgresql().getHnswM(),
-                      properties.getPostgresql().getHnswEfConstruction()
-                  ));
+              executeSQL(String.format("CREATE INDEX IF NOT EXISTS idx_face_embeddings_native_vector ON face_embeddings USING hnsw (native_vector vector_cosine_ops) WITH (m = %d, ef_construction = %d)",
+                      properties.getPostgresql().getHnswM(), properties.getPostgresql().getHnswEfConstruction()));
           }
       }
       
@@ -935,7 +898,7 @@ String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arc
   spring:
     vision:
       vector:
-        provider: pgvector  # pgvector, oracle, mysql, jpa
+        provider: postgres  # postgres, oracle, mysql, jpa
     datasource:
       url: jdbc:postgresql://localhost:5432/springvision
       username: postgres
@@ -978,7 +941,7 @@ String embeddingId = visionTemplate.storeFaceEmbedding(personId, embedding, "arc
   spring:
     vision:
       vector:
-        provider: pgvector
+        provider: postgres
         postgresql:
           enabled: true
           index-type: hnsw
@@ -1110,7 +1073,7 @@ spring:
       enabled: true
       enhanced-template: true
     vector:
-      provider: auto  # auto, pgvector, oracle, mysql, jpa
+      provider: auto  # auto, postgres, oracle, mysql, jpa
       postgresql:
         enabled: true
         index-type: hnsw

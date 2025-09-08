@@ -20,9 +20,9 @@ Steps to add JPA vector similarity
 
 2. Choose a vector provider and configure your datasource:
 
-- For PostgreSQL + pgvector:
+- For PostgreSQL + postgres provider (pgvector extension):
   - Ensure `pgvector` extension is installed on the DB instance.
-  - Set `spring.vision.vector.provider=pgvector`.
+  - Set `spring.vision.vector.provider=postgres`.
 
 - For Oracle or MySQL native support, set `spring.vision.vector.provider=oracle` or `mysql` and provide the correct driver and connection details.
 
@@ -53,7 +53,7 @@ spring:
 Migration notes
 ---------------
 - The `FaceEmbedding` entity stores embeddings as a BLOB (`embedding_blob`) accessible via the `FaceEmbeddingRepository`. Vendor-specific columns are present but optional.
-- When switching from the JPA fallback to a native vector provider (e.g. PGVector), consider a migration strategy to populate the native vector column from existing blobs.
+- When switching from the JPA fallback to a native vector provider (e.g. Postgres/pgvector), consider a migration strategy to populate the `native_vector` column from existing blobs.
 - The module provides `VectorSchemaManager` to create vendor-specific schema actions at application startup (e.g., `CREATE EXTENSION vector` and indexes for PostgreSQL). Use caution in production; prefer migration scripts under DBA control.
 
 Testing & Development

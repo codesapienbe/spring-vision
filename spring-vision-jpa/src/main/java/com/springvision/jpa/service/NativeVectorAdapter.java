@@ -7,7 +7,7 @@ package com.springvision.jpa.service;
 public interface NativeVectorAdapter {
 
     /**
-     * Provider id (e.g. "pgvector", "oracle", "mysql").
+     * Provider id (e.g. "postgres", "oracle", "mysql").
      */
     String provider();
 
