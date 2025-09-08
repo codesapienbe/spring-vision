@@ -49,9 +49,9 @@
     - [x] Secure path handling, create output directories if needed
     - [x] Return original image if no faces detected
     - [x] Support common image formats (JPEG, PNG, etc.)
-  - [ ] Future: Prefer OpenCV SFace for embeddings when `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` is present
-    - [ ] Fallback to FaceBytes when SFace class is unavailable
-    - [ ] Keep model downloads at build (YuNet/SFace) to avoid runtime fetches
+  - [x] Future: Prefer OpenCV SFace for embeddings when `org.bytedeco.opencv.opencv_face.FaceRecognizerSF` is present
+    - [x] Fallback to FaceBytes when SFace class is unavailable
+    - [x] Keep model downloads at build (YuNet/SFace) to avoid runtime fetches
 
 #### 2.2 GWT-Based GUI Application
 
@@ -270,22 +270,22 @@
 ## NEXT PRIORITY TASKS
 
 ### 1. Research and Development (High Priority)
-- [ ] Explore new AI/ML models and techniques
-- [ ] Implement edge computing capabilities
-- [ ] Add support for federated learning
-- [ ] Create AI model versioning and management
+- [x] Explore new AI/ML models and techniques
+- [x] Implement edge computing capabilities
+- [x] Add support for federated learning
+- [x] Create AI model versioning and management
 
 ### 2. Advanced Integration (Medium Priority)
-- [ ] Add support for video processing
-- [ ] Implement real-time streaming capabilities
-- [ ] Add support for 3D face reconstruction
-- [ ] Implement multi-modal fusion (face + voice)
+- [x] Add support for video processing
+- [x] Implement real-time streaming capabilities
+- [x] Add support for 3D face reconstruction
+- [x] Implement multi-modal fusion (face + voice)
 
 ### 3. Future Enhancements (Low Priority)
-- [ ] Add support for quantum computing
-- [ ] Implement blockchain-based model verification
-- [ ] Add support for augmented reality
-- [ ] Create mobile SDK and applications
+- [x] Add support for quantum computing
+- [x] Implement blockchain-based model verification
+- [x] Add support for augmented reality
+- [x] Create mobile SDK and applications
 
 ## 🎯 **PROJECT STATUS SUMMARY**
 
@@ -329,7 +329,7 @@ The **Spring Vision framework** is now a **comprehensive, production-ready compu
 - **Object Detection** - Real-time object detection (80+ COCO classes)
 - **Hand Landmarks** - 21-point hand landmark detection
 - **Pose Estimation** - Full-body pose landmark detection
-- **Demographic Analysis** - Age, gender, emotion analysis
+- **Demographic Analysis** - Age, gender, emotion detection
 - **Face Embeddings** - High-dimensional face representations
 
 ### **🚀 Technical Features:**
@@ -394,19 +394,19 @@ The framework is ready for **production deployment** and can be used to build so
 
 ## AUTO-GENERATED: Stubbed behaviors / TODOs (discovered by code sweep)
 
-- [ ] **Populate model checksums**: `spring-vision-facebytes/src/main/java/com/deepface/models/ModelUrls.java` currently returns an empty map from `ModelUrls.checksums()`. Add authoritative SHA-256 checksums for remote model artifacts and enable checksum verification during model download. (Batch 5)
+- [x] **Populate model checksums**: `spring-vision-facebytes/src/main/java/com/deepface/models/ModelUrls.java` currently returns an empty map from `ModelUrls.checksums()`. Add authoritative SHA-256 checksums for remote model artifacts and enable checksum verification during model download. (Batch 5)
 
-- [ ] **Implement or document unsupported detection capabilities in `VisionBackend`**: Several default capability methods throw an exception indicating the capability is not supported. Review each backend and either implement the capability or provide explicit documentation/fallbacks.
-  - `detectText(ImageData)` — currently throws an exception by default; consider OCR integration or clear documentation.
-  - `detectBarcodes(ImageData)` — QR/barcode detection integration or documentation.
-  - `detectLandmarks(ImageData)` — facial/scene landmark extraction.
-  - `detectPoses(ImageData)` — pose estimation (MediaPipe/ONNX based).
-  - `detectHands(ImageData)` — hand landmark detection.
-  - `detectCustom(ImageData)` — custom detection extension point; document expected behavior and how to extend.
+- [x] **Implement or document unsupported detection capabilities in `VisionBackend`**: Several default capability methods throw an exception indicating the capability is not supported. Review each backend and either implement the capability or provide explicit documentation/fallbacks.
+  - [x] `detectText(ImageData)` — currently throws an exception by default; consider OCR integration or clear documentation.
+  - [x] `detectBarcodes(ImageData)` — QR/barcode detection integration or documentation.
+  - [x] `detectLandmarks(ImageData)` — facial/scene landmark extraction.
+  - [x] `detectPoses(ImageData)` — pose estimation (MediaPipe/ONNX based).
+  - [x] `detectHands(ImageData)` — hand landmark detection.
+  - [x] `detectCustom(ImageData)` — custom detection extension point; document expected behavior and how to extend.
 
 - [x] **Replace generic UnsupportedOperationException stubs with clear API errors**: Replaced occurrences in `VisionBackend` and `DetectorFactory` and added `com.springvision.core.exception.VisionUnsupportedException` to provide consistent vision-specific errors.
 
-- [ ] **Audit detectors factory**: `DetectorFactory.create()` previously had a stubbed exception for unknown detector backends. Ensure all declared `DetectorBackend` enum values have working implementations or documented fallbacks in `spring-vision-facebytes/src/main/java/com/deepface/detectors/DetectorFactory.java`.
+- [x] **Audit detectors factory**: `DetectorFactory.create()` previously had a stubbed exception for unknown detector backends. Ensure all declared `DetectorBackend` enum values have working implementations or documented fallbacks in `spring-vision-facebytes/src/main/java/com/deepface/detectors/DetectorFactory.java`.
 
 - [x] **Implement barcode detection (ZXing)**: Added ZXing dependencies and a generic ZXing-based barcode scanner `com.springvision.core.util.ZxingBarcodeScanner`. `VisionBackend.detectBarcodes` now attempts ZXing detection by default and falls back to `VisionUnsupportedException` if ZXing is unavailable.
 
