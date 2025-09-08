@@ -18,10 +18,10 @@ public interface OracleFaceEmbeddingRepository extends JpaRepository<FaceEmbeddi
 
     @Query(value = """
         SELECT e.id, e.person_id, e.model_name, e.created_at, e.confidence,
-               VECTOR_DISTANCE(e.oracle_embedding, :queryVector, COSINE) as distance
+               VECTOR_DISTANCE(e.native_vector, :queryVector, COSINE) as distance
         FROM face_embeddings e
         WHERE e.model_name = :modelName
-        AND VECTOR_DISTANCE(e.oracle_embedding, :queryVector, COSINE) < :threshold
+        AND VECTOR_DISTANCE(e.native_vector, :queryVector, COSINE) < :threshold
         ORDER BY distance ASC
         FETCH FIRST :limit ROWS ONLY
         """, nativeQuery = true)
@@ -29,4 +29,6 @@ public interface OracleFaceEmbeddingRepository extends JpaRepository<FaceEmbeddi
                                                  @Param("modelName") String modelName,
                                                  @Param("threshold") Double threshold,
                                                  @Param("limit") Integer limit);
+
+    java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 } 

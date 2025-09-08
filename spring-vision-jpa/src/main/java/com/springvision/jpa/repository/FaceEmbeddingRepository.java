@@ -23,4 +23,6 @@ public interface FaceEmbeddingRepository extends JpaRepository<FaceEmbedding, UU
 
     @Query("SELECT COUNT(e) FROM FaceEmbedding e WHERE e.modelName = :modelName")
     long countByModelName(@Param("modelName") String modelName);
+
+    java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 } 

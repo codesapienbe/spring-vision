@@ -33,6 +33,9 @@ public class JpaVectorSimilarityService implements VectorSimilarityService {
         embedding.setModelName(request.modelName());
         embedding.setDimension(request.embedding() == null ? 0 : request.embedding().length);
         embedding.setEmbeddingBlob(VectorUtils.serializeFloatArray(request.embedding()));
+        // Store a portable native representation (byte[]) that provider-specific services
+        // can parse into their native formats (pgvector, oracle vector, mysql json, ...)
+        embedding.setNativeVector(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(request.embedding()));
         embedding.setImageHash(request.imageHash());
         embedding.setConfidence(request.confidence());
 

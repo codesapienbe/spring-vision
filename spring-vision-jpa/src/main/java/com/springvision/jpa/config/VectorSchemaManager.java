@@ -49,17 +49,17 @@ public class VectorSchemaManager {
     }
 
     private void createH2Schema() {
-        // Create a minimal table compatible with the JPA entity for H2 in-memory tests
         try {
+            // Minimal table compatible with the JPA entity for H2 in-memory tests.
+            // We store a portable `embedding_blob` and a single `native_vector` byte[] used by
+            // provider adapters to convert into DB-native formats when performing native operations.
             executeSQL("CREATE TABLE IF NOT EXISTS face_embeddings ("
                 + "id UUID PRIMARY KEY,"
                 + "person_id VARCHAR(255) NOT NULL,"
                 + "model_name VARCHAR(255) NOT NULL,"
                 + "dimension INTEGER,"
                 + "embedding_blob BLOB NOT NULL,"
-                + "pgvector_embedding BINARY,"
-                + "oracle_embedding BLOB,"
-                + "mysql_embedding BLOB,"
+                + "native_vector BLOB,"
                 + "image_hash VARCHAR(255),"
                 + "confidence DOUBLE,"
                 + "created_at TIMESTAMP,"
@@ -74,7 +74,10 @@ public class VectorSchemaManager {
     private void createPostgreSQLSchema() {
         if (properties.getPostgresql().isEnabled()) {
             executeSQL("CREATE EXTENSION IF NOT EXISTS vector");
-            executeSQL(String.format("CREATE INDEX IF NOT EXISTS idx_face_embeddings_pgvector ON face_embeddings USING hnsw (pgvector_embedding vector_cosine_ops) WITH (m = %d, ef_construction = %d)",
+            // Create index on `native_vector` which will be populated with a provider-native
+            // representation (pgvector) when the adapter is used. The SQL below assumes
+            // pgvector extension is present and that native_vector can be cast/used as vector.
+            executeSQL(String.format("CREATE INDEX IF NOT EXISTS idx_face_embeddings_native_vector ON face_embeddings USING hnsw (native_vector vector_cosine_ops) WITH (m = %d, ef_construction = %d)",
                     properties.getPostgresql().getHnswM(), properties.getPostgresql().getHnswEfConstruction()));
         }
     }

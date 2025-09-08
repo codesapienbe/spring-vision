@@ -10,6 +10,7 @@ import java.util.Set;
 public record SimilaritySearchRequest(
     float[] queryEmbedding,
     String modelName,
+    String imageHash,
     SimilarityMetric metric,
     Double threshold,
     Integer limit,

@@ -11,6 +11,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,19 +31,33 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
 
     private final PostgreSQLFaceEmbeddingRepository repository;
     private final JdbcTemplate jdbcTemplate;
+    private NativeVectorAdapter nativeVectorAdapter;
 
-    public PostgreSQLVectorSimilarityService(PostgreSQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate) {
+    @Autowired
+    public PostgreSQLVectorSimilarityService(PostgreSQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, com.springvision.jpa.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
+        // Constructor-injected adapter via registry for safety and immutability
+        this.nativeVectorAdapter = registry.getAdapter("pgvector");
     }
 
     @Override
     public String storeFaceEmbedding(com.springvision.jpa.dto.StoreFaceEmbeddingRequest request) {
-        // Try native insert with correct pgvector type handling; fall back to JPA save
-        String vectorString = formatPgVector(request.embedding());
-        byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(request.embedding());
+        // Prefer existing native vector for the same image hash if available
+        float[] embeddingForInsert = request.embedding();
+        if (request.imageHash() != null) {
+            java.util.Optional<FaceEmbedding> existing = repository.findFirstByImageHash(request.imageHash());
+            if (existing.isPresent() && existing.get().getNativeVector() != null && existing.get().getNativeVector().length > 0) {
+                embeddingForInsert = NativeVectorMapper.bytesToFloatArray(existing.get().getNativeVector());
+            }
+        }
 
-        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, pgvector_embedding, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now()) RETURNING id";
+        // Try native insert with correct pgvector type handling; fall back to JPA save
+        final float[] insertEmbedding = embeddingForInsert == null ? new float[0] : embeddingForInsert;
+        final Object vectorParam = nativeVectorAdapter != null ? nativeVectorAdapter.toInsertValue(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(insertEmbedding)) : formatPgVector(insertEmbedding);
+        final byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(insertEmbedding);
+
+        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, native_vector, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now()) RETURNING id";
 
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -52,19 +67,23 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
                     PreparedStatement ps = con.prepareStatement(sql);
                     ps.setString(1, request.personId());
                     ps.setString(2, request.modelName());
-                    ps.setInt(3, request.embedding() == null ? 0 : request.embedding().length);
+                    ps.setInt(3, insertEmbedding == null ? 0 : insertEmbedding.length);
                     ps.setBytes(4, blob);
 
                     // attempt to create PGobject via reflection to set type 'vector'
                     try {
-                        Class<?> pgObjectClass = Class.forName("org.postgresql.util.PGobject");
-                        Object pgObject = pgObjectClass.getDeclaredConstructor().newInstance();
-                        pgObjectClass.getMethod("setType", String.class).invoke(pgObject, "vector");
-                        pgObjectClass.getMethod("setValue", String.class).invoke(pgObject, vectorString);
-                        ps.setObject(5, pgObject, Types.OTHER);
+                        if (nativeVectorAdapter != null) {
+                            ps.setObject(5, vectorParam, Types.OTHER);
+                        } else {
+                            Class<?> pgObjectClass = Class.forName("org.postgresql.util.PGobject");
+                            Object pgObject = pgObjectClass.getDeclaredConstructor().newInstance();
+                            pgObjectClass.getMethod("setType", String.class).invoke(pgObject, "vector");
+                            pgObjectClass.getMethod("setValue", String.class).invoke(pgObject, formatPgVector(insertEmbedding));
+                            ps.setObject(5, pgObject, Types.OTHER);
+                        }
                     } catch (Exception e) {
                         // fallback: set string value
-                        ps.setString(5, vectorString);
+                        ps.setString(5, formatPgVector(insertEmbedding));
                     }
 
                     ps.setString(6, request.imageHash());
@@ -85,7 +104,8 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
         embedding.setModelName(request.modelName());
         embedding.setDimension(request.embedding() == null ? 0 : request.embedding().length);
         embedding.setEmbeddingBlob(blob);
-        embedding.setPgVectorEmbedding(request.embedding());
+        // store portable native bytes
+        embedding.setNativeVector(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(embeddingForInsert));
         embedding.setImageHash(request.imageHash());
         embedding.setConfidence(request.confidence());
 
@@ -95,9 +115,16 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
 
     @Override
     public List<SimilaritySearchResult> findSimilarFaces(SimilaritySearchRequest request) {
-        String vectorString = formatPgVector(request.queryEmbedding());
+        float[] effectiveEmbedding = request.queryEmbedding();
 
-        List<Object[]> results = repository.findSimilarByCosineSimilarity(vectorString, request.modelName(), request.threshold(), request.limit());
+        // If caller didn't provide a query embedding but provided an imageHash, try to reuse stored native vector
+        if ((effectiveEmbedding == null || effectiveEmbedding.length == 0) && request instanceof com.springvision.jpa.dto.SimilaritySearchRequest) {
+            // nothing: keep as-is (we may enhance DTO later). Attempt to use repository lookup by imageHash if present in request metadata (not present currently).
+        }
+
+        Object queryParam = nativeVectorAdapter != null && effectiveEmbedding != null ? nativeVectorAdapter.toQueryParam(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(effectiveEmbedding)) : formatPgVector(effectiveEmbedding == null ? new float[0] : effectiveEmbedding);
+
+        List<Object[]> results = repository.findSimilarByCosineSimilarity(String.valueOf(queryParam), request.modelName(), request.threshold(), request.limit());
 
         return results.stream()
             .map(this::mapToSimilarityResult)
@@ -119,16 +146,10 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
     }
 
     private String formatPgVector(float[] embedding) {
-        if (embedding == null) return "[]";
-        StringBuilder sb = new StringBuilder();
-        sb.append('[');
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(',');
-            sb.append(String.valueOf(embedding[i]));
-        }
-        sb.append(']');
-        return sb.toString();
+        return NativeVectorMapper.toPgVectorString(embedding);
     }
+
+    // setter removed; adapter is resolved at construction time via registry
 
     @Override
     public VerificationResult verifyFaces(VerificationRequest request) {

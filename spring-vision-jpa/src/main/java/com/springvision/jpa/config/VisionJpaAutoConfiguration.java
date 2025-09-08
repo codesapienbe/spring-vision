@@ -33,7 +33,8 @@ public class VisionJpaAutoConfiguration {
             ObjectProvider<PostgreSQLVectorSimilarityService> pgProvider,
             ObjectProvider<OracleVectorSimilarityService> oracleProvider,
             ObjectProvider<MySQLVectorSimilarityService> mysqlProvider,
-            ObjectProvider<JpaVectorSimilarityService> jpaProvider) {
+            ObjectProvider<JpaVectorSimilarityService> jpaProvider,
+            com.springvision.jpa.service.NativeVectorAdapterRegistry adapterRegistry) {
 
         com.springvision.jpa.enums.DatabaseVendor vendor = vendorDetector.detectVendor();
         String configuredProvider = properties.getProvider().name().toLowerCase();
@@ -79,4 +80,5 @@ public class VisionJpaAutoConfiguration {
         log.warn("Falling back to programmatic JpaVectorSimilarityService instance");
         return new JpaVectorSimilarityService(repository);
     }
-} 
+    
+ } 

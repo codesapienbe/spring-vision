@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,18 +29,30 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
 
     private final com.springvision.jpa.repository.OracleFaceEmbeddingRepository repository;
     private final JdbcTemplate jdbcTemplate;
+    private NativeVectorAdapter nativeVectorAdapter;
 
-    public OracleVectorSimilarityService(com.springvision.jpa.repository.OracleFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate) {
+    @Autowired
+    public OracleVectorSimilarityService(com.springvision.jpa.repository.OracleFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, com.springvision.jpa.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
+        this.nativeVectorAdapter = registry.getAdapter("oracle");
     }
 
     @Override
     public String storeFaceEmbedding(com.springvision.jpa.dto.StoreFaceEmbeddingRequest request) {
-        byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(request.embedding());
-        byte[] oracleVector = VectorConversionHelpers.serializeFloatArrayToBytes(request.embedding());
+        // prefer existing native vector for same image hash
+        float[] embeddingForInsert = request.embedding();
+        if (request.imageHash() != null) {
+            java.util.Optional<com.springvision.jpa.entity.FaceEmbedding> existing = repository.findFirstByImageHash(request.imageHash());
+            if (existing.isPresent() && existing.get().getNativeVector() != null && existing.get().getNativeVector().length > 0) {
+                embeddingForInsert = NativeVectorMapper.bytesToFloatArray(existing.get().getNativeVector());
+            }
+        }
 
-        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, oracle_embedding, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE) RETURNING id INTO ?";
+        byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(embeddingForInsert);
+        Object oracleInsertVal = nativeVectorAdapter != null ? nativeVectorAdapter.toInsertValue(VectorConversionHelpers.serializeFloatArrayToBytes(embeddingForInsert)) : VectorConversionHelpers.serializeFloatArrayToBytes(embeddingForInsert);
+
+        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, native_vector, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, SYSDATE, SYSDATE) RETURNING id INTO ?";
 
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -51,7 +64,8 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
                     ps.setString(2, request.modelName());
                     ps.setInt(3, request.embedding() == null ? 0 : request.embedding().length);
                     ps.setBytes(4, blob);
-                    ps.setBytes(5, oracleVector);
+                    if (oracleInsertVal instanceof byte[]) ps.setBytes(5, (byte[]) oracleInsertVal);
+                    else ps.setObject(5, oracleInsertVal);
                     ps.setString(6, request.imageHash());
                     if (request.confidence() == null) ps.setNull(7, Types.DOUBLE);
                     else ps.setDouble(7, request.confidence());
@@ -68,9 +82,9 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
         FaceEmbedding embedding = new FaceEmbedding();
         embedding.setPersonId(request.personId());
         embedding.setModelName(request.modelName());
-        embedding.setDimension(request.embedding() == null ? 0 : request.embedding().length);
+        embedding.setDimension(embeddingForInsert == null ? 0 : embeddingForInsert.length);
         embedding.setEmbeddingBlob(blob);
-        embedding.setOracleEmbedding(oracleVector);
+        embedding.setNativeVector(VectorConversionHelpers.serializeFloatArrayToBytes(embeddingForInsert));
         embedding.setImageHash(request.imageHash());
         embedding.setConfidence(request.confidence());
 
@@ -80,7 +94,12 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
 
     @Override
     public List<SimilaritySearchResult> findSimilarFaces(SimilaritySearchRequest request) {
-        byte[] vectorBytes = floatArrayToOracleVector(request.queryEmbedding());
+        float[] effectiveEmbedding = request.queryEmbedding();
+        if ((effectiveEmbedding == null || effectiveEmbedding.length == 0) && request instanceof com.springvision.jpa.dto.SimilaritySearchRequest) {
+            // no query embedding - cannot lookup by imageHash here because DTO lacks imageHash; future enhancement
+        }
+        Object queryParam = nativeVectorAdapter != null && effectiveEmbedding != null ? nativeVectorAdapter.toQueryParam(VectorConversionHelpers.serializeFloatArrayToBytes(effectiveEmbedding)) : floatArrayToOracleVector(effectiveEmbedding);
+        byte[] vectorBytes = queryParam instanceof byte[] ? (byte[]) queryParam : floatArrayToOracleVector(effectiveEmbedding);
         List<Object[]> results = repository.findSimilarByCosineSimilarity(vectorBytes, request.modelName(), request.threshold(), request.limit());
         return results.stream().map(this::mapToSimilarityResult).collect(Collectors.toList());
     }
@@ -96,10 +115,16 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
         return new SimilaritySearchResult(id, personId, similarity, distance, modelName, createdAt, java.util.Map.of("confidence", confidence));
     }
 
+    /**
+     * Placeholder conversion; Oracle VECTOR format will be handled in later batch
+     * For now we serialize float[] to bytes using VectorConversionHelpers as a portable fallback.
+     */
     private byte[] floatArrayToOracleVector(float[] embedding) {
-        // Placeholder conversion; Oracle VECTOR format will be handled in later batch
+        if (embedding == null) return new byte[0];
         return VectorConversionHelpers.serializeFloatArrayToBytes(embedding);
     }
+
+    // setter removed; adapter injected via registry at construction
 
     @Override
     public VerificationResult verifyFaces(VerificationRequest request) {

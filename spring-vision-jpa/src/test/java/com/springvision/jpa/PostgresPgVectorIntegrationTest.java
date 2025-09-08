@@ -51,6 +51,7 @@ class PostgresPgVectorIntegrationTest {
         SimilaritySearchRequest search = new SimilaritySearchRequest(
             new float[]{0.1f, 0.2f, 0.3f},
             "arcface",
+            null,
             com.springvision.jpa.enums.SimilarityMetric.COSINE,
             0.5,
             10,

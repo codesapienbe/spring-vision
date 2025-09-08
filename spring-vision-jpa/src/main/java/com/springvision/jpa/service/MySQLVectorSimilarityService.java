@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,24 +29,37 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
 
     private final com.springvision.jpa.repository.MySQLFaceEmbeddingRepository repository;
     private final JdbcTemplate jdbcTemplate;
+    private NativeVectorAdapter nativeVectorAdapter;
 
-    public MySQLVectorSimilarityService(com.springvision.jpa.repository.MySQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate) {
+    @Autowired
+    public MySQLVectorSimilarityService(com.springvision.jpa.repository.MySQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, com.springvision.jpa.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
+        this.nativeVectorAdapter = registry.getAdapter("mysql");
     }
 
     @Override
     public String storeFaceEmbedding(com.springvision.jpa.dto.StoreFaceEmbeddingRequest request) {
+        // prefer existing native vector for same image hash
+        float[] embeddingForInsert = request.embedding();
+        if (request.imageHash() != null) {
+            java.util.Optional<com.springvision.jpa.entity.FaceEmbedding> existing = repository.findFirstByImageHash(request.imageHash());
+            if (existing.isPresent() && existing.get().getNativeVector() != null && existing.get().getNativeVector().length > 0) {
+                embeddingForInsert = NativeVectorMapper.bytesToFloatArray(existing.get().getNativeVector());
+            }
+        }
+
         FaceEmbedding embedding = new FaceEmbedding();
         embedding.setPersonId(request.personId());
         embedding.setModelName(request.modelName());
-        embedding.setDimension(request.embedding() == null ? 0 : request.embedding().length);
-        byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(request.embedding());
+        embedding.setDimension(embeddingForInsert == null ? 0 : embeddingForInsert.length);
+        final float[] insertEmbedding = embeddingForInsert == null ? new float[0] : embeddingForInsert;
+        final byte[] blob = com.springvision.jpa.util.VectorUtils.serializeFloatArray(insertEmbedding);
         embedding.setEmbeddingBlob(blob);
         // store JSON-like representation for MySQL vector column
-        String json = formatMySqlVectorJson(request.embedding());
+        final Object jsonParam = nativeVectorAdapter != null ? nativeVectorAdapter.toInsertValue(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(insertEmbedding)) : formatMySqlVectorJson(insertEmbedding);
 
-        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, mysql_embedding, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now())";
+        String sql = "INSERT INTO face_embeddings (person_id, model_name, dimension, embedding_blob, native_vector, image_hash, confidence, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, now(), now())";
         try {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(new PreparedStatementCreator() {
@@ -54,9 +68,9 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
                     PreparedStatement ps = con.prepareStatement(sql, new String[]{"id"});
                     ps.setString(1, request.personId());
                     ps.setString(2, request.modelName());
-                    ps.setInt(3, request.embedding() == null ? 0 : request.embedding().length);
+                    ps.setInt(3, insertEmbedding == null ? 0 : insertEmbedding.length);
                     ps.setBytes(4, blob);
-                    ps.setString(5, json);
+                    ps.setString(5, String.valueOf(jsonParam));
                     ps.setString(6, request.imageHash());
                     if (request.confidence() == null) ps.setNull(7, Types.DOUBLE);
                     else ps.setDouble(7, request.confidence());
@@ -70,8 +84,8 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
             // fallback to repository
         }
 
-        // fallback save
-        embedding.setMysqlEmbedding(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        // fallback save: store native vector only; vendor-specific columns removed from entity
+        embedding.setNativeVector(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(embeddingForInsert));
         com.springvision.jpa.entity.FaceEmbedding saved = repository.save(embedding);
         return saved.getId() == null ? null : saved.getId().toString();
     }
@@ -79,33 +93,21 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
     @Override
     public List<SimilaritySearchResult> findSimilarFaces(SimilaritySearchRequest request) {
         // Placeholder: delegate to repository when implemented
-        List<Object[]> results = repository.findSimilarByCosineSimilarity(formatMySqlVector(request.queryEmbedding()), request.modelName(), request.threshold(), request.limit());
+        Object queryParam = nativeVectorAdapter != null && request.queryEmbedding() != null ? nativeVectorAdapter.toQueryParam(com.springvision.jpa.service.VectorConversionHelpers.serializeFloatArrayToBytes(request.queryEmbedding())) : formatMySqlVector(request.queryEmbedding());
+        List<Object[]> results = repository.findSimilarByCosineSimilarity(String.valueOf(queryParam), request.modelName(), request.threshold(), request.limit());
         return results.stream().map(this::mapToSimilarityResult).collect(Collectors.toList());
     }
 
     private String formatMySqlVector(float[] embedding) {
-        if (embedding == null) return "";
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(',');
-            sb.append(String.valueOf(embedding[i]));
-        }
-        sb.append(')');
-        return sb.toString();
+        // For MySQL native queries we may use JSON-style vector, reuse NativeVectorMapper
+        return NativeVectorMapper.toMySqlJson(embedding);
     }
 
     private String formatMySqlVectorJson(float[] embedding) {
-        if (embedding == null) return "[]";
-        StringBuilder sb = new StringBuilder();
-        sb.append('[');
-        for (int i = 0; i < embedding.length; i++) {
-            if (i > 0) sb.append(',');
-            sb.append(String.valueOf(embedding[i]));
-        }
-        sb.append(']');
-        return sb.toString();
+        return NativeVectorMapper.toMySqlJson(embedding);
     }
+
+    // setter removed; adapter resolved via registry at construction
 
     private SimilaritySearchResult mapToSimilarityResult(Object[] row) {
         String id = row[0] == null ? null : row[0].toString();

@@ -33,15 +33,8 @@ public class FaceEmbedding extends AuditableEntity {
     @Column(name = "embedding_blob", nullable = false)
     private byte[] embeddingBlob;
 
-    // Optional native vector columns for databases with vector support
-    @jakarta.persistence.Column(name = "pgvector_embedding", columnDefinition = "vector")
-    private float[] pgVectorEmbedding;
-
-    @jakarta.persistence.Column(name = "oracle_embedding")
-    private byte[] oracleEmbedding;
-
-    @jakarta.persistence.Column(name = "mysql_embedding")
-    private byte[] mysqlEmbedding;
+    @jakarta.persistence.Column(name = "native_vector")
+    private byte[] nativeVector;
 
     @Column
     private String imageHash;
@@ -89,28 +82,14 @@ public class FaceEmbedding extends AuditableEntity {
         this.embeddingBlob = embeddingBlob;
     }
 
-    public float[] getPgVectorEmbedding() {
-        return pgVectorEmbedding;
+    // vendor-specific columns removed; use `nativeVector` and provider converters instead
+
+    public byte[] getNativeVector() {
+        return nativeVector;
     }
 
-    public void setPgVectorEmbedding(float[] pgVectorEmbedding) {
-        this.pgVectorEmbedding = pgVectorEmbedding;
-    }
-
-    public byte[] getOracleEmbedding() {
-        return oracleEmbedding;
-    }
-
-    public void setOracleEmbedding(byte[] oracleEmbedding) {
-        this.oracleEmbedding = oracleEmbedding;
-    }
-
-    public byte[] getMysqlEmbedding() {
-        return mysqlEmbedding;
-    }
-
-    public void setMysqlEmbedding(byte[] mysqlEmbedding) {
-        this.mysqlEmbedding = mysqlEmbedding;
+    public void setNativeVector(byte[] nativeVector) {
+        this.nativeVector = nativeVector;
     }
 
     public String getImageHash() {

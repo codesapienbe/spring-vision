@@ -32,7 +32,14 @@ public class VectorServiceAdapter implements VectorService {
     @Override
     public List<Map<String, Object>> findSimilarFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, Set<String> includePersonIds, Set<String> excludePersonIds) {
         com.springvision.jpa.dto.SimilaritySearchRequest req = new com.springvision.jpa.dto.SimilaritySearchRequest(
-            queryEmbedding, modelName, com.springvision.jpa.enums.SimilarityMetric.valueOf(metric == null ? "COSINE" : metric.toUpperCase()), threshold, limit, includePersonIds, excludePersonIds
+            queryEmbedding,
+            modelName,
+            null,
+            com.springvision.jpa.enums.SimilarityMetric.valueOf(metric == null ? "COSINE" : metric.toUpperCase()),
+            threshold,
+            limit,
+            includePersonIds,
+            excludePersonIds
         );
 
         List<SimilaritySearchResult> results = delegate.findSimilarFaces(req);

@@ -17,12 +17,14 @@ public interface PostgreSQLFaceEmbeddingRepository extends JpaRepository<FaceEmb
 
     @Query(value = """
         SELECT e.id, e.person_id, e.model_name, e.created_at, e.confidence,
-               (e.pgvector_embedding <=> CAST(?1 AS vector)) as distance 
+               ( (CAST(?1 AS vector) <=> e.native_vector) ) as distance 
         FROM face_embeddings e 
         WHERE e.model_name = ?2 
-        AND (e.pgvector_embedding <=> CAST(?1 AS vector)) < ?3
+        AND ( (CAST(?1 AS vector) <=> e.native_vector) ) < ?3
         ORDER BY distance ASC
         LIMIT ?4
         """, nativeQuery = true)
     List<Object[]> findSimilarByCosineSimilarity(String queryVector, String modelName, Double threshold, Integer limit);
+
+    java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 } 
