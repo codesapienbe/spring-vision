@@ -242,24 +242,67 @@ public final class ModelManager {
                 String vggPath = DeepFaceConfig.current().vggOnnxPath();
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getProperty(VGG_ONNX_SYS); }
                 if (vggPath == null || vggPath.isBlank()) { vggPath = System.getenv(VGG_ONNX_ENV); }
+                // Try resolving or downloading the default model into the cache when not explicitly configured
+                if (vggPath == null || vggPath.isBlank()) {
+                    try {
+                        vggPath = ModelDownloader.resolveOrDownload(null, "vggface.onnx");
+                        if (vggPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "vggface", "path", vggPath));
+                    } catch (Throwable ignored) {}
+                }
                 String arcPath = DeepFaceConfig.current().arcFaceOnnxPath();
                 if (arcPath == null || arcPath.isBlank()) { arcPath = System.getProperty(ARCFACE_ONNX_SYS); }
                 if (arcPath == null || arcPath.isBlank()) { arcPath = System.getenv(ARCFACE_ONNX_ENV); }
+                if (arcPath == null || arcPath.isBlank()) {
+                    try {
+                        arcPath = ModelDownloader.resolveOrDownload(null, "arcface.onnx");
+                        if (arcPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "arcface", "path", arcPath));
+                    } catch (Throwable ignored) {}
+                }
                 String fnPath = DeepFaceConfig.current().facenetOnnxPath();
                 if (fnPath == null || fnPath.isBlank()) { fnPath = System.getProperty(FACENET_ONNX_SYS); }
                 if (fnPath == null || fnPath.isBlank()) { fnPath = System.getenv(FACENET_ONNX_ENV); }
+                if (fnPath == null || fnPath.isBlank()) {
+                    try {
+                        fnPath = ModelDownloader.resolveOrDownload(null, "facenet128.onnx");
+                        if (fnPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "facenet", "path", fnPath));
+                    } catch (Throwable ignored) {}
+                }
                 String fn512Path = DeepFaceConfig.current().facenet512OnnxPath();
                 if (fn512Path == null || fn512Path.isBlank()) { fn512Path = System.getProperty(FACENET512_ONNX_SYS); }
                 if (fn512Path == null || fn512Path.isBlank()) { fn512Path = System.getenv(FACENET512_ONNX_ENV); }
+                if (fn512Path == null || fn512Path.isBlank()) {
+                    try {
+                        fn512Path = ModelDownloader.resolveOrDownload(null, "facenet512.onnx");
+                        if (fn512Path != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "facenet512", "path", fn512Path));
+                    } catch (Throwable ignored) {}
+                }
                 String ofPath = DeepFaceConfig.current().openfaceOnnxPath();
                 if (ofPath == null || ofPath.isBlank()) { ofPath = System.getProperty(OPENFACE_ONNX_SYS); }
                 if (ofPath == null || ofPath.isBlank()) { ofPath = System.getenv(OPENFACE_ONNX_ENV); }
+                if (ofPath == null || ofPath.isBlank()) {
+                    try {
+                        ofPath = ModelDownloader.resolveOrDownload(null, "openface.onnx");
+                        if (ofPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "openface", "path", ofPath));
+                    } catch (Throwable ignored) {}
+                }
                 String sfPath = DeepFaceConfig.current().sfaceOnnxPath();
                 if (sfPath == null || sfPath.isBlank()) { sfPath = System.getProperty(SFACE_ONNX_SYS); }
                 if (sfPath == null || sfPath.isBlank()) { sfPath = System.getenv(SFACE_ONNX_ENV); }
+                if (sfPath == null || sfPath.isBlank()) {
+                    try {
+                        sfPath = ModelDownloader.resolveOrDownload(null, "sface.onnx");
+                        if (sfPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "sface", "path", sfPath));
+                    } catch (Throwable ignored) {}
+                }
                 String dfPath = DeepFaceConfig.current().deepfaceOnnxPath();
                 if (dfPath == null || dfPath.isBlank()) { dfPath = System.getProperty(DEEPFACE_ONNX_SYS); }
                 if (dfPath == null || dfPath.isBlank()) { dfPath = System.getenv(DEEPFACE_ONNX_ENV); }
+                if (dfPath == null || dfPath.isBlank()) {
+                    try {
+                        dfPath = ModelDownloader.resolveOrDownload(null, "deepface.onnx");
+                        if (dfPath != null) Logs.info("ModelManager", "model.resolved", Map.of("model", "deepface", "path", dfPath));
+                    } catch (Throwable ignored) {}
+                }
                 if (vggPath == null && arcPath == null && fnPath == null && fn512Path == null && ofPath == null && sfPath == null && dfPath == null) {
                     Logs.info("ModelManager", "onnx.path_missing", Map.of("enabled", false));
                     installShutdownHook();

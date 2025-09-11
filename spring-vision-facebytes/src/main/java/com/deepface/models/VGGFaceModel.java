@@ -77,9 +77,8 @@ public final class VGGFaceModel {
                 return l2normalize(onnxEmbedding);
             }
             
-            // Fallback to mock embedding if ONNX is not available
-            Logs.warn("VGGFaceModel", "onnx.unavailable_fallback", Map.of("size", size));
-            return generateMockEmbedding(face, size);
+            Logs.error("VGGFaceModel", "onnx.unavailable", Map.of("advice", "Set FACEBYTES_VGGFACE_ONNX_PATH or system property facebytes.vggface.onnx, or enable auto-download via facebytes.auto_download"));
+            throw new DeepFaceException("VGGFace ONNX model is not available. Configure the model path via 'FACEBYTES_VGGFACE_ONNX_PATH' or system property 'facebytes.vggface.onnx', or enable auto-download in configuration.");
             
         } catch (DeepFaceException e) {
             throw e;
@@ -207,29 +206,7 @@ public final class VGGFaceModel {
         return (float[]) run.invoke(null, nchw, shape);
     }
 
-    /**
-     * Generates a mock embedding for testing when ONNX is not available.
-     * 
-     * @param face the input face image
-     * @param size the input size
-     * @return mock embedding
-     */
-    private float[] generateMockEmbedding(BufferedImage face, int size) {
-        // Generate deterministic mock embedding based on image characteristics
-        // This ensures consistent results for testing while maintaining the expected format
-        
-        float[] embedding = new float[EMBEDDING_SIZE];
-        int hash = face.hashCode();
-        
-        for (int i = 0; i < EMBEDDING_SIZE; i++) {
-            // Use hash and position to generate pseudo-random but deterministic values
-            float value = (float) Math.sin(hash + i * 0.1) * 0.5f + 0.5f;
-            embedding[i] = value;
-        }
-        
-        // Normalize to unit length
-        return l2normalize(embedding);
-    }
+    // Mock embedding helper removed: real ONNX model required. Configure model path or enable auto-download.
 
     /**
      * Converts image to NCHW format with VGGFace-specific preprocessing.

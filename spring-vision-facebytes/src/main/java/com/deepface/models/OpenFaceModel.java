@@ -19,8 +19,8 @@ public final class OpenFaceModel {
         try {
             float[] onnx = tryOnnxEmbedding(resized, size);
             if (onnx != null) return l2normalize(onnx);
-            Logs.warn("OpenFaceModel", "onnx.unavailable", java.util.Map.of());
-            throw new DeepFaceException("OpenFace ONNX session not available");
+            Logs.error("OpenFaceModel", "onnx.unavailable", java.util.Map.of("advice", "Set FACEBYTES_OPENFACE_ONNX_PATH or system property facebytes.openface.onnx, or enable auto-download via facebytes.auto_download"));
+            throw new DeepFaceException("OpenFace ONNX model is not available. Configure the model path via 'FACEBYTES_OPENFACE_ONNX_PATH' or system property 'facebytes.openface.onnx', or enable auto-download in configuration.");
         } catch (DeepFaceException e) {
             throw e;
         } catch (Throwable t) {
