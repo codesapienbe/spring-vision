@@ -71,27 +71,9 @@ public final class RacePredictor {
      * @throws Exception if ONNX inference fails
      */
     private RaceResult tryOnnxRacePrediction(BufferedImage face) throws Exception {
-        Class<?> mm = Class.forName("com.deepface.models.ModelManager");
-        java.lang.reflect.Method isAvailable = mm.getMethod("isRaceModelAvailable");
-        boolean available = (boolean) isAvailable.invoke(null);
-        
-        if (!available) {
-            return null;
-        }
-
-        // Preprocess face for race model
-        BufferedImage preprocessed = preprocessForRace(face);
-        
-        // Convert to NCHW format
-        float[] nchw = toNchwFormat(preprocessed);
-        long[] shape = new long[]{1, 3, inputSize, inputSize};
-        
-        // Run inference
-        java.lang.reflect.Method run = mm.getMethod("runRacePrediction", float[].class, long[].class);
-        float[] output = (float[]) run.invoke(null, nchw, shape);
-        
-        // Convert output to race classification
-        return interpretRaceOutput(output);
+        // Race ONNX model is not available in the current implementation
+        // Return null to indicate unavailability, which will trigger the fail-fast exception
+        return null;
     }
 
     /**

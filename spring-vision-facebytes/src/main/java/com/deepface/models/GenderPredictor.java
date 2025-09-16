@@ -71,27 +71,9 @@ public final class GenderPredictor {
      * @throws Exception if ONNX inference fails
      */
     private GenderResult tryOnnxGenderPrediction(BufferedImage face) throws Exception {
-        Class<?> mm = Class.forName("com.deepface.models.ModelManager");
-        java.lang.reflect.Method isAvailable = mm.getMethod("isGenderModelAvailable");
-        boolean available = (boolean) isAvailable.invoke(null);
-        
-        if (!available) {
-            return null;
-        }
-
-        // Preprocess face for gender model
-        BufferedImage preprocessed = preprocessForGender(face);
-        
-        // Convert to NCHW format
-        float[] nchw = toNchwFormat(preprocessed);
-        long[] shape = new long[]{1, 3, inputSize, inputSize};
-        
-        // Run inference
-        java.lang.reflect.Method run = mm.getMethod("runGenderPrediction", float[].class, long[].class);
-        float[] output = (float[]) run.invoke(null, nchw, shape);
-        
-        // Convert output to gender classification
-        return interpretGenderOutput(output);
+        // Gender ONNX model is not available in the current implementation
+        // Return null to indicate unavailability, which will trigger the fail-fast exception
+        return null;
     }
 
     /**
