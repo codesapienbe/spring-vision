@@ -51,13 +51,9 @@ public final class GenderPredictor {
         try {
             // Try real ONNX model first
             GenderResult onnxResult = tryOnnxGenderPrediction(face);
-            if (onnxResult != null) {
-                return onnxResult;
-            }
-
-            // Fallback to mock prediction
-            Logs.warn("GenderPredictor", "onnx.unavailable_fallback", Map.of("input_size", inputSize));
-            return generateMockGender(face);
+            if (onnxResult != null) return onnxResult;
+            Logs.error("GenderPredictor", "onnx.unavailable", null, Map.of("advice", "Set FACEBYTES_GENDER_ONNX_PATH or enable auto-download"));
+            throw new DeepFaceException("Gender ONNX model is not available. Configure 'FACEBYTES_GENDER_ONNX_PATH' or enable auto-download.");
 
         } catch (DeepFaceException e) {
             throw e;
@@ -188,23 +184,7 @@ public final class GenderPredictor {
         }
     }
 
-    /**
-     * Generates a mock gender prediction for testing.
-     * 
-     * @param face the face image
-     * @return mock gender prediction result
-     */
-    private GenderResult generateMockGender(BufferedImage face) {
-        // Generate deterministic mock gender based on image characteristics
-        int hash = face.hashCode();
-        boolean isMale = (hash % 2) == 0;
-        double confidence = 0.7 + (Math.abs(hash % 30) / 100.0); // 0.7 to 1.0
-        
-        Gender gender = isMale ? Gender.MALE : Gender.FEMALE;
-        
-        Logs.info("GenderPredictor", "mock.gender_generated", Map.of("gender", gender, "confidence", confidence));
-        return new GenderResult(gender, confidence);
-    }
+    // Mock gender generator removed: real ONNX model required.
 
     /**
      * Gets the current configuration.

@@ -77,7 +77,7 @@ public final class VGGFaceModel {
                 return l2normalize(onnxEmbedding);
             }
             
-            Logs.error("VGGFaceModel", "onnx.unavailable", Map.of("advice", "Set FACEBYTES_VGGFACE_ONNX_PATH or system property facebytes.vggface.onnx, or enable auto-download via facebytes.auto_download"));
+            Logs.error("VGGFaceModel", "onnx.unavailable", null, Map.of("advice", "Set FACEBYTES_VGGFACE_ONNX_PATH or system property facebytes.vggface.onnx, or enable auto-download via facebytes.auto_download"));
             throw new DeepFaceException("VGGFace ONNX model is not available. Configure the model path via 'FACEBYTES_VGGFACE_ONNX_PATH' or system property 'facebytes.vggface.onnx', or enable auto-download in configuration.");
             
         } catch (DeepFaceException e) {

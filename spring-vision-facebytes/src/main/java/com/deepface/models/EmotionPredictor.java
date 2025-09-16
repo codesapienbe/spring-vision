@@ -51,13 +51,9 @@ public final class EmotionPredictor {
         try {
             // Try real ONNX model first
             EmotionResult onnxResult = tryOnnxEmotionPrediction(face);
-            if (onnxResult != null) {
-                return onnxResult;
-            }
-
-            // Fallback to mock prediction
-            Logs.warn("EmotionPredictor", "onnx.unavailable_fallback", Map.of("input_size", inputSize));
-            return generateMockEmotion(face);
+            if (onnxResult != null) return onnxResult;
+            Logs.error("EmotionPredictor", "onnx.unavailable", null, Map.of("advice", "Set FACEBYTES_EMOTION_ONNX_PATH or enable auto-download"));
+            throw new DeepFaceException("Emotion ONNX model is not available. Configure 'FACEBYTES_EMOTION_ONNX_PATH' or enable auto-download.");
 
         } catch (DeepFaceException e) {
             throw e;
@@ -208,25 +204,7 @@ public final class EmotionPredictor {
         };
     }
 
-    /**
-     * Generates a mock emotion prediction for testing.
-     * 
-     * @param face the face image
-     * @return mock emotion prediction result
-     */
-    private EmotionResult generateMockEmotion(BufferedImage face) {
-        // Generate deterministic mock emotion based on image characteristics
-        int hash = face.hashCode();
-        Emotion[] emotions = Emotion.values();
-        int emotionIndex = Math.abs(hash % emotions.length);
-        Emotion emotion = emotions[emotionIndex];
-        
-        // Generate reasonable confidence (0.4 to 0.9)
-        double confidence = 0.4 + (Math.abs(hash % 50) / 100.0);
-        
-        Logs.info("EmotionPredictor", "mock.emotion_generated", Map.of("emotion", emotion, "confidence", confidence));
-        return new EmotionResult(emotion, confidence);
-    }
+    // Mock emotion generator removed: real ONNX model required.
 
     /**
      * Gets the current configuration.

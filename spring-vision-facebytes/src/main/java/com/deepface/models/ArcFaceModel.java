@@ -33,7 +33,7 @@ public final class ArcFaceModel {
             if (onnx != null) {
                 return l2normalize(onnx);
             }
-            Logs.error("ArcFaceModel", "onnx.unavailable", java.util.Map.of("advice", "Set FACEBYTES_ARCFACE_ONNX_PATH or system property facebytes.arcface.onnx, or enable auto-download via facebytes.auto_download"));
+            Logs.error("ArcFaceModel", "onnx.unavailable", null, java.util.Map.of("advice", "Set FACEBYTES_ARCFACE_ONNX_PATH or system property facebytes.arcface.onnx, or enable auto-download via facebytes.auto_download"));
             throw new DeepFaceException("ArcFace ONNX model is not available. Configure the model path via environment variable 'FACEBYTES_ARCFACE_ONNX_PATH' or system property 'facebytes.arcface.onnx', or enable auto-download in configuration.");
         } catch (DeepFaceException e) {
             throw e;

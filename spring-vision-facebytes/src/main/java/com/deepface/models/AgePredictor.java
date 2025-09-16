@@ -48,13 +48,9 @@ public final class AgePredictor {
         try {
             // Try real ONNX model first
             Integer onnxAge = tryOnnxAgePrediction(face);
-            if (onnxAge != null) {
-                return validateAgeRange(onnxAge);
-            }
-
-            // Fallback to mock prediction
-            Logs.warn("AgePredictor", "onnx.unavailable_fallback", Map.of("input_size", inputSize));
-            return generateMockAge(face);
+            if (onnxAge != null) return validateAgeRange(onnxAge);
+            Logs.error("AgePredictor", "onnx.unavailable", null, Map.of("advice", "Set FACEBYTES_AGE_ONNX_PATH or enable auto-download"));
+            throw new DeepFaceException("Age ONNX model is not available. Configure 'FACEBYTES_AGE_ONNX_PATH' or enable auto-download.");
 
         } catch (DeepFaceException e) {
             throw e;
@@ -151,24 +147,6 @@ public final class AgePredictor {
         g.drawImage(scaled, 0, 0, null);
         g.dispose();
         return resized;
-    }
-
-    /**
-     * Generates a mock age prediction for testing.
-     * 
-     * @param face the face image
-     * @return mock age prediction
-     */
-    private int generateMockAge(BufferedImage face) {
-        // Generate deterministic mock age based on image characteristics
-        int hash = face.hashCode();
-        int mockAge = Math.abs(hash % (MAX_AGE - MIN_AGE + 1)) + MIN_AGE;
-        
-        // Ensure reasonable age range (18-65 for most faces)
-        mockAge = Math.max(18, Math.min(65, mockAge));
-        
-        Logs.info("AgePredictor", "mock.age_generated", Map.of("age", mockAge));
-        return mockAge;
     }
 
     /**

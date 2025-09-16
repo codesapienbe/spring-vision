@@ -51,13 +51,9 @@ public final class RacePredictor {
         try {
             // Try real ONNX model first
             RaceResult onnxResult = tryOnnxRacePrediction(face);
-            if (onnxResult != null) {
-                return onnxResult;
-            }
-
-            // Fallback to mock prediction
-            Logs.warn("RacePredictor", "onnx.unavailable_fallback", Map.of("input_size", inputSize));
-            return generateMockRace(face);
+            if (onnxResult != null) return onnxResult;
+            Logs.error("RacePredictor", "onnx.unavailable", null, Map.of("advice", "Set FACEBYTES_RACE_ONNX_PATH or enable auto-download"));
+            throw new DeepFaceException("Race ONNX model is not available. Configure 'FACEBYTES_RACE_ONNX_PATH' or enable auto-download.");
 
         } catch (DeepFaceException e) {
             throw e;
@@ -208,25 +204,7 @@ public final class RacePredictor {
         };
     }
 
-    /**
-     * Generates a mock race prediction for testing.
-     * 
-     * @param face the face image
-     * @return mock race prediction result
-     */
-    private RaceResult generateMockRace(BufferedImage face) {
-        // Generate deterministic mock race based on image characteristics
-        int hash = face.hashCode();
-        Race[] races = Race.values();
-        int raceIndex = Math.abs(hash % (races.length - 1)); // Exclude UNKNOWN
-        Race race = races[raceIndex];
-        
-        // Generate reasonable confidence (0.5 to 0.9)
-        double confidence = 0.5 + (Math.abs(hash % 40) / 100.0);
-        
-        Logs.info("RacePredictor", "mock.race_generated", Map.of("race", race, "confidence", confidence));
-        return new RaceResult(race, confidence);
-    }
+    // Mock race generator removed: real ONNX model required.
 
     /**
      * Gets the current configuration.
