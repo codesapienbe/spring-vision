@@ -136,14 +136,16 @@ public final class DetectorFactory {
     }
 
     /**
-     * Clears the detector cache to free memory.
+     * Clears the detector cache.
      * Should be called during test cleanup or when memory is low.
      */
     public static void clearCache() {
         detectorCache.clear();
         // Hint the GC; callers should not rely on immediate GC but this helps under tests
         System.gc();
-        System.runFinalization();
+        // Note: System.runFinalization() was removed as it's deprecated in Java 18+
+        // and was never guaranteed to actually run finalizers anyway.
+        // Modern Java applications should avoid relying on finalization.
     }
 
     /**

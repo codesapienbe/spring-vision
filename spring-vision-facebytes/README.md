@@ -217,6 +217,280 @@ modelManager.downloadModel(ModelType.VGG_FACE);
 modelManager.setModelPath(ModelType.VGG_FACE, "/custom/path/vggface.onnx");
 ```
 
+## 🤖 ONNX Model Configuration
+
+FaceBytes requires ONNX models for face recognition and analysis. Models can be configured via environment variables, system properties, or auto-download.
+
+### Environment Variables (Recommended for Production)
+
+Set model paths using environment variables:
+
+```bash
+# Face Recognition Models
+export FACEBYTES_VGGFACE_ONNX_PATH="/path/to/models/vgg_face.onnx"
+export FACEBYTES_ARCFACE_ONNX_PATH="/path/to/models/arcface.onnx"
+export FACEBYTES_FACENET_ONNX_PATH="/path/to/models/facenet.onnx"
+export FACEBYTES_FACENET512_ONNX_PATH="/path/to/models/facenet512.onnx"
+export FACEBYTES_OPENFACE_ONNX_PATH="/path/to/models/openface.onnx"
+export FACEBYTES_DEEPFACE_ONNX_PATH="/path/to/models/deepface.onnx"
+export FACEBYTES_SFACE_ONNX_PATH="/path/to/models/sface.onnx"
+export FACEBYTES_DEEPID_ONNX_PATH="/path/to/models/deepid.onnx"
+
+# Facial Analysis Models
+export FACEBYTES_AGE_ONNX_PATH="/path/to/models/age_predictor.onnx"
+export FACEBYTES_GENDER_ONNX_PATH="/path/to/models/gender_predictor.onnx"
+export FACEBYTES_EMOTION_ONNX_PATH="/path/to/models/emotion_predictor.onnx"
+export FACEBYTES_RACE_ONNX_PATH="/path/to/models/race_predictor.onnx"
+```
+
+### System Properties (Recommended for Development)
+
+Set model paths using JVM system properties:
+
+```java
+// In your application startup
+System.setProperty("facebytes.vggface.onnx", "/path/to/models/vgg_face.onnx");
+System.setProperty("facebytes.arcface.onnx", "/path/to/models/arcface.onnx");
+System.setProperty("facebytes.facenet.onnx", "/path/to/models/facenet.onnx");
+System.setProperty("facebytes.facenet512.onnx", "/path/to/models/facenet512.onnx");
+System.setProperty("facebytes.openface.onnx", "/path/to/models/openface.onnx");
+System.setProperty("facebytes.deepface.onnx", "/path/to/models/deepface.onnx");
+System.setProperty("facebytes.sface.onnx", "/path/to/models/sface.onnx");
+System.setProperty("facebytes.deepid.onnx", "/path/to/models/deepid.onnx");
+
+// Facial analysis models
+System.setProperty("facebytes.age.onnx", "/path/to/models/age_predictor.onnx");
+System.setProperty("facebytes.gender.onnx", "/path/to/models/gender_predictor.onnx");
+System.setProperty("facebytes.emotion.onnx", "/path/to/models/emotion_predictor.onnx");
+System.setProperty("facebytes.race.onnx", "/path/to/models/race_predictor.onnx");
+```
+
+Or via JVM arguments:
+
+```bash
+java -Dfacebytes.vggface.onnx=/path/to/vgg_face.onnx \
+     -Dfacebytes.arcface.onnx=/path/to/arcface.onnx \
+     -jar your-application.jar
+```
+
+### Spring Boot Configuration
+
+Add model paths to your `application.yml`:
+
+```yaml
+# application.yml
+facebytes:
+  models:
+    vggface:
+      onnx: "/path/to/models/vgg_face.onnx"
+    arcface:
+      onnx: "/path/to/models/arcface.onnx"
+    facenet:
+      onnx: "/path/to/models/facenet.onnx"
+    facenet512:
+      onnx: "/path/to/models/facenet512.onnx"
+    openface:
+      onnx: "/path/to/models/openface.onnx"
+    deepface:
+      onnx: "/path/to/models/deepface.onnx"
+    sface:
+      onnx: "/path/to/models/sface.onnx"
+    deepid:
+      onnx: "/path/to/models/deepid.onnx"
+  analysis:
+    age:
+      onnx: "/path/to/models/age_predictor.onnx"
+    gender:
+      onnx: "/path/to/models/gender_predictor.onnx"
+    emotion:
+      onnx: "/path/to/models/emotion_predictor.onnx"
+    race:
+      onnx: "/path/to/models/race_predictor.onnx"
+  
+  # Auto-download configuration (optional)
+  auto_download:
+    enabled: true
+    cache_directory: "${user.home}/.facebytes/models"
+    verify_checksums: true
+    https_only: true
+```
+
+### Auto-Download Configuration (Advanced)
+
+Enable automatic model downloading for development and testing:
+
+```java
+import com.deepface.config.FaceBytesConfiguration;
+
+FaceBytesConfiguration config = new FaceBytesConfiguration();
+config.setAutoDownloadEnabled(true);
+config.setModelCacheDirectory("/path/to/cache/directory");
+config.setVerifyChecksums(true);  // Verify model integrity
+config.setHttpsOnlyDownloads(true);  // Security: HTTPS only
+```
+
+Or via environment variables:
+
+```bash
+export FACEBYTES_AUTO_DOWNLOAD_ENABLED=true
+export FACEBYTES_MODEL_CACHE_DIRECTORY="/opt/facebytes/models"
+export FACEBYTES_VERIFY_CHECKSUMS=true
+export FACEBYTES_HTTPS_ONLY_DOWNLOADS=true
+```
+
+### Configuration Priority
+
+FaceBytes resolves model paths in the following order (highest to lowest priority):
+
+1. **System Properties** (`-Dfacebytes.vggface.onnx=...`)
+2. **Environment Variables** (`FACEBYTES_VGGFACE_ONNX_PATH`)
+3. **Spring Boot Configuration** (`application.yml`)
+4. **Auto-Download** (if enabled)
+5. **Default Locations** (classpath, common directories)
+
+### Model Requirements
+
+Each model type has specific requirements:
+
+| Model | Input Size | Output Size | File Size | Use Case |
+|-------|------------|-------------|-----------|----------|
+| **VGG-Face** | 224x224x3 | 2622-d | ~500MB | High-quality recognition |
+| **ArcFace** | 112x112x3 | 512-d | ~250MB | State-of-the-art accuracy |
+| **FaceNet** | 160x160x3 | 128-d | ~90MB | Efficient recognition |
+| **FaceNet512** | 160x160x3 | 512-d | ~90MB | Extended embeddings |
+| **OpenFace** | 96x96x3 | 128-d | ~30MB | Lightweight recognition |
+| **DeepFace** | 152x152x3 | 4096-d | ~250MB | Traditional approach |
+| **SFace** | 112x112x3 | 128-d | ~40MB | Efficient recognition |
+| **DeepID** | 55x47x3 | 160-d | ~20MB | Identity-preserving |
+
+### Error Handling and Troubleshooting
+
+When models are not properly configured, FaceBytes provides clear error messages:
+
+```java
+try {
+    VerificationResult result = DeepFace.verify("face1.jpg", "face2.jpg");
+} catch (DeepFaceException e) {
+    // Example error message:
+    // "VGGFace ONNX model is not available. Configure the model path via 
+    //  'FACEBYTES_VGGFACE_ONNX_PATH' or system property 'facebytes.vggface.onnx', 
+    //  or enable auto-download in configuration."
+    
+    System.err.println("Model configuration error: " + e.getMessage());
+    
+    // Check configuration
+    String modelPath = System.getenv("FACEBYTES_VGGFACE_ONNX_PATH");
+    if (modelPath == null) {
+        modelPath = System.getProperty("facebytes.vggface.onnx");
+    }
+    
+    if (modelPath == null) {
+        System.err.println("No VGGFace model path configured. Please set:");
+        System.err.println("  Environment: FACEBYTES_VGGFACE_ONNX_PATH=/path/to/model.onnx");
+        System.err.println("  System Property: -Dfacebytes.vggface.onnx=/path/to/model.onnx");
+        System.err.println("  Or enable auto-download in configuration");
+    } else {
+        System.err.println("Configured model path: " + modelPath);
+        Path path = Paths.get(modelPath);
+        if (!Files.exists(path)) {
+            System.err.println("Model file does not exist: " + path);
+        } else if (!Files.isReadable(path)) {
+            System.err.println("Model file is not readable: " + path);
+        }
+    }
+}
+```
+
+### Docker Configuration Example
+
+For containerized deployments:
+
+```dockerfile
+# Dockerfile
+FROM openjdk:21-jre
+
+# Create model directory
+RUN mkdir -p /opt/facebytes/models
+
+# Copy pre-downloaded models
+COPY models/ /opt/facebytes/models/
+
+# Set environment variables
+ENV FACEBYTES_VGGFACE_ONNX_PATH=/opt/facebytes/models/vgg_face.onnx
+ENV FACEBYTES_ARCFACE_ONNX_PATH=/opt/facebytes/models/arcface.onnx
+ENV FACEBYTES_AGE_ONNX_PATH=/opt/facebytes/models/age_predictor.onnx
+ENV FACEBYTES_GENDER_ONNX_PATH=/opt/facebytes/models/gender_predictor.onnx
+
+COPY app.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  facebytes-app:
+    build: .
+    environment:
+      - FACEBYTES_VGGFACE_ONNX_PATH=/opt/models/vgg_face.onnx
+      - FACEBYTES_ARCFACE_ONNX_PATH=/opt/models/arcface.onnx
+      - FACEBYTES_AUTO_DOWNLOAD_ENABLED=false
+    volumes:
+      - ./models:/opt/models:ro
+    ports:
+      - "8080:8080"
+```
+
+### Kubernetes Configuration Example
+
+```yaml
+# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: facebytes-config
+data:
+  application.yml: |
+    facebytes:
+      models:
+        vggface:
+          onnx: "/opt/models/vgg_face.onnx"
+        arcface:
+          onnx: "/opt/models/arcface.onnx"
+      auto_download:
+        enabled: false
+
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: facebytes-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: facebytes-app:latest
+        env:
+        - name: FACEBYTES_VGGFACE_ONNX_PATH
+          value: "/opt/models/vgg_face.onnx"
+        - name: FACEBYTES_ARCFACE_ONNX_PATH
+          value: "/opt/models/arcface.onnx"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: models
+          mountPath: /opt/models
+      volumes:
+      - name: config
+        configMap:
+          name: facebytes-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: facebytes-models-pvc
+```
+
 ## 🧪 Testing
 
 ### Run All Tests
