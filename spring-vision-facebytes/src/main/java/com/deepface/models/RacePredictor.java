@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * Race prediction model for facial analysis.
- * Provides race/ethnicity classification from face images using ONNX models or mock implementation.
+ * Provides race/ethnicity classification from face images using ONNX models with fail-fast error handling.
  * 
  * @author FaceBytes Team
  * @since 1.0.0
@@ -45,7 +45,7 @@ public final class RacePredictor {
      */
     public RaceResult predictRace(BufferedImage face) throws DeepFaceException {
         if (face == null) {
-            throw new DeepFaceException("Face image cannot be null");
+            throw new IllegalArgumentException("Face image cannot be null");
         }
 
         try {

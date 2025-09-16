@@ -62,7 +62,7 @@ public final class VGGFaceModel {
      */
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
         if (face == null) {
-            throw new DeepFaceException("Face image cannot be null");
+            throw new IllegalArgumentException("Face image cannot be null");
         }
         
         int size = Math.max(32, Math.min(targetSize, 512)); // Reasonable bounds

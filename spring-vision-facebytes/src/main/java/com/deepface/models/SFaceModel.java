@@ -15,9 +15,12 @@ public final class SFaceModel {
     public float[] generateEmbedding(BufferedImage face) { return generateEmbedding(face, DEFAULT_INPUT_SIZE); }
 
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
+        if (face == null) {
+            throw new IllegalArgumentException("Face image cannot be null");
+        }
+        
         int size = Math.max(32, targetSize);
-        BufferedImage input = face != null ? face : new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-        BufferedImage resized = resize(input, size, size);
+        BufferedImage resized = resize(face, size, size);
         try {
             float[] onnx = tryOnnxEmbedding(resized, size);
             if (onnx != null) return l2normalize(onnx);

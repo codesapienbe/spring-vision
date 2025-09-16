@@ -9,11 +9,14 @@ public final class DlibModel {
     public float[] generateEmbedding(BufferedImage face) { return generateEmbedding(face, DEFAULT_INPUT_SIZE); }
 
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
+        if (face == null) {
+            throw new IllegalArgumentException("Face image cannot be null");
+        }
+        
         int size = Math.max(32, targetSize);
-        BufferedImage input = face != null ? face : new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
-        BufferedImage resized = resize(input, size, size);
+        BufferedImage resized = resize(face, size, size);
         // DlibModel embedding requires a real model backend. Mocks removed.
-        throw new com.deepface.exceptions.DeepFaceException("DlibModel embedding is not available. Provide a real model implementation or configure an ONNX model.");
+        throw new com.deepface.exceptions.DeepFaceException("Dlib ONNX model is not available. Provide a real model implementation or configure an ONNX model.");
     }
 
     private static BufferedImage resize(BufferedImage img, int w, int h) { BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB); Graphics2D g = out.createGraphics(); g.drawImage(img, 0, 0, w, h, null); g.dispose(); return out; }
