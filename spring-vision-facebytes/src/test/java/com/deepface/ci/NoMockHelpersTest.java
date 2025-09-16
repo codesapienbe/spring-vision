@@ -67,7 +67,7 @@ public class NoMockHelpersTest {
     );
     
     @Test
-    void testNoMockHelpersInProductionCode() throws IOException {
+    public void testNoMockHelpersInProductionCode() throws IOException {
         Path sourceRoot = findSourceRoot();
         List<Path> javaFiles = findJavaFiles(sourceRoot);
         List<MockViolation> violations = new ArrayList<>();
@@ -119,7 +119,7 @@ public class NoMockHelpersTest {
     }
     
     @Test
-    void testNoMockAnalyzersClass() throws IOException {
+    public void testNoMockAnalyzersClass() throws IOException {
         Path sourceRoot = findSourceRoot();
         
         try (Stream<Path> paths = Files.walk(sourceRoot)) {
@@ -135,7 +135,7 @@ public class NoMockHelpersTest {
     }
     
     @Test
-    void testNoTodoMockComments() throws IOException {
+    public void testNoTodoMockComments() throws IOException {
         Path sourceRoot = findSourceRoot();
         List<Path> javaFiles = findJavaFiles(sourceRoot);
         List<MockViolation> todoMocks = new ArrayList<>();
@@ -184,7 +184,7 @@ public class NoMockHelpersTest {
     }
     
     @Test
-    void testProductionCodeQualityMarkers() throws IOException {
+    public void testProductionCodeQualityMarkers() throws IOException {
         Path sourceRoot = findSourceRoot();
         List<Path> javaFiles = findJavaFiles(sourceRoot);
         List<String> qualityIssues = new ArrayList<>();

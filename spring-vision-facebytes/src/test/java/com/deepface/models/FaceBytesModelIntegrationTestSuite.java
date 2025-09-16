@@ -28,7 +28,6 @@ public class FaceBytesModelIntegrationTestSuite {
         
         private final VGGFaceModelIntegrationTest vggFaceTest = new VGGFaceModelIntegrationTest();
         private final ArcFaceModelIntegrationTest arcFaceTest = new ArcFaceModelIntegrationTest();
-        private final ModelDownloaderIntegrationTest downloaderTest = new ModelDownloaderIntegrationTest();
         private final ConfigurationValidationIntegrationTest configTest = new ConfigurationValidationIntegrationTest();
         private final com.deepface.ci.NoMockHelpersTest ciTest = new com.deepface.ci.NoMockHelpersTest();
         
@@ -39,7 +38,7 @@ public class FaceBytesModelIntegrationTestSuite {
             try {
                 vggFaceTest.testGenerateEmbedding_NoConfiguration_ShouldProvideGuidance();
                 vggFaceTest.testGenerateEmbedding_NullInput_ShouldThrowIllegalArgument();
-                vggFaceTest.testModelConfigurationGuidance();
+                vggFaceTest.testErrorMessageQuality();
             } finally {
                 vggFaceTest.tearDown();
             }
@@ -59,15 +58,6 @@ public class FaceBytesModelIntegrationTestSuite {
         }
         
         @Test
-        @DisplayName("Model Downloader Robustness")
-        void testModelDownloaderIntegration() throws Exception {
-            downloaderTest.setUp();
-            downloaderTest.testResolveOrDownload_WithNullPath_ShouldReturnNull();
-            downloaderTest.testResolveOrDownload_WithNonExistentFile_ShouldReturnNull();
-            downloaderTest.testErrorHandling_GracefulFailure();
-        }
-        
-        @Test
         @DisplayName("Cross-Model Configuration Validation")
         void testConfigurationValidationIntegration() throws Exception {
             configTest.setUp();
@@ -83,9 +73,11 @@ public class FaceBytesModelIntegrationTestSuite {
         @Test
         @DisplayName("CI Quality Guard - No Mock Helpers")
         void testNoMockHelpersCI() throws Exception {
+            // Now that the methods are public, we can call them directly
             ciTest.testNoMockHelpersInProductionCode();
             ciTest.testNoMockAnalyzersClass();
             ciTest.testNoTodoMockComments();
+            ciTest.testProductionCodeQualityMarkers();
         }
     }
     
@@ -104,14 +96,6 @@ public class FaceBytesModelIntegrationTestSuite {
             } finally {
                 validator.tearDown();
             }
-        }
-        
-        @Test
-        @DisplayName("Production Code Quality Standards")
-        void testProductionCodeQuality() throws Exception {
-            com.deepface.ci.NoMockHelpersTest qualityGuard = new com.deepface.ci.NoMockHelpersTest();
-            qualityGuard.testNoMockHelpersInProductionCode();
-            qualityGuard.testProductionCodeQualityMarkers();
         }
     }
 } 
