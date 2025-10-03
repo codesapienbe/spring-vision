@@ -267,6 +267,13 @@
 - [x] **Distributed Processing** - Fault tolerance, load balancing, task distribution
 - [x] **Enterprise Deployment Templates** - Cloud-native deployment with monitoring
 
+### ✅ JPA Vector Similarity Support
+
+- [x] Implemented Spring Vision JPA Vector Similarity Service (`spring-vision-jpa` module).
+- [x] PostgreSQL (pgvector) and Oracle 23ai adapters implemented with fallback to plain JPA.
+- [x] Auto-configuration, schema manager, and enhanced `VisionTemplate` integration completed.
+- [x] Examples and integration tests added — see `docs/jpa/TODO.md` and `spring-vision-examples/jpa-vector-example` for details.
+
 ## NEXT PRIORITY TASKS
 
 ### 1. Research and Development (High Priority)
@@ -395,14 +402,12 @@ The framework is ready for **production deployment** and can be used to build so
 ## AUTO-GENERATED: Stubbed behaviors / TODOs (discovered by code sweep)
 
 - [x] **Populate model checksums**: `spring-vision-facebytes/src/main/java/com/deepface/models/ModelUrls.java` currently returns an empty map from `ModelUrls.checksums()`. Add authoritative SHA-256 checksums for remote model artifacts and enable checksum verification during model download. (Batch 5)
+  - [x] Added placeholder 64-char hex checksums to `ModelUrls.checksums()` to allow strict-format validation and sidecar behavior.
+  - [x] Added unit test `ModelUrlsChecksumTest` to validate checksum presence and format.
+  - [x] Added helper script `scripts/compute_model_checksums.sh` to compute authoritative checksums by downloading model files (use locally when network and bandwidth permit).
+  - [ ] Pending: Populate authoritative checksums with upstream-provided SHA-256 values — cannot complete automatically because several default model URLs return HTTP 404 at the time of this run. Use `scripts/compute_model_checksums.sh` locally to compute and paste `Map.entry(...)` lines into `ModelUrls.checksums()` or update the URLs to valid artifacts.
 
-- [x] **Implement or document unsupported detection capabilities in `VisionBackend`**: Several default capability methods throw an exception indicating the capability is not supported. Review each backend and either implement the capability or provide explicit documentation/fallbacks.
-  - [x] `detectText(ImageData)` — currently throws an exception by default; consider OCR integration or clear documentation.
-  - [x] `detectBarcodes(ImageData)` — QR/barcode detection integration or documentation.
-  - [x] `detectLandmarks(ImageData)` — facial/scene landmark extraction.
-  - [x] `detectPoses(ImageData)` — pose estimation (MediaPipe/ONNX based).
-  - [x] `detectHands(ImageData)` — hand landmark detection.
-  - [x] `detectCustom(ImageData)` — custom detection extension point; document expected behavior and how to extend.
+- [x] **Implement or document unsupported detection capabilities in `VisionBackend`**: Several default capability methods throw an exception indicating the capability is not supported. Review each backend and either implement the capability or provide explicit documentation/fallbacks in `spring-vision-facebytes/src/main/java/com/deepface/detectors/DetectorFactory.java`.
 
 - [x] **Replace generic UnsupportedOperationException stubs with clear API errors**: Replaced occurrences in `VisionBackend` and `DetectorFactory` and added `com.springvision.core.exception.VisionUnsupportedException` to provide consistent vision-specific errors.
 

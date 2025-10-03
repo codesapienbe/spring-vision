@@ -468,7 +468,7 @@ Brief description of changes
 ## Checklist
 - [ ] Code follows project standards
 - [ ] 90%+ test coverage maintained
-- [ ] No TODO comments without issue references
+- [ ] No TODO/FIXME comments without an associated issue or PR reference (run `scripts/find_todos.sh` and attach `docs/TODO_SCAN.md` if applicable)
 - [ ] Dependencies properly versioned
 - [ ] Structured logging implemented
 ```
@@ -528,12 +528,22 @@ Fixes #456
 - ✅ **Compatibility**: No breaking changes to public APIs
 - ✅ **Style**: Follows project conventions and passes checks
 
-#### Review Process
+## Pull Request Checklist
 
-1. **Automated checks** must pass (tests, style, security)
-2. **At least one maintainer** must approve
-3. **All conversations** must be resolved
-4. **Documentation** must be updated if needed
+Before creating a pull request, please run the TODO scan script and attach the generated report (`docs/TODO_SCAN.md`) to your PR if it finds any matches. This helps reviewers focus on actionable items.
+
+- [ ] Code follows project standards
+- [ ] 90%+ test coverage maintained
+- [ ] No TODO/FIXME comments without an associated issue or PR reference (run `scripts/find_todos.sh` and attach `docs/TODO_SCAN.md` if applicable)
+- [ ] Dependencies properly versioned
+- [ ] Structured logging implemented
+- [ ] Commit message follows guidelines
+- [ ] Checkstyle validation passes
+
+Notes on acceptable TODOs:
+
+- TODO comments found in generated/vendor files (for example files under `frontend/generated/`) or third-party resources are exempt, but they must be documented in the PR description with a short justification.
+- Temporary development markers used in long-running branches should reference an issue/PR and include a plan and ETA for removal.
 
 ## Backend Development
 
@@ -760,4 +770,4 @@ Contributors will be recognized in:
 
 ---
 
-Thank you for contributing to Spring Vision! 🎯 Your contributions help make computer vision accessible to every Spring Boot developer. 
+Thank you for contributing to Spring Vision! 🎯 Your contributions help make computer vision accessible to every Spring Boot developer.

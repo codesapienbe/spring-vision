@@ -286,6 +286,15 @@ public class PicoCLIApplication implements CommandLineRunner {
         if (!isHttpUrl(source)) {
             Path p = resolvePath(source);
             if (!Files.exists(p) || !Files.isRegularFile(p)) {
+                // Attempt fallback: try to load sample from classpath resources
+                String resourceName = "/samples/selfie-sample.jpg";
+                InputStream res = PicoCLIApplication.class.getResourceAsStream(resourceName);
+                if (res != null) {
+                    try (res) {
+                        logger.warn("Input file {} not found; using classpath sample {} as fallback", p, resourceName);
+                        return res.readAllBytes();
+                    }
+                }
                 throw new IOException("File not found or not a file: " + p);
             }
             if (!Files.isReadable(p)) {

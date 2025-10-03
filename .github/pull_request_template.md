@@ -39,13 +39,16 @@ Brief description of changes made in this pull request.
 
 - [ ] ✅ Code follows [Cursor IDE Rules](CURSOR_IDE_RULES.md)
 - [ ] ✅ 90%+ test coverage maintained
-- [ ] ✅ No TODO comments without issue references
+- [ ] ✅ No TODO/FIXME comments without issue references — run `scripts/find_todos.sh` and attach `docs/TODO_SCAN.md` if any matches are found
 - [ ] ✅ Dependencies properly versioned
 - [ ] ✅ Code formatted with Spotless
 - [ ] ✅ Checkstyle validation passes
 - [ ] ✅ No compiler warnings
 - [ ] ✅ No unused imports
 - [ ] ✅ No dead code
+
+Notes:
+- TODOs in generated or vendor files are allowed but must be documented in the PR description with a rationale.
 
 ## 🔗 Related Issues
 
@@ -86,4 +89,4 @@ Any additional information that reviewers should know.
 
 ---
 
-**Note:** Please ensure all code follows our [coding standards](CURSOR_IDE_RULES.md) and that all tests pass before submitting. 
+**Note:** Please ensure all code follows our [coding standards](CURSOR_IDE_RULES.md) and that all tests pass before submitting.

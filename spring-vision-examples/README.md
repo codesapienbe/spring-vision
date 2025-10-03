@@ -4,44 +4,25 @@ This directory contains example applications demonstrating the Spring Vision fra
 
 ## Planned Examples
 
-### 1. CLI-Based Application (TODO)
+### 1. CLI-Based Application (Implemented)
 
-- **Location**: `cli-application/`
-- **Description**: Command-line interface for image processing
-- **Features**:
-  - Batch processing from command line
-  - Interactive mode for single image processing
-  - Progress bars and real-time feedback
-  - Multiple output formats (JSON, CSV, XML)
-  - Configuration file support
-  - Help and usage documentation
+- **Location**: `picocli-application/`
+- **Description**: Command-line interface for image processing (implemented as the PicoCLI example).
+- **Status**: ✅ Implemented — see `spring-vision-examples/picocli-application/` for full CLI features (embed, verify, verify-batch, obscure, progress).
 
-### 2. GWT-Based GUI Application (TODO)
+### 2. GWT-Based GUI Application (Scaffold)
 
 - **Location**: `gwt-application/`
-- **Description**: Web-based GUI using Google Web Toolkit
-- **Features**:
-  - Drag-and-drop image upload
-  - Real-time image preview and detection visualization
-  - Batch processing with progress indicators
-  - Detection result overlay on images
-  - Configuration panels for detection parameters
-  - Export functionality for results
-  - Responsive design for different screen sizes
+- **Description**: Web-based GUI using Google Web Toolkit.
+- **Status**: Partial — scaffold and placeholder pages exist. Remaining items: drag-and-drop upload, real-time preview, and advanced visualization.
+- **Notes**: See `spring-vision-examples/gwt-application/README.md` for current details and how to run the placeholder.
 
-### 3. Vaadin-Based GUI Application (TODO)
+### 3. Vaadin-Based GUI Application (Scaffold)
 
 - **Location**: `vaadin-application/`
-- **Description**: Modern web-based GUI using Vaadin Framework
-- **Features**:
-  - Advanced image upload with preview
-  - Interactive detection result visualization
-  - Real-time processing with WebSocket updates
-  - Comprehensive configuration management
-  - Batch processing with detailed progress tracking
-  - Result export in multiple formats
-  - User authentication and session management
-  - Responsive design and mobile support
+- **Description**: Modern web-based GUI using Vaadin Framework.
+- **Status**: Partial — basic Vaadin app and build scaffolding are present. Remaining items: advanced upload preview, WebSocket-based realtime processing, and export features.
+- **Notes**: See `spring-vision-examples/vaadin-application/README.md` for current details and how to run the example app.
 
 ## Current Examples
 

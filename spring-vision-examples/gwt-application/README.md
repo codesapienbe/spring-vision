@@ -2,11 +2,14 @@
 
 This example showcases a skeleton Google Web Toolkit (GWT) based GUI application integrating with the Spring Vision framework.
 
-## Features
+## Status
 
-- Drag-and-drop image upload (TODO)
-- Real-time image preview and detection visualization (TODO)
-- Batch processing with progress indicators (TODO)
+- **Location**: `gwt-application/`
+- **Current state**: 🔧 Scaffolded — placeholder pages and basic endpoints are present.
+- **Remaining work**:
+  - Implement drag-and-drop image upload and client-side preview
+  - Add detection result overlays and visualization
+  - Implement batch processing with progress indicators
 
 ## Prerequisites
 
@@ -31,4 +34,4 @@ mvn spring-boot:run
 
 - Main Application: http://localhost:8080
 - Health Check: http://localhost:8080/actuator/health
-- API Endpoint: http://localhost:8080/api/vision/health 
+- API Endpoint: http://localhost:8080/api/vision/health
