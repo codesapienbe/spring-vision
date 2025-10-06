@@ -20,8 +20,6 @@ import static org.bytedeco.opencv.global.opencv_core.flip;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.imdecode;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
-import static org.bytedeco.opencv.global.opencv_imgproc.HOUGH_GRADIENT;
-import static org.bytedeco.opencv.global.opencv_imgproc.HoughCircles;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 import static org.bytedeco.opencv.global.opencv_imgproc.resize;
@@ -33,7 +31,6 @@ import org.bytedeco.opencv.opencv_core.Size;
 // Custom implementations to replace IntVector and FloatVector
 // These classes don't exist in current OpenCV JavaCV version
 import org.bytedeco.opencv.opencv_dnn.Net;
-import org.bytedeco.opencv.opencv_imgproc.Vec3fVector;
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier;
 import org.bytedeco.opencv.opencv_objdetect.FaceDetectorYN;
 import org.slf4j.Logger;
@@ -45,12 +42,10 @@ import com.springvision.core.Detection;
 import com.springvision.core.DetectionType;
 import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
-import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
 import com.springvision.core.exception.BaseVisionException;
 import com.springvision.core.exception.VisionBackendException;
 import com.springvision.core.exception.VisionProcessingException;
-import com.springvision.core.DetectionQuery;
 
 /**
  * OpenCV-based implementation of the VisionBackend interface.
@@ -148,6 +143,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     /**
      * Default confidence threshold for detections.
      */
+    @SuppressWarnings("unused")
     private static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.8;
     /**
      * Minimum face size for detection (relative to the smaller image dimension).
@@ -162,13 +158,16 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     /**
      * Fail-safe guardrail for incoming image payload to avoid memory/DoS issues.
      */
+    @SuppressWarnings("unused")
     private static final long MAX_SAFE_IMAGE_BYTES = 50L * 1024 * 1024; // 50MB
     /**
      * Additional fail-safe for very large images that may cause native OOM during
      * OpenCV operations regardless of byte size (e.g., highly compressed but huge resolution).
      * Values chosen conservatively for desktop usage while keeping good accuracy.
      */
+    @SuppressWarnings("unused")
     private static final long MAX_SAFE_PIXELS = 8_000_000L; // ~8 MP (e.g., 3264x2448)
+    @SuppressWarnings("unused")
     private static final int MAX_SAFE_DIMENSION = 4000;     // Cap either width or height to 4K
 
     /**
@@ -185,7 +184,9 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     // Cached DNN resource paths for ThreadLocal initialization
     private String dnnProtoPath;
     private String dnnModelPath;
+    @SuppressWarnings("unused")
     private String yuNetModelPath;
+    @SuppressWarnings("unused")
     private String sFaceModelPath;
 
     // AnnotationCapability - delegate to existing face-specific methods for now
@@ -440,8 +441,9 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                         try {
                 // Try to create a simple Mat instance to test if native libraries are available
                 logger.debug("Creating test Mat instance...");
-                Mat testMat = new Mat();
-                testMat.releaseReference();
+                try (Mat testMat = new Mat()) {
+                    testMat.releaseReference();
+                }
                 logger.debug("Mat instance created successfully");
 
                 // Try to use static imports to test if they're working
@@ -2461,12 +2463,13 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                     attributes.put("consensus_votes", group.size());
                     attributes.put("primary_detector", bestCandidate.detector);
                     
-                    // Combine confidence with quality for final score
+                    // Combine confidence with quality for final score and clamp to [0,1]
                     double finalConfidence = (bestCandidate.confidence + bestCandidate.qualityScore) / 2.0;
-                    
+                    finalConfidence = clamp01(finalConfidence);
+
                     finalDetections.add(new Detection(
                         DetectionType.FACE.getCode(),
-                        (float) finalConfidence,
+                        finalConfidence,
                         bbox,
                         attributes
                     ));

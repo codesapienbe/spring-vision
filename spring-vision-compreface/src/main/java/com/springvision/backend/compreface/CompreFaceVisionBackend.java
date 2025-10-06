@@ -6,11 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.springvision.core.BackendHealthInfo;
 import com.springvision.core.BoundingBox;
 import com.springvision.core.Detection;
-import com.springvision.core.DetectionQuery;
 import com.springvision.core.DetectionType;
 import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
-import com.springvision.core.VisionResult;
 import com.springvision.core.exception.BaseVisionException;
 import com.springvision.core.exception.VisionBackendException;
 import com.springvision.core.exception.VisionProcessingException;
@@ -18,13 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Mono;
-
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
  * CompreFace-based vision backend that connects to the exadel/compreface Docker container API.
