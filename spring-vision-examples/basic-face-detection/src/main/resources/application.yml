@@ -3,6 +3,9 @@ spring:
     name: basic-face-detection
   main:
     allow-bean-definition-overriding: true
+  devtools:
+    restart:
+      enabled: false
   docker:
     compose:
       enabled: true
@@ -45,8 +48,8 @@ server:
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
   servlet:
     multipart:
-      max-file-size: ${MAX_FILE_SIZE:50MB}
-      max-request-size: ${MAX_REQUEST_SIZE:50MB}
+      max-file-size: ${MAX_FILE_SIZE:200MB}
+      max-request-size: ${MAX_REQUEST_SIZE:200MB}
       file-size-threshold: 2KB
 
 # Logging Configuration
@@ -81,5 +84,3 @@ management:
     tags:
       application: basic-face-detection
       environment: ${ENVIRONMENT:development}
-
-

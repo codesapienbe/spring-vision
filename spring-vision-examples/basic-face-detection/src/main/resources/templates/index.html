@@ -3,119 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spring Vision - Face Detection</title>
+    <title>Spring Vision - Face Detection Demo </title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             color: #333;
-            text-align: center;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-weight: 700;
+            font-size: 2.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 40px;
             margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        .upload-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .upload-section h2 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
         }
         .upload-form {
-            text-align: center;
-            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .file-input-group {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
         }
         .file-input {
-            margin: 20px 0;
+            display: none;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .file-name {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
         }
         .submit-btn {
-            background-color: #007bff;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
-            padding: 12px 30px;
+            padding: 15px 40px;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
         }
         .submit-btn:hover {
-            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
         }
-        .results {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
+        .or-divider {
+            margin: 20px 0;
+            color: #666;
+            font-weight: 500;
+            position: relative;
+        }
+        .or-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #ddd;
+        }
+        .or-divider span {
+            background: white;
+            padding: 0 15px;
+        }
+        .url-input {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 50px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .results-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .result-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #f0f0f0;
+        }
+        .result-card h3 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .result-card h3::before {
+            content: '📊';
+            font-size: 1.2rem;
         }
         .detection-item {
-            margin: 10px 0;
-            padding: 10px;
-            background: white;
-            border-radius: 3px;
-            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        .detection-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
         }
         .confidence {
-            font-weight: bold;
+            font-weight: 600;
             color: #28a745;
+            font-size: 1.1rem;
+        }
+        .embedding-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #764ba2;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .embedding-item:hover {
+            background: #e9ecef;
         }
         .error {
-            color: #dc3545;
-            background-color: #f8d7da;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
         }
-        .health-status {
+        .success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+        }
+        .annotated-container {
             text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #d4edda;
-            border-radius: 5px;
-            color: #155724;
+            margin-top: 40px;
         }
-        .or-divider { margin: 10px 0; color: #666; }
-        .url-input { width: 100%; max-width: 560px; padding: 10px; font-size: 14px; }
+        .annotated-container h3 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .annotated-image {
+            max-width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .annotated-image:hover {
+            transform: scale(1.02);
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            .card {
+                padding: 20px;
+            }
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Spring Vision - Face Detection</h1>
+    <header class="header">
+        <div class="container">
+            <h1>🔍 Spring Vision Face Detection</h1>
+        </div>
+    </header>
 
-        <div class="upload-form">
-            <form th:action="@{/detect}" method="post" enctype="multipart/form-data">
-                <div class="file-input">
-                    <label for="file">Select an image to detect faces:</label><br>
-                    <input type="file" id="file" name="file" accept="image/*" required>
+    <main class="main-content">
+        <div class="card upload-section">
+            <h2>Upload an Image or Provide a URL</h2>
+            <form id="uploadForm" th:action="@{/detect}" method="post" enctype="multipart/form-data">
+                <div class="upload-form">
+                    <div class="file-input-group">
+                        <input type="file" id="file" name="file" accept="image/*" class="file-input">
+                        <label for="file" class="file-input-label">Choose Image File</label>
+                        <div id="fileName" class="file-name">No file selected</div>
+                    </div>
+                    <button type="submit" class="submit-btn">🔍 Detect Faces</button>
                 </div>
-                <button type="submit" class="submit-btn">Detect Faces</button>
             </form>
-            <div class="or-divider">— or —</div>
+            <div class="or-divider">
+                <span>or</span>
+            </div>
             <form th:action="@{/detect/url}" method="post">
                 <input class="url-input" type="url" name="imageUrl" placeholder="https://example.com/image.jpg" required>
-                <button type="submit" class="submit-btn" style="margin-left:10px;">Detect from URL</button>
+                <button type="submit" class="submit-btn" style="margin-top: 15px;">🌐 Detect from URL</button>
             </form>
         </div>
 
         <div th:if="${error}" class="error">
-            <strong>Error:</strong> <span th:text="${error}"></span>
+            <strong>⚠️ Error:</strong> <span th:text="${error}"></span>
         </div>
 
-        <div th:if="${detections}" class="results">
-            <h3>Detection Results</h3>
-            <p th:text="${detections.size()} + ' face(s) detected'"></p>
-
-            <div th:each="detection, iterStat : ${detections}" class="detection-item">
-                <strong>Face #<span th:text="${iterStat.count}"></span></strong><br>
-                <span class="confidence">Confidence: <span th:text="${#numbers.formatDecimal(detection.confidence, 1, 2)} + '%' "></span></span><br>
-                <span>Location: (<span th:text="${detection.boundingBox.x}"></span>, <span th:text="${detection.boundingBox.y}"></span>)</span><br>
-                <span>Size: <span th:text="${detection.boundingBox.width}"></span> x <span th:text="${detection.boundingBox.height}"></span></span>
+        <div th:if="${detections}" class="results-section">
+            <div class="result-card">
+                <h3>Detection Results</h3>
+                <p th:text="${detections.size()} + ' face(s) detected'" style="margin-bottom: 20px; color: #666;"></p>
+                <div th:each="detection, iterStat : ${detections}" class="detection-item">
+                    <strong>Face #<span th:text="${iterStat.count}"></span></strong><br>
+                    <span class="confidence">Confidence: <span th:text="${#numbers.formatDecimal(detection.confidence * 100, 1, 2)} + '%' "></span></span><br>
+                    <span>Location: (<span th:text="${#numbers.formatDecimal(detection.boundingBox.x, 1, 3)}"></span>, <span th:text="${#numbers.formatDecimal(detection.boundingBox.y, 1, 3)}"></span>)</span><br>
+                    <span>Size: <span th:text="${#numbers.formatDecimal(detection.boundingBox.width, 1, 3)}"></span> × <span th:text="${#numbers.formatDecimal(detection.boundingBox.height, 1, 3)}"></span></span>
+                    <div style="margin-top: 15px;">
+                        <strong>Cropped Face:</strong><br>
+                        <img th:src="'data:image/png;base64,' + ${croppedImages[iterStat.index]}" alt="Cropped Face" style="max-width: 150px; border-radius: 8px; border: 2px solid #667eea;" />
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <strong>Face Embedding:</strong><br>
+                        <div class="embedding-item" th:text="${embeddingStrings[iterStat.index]}"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="health-status">
-            <strong>Application Status:</strong> Running successfully on port 8080
+        <div th:if="${embeddingError}" class="error">
+            <strong>⚠️ Embedding Error:</strong> <span th:text="${embeddingError}"></span>
         </div>
-    </div>
+
+        <div class="annotated-container">
+            <h3>Annotated Image</h3>
+            <img th:if="${annotatedImage}" th:src="${annotatedImage}" alt="Annotated output" class="annotated-image" />
+            <div th:if="${annotatedImage == null}" id="annotatedError" class="error" style="display:none;"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>© 2025 CodeSapien Network | Built with ❤️ using Spring Boot</p>
+    </footer>
+
+    <script>
+        (function(){
+            const form = document.getElementById('uploadForm');
+            const fileInput = document.getElementById('file');
+            const fileName = document.getElementById('fileName');
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                fileName.textContent = file ? file.name : 'No file selected';
+            });
+
+            form.addEventListener('submit', async function(e){
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) {
+                    e.preventDefault();
+                    alert('Please select a file first.');
+                    return;
+                }
+                // Allow form submission
+            });
+        })();
+    </script>
 </body>
 </html>
