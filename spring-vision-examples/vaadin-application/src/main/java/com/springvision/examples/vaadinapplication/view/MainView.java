@@ -106,6 +106,12 @@ public class MainView extends VerticalLayout {
     }
 
     private void setupHeader() {
+        Image logo = new Image("/logo.svg", "Spring Vision Logo");
+        logo.setWidth("100px");
+        logo.getStyle().set("display", "block");
+        logo.getStyle().set("margin", "0 auto");
+        add(logo);
+
         H1 header = new H1("Spring Vision - Vaadin Face Detection");
         header.getStyle().set("text-align", "center");
         header.getStyle().set("font-size", "2rem");

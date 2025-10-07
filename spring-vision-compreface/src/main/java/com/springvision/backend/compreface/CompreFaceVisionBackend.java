@@ -205,10 +205,10 @@ public class CompreFaceVisionBackend implements VisionBackend {
             String base64Image = Base64.getEncoder().encodeToString(imageData.data());
             JsonNode response = callCompreFaceDetect(base64Image, correlationId);
             List<Detection> detections = parseFaceDetections(response, correlationId);
-            
+
             logger.info("Detected {} faces using CompreFace backend [{}]", detections.size(), correlationId);
             return detections;
-            
+
         } catch (Exception e) {
             logger.error("Face detection failed [{}]: {}", correlationId, e.getMessage(), e);
             throw new VisionProcessingException(
@@ -219,7 +219,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
             );
         }
     }
-    
+
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
         // CompreFace primarily supports face detection
@@ -512,8 +512,9 @@ public class CompreFaceVisionBackend implements VisionBackend {
             1000, 1000 // Default image size for normalization
         );
 
-        // Extract confidence score
+        // Extract confidence score (normalize to 0.0 - 1.0 range)
         double confidence = result.has("confidence") ? result.get("confidence").asDouble() : 0.8;
+        confidence = normalizeConfidence(confidence);
 
         // Extract additional attributes
         Map<String, Object> attributes = new HashMap<>();
@@ -523,6 +524,25 @@ public class CompreFaceVisionBackend implements VisionBackend {
         if (result.has("mask")) attributes.put("mask", result.get("mask").asText());
 
         return new Detection("face", confidence, boundingBox, attributes);
+    }
+
+    /**
+     * Normalize a raw confidence score coming from external backends.
+     * - If value is already in 0..1 range it's returned as-is (clamped).
+     * - If value looks like a percentage (0..100) it will be divided by 100.
+     * - The result is clamped into [0.0, 1.0].
+     */
+    private double normalizeConfidence(double raw) {
+        if (Double.isNaN(raw) || Double.isInfinite(raw)) return 0.0;
+        double c = raw;
+        if (c > 1.0) {
+            // Treat as percentage-like value
+            c = c / 100.0;
+        }
+        // Clamp
+        if (c < 0.0) c = 0.0;
+        if (c > 1.0) c = 1.0;
+        return c;
     }
 
     private Map<String, Object> parseRecognitionResults(JsonNode response, String correlationId) {
@@ -535,7 +555,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
             for (JsonNode result : resultsArray) {
                 Map<String, Object> recognition = new HashMap<>();
                 if (result.has("subject")) recognition.put("subject", result.get("subject").asText());
-                if (result.has("confidence")) recognition.put("confidence", result.get("confidence").asDouble());
+                if (result.has("confidence")) recognition.put("confidence", normalizeConfidence(result.get("confidence").asDouble()));
                 if (result.has("bbox")) {
                     JsonNode bbox = result.get("bbox");
                     Map<String, Object> bboxMap = new HashMap<>();
@@ -559,7 +579,7 @@ public class CompreFaceVisionBackend implements VisionBackend {
         if (response.has("result")) {
             JsonNode result = response.get("result");
             if (result.has("verified")) results.put("verified", result.get("verified").asBoolean());
-            if (result.has("confidence")) results.put("confidence", result.get("confidence").asDouble());
+            if (result.has("confidence")) results.put("confidence", normalizeConfidence(result.get("confidence").asDouble()));
             if (result.has("similarity")) results.put("similarity", result.get("similarity").asDouble());
         }
 
@@ -604,4 +624,4 @@ public class CompreFaceVisionBackend implements VisionBackend {
         return String.format("CompreFaceVisionBackend{baseUrl='%s', timeout=%s, initialized=%s}",
             baseUrl, timeout, initialized);
     }
-} 
+}
