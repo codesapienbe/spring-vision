@@ -6,14 +6,63 @@ A simple Spring Boot application demonstrating basic face detection capabilities
 
 This example showcases how to integrate the Spring Vision framework into a Spring Boot application to perform face detection on uploaded images. It provides a web interface for uploading images and viewing detection results.
 
-## Features
+## Features (Comprehensive Showcase)
 
-- **Web Interface**: Simple HTML form for image upload
-- **Face Detection**: Automatic face detection using OpenCV
-- **Result Visualization**: Display detection results with confidence scores
-- **Health Monitoring**: Built-in health checks and metrics
-- **Error Handling**: Comprehensive error handling and validation
-- **Performance Metrics**: Processing time and detection statistics
+This example comprehensively demonstrates **ALL** Spring Vision core module features:
+
+### 🚀 Core Detection Capabilities
+- **Face Detection**: High-accuracy face detection with bounding boxes and confidence scores
+- **Object Detection**: General object detection across multiple classes
+- **Text Recognition (OCR)**: Extract text content from images
+- **Barcode/QR Detection**: Detect and decode barcodes and QR codes
+- **Advanced Detection Types**: Support for landmark detection, pose estimation, and hand detection
+
+### 🎯 Detection Query System
+- **Rich Queries**: Configure confidence thresholds, max detections, and detection parameters
+- **Category-based Filtering**: Filter detections by specific categories (FACE, OBJECT, PERSON, etc.)
+- **Flexible API**: Support for both simple and advanced detection queries
+
+### 🎨 Advanced Annotations
+- **Obscure**: Blur sensitive content (faces, objects)
+- **Mark**: Draw rectangles around detections
+- **Tag**: Add custom labels to detections
+- **Multi-category Support**: Apply annotations to multiple detection categories simultaneously
+
+### ⚡ Processing Modes
+- **Synchronous Processing**: Real-time detection via REST API
+- **Asynchronous Processing**: Submit long-running tasks and monitor progress
+- **Batch Processing**: Process multiple images efficiently with configurable batch sizes
+
+### 🔧 Backend Management
+- **Backend Discovery**: View supported detection types and capabilities
+- **Health Monitoring**: Real-time backend health and performance metrics
+- **Multi-backend Support**: Easy switching between different vision backends
+
+### 📊 Enterprise Features
+- **Comprehensive Logging**: Structured JSON logging with correlation IDs
+- **Performance Metrics**: Processing time, detection counts, and error tracking
+- **Error Handling**: Robust error handling with meaningful error messages
+- **Security**: SSRF-hardened URL processing and input validation
+
+### 🌐 API Endpoints
+All features are accessible via comprehensive REST APIs:
+- `/api/vision/detect/faces` - Face detection
+- `/api/vision/detect/objects` - Object detection
+- `/api/vision/detect/barcodes` - Barcode detection
+- `/api/vision/detect/text` - Text recognition
+- `/api/vision/detect/multiple` - Multiple detection types
+- `/api/vision/detect/query` - Advanced detection queries
+- `/api/vision/verify` - Face verification
+- `/api/vision/obscure` - Content obscuring
+- `/api/vision/tag` - Custom labeling
+- `/api/vision/mark` - Rectangle marking
+- `/api/vision/annotate` - Advanced annotations
+- `/api/vision/tasks/*` - Async processing
+- `/api/vision/batch/*` - Batch processing
+- `/api/vision/health` - Backend health
+- `/api/vision/supported-types` - Capability discovery
+
+Jump to the Quick API tour below to try every feature with curl.
 
 ## Prerequisites
 
@@ -138,7 +187,7 @@ server:
 2. **View Results**: See detected faces with confidence scores
 3. **Download Results**: Save detection results as JSON
 
-### API Usage
+### API Usage Examples
 
 ```bash
 # Health check
@@ -148,8 +197,59 @@ curl http://localhost:8080/actuator/health
 curl -X POST http://localhost:8080/api/vision/detect/faces \
   -F "file=@image.jpg"
 
-# Get application info
-curl http://localhost:8080/api/vision/info
+# Object detection
+curl -X POST http://localhost:8080/api/vision/detect/objects \
+  -F "file=@image.jpg"
+
+# Barcode/QR detection
+curl -X POST http://localhost:8080/api/vision/detect/barcodes \
+  -F "file=@barcode.jpg"
+
+# Text recognition (OCR)
+curl -X POST http://localhost:8080/api/vision/detect/text \
+  -F "file=@document.jpg"
+
+# Multiple detection types
+curl -X POST http://localhost:8080/api/vision/detect/multiple \
+  -F "file=@image.jpg" \
+  -F "detectionTypes=face,object,text"
+
+# Advanced detection query with confidence threshold
+curl -X POST http://localhost:8080/api/vision/detect/query \
+  -F "file=@image.jpg" \
+  -F "detectionType=face" \
+  -F "minConfidence=0.8" \
+  -F "maxDetections=10"
+
+# Face verification
+curl -X POST http://localhost:8080/api/vision/verify \
+  -F "fileA=@face1.jpg" \
+  -F "fileB=@face2.jpg" \
+  -F "metric=cosine" \
+  -F "threshold=0.6"
+
+# Advanced annotations (obscure faces)
+curl -X POST http://localhost:8080/api/vision/annotate \
+  -F "file=@image.jpg" \
+  -F "action=OBSCURE" \
+  -F "categories=FACE,OBJECT"
+
+# Batch processing
+curl -X POST http://localhost:8080/api/vision/batch/faces \
+  -F "files=@image1.jpg" \
+  -F "files=@image2.jpg" \
+  -F "files=@image3.jpg"
+
+# Async processing
+curl -X POST http://localhost:8080/api/vision/tasks/detect/face \
+  -F "file=@large_image.jpg"
+
+# Check async task status
+curl http://localhost:8080/api/vision/tasks/{taskId}
+
+# Backend information
+curl http://localhost:8080/api/vision/health
+curl http://localhost:8080/api/vision/supported-types
 ```
 
 ### Programmatic Usage

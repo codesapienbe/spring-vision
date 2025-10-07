@@ -219,6 +219,7 @@ spring:
 
 ### **🚀 Getting Started Guide**
 - **[🚀 Getting Started Guide](docs/GETTING_STARTED.md)** - Step-by-step tutorial
+- **[📚 Core Module Features](docs/core-features.md)** - All features of the core module
 - **[📖 API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[🏗️ Architecture Guide](docs/ARCHITECTURE.md)** - Framework design and internals
 - **[🎯 Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute

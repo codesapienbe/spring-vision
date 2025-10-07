@@ -74,8 +74,19 @@ public final class ZxingBarcodeScanner {
 
                 BoundingBox bbox = BoundingBox.fromPixels(x, y, w, h, imgW, imgH);
 
-                // Attributes: include raw text and format
-                Detection d = Detection.of(format, 1.0, bbox, "text", text);
+                // Estimate confidence heuristically (ZXing doesn't provide confidence)
+                double areaRatio = (double) (w * h) / Math.max(1.0, (double) imgW * imgH);
+                // Map area ratio [0..0.2] -> [0.55..1.0], clamp to [0.55..0.99]
+                double conf = 0.55 + Math.min(1.0, areaRatio / 0.20) * 0.45;
+                conf = Math.min(0.99, Math.max(0.55, conf));
+
+                java.util.Map<String, Object> attrs = new java.util.HashMap<>();
+                attrs.put("text", text);
+                attrs.put("format", format);
+                attrs.put("confidence_source", "heuristic:zxing");
+                attrs.put("area_ratio", areaRatio);
+
+                Detection d = new Detection(format, conf, bbox, attrs);
                 detections.add(d);
             }
 
@@ -104,4 +115,4 @@ public final class ZxingBarcodeScanner {
         if (minX == Float.MAX_VALUE) return new java.awt.geom.Rectangle2D.Float(0,0,0,0);
         return new java.awt.geom.Rectangle2D.Float(minX, minY, Math.max(1.0f, maxX - minX), Math.max(1.0f, maxY - minY));
     }
-} 
+}

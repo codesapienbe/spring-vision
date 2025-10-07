@@ -310,7 +310,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     public List<Detection> detectFaces(ImageData imageData) {
         return performFaceDetection(imageData);
     }
-    
+
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
         return performObjectDetection(imageData);
@@ -1669,7 +1669,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
 
             // Detect faces
             List<Detection> faces = detectFaces(imageData);
-            
+
             if (faces.isEmpty()) {
                 logger.debug("No faces detected for obscuring");
                 // Return original image if no faces found
@@ -1685,22 +1685,22 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                     int y = (int) (bbox.y() * image.rows());
                     int width = (int) (bbox.width() * image.cols());
                     int height = (int) (bbox.height() * image.rows());
-                    
+
                     // Ensure coordinates are within image bounds
                     x = Math.max(0, Math.min(x, image.cols() - 1));
                     y = Math.max(0, Math.min(y, image.rows() - 1));
                     width = Math.min(width, image.cols() - x);
                     height = Math.min(height, image.rows() - y);
-                    
+
                     if (width > 0 && height > 0) {
                         // Extract face region
                         Rect faceRect = new Rect(x, y, width, height);
                         Mat faceRegion = new Mat(image, faceRect);
-                        
+
                         // Apply enhanced obscuring: 2x stronger blur + pixelation
                         Mat blurredFace = new Mat();
                         Mat doubleBlurredFace = new Mat();
-                        
+
                         // First pass: Heavy Gaussian blur (2x larger kernel size)
                         org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
                             faceRegion,
@@ -1709,7 +1709,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                             0.0, 0.0,
                             org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT
                         );
-                        
+
                         // Second pass: Apply additional blur for compound effect
                         org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(
                             blurredFace,
@@ -1718,30 +1718,30 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                             0.0, 0.0,
                             org.bytedeco.opencv.global.opencv_core.BORDER_DEFAULT
                         );
-                        
+
                         // Optional: Add pixelation effect for maximum obscurity
                         Mat pixelated = new Mat();
                         int pixelSize = Math.max(8, Math.min(width, height) / 12); // Adaptive pixel size
-                        
+
                         // Downscale then upscale for pixelation effect
                         org.bytedeco.opencv.global.opencv_imgproc.resize(
-                            doubleBlurredFace, 
-                            pixelated, 
+                            doubleBlurredFace,
+                            pixelated,
                             new Size(Math.max(1, width / pixelSize), Math.max(1, height / pixelSize)),
                             0, 0,
                             org.bytedeco.opencv.global.opencv_imgproc.INTER_LINEAR
                         );
                         org.bytedeco.opencv.global.opencv_imgproc.resize(
-                            pixelated, 
-                            doubleBlurredFace, 
+                            pixelated,
+                            doubleBlurredFace,
                             new Size(width, height),
                             0, 0,
                             org.bytedeco.opencv.global.opencv_imgproc.INTER_NEAREST // Use nearest neighbor for blocky effect
                         );
-                        
+
                         // Copy heavily obscured face back to original image
                         doubleBlurredFace.copyTo(faceRegion);
-                        
+
                         // Cleanup all intermediate matrices
                         faceRegion.releaseReference();
                         blurredFace.releaseReference();
@@ -1762,14 +1762,14 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             long length = outBuffer.limit();
             byte[] obscuredImageBytes = new byte[(int) length];
             outBuffer.get(obscuredImageBytes);
-            
+
             // Cleanup
             image.releaseReference();
             outBuffer.deallocate();
-            
+
             logger.info("Successfully obscured {} faces in image", faces.size());
             return ImageData.fromBytes(obscuredImageBytes, "image/jpeg");
-            
+
         } catch (BaseVisionException e) {
             throw e;
         } catch (Exception e) {
@@ -2032,25 +2032,25 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
             Mat buffer = new Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
             Mat image = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(buffer, IMREAD_COLOR);
-            
+
             if (image == null || image.empty()) {
                 rawPointer.deallocate();
                 buffer.releaseReference();
                 logger.warn("Failed to decode image data");
                 return Collections.emptyList();
             }
-            
+
             buffer.releaseReference();
             rawPointer.deallocate();
 
             // Enhanced multi-detector fusion for maximum accuracy
             List<Detection> fusedDetections = performMultiDetectorFusion(image);
-            
+
             image.releaseReference();
-            
+
             logger.info("Detected {} faces using enhanced multi-detector fusion", fusedDetections.size());
             return fusedDetections;
-            
+
         } catch (Exception e) {
             logger.error("Face detection failed: {}", e.getMessage(), e);
             return Collections.emptyList();
@@ -2063,28 +2063,28 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private List<Detection> performMultiDetectorFusion(Mat image) {
         List<CandidateDetection> allCandidates = new ArrayList<>();
-        
+
         // 1. YuNet Detection (highest accuracy)
         List<CandidateDetection> yunetCandidates = detectWithYuNet(image);
         allCandidates.addAll(yunetCandidates);
         logger.debug("YuNet detected {} candidates", yunetCandidates.size());
-        
+
         // 2. DNN-SSD Detection (good for challenging conditions)
         List<CandidateDetection> dnnCandidates = detectWithDNN(image);
         allCandidates.addAll(dnnCandidates);
         logger.debug("DNN-SSD detected {} candidates", dnnCandidates.size());
-        
+
         // 3. Haar Cascade Detection (fallback for edge cases)
         List<CandidateDetection> haarCandidates = detectWithHaarCascade(image);
         allCandidates.addAll(haarCandidates);
         logger.debug("Haar Cascade detected {} candidates", haarCandidates.size());
-        
+
         // 4. Fusion and consensus-based filtering
         List<Detection> fusedResults = fuseDetectionCandidates(image, allCandidates);
-        
-        logger.debug("Fusion produced {} final detections from {} candidates", 
+
+        logger.debug("Fusion produced {} final detections from {} candidates",
                     fusedResults.size(), allCandidates.size());
-        
+
         return fusedResults;
     }
 
@@ -2097,7 +2097,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         final String detector;
         final Map<String, Object> attributes;
         double qualityScore;
-        
+
         CandidateDetection(Rect rect, float confidence, String detector, Map<String, Object> attributes) {
             this.rect = rect;
             this.confidence = confidence;
@@ -2112,44 +2112,44 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private List<CandidateDetection> detectWithYuNet(Mat image) {
         List<CandidateDetection> candidates = new ArrayList<>();
-        
+
         if (yuNetDetector == null || yuNetDetector.isNull()) {
             return candidates;
         }
-        
+
         try {
             List<Rect> rects = new ArrayList<>();
             List<Float> scores = new ArrayList<>();
-            
+
             // Multi-scale detection for better coverage
             double[] scales = {1.0, 0.9, 1.1, 0.8, 1.2};
             for (double scale : scales) {
                 collectYuNetCandidates(image, scale, rects, scores);
             }
-            
+
             // Convert to candidates with quality assessment
             Mat grayImage = new Mat();
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
-            
+
             for (int i = 0; i < rects.size(); i++) {
                 Rect rect = rects.get(i);
                 float score = scores.get(i);
-                
+
                 Map<String, Object> attributes = new HashMap<>();
                 attributes.put("detector_confidence", score);
                 attributes.put("scale_factor", "multi");
-                
+
                 CandidateDetection candidate = new CandidateDetection(rect, score, "yunet", attributes);
                 candidate.qualityScore = assessFaceQuality(grayImage, rect);
                 candidates.add(candidate);
             }
-            
+
             grayImage.releaseReference();
-            
+
         } catch (Exception e) {
             logger.debug("YuNet detection failed: {}", e.getMessage());
         }
-        
+
         return candidates;
     }
 
@@ -2158,49 +2158,49 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private List<CandidateDetection> detectWithDNN(Mat image) {
         List<CandidateDetection> candidates = new ArrayList<>();
-        
+
         if (dnnFaceNet == null) {
             return candidates;
         }
-        
+
         try {
             Net net = dnnFaceNet.get();
             if (net == null || net.empty()) {
                 return candidates;
             }
-            
+
             List<Rect> rects = new ArrayList<>();
             List<Float> scores = new ArrayList<>();
-            
+
             // Multi-scale DNN detection
             double[] scales = {1.0, 0.85, 1.15};
             for (double scale : scales) {
                 collectDnnCandidates(image, scale, net, rects, scores);
             }
-            
+
             // Convert to candidates with quality assessment
             Mat grayImage = new Mat();
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
-            
+
             for (int i = 0; i < rects.size(); i++) {
                 Rect rect = rects.get(i);
                 float score = scores.get(i);
-                
+
                 Map<String, Object> attributes = new HashMap<>();
                 attributes.put("detector_confidence", score);
                 attributes.put("model_type", "resnet_ssd");
-                
+
                 CandidateDetection candidate = new CandidateDetection(rect, score, "dnn_ssd", attributes);
                 candidate.qualityScore = assessFaceQuality(grayImage, rect);
                 candidates.add(candidate);
             }
-            
+
             grayImage.releaseReference();
-            
+
         } catch (Exception e) {
             logger.debug("DNN-SSD detection failed: {}", e.getMessage());
         }
-        
+
         return candidates;
     }
 
@@ -2209,52 +2209,52 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private List<CandidateDetection> detectWithHaarCascade(Mat image) {
         List<CandidateDetection> candidates = new ArrayList<>();
-        
+
         if (faceCascade == null || faceCascade.isNull()) {
             return candidates;
         }
-        
+
         try {
             Mat grayImage = new Mat();
             cvtColor(image, grayImage, COLOR_BGR2GRAY);
-            
+
             // Apply histogram equalization for better detection
             Mat equalizedGray = new Mat();
             equalizeHist(grayImage, equalizedGray);
-            
+
             RectVector faces = new RectVector();
-            
+
             // Multi-scale Haar cascade detection
-            faceCascade.detectMultiScale(equalizedGray, faces, 1.1, 3, 0, 
+            faceCascade.detectMultiScale(equalizedGray, faces, 1.1, 3, 0,
                 new Size(30, 30), new Size());
-            
+
             for (int i = 0; i < faces.size(); i++) {
                 Rect rect = faces.get(i);
-                
+
                 // Validate with eye detection for higher precision
                 if (!isFaceLikely(grayImage, rect)) {
                     continue;
                 }
-                
+
                 float confidence = 0.75f; // Base confidence for Haar cascade
-                
+
                 Map<String, Object> attributes = new HashMap<>();
                 attributes.put("detector_confidence", confidence);
                 attributes.put("validated_with_eyes", true);
-                
+
                 CandidateDetection candidate = new CandidateDetection(rect, confidence, "haar_cascade", attributes);
                 candidate.qualityScore = assessFaceQuality(grayImage, rect);
                 candidates.add(candidate);
             }
-            
+
             faces.deallocate();
             grayImage.releaseReference();
             equalizedGray.releaseReference();
-            
+
         } catch (Exception e) {
             logger.debug("Haar cascade detection failed: {}", e.getMessage());
         }
-        
+
         return candidates;
     }
 
@@ -2269,40 +2269,40 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             int y = Math.max(0, faceRect.y());
             int w = Math.min(grayImage.cols() - x, faceRect.width());
             int h = Math.min(grayImage.rows() - y, faceRect.height());
-            
+
             if (w <= 0 || h <= 0) {
                 return 0.0;
             }
-            
+
             Mat faceRegion = new Mat(grayImage, new Rect(x, y, w, h));
-            
+
             // 1. Blur assessment (Laplacian variance)
             double blurScore = computeBlurScore(faceRegion);
-            
+
             // 2. Resolution assessment
             double resolutionScore = computeResolutionScore(w, h);
-            
+
             // 3. Illumination assessment
             double illuminationScore = computeIlluminationScore(faceRegion);
-            
+
             // 4. Pose assessment (frontal vs profile)
             double poseScore = computePoseScore(faceRegion);
-            
+
             // 5. Aspect ratio assessment (face shape validity)
             double aspectScore = computeAspectScore(w, h);
-            
+
             // Combine scores with weighted importance for recognition
-            double qualityScore = 
+            double qualityScore =
                 0.3 * blurScore +       // Most important for recognition
                 0.25 * resolutionScore + // Critical for feature extraction
                 0.2 * illuminationScore + // Important for consistency
                 0.15 * poseScore +      // Affects recognition accuracy
                 0.1 * aspectScore;      // Basic validity check
-            
+
             faceRegion.releaseReference();
-            
+
             return Math.max(0.0, Math.min(1.0, qualityScore));
-            
+
         } catch (Exception e) {
             logger.debug("Quality assessment failed: {}", e.getMessage());
             return 0.5; // Default moderate quality
@@ -2315,13 +2315,13 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     private double computeBlurScore(Mat faceRegion) {
         try {
             Mat laplacian = new Mat();
-            org.bytedeco.opencv.global.opencv_imgproc.Laplacian(faceRegion, laplacian, 
+            org.bytedeco.opencv.global.opencv_imgproc.Laplacian(faceRegion, laplacian,
                 org.bytedeco.opencv.global.opencv_core.CV_64F);
-            
+
             Mat meanMat = new Mat();
             Mat stddevMat = new Mat();
             org.bytedeco.opencv.global.opencv_core.meanStdDev(laplacian, meanMat, stddevMat);
-            
+
             double variance = 0.0;
             if (!stddevMat.empty()) {
                 java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
@@ -2330,16 +2330,16 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                     variance = stddev * stddev;
                 }
             }
-            
+
             // Normalize variance to [0,1] - higher is less blurry
             double blurScore = Math.min(1.0, variance / 500.0); // Threshold tuned for faces
-            
+
             laplacian.releaseReference();
             meanMat.releaseReference();
             stddevMat.releaseReference();
-            
+
             return blurScore;
-            
+
         } catch (Exception e) {
             return 0.5;
         }
@@ -2350,7 +2350,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private double computeResolutionScore(int width, int height) {
         int minDimension = Math.min(width, height);
-        
+
         // Optimal face size for recognition: 112x112 or larger
         if (minDimension >= 112) return 1.0;
         if (minDimension >= 80) return 0.8;
@@ -2366,14 +2366,14 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     private double computeIlluminationScore(Mat faceRegion) {
         try {
             double meanIntensity = org.bytedeco.opencv.global.opencv_core.mean(faceRegion).get(0);
-            
+
             // Optimal range: 80-180 (avoiding very dark or very bright)
             double optimal = 128.0;
             double deviation = Math.abs(meanIntensity - optimal) / optimal;
             double illuminationScore = Math.max(0.0, 1.0 - deviation);
-            
+
             return illuminationScore;
-            
+
         } catch (Exception e) {
             return 0.5;
         }
@@ -2386,34 +2386,34 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         try {
             int width = faceRegion.cols();
             int height = faceRegion.rows();
-            
+
             // Simple symmetry check for frontal pose
             Mat leftHalf = new Mat(faceRegion, new Rect(0, 0, width/2, height));
             Mat rightHalf = new Mat(faceRegion, new Rect(width/2, 0, width/2, height));
-            
+
             // Flip right half for comparison
             Mat rightFlipped = new Mat();
             flip(rightHalf, rightFlipped, 1);
-            
+
             // Compare histograms using our custom vector implementations
             Mat leftHist = new Mat();
             Mat rightHist = new Mat();
-            
+
             // Use our custom histogram calculation function
             calculateHistogram(leftHalf, new Mat(), leftHist, new IntVector(256), new FloatVector(0, 256));
             calculateHistogram(rightFlipped, new Mat(), rightHist, new IntVector(256), new FloatVector(0, 256));
-            
-            double correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist, 
+
+            double correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist,
                 org.bytedeco.opencv.global.opencv_imgproc.HISTCMP_CORREL);
-            
+
             leftHalf.releaseReference();
             rightHalf.releaseReference();
             rightFlipped.releaseReference();
             leftHist.releaseReference();
             rightHist.releaseReference();
-            
+
             return Math.max(0.0, Math.min(1.0, correlation));
-            
+
         } catch (Exception e) {
             return 0.7; // Default good pose score
         }
@@ -2424,7 +2424,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private double computeAspectScore(int width, int height) {
         double aspectRatio = (double) width / height;
-        
+
         // Typical face aspect ratios: 0.7 to 1.3
         if (aspectRatio >= 0.7 && aspectRatio <= 1.3) return 1.0;
         if (aspectRatio >= 0.6 && aspectRatio <= 1.5) return 0.8;
@@ -2439,16 +2439,16 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         if (candidates.isEmpty()) {
             return Collections.emptyList();
         }
-        
+
         // 1. Group overlapping candidates
         List<List<CandidateDetection>> groups = groupOverlappingCandidates(candidates);
-        
+
         // 2. Select best candidate from each group
         List<Detection> finalDetections = new ArrayList<>();
-        
+
         for (List<CandidateDetection> group : groups) {
             CandidateDetection bestCandidate = selectBestCandidate(group);
-            
+
             if (bestCandidate != null && bestCandidate.qualityScore > 0.3) { // Quality threshold
                 BoundingBox bbox = clampAndCreateBox(
                     (double) bestCandidate.rect.x() / image.cols(),
@@ -2456,13 +2456,13 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                     (double) bestCandidate.rect.width() / image.cols(),
                     (double) bestCandidate.rect.height() / image.rows()
                 );
-                
+
                 if (bbox != null) {
                     Map<String, Object> attributes = new HashMap<>(bestCandidate.attributes);
                     attributes.put("quality_score", bestCandidate.qualityScore);
                     attributes.put("consensus_votes", group.size());
                     attributes.put("primary_detector", bestCandidate.detector);
-                    
+
                     // Combine confidence with quality for final score and clamp to [0,1]
                     double finalConfidence = (bestCandidate.confidence + bestCandidate.qualityScore) / 2.0;
                     finalConfidence = clamp01(finalConfidence);
@@ -2476,10 +2476,10 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                 }
             }
         }
-        
+
         // 3. Sort by confidence and limit results
         finalDetections.sort((a, b) -> Double.compare(b.confidence(), a.confidence()));
-        
+
         return finalDetections;
     }
 
@@ -2489,27 +2489,27 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     private List<List<CandidateDetection>> groupOverlappingCandidates(List<CandidateDetection> candidates) {
         List<List<CandidateDetection>> groups = new ArrayList<>();
         boolean[] assigned = new boolean[candidates.size()];
-        
+
         for (int i = 0; i < candidates.size(); i++) {
             if (assigned[i]) continue;
-            
+
             List<CandidateDetection> group = new ArrayList<>();
             group.add(candidates.get(i));
             assigned[i] = true;
-            
+
             // Find all overlapping candidates
             for (int j = i + 1; j < candidates.size(); j++) {
                 if (assigned[j]) continue;
-                
+
                 if (calculateIoU(candidates.get(i).rect, candidates.get(j).rect) > 0.5) {
                     group.add(candidates.get(j));
                     assigned[j] = true;
                 }
             }
-            
+
             groups.add(group);
         }
-        
+
         return groups;
     }
 
@@ -2521,14 +2521,14 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         double y1 = Math.max(rect1.y(), rect2.y());
         double x2 = Math.min(rect1.x() + rect1.width(), rect2.x() + rect2.width());
         double y2 = Math.min(rect1.y() + rect1.height(), rect2.y() + rect2.height());
-        
+
         if (x2 <= x1 || y2 <= y1) return 0.0;
-        
+
         double intersection = (x2 - x1) * (y2 - y1);
         double area1 = rect1.width() * rect1.height();
         double area2 = rect2.width() * rect2.height();
         double union = area1 + area2 - intersection;
-        
+
         return union > 0 ? intersection / union : 0.0;
     }
 
@@ -2537,21 +2537,21 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      */
     private CandidateDetection selectBestCandidate(List<CandidateDetection> group) {
         if (group.isEmpty()) return null;
-        
+
         CandidateDetection best = null;
         double bestScore = -1.0;
-        
+
         for (CandidateDetection candidate : group) {
             // Combined score: detector priority + confidence + quality
             double detectorWeight = getDetectorWeight(candidate.detector);
             double combinedScore = detectorWeight * 0.4 + candidate.confidence * 0.3 + candidate.qualityScore * 0.3;
-            
+
             if (combinedScore > bestScore) {
                 bestScore = combinedScore;
                 best = candidate;
             }
         }
-        
+
         return best;
     }
 
@@ -2566,29 +2566,29 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             default: return 0.5;
         }
     }
-    
+
     /**
      * Custom IntVector implementation for histogram calculation.
      * Replaces the missing IntVector class from OpenCV JavaCV.
      */
     private static class IntVector {
         private final int[] data;
-        
+
         public IntVector(int... values) {
             this.data = values;
         }
-        
+
         public IntVector(int size) {
             this.data = new int[size];
         }
-        
+
         public int get(int index) {
             if (index >= 0 && index < data.length) {
                 return data[index];
             }
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
         }
-        
+
         public void set(int index, int value) {
             if (index >= 0 && index < data.length) {
                 data[index] = value;
@@ -2596,50 +2596,50 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                 throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
             }
         }
-        
+
         public int size() {
             return data.length;
         }
-        
+
         public int[] getData() {
             return data.clone(); // Return copy for safety
         }
-        
+
         @Override
         public String toString() {
             return "IntVector{" + Arrays.toString(data) + "}";
         }
     }
-    
+
     /**
      * Custom FloatVector implementation for histogram calculation.
      * Replaces the missing FloatVector class from OpenCV JavaCV.
      */
     private static class FloatVector {
         private final float[] data;
-        
+
         public FloatVector(float... values) {
             this.data = values;
         }
-        
+
         public FloatVector(double... values) {
             this.data = new float[values.length];
             for (int i = 0; i < values.length; i++) {
                 this.data[i] = (float) values[i];
             }
         }
-        
+
         public FloatVector(int size) {
             this.data = new float[size];
         }
-        
+
         public float get(int index) {
             if (index >= 0 && index < data.length) {
                 return data[index];
             }
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
         }
-        
+
         public void set(int index, float value) {
             if (index >= 0 && index < data.length) {
                 data[index] = value;
@@ -2647,21 +2647,21 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                 throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + data.length);
             }
         }
-        
+
         public int size() {
             return data.length;
         }
-        
+
         public float[] getData() {
             return data.clone(); // Return copy for safety
         }
-        
+
         @Override
         public String toString() {
             return "FloatVector{" + Arrays.toString(data) + "}";
         }
     }
-    
+
     /**
      * Custom histogram calculation function that works with our custom vector classes.
      * This replicates the functionality of calcHist with proper parameter handling.
@@ -2673,13 +2673,13 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             for (int i = 0; i < histSize.size(); i++) {
                 histSizeArray[i] = histSize.get(i);
             }
-            
+
             // Create ranges array
             float[] rangesArray = new float[ranges.size()];
             for (int i = 0; i < ranges.size(); i++) {
                 rangesArray[i] = ranges.get(i);
             }
-            
+
             // Use OpenCV's calcHist with proper parameter arrays
             org.bytedeco.opencv.global.opencv_imgproc.calcHist(
                 image,
@@ -2695,7 +2695,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             logger.debug("Histogram calculation failed: {}", e.getMessage());
         }
     }
-    
+
     /**
      * Performs actual object detection (placeholder for now).
      * OpenCV backend primarily focuses on face detection.
@@ -2705,7 +2705,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             logger.warn("Image data is null or empty for object detection");
             return Collections.emptyList();
         }
-        
+
         // OpenCV backend doesn't currently support object detection
         // This would typically use YOLO or other object detection models
         logger.debug("Object detection not implemented in OpenCV backend");
@@ -2808,8 +2808,20 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                         if (res instanceof String s && s != null && !s.isEmpty()) {
                             // We couldn't reliably extract bounding points via reflection portably here,
                             // so return a detection with full-image bbox and decoded text as attribute.
+                            // Try ZXing to obtain precise bounding box and heuristic confidence
+                            try {
+                                java.util.List<Detection> zx = com.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
+                                if (zx != null && !zx.isEmpty()) {
+                                    return zx;
+                                }
+                            } catch (Throwable ignore) {
+                                // If ZXing fails, fall back to full-frame bbox with conservative confidence
+                            }
                             BoundingBox full = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                            Detection d = Detection.of("barcode", 1.0, full, "text", s);
+                            java.util.Map<String,Object> attrs = new java.util.HashMap<>();
+                            attrs.put("text", s);
+                            attrs.put("confidence_source", "opencv:detectAndDecode");
+                            Detection d = new Detection("barcode", 0.85, full, attrs);
                             return List.of(d);
                         }
                     } catch (NoSuchMethodException ignored) {

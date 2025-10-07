@@ -74,9 +74,12 @@ public class FaceDetectionController {
      * @param visionTemplate the vision template for processing images
      * @param webClientBuilder the web client builder for reactive HTTP calls
      */
+    private final com.springvision.core.async.AsyncVisionProcessor asyncProcessor;
+
     public FaceDetectionController(VisionTemplate visionTemplate, WebClient.Builder webClientBuilder) {
         this.visionTemplate = visionTemplate;
         this.webClient = webClientBuilder.build();
+        this.asyncProcessor = new com.springvision.core.async.AsyncVisionProcessor(visionTemplate);
     }
 
     /**
@@ -473,6 +476,377 @@ public class FaceDetectionController {
 
             ImageIO.write(img, "png", baos);
             return baos.toByteArray();
+        }
+    }
+
+    // --- Core features showcase endpoints ---
+
+    @GetMapping("/api/vision/health")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> health() {
+        var info = visionTemplate.getBackendHealthInfo();
+        java.util.Set<com.springvision.core.DetectionType> types = visionTemplate.getSupportedDetectionTypes();
+        return ResponseEntity.ok(java.util.Map.of(
+            "backendId", visionTemplate.getBackendId(),
+            "backendName", visionTemplate.getBackendDisplayName(),
+            "backendVersion", visionTemplate.getBackendVersion(),
+            "status", info.status().toString(),
+            "statusMessage", info.statusMessage(),
+            "responseTimeMs", info.responseTimeMs(),
+            "supportedDetectionTypes", types.stream().map(com.springvision.core.DetectionType::getCode).toList()
+        ));
+    }
+
+    @GetMapping("/api/vision/supported-types")
+    @ResponseBody
+    public ResponseEntity<java.util.List<String>> supportedTypes() {
+        java.util.List<String> types = visionTemplate.getSupportedDetectionTypes().stream()
+            .map(com.springvision.core.DetectionType::getCode)
+            .sorted()
+            .toList();
+        return ResponseEntity.ok(types);
+    }
+
+    @PostMapping(value = "/api/vision/verify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> verify(
+            @RequestParam("fileA") MultipartFile fileA,
+            @RequestParam("fileB") MultipartFile fileB,
+            @RequestParam(value = "metric", required = false, defaultValue = "cosine") String metric,
+            @RequestParam(value = "threshold", required = false, defaultValue = "0.6") double threshold) {
+        try {
+            ImageData a = ImageData.fromBytes(fileA.getBytes());
+            ImageData b = ImageData.fromBytes(fileB.getBytes());
+            boolean match = visionTemplate.verify(a, b, metric, threshold);
+            return ResponseEntity.ok(java.util.Map.of(
+                "metric", metric,
+                "threshold", threshold,
+                "match", match
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/detect/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectMultipleApi(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("detectionTypes") String detectionTypesCsv) {
+        try {
+            java.util.List<com.springvision.core.DetectionType> types = java.util.Arrays.stream(detectionTypesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionType::fromCode)
+                .toList();
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            java.util.List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+            java.util.Map<String,Object> payload = new java.util.HashMap<>();
+            payload.put("types", types.stream().map(com.springvision.core.DetectionType::getCode).toList());
+            payload.put("results", results.stream().map(r -> java.util.Map.of(
+                "type", r.detectionType().getCode(),
+                "count", r.detectionCount(),
+                "avgConfidence", r.averageConfidence(),
+                "processingTimeMs", r.processingTimeMs(),
+                "detections", r.detections()
+            )).toList());
+            return ResponseEntity.ok(payload);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/obscure", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    public ResponseEntity<byte[]> obscureFacesApi(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            ImageData obscured = visionTemplate.obscureFaces(imageData);
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(obscured.data());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/api/vision/tag", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    public ResponseEntity<byte[]> tagApi(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "label", defaultValue = "TAG") String label,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+        try {
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            ImageData tagged = visionTemplate.tag(imageData, label, cats);
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(tagged.data());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/api/vision/mark", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.IMAGE_PNG_VALUE)
+    @ResponseBody
+    public ResponseEntity<byte[]> markApi(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+        try {
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            ImageData marked = visionTemplate.mark(imageData, cats);
+            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(marked.data());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/api/vision/tasks/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> submitAsyncFaceTask(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            var handle = asyncProcessor.processAsyncWithHandle(
+                imageData,
+                com.springvision.core.DetectionType.FACE,
+                java.util.Map.of(),
+                null
+            );
+            return ResponseEntity.accepted().body(java.util.Map.of("taskId", handle.taskId(), "status", "accepted"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/tasks/detect/{detectionType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> submitAsyncTask(@RequestParam("file") MultipartFile file,
+            @org.springframework.web.bind.annotation.PathVariable("detectionType") String detectionType) {
+        try {
+            com.springvision.core.DetectionType type = com.springvision.core.DetectionType.fromCode(detectionType);
+            if (type == null) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Invalid detection type: " + detectionType));
+            }
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            var handle = asyncProcessor.processAsyncWithHandle(
+                imageData,
+                type,
+                java.util.Map.of(),
+                null
+            );
+            return ResponseEntity.accepted().body(java.util.Map.of("taskId", handle.taskId(), "status", "accepted", "detectionType", detectionType));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/api/vision/tasks/{taskId}")
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> getAsyncTask(@org.springframework.web.bind.annotation.PathVariable("taskId") String taskId) {
+        com.springvision.core.async.TaskProgress progress = asyncProcessor.getTaskProgress(taskId);
+        if (progress == null) {
+            return ResponseEntity.status(404).body(java.util.Map.of("taskId", taskId, "status", "not_found"));
+        }
+        java.util.Map<String,Object> payload = new java.util.HashMap<>();
+        payload.put("taskId", progress.getTaskId());
+        payload.put("status", progress.getStatus().toString());
+        payload.put("completion", progress.getCompletionPercentage());
+        payload.put("message", progress.getMessage());
+        if (progress.isCompleted() && progress.getResult() != null) {
+            VisionResult r = progress.getResult();
+            payload.put("result", java.util.Map.of(
+                "type", r.detectionType().getCode(),
+                "count", r.detectionCount(),
+                "avgConfidence", r.averageConfidence()
+            ));
+        }
+        return ResponseEntity.ok(payload);
+    }
+
+    @PostMapping(value = "/api/vision/batch/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> batchFaces(@RequestParam("files") java.util.List<MultipartFile> files) {
+        try {
+            java.util.List<ImageData> images = new java.util.ArrayList<>();
+            for (MultipartFile f : files) {
+                if (f != null && !f.isEmpty()) {
+                    images.add(ImageData.fromBytes(f.getBytes()));
+                }
+            }
+            if (images.isEmpty()) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "No files provided"));
+            }
+            com.springvision.core.batch.BatchVisionProcessor batch = new com.springvision.core.batch.BatchVisionProcessor();
+            java.util.concurrent.CompletableFuture<java.util.List<VisionResult>> future = batch.processBatch(images, com.springvision.core.DetectionType.FACE, java.util.Map.of());
+            java.util.List<VisionResult> results = future.join();
+            int total = results.stream().mapToInt(VisionResult::detectionCount).sum();
+            return ResponseEntity.ok(java.util.Map.of(
+                "images", images.size(),
+                "totalDetections", total
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/batch/{detectionType}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> batchDetection(@RequestParam("files") java.util.List<MultipartFile> files,
+            @org.springframework.web.bind.annotation.PathVariable("detectionType") String detectionType) {
+        try {
+            com.springvision.core.DetectionType type = com.springvision.core.DetectionType.fromCode(detectionType);
+            if (type == null) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Invalid detection type: " + detectionType));
+            }
+            java.util.List<ImageData> images = new java.util.ArrayList<>();
+            for (MultipartFile f : files) {
+                if (f != null && !f.isEmpty()) {
+                    images.add(ImageData.fromBytes(f.getBytes()));
+                }
+            }
+            if (images.isEmpty()) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "No files provided"));
+            }
+            com.springvision.core.batch.BatchVisionProcessor batch = new com.springvision.core.batch.BatchVisionProcessor();
+            java.util.concurrent.CompletableFuture<java.util.List<VisionResult>> future = batch.processBatch(images, type, java.util.Map.of());
+            java.util.List<VisionResult> results = future.join();
+            int total = results.stream().mapToInt(VisionResult::detectionCount).sum();
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", detectionType,
+                "images", images.size(),
+                "totalDetections", total
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Object Detection Endpoints
+    @PostMapping(value = "/api/vision/detect/objects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectObjects(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.OBJECT);
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", "object",
+                "detections", result.detections(),
+                "count", result.detectionCount(),
+                "avgConfidence", result.averageConfidence()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectBarcodes(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.BARCODE);
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", "barcode",
+                "detections", result.detections(),
+                "count", result.detectionCount(),
+                "avgConfidence", result.averageConfidence()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectText(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.TEXT);
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", "text",
+                "detections", result.detections(),
+                "count", result.detectionCount(),
+                "avgConfidence", result.averageConfidence()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Enhanced annotation endpoints
+    @PostMapping(value = "/api/vision/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> annotateImage(@RequestParam("file") MultipartFile file,
+            @RequestParam("action") String action,
+            @RequestParam(value = "label", required = false) String label,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+        try {
+            com.springvision.core.AnnotationRequest.Action annotationAction = com.springvision.core.AnnotationRequest.Action.valueOf(action.toUpperCase());
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+
+            com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+                .action(annotationAction)
+                .categories(cats)
+                .label(label)
+                .build();
+
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            visionTemplate.annotate(imageData, req);
+
+            return ResponseEntity.ok(java.util.Map.of(
+                "action", action,
+                "categories", cats.stream().map(Enum::name).toList(),
+                "label", label,
+                "annotated", true
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/api/vision/detect/query", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectWithQuery(@RequestParam("file") MultipartFile file,
+            @RequestParam("detectionType") String detectionType,
+            @RequestParam(value = "minConfidence", defaultValue = "0.5") double minConfidence,
+            @RequestParam(value = "maxDetections", defaultValue = "100") int maxDetections) {
+        try {
+            com.springvision.core.DetectionType type = com.springvision.core.DetectionType.fromCode(detectionType);
+            if (type == null) {
+                return ResponseEntity.badRequest().body(java.util.Map.of("error", "Invalid detection type: " + detectionType));
+            }
+
+            com.springvision.core.DetectionQuery.Builder queryBuilder = new com.springvision.core.DetectionQuery.Builder()
+                .type(type)
+                .minConfidence(minConfidence)
+                .maxDetections(maxDetections);
+
+            com.springvision.core.DetectionQuery query = queryBuilder.build();
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detect(imageData, query);
+
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", detectionType,
+                "query", java.util.Map.of(
+                    "minConfidence", minConfidence,
+                    "maxDetections", maxDetections
+                ),
+                "detections", result.detections(),
+                "count", result.detectionCount(),
+                "avgConfidence", result.averageConfidence()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }
     }
 }
