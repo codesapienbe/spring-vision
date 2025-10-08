@@ -591,7 +591,7 @@ public class VisionController {
      * before processing.</p>
      *
      * @param file the uploaded image file
-     * @param request the multiple detection request
+     * @param detectionTypes the comma-separated detection types to run
      * @return multiple detection results
      */
     @PostMapping(value = "/detect/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -910,63 +910,178 @@ public class VisionController {
         }
     }
 
-    @GetMapping(value = "/tasks/{taskId}")
-    public ResponseEntity<Map<String, Object>> getTaskStatus(@PathVariable("taskId") String taskId) {
+    @PostMapping(value = "/tasks/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTask(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
-        TaskProgress progress = asyncVisionProcessor.getTaskProgress(taskId);
-        if (progress == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("correlationId", correlationId, "taskId", taskId, "status", "not_found"));
-        }
-        Map<String, Object> payload = Map.of(
+        logger.info("Submit barcode detection task", Map.of(
             "correlationId", correlationId,
-            "taskId", progress.getTaskId(),
-            "status", progress.getStatus().toString(),
-            "completion", progress.getCompletionPercentage(),
-            "message", progress.getMessage()
-        );
-        return ResponseEntity.ok(payload);
-    }
-
-    @GetMapping(value = "/tasks/{taskId}/result")
-    public ResponseEntity<?> getTaskResult(@PathVariable("taskId") String taskId) {
-        String correlationId = generateCorrelationId();
-        TaskProgress progress = asyncVisionProcessor.getTaskProgress(taskId);
-        if (progress == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("correlationId", correlationId, "taskId", taskId, "status", "not_found"));
-        }
-        if (!progress.isCompleted()) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(Map.of(
-                    "correlationId", correlationId,
-                    "taskId", taskId,
-                    "status", progress.getStatus().toString(),
-                    "completion", progress.getCompletionPercentage(),
-                    "message", progress.getMessage()
-                ));
-        }
-        VisionResult result = progress.getResult();
-        DetectionResponse response = DetectionResponse.builder()
-            .correlationId(correlationId)
-            .detectionType(result.detectionType().getCode())
-            .detectionCount(result.detectionCount())
-            .averageConfidence(result.averageConfidence())
-            .processingTimeMs(result.processingTimeMs())
-            .detections(result.detections())
-            .build();
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping(value = "/tasks/{taskId}")
-    public ResponseEntity<Map<String, Object>> cancelTask(@PathVariable("taskId") String taskId) {
-        String correlationId = generateCorrelationId();
-        boolean cancelled = asyncVisionProcessor.cancelTask(taskId);
-        return ResponseEntity.ok(Map.of(
-            "correlationId", correlationId,
-            "taskId", taskId,
-            "cancelled", cancelled
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
         ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.BARCODE,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit barcode detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/tasks/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTaskJson(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Submit barcode detection task (json)", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.BARCODE,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit barcode detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/tasks/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTask(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+        logger.info("Submit text detection task", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.TEXT,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit text detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/tasks/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTaskJson(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Submit text detection task (json)", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.TEXT,
+                Map.of("correlationId", correlationId),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit text detection task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
+    }
+
+    @PostMapping(value = "/tasks/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TaskSubmissionResponse> submitAnnotateTask(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("action") String action,
+            @RequestParam(value = "label", required = false) String label,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+
+        String correlationId = generateCorrelationId();
+        logger.info("Submit annotate task", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "action", action,
+            "label", label,
+            "categories", categoriesCsv
+        ));
+
+        try {
+            validateFile(file);
+
+            com.springvision.core.AnnotationRequest.Action annotationAction = com.springvision.core.AnnotationRequest.Action.valueOf(action.toUpperCase());
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+
+            com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+                .action(annotationAction)
+                .categories(cats)
+                .label(label)
+                .build();
+
+            ImageData imageData = convertToImageData(file);
+
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.CUSTOM,
+                Map.of("correlationId", correlationId, "annotationRequest", req),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
+        } catch (Exception e) {
+            logger.error("Submit annotate task failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
+        }
     }
 
     /**
@@ -1168,5 +1283,525 @@ public class VisionController {
      */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
+    }
+
+    // --- Advanced detection types: barcodes and text ---
+
+    @PostMapping(value = "/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DetectionResponse> detectBarcodesFromFile(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+        logger.info("Barcode detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.BARCODE);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Barcode detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Barcode detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DetectionResponse> detectBarcodesFromData(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Barcode detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.BARCODE);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Barcode detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Barcode detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DetectionResponse> detectTextFromFile(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+        logger.info("Text detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.TEXT);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Text detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Text detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<DetectionResponse> detectTextFromData(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Text detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.TEXT);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            logger.info("Text detection completed successfully", Map.of(
+                "correlationId", correlationId,
+                "detectionCount", result.detectionCount(),
+                "processingTimeMs", result.processingTimeMs()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Text detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .error(e.getMessage())
+                .build();
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    // Annotation endpoint
+    @PostMapping(value = "/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String,Object>> annotateImageEndpoint(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("action") String action,
+            @RequestParam(value = "label", required = false) String label,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+
+        String correlationId = generateCorrelationId();
+        logger.info("Annotate request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "action", action,
+            "label", label,
+            "categories", categoriesCsv
+        ));
+
+        try {
+            com.springvision.core.AnnotationRequest.Action annotationAction = com.springvision.core.AnnotationRequest.Action.valueOf(action.toUpperCase());
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+
+            com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+                .action(annotationAction)
+                .categories(cats)
+                .label(label)
+                .build();
+
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            visionTemplate.annotate(imageData, req);
+
+            return ResponseEntity.ok(Map.of(
+                "action", action,
+                "categories", cats.stream().map(Enum::name).toList(),
+                "label", label,
+                "annotated", true
+            ));
+        } catch (Exception e) {
+            logger.error("Annotate failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // Detection query endpoint
+    @PostMapping(value = "/detect/query", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DetectionResponse> detectWithQueryEndpoint(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("detectionType") String detectionType,
+            @RequestParam(value = "minConfidence", defaultValue = "0.5") double minConfidence,
+            @RequestParam(value = "maxDetections", defaultValue = "100") int maxDetections) {
+
+        String correlationId = generateCorrelationId();
+        logger.info("Detect with query request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "detectionType", detectionType,
+            "minConfidence", minConfidence,
+            "maxDetections", maxDetections
+        ));
+
+        try {
+            com.springvision.core.DetectionType type = com.springvision.core.DetectionType.fromCode(detectionType);
+            if (type == null) {
+                return ResponseEntity.badRequest().body(DetectionResponse.builder().correlationId(correlationId).error("Invalid detection type: " + detectionType).build());
+            }
+
+            com.springvision.core.DetectionQuery.Builder qb = new com.springvision.core.DetectionQuery.Builder()
+                .type(type)
+                .minConfidence(minConfidence)
+                .maxDetections(maxDetections);
+
+            com.springvision.core.DetectionQuery query = qb.build();
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detect(imageData, query);
+
+            DetectionResponse response = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(type.getCode())
+                .detectionCount(result.detectionCount())
+                .averageConfidence(result.averageConfidence())
+                .processingTimeMs(result.processingTimeMs())
+                .detections(result.detections())
+                .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Detect with query failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(DetectionResponse.builder().correlationId(correlationId).error(e.getMessage()).build());
+        }
+    }
+
+    // --- Async variants for advanced detection types and annotate ---
+
+    @PostMapping(value = "/async/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromFileAsync(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+        logger.info("Async barcode detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.BARCODE);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async barcode detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
+        } catch (Exception e) {
+            logger.error("Async barcode detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .error(e.getMessage())
+                .build();
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromDataAsync(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Async barcode detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.BARCODE);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async barcode detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
+        } catch (Exception e) {
+            logger.error("Async barcode detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.BARCODE.getCode())
+                .error(e.getMessage())
+                .build();
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromFileAsync(@RequestParam("file") MultipartFile file) {
+        String correlationId = generateCorrelationId();
+        logger.info("Async text detection request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "fileSize", file.getSize(),
+            "contentType", file.getContentType()
+        ));
+
+        try {
+            validateFile(file);
+            ImageData imageData = convertToImageData(file);
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.TEXT);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async text detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
+        } catch (Exception e) {
+            logger.error("Async text detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .error(e.getMessage())
+                .build();
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromDataAsync(@RequestBody DetectionRequest request) {
+        String correlationId = generateCorrelationId();
+        logger.info("Async text detection request received", Map.of(
+            "correlationId", correlationId,
+            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
+        ));
+
+        try {
+            ImageData imageData = ImageData.fromBytes(request.getImageData());
+            return CompletableFuture.supplyAsync(() -> {
+                VisionResult result = visionTemplate.detect(imageData, com.springvision.core.DetectionType.TEXT);
+                DetectionResponse response = DetectionResponse.builder()
+                    .correlationId(correlationId)
+                    .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                    .detectionCount(result.detectionCount())
+                    .averageConfidence(result.averageConfidence())
+                    .processingTimeMs(result.processingTimeMs())
+                    .detections(result.detections())
+                    .build();
+                logger.info("Async text detection completed successfully", Map.of(
+                    "correlationId", correlationId,
+                    "detectionCount", result.detectionCount(),
+                    "processingTimeMs", result.processingTimeMs()
+                ));
+                return ResponseEntity.ok(response);
+            });
+        } catch (Exception e) {
+            logger.error("Async text detection failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            DetectionResponse errorResponse = DetectionResponse.builder()
+                .correlationId(correlationId)
+                .detectionType(com.springvision.core.DetectionType.TEXT.getCode())
+                .error(e.getMessage())
+                .build();
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse));
+        }
+    }
+
+    @PostMapping(value = "/async/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Async("visionAsyncExecutor")
+    public CompletableFuture<ResponseEntity<Map<String,Object>>> annotateImageAsync(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("action") String action,
+            @RequestParam(value = "label", required = false) String label,
+            @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
+
+        String correlationId = generateCorrelationId();
+        logger.info("Async annotate request received", Map.of(
+            "correlationId", correlationId,
+            "fileName", file.getOriginalFilename(),
+            "action", action,
+            "label", label,
+            "categories", categoriesCsv
+        ));
+
+        try {
+            com.springvision.core.AnnotationRequest.Action annotationAction = com.springvision.core.AnnotationRequest.Action.valueOf(action.toUpperCase());
+            java.util.Set<com.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(com.springvision.core.DetectionCategory::valueOf)
+                .collect(java.util.stream.Collectors.toSet());
+
+            com.springvision.core.AnnotationRequest req = new com.springvision.core.AnnotationRequest.Builder()
+                .action(annotationAction)
+                .categories(cats)
+                .label(label)
+                .build();
+
+            validateFile(file);
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    visionTemplate.annotate(imageData, req);
+                    Map<String,Object> payload = Map.of(
+                        "action", action,
+                        "categories", cats.stream().map(Enum::name).toList(),
+                        "label", label,
+                        "annotated", true
+                    );
+                    logger.info("Async annotate completed", Map.of("correlationId", correlationId));
+                    return ResponseEntity.ok(payload);
+                } catch (Exception ex) {
+                    logger.error("Async annotate failed", Map.of("correlationId", correlationId, "error", ex.getClass().getSimpleName()), ex);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+                }
+            });
+
+        } catch (Exception e) {
+            logger.error("Async annotate request preparation failed", Map.of(
+                "correlationId", correlationId,
+                "error", e.getClass().getSimpleName()
+            ), e);
+            return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage())));
+        }
     }
 }

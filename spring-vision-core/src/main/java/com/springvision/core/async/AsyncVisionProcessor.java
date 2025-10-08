@@ -362,6 +362,25 @@ public class AsyncVisionProcessor {
                 throw new IllegalStateException("AsyncVisionProcessor is not bound to a VisionTemplate/backend");
             }
 
+            // Special-case CUSTOM tasks that carry an AnnotationRequest in parameters
+            if (task.getDetectionType() == com.springvision.core.DetectionType.CUSTOM) {
+                Object maybeAnnotation = task.getParameter("annotationRequest");
+                if (maybeAnnotation instanceof com.springvision.core.AnnotationRequest annotationReq) {
+                    logger.debug("Executing annotation task: {}", task.getTaskId());
+                    long start = System.currentTimeMillis();
+                    // perform annotation (modifies/returns an ImageData) via VisionTemplate
+                    com.springvision.core.ImageData annotated = visionTemplate.annotate(task.getImageData(), annotationReq);
+                    long processingTime = System.currentTimeMillis() - start;
+                    // Return a placeholder VisionResult to satisfy callers; no detections from annotation
+                    return com.springvision.core.VisionResult.of(
+                        com.springvision.core.DetectionType.CUSTOM,
+                        java.util.List.of(),
+                        0.0,
+                        processingTime
+                    );
+                }
+            }
+
             return visionTemplate.detect(task.getImageData(), task.getDetectionType());
         }
     }

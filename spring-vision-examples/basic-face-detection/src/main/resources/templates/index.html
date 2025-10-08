@@ -369,7 +369,7 @@
                 <div th:each="type : ${T(com.springvision.core.DetectionType).values()}">
                     <form th:id="'asyncForm' + ${type.code}" th:action="'/api/vision/tasks/detect/' + ${type.code}" method="post" enctype="multipart/form-data" style="display: inline;">
                         <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
-                        <button type="button" class="submit-btn" onclick="selectFileForForm('asyncForm' + ${type.code})" style="width: 100%;"
+                        <button type="button" class="submit-btn" th:onclick="|selectFileForForm('asyncForm${type.code}')|" style="width: 100%;"
                                 th:text="'⚡ ' + ${type.displayName}">Async Detection</button>
                     </form>
                 </div>
@@ -548,195 +548,244 @@
 
     <script>
         (function(){
-            const form = document.getElementById('uploadForm');
-            const fileInput = document.getElementById('file');
-            const fileName = document.getElementById('fileName');
+            try {
+                const form = document.getElementById('uploadForm');
+                const fileInput = document.getElementById('file');
+                const fileName = document.getElementById('fileName');
 
-            fileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                fileName.textContent = file ? file.name : 'No file selected';
-            });
-
-            form.addEventListener('submit', function(e){
-                const file = fileInput.files && fileInput.files[0];
-                if (!file) {
-                    e.preventDefault();
-                    alert('Please select a file first.');
-                    return;
-                }
-                const button = form.querySelector('.submit-btn');
-                button.disabled = true;
-                button.textContent = '🔄 Processing...';
-            });
-
-            const urlForm = document.getElementById('urlForm');
-            urlForm.addEventListener('submit', function(e){
-                const button = urlForm.querySelector('.submit-btn');
-                button.disabled = true;
-                button.textContent = '🔄 Processing...';
-            });
-
-            // Copy button functionality
-            document.querySelectorAll('.copy-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const embeddingText = this.parentElement.getAttribute('data-full-text');
-                    navigator.clipboard.writeText(embeddingText).then(() => {
-                        alert('Embedding text copied to clipboard!');
-                    }, err => {
-                        alert('Failed to copy text: ', err);
+                if (fileInput) {
+                    fileInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (fileName) {
+                            fileName.textContent = file ? file.name : 'No file selected';
+                        }
                     });
-                });
-            });
+                }
 
-            // Load backend information on page load
-            loadBackendInfo();
-
-            // Batch file count update
-            window.updateBatchFileCount = function() {
-                const batchFiles = document.getElementById('batchFiles');
-                const batchFileCount = document.getElementById('batchFileCount');
-                const count = batchFiles.files ? batchFiles.files.length : 0;
-                batchFileCount.textContent = count > 0 ? `${count} file(s) selected` : 'No files selected';
-            };
-
-            // File selection helpers
-            window.selectFileForForm = function(formId) {
-                const form = document.getElementById(formId);
-                const fileInput = form.querySelector('input[type="file"]');
-                fileInput.click();
-            };
-
-            window.selectMultipleFilesForForm = function(form) {
-                const fileInput = form.querySelector('input[type="file"]');
-                fileInput.click();
-            };
-
-            // Enhanced form submission handling
-            document.querySelectorAll('form').forEach(form => {
-                if (form.id !== 'uploadForm' && form.id !== 'urlForm') {
-                    form.addEventListener('submit', function(e) {
-                        const button = this.querySelector('.submit-btn');
+                if (form) {
+                    form.addEventListener('submit', function(e){
+                        const file = fileInput && fileInput.files && fileInput.files[0];
+                        if (!file) {
+                            e.preventDefault();
+                            alert('Please select a file first.');
+                            return;
+                        }
+                        const button = form.querySelector('.submit-btn');
                         if (button) {
                             button.disabled = true;
                             button.textContent = '🔄 Processing...';
                         }
                     });
                 }
-            });
 
-            // Special handling for multiple detection types form
-            window.prepareAndSubmitMultipleForm = function() {
-                const checkboxes = document.querySelectorAll('.detectionTypeCheckbox:checked');
-                if (checkboxes.length === 0) {
-                    alert('Please select at least one detection type');
-                    return;
-                }
-
-                const types = Array.from(checkboxes).map(cb => cb.value);
-                document.getElementById('detectionTypesHidden').value = types.join(',');
-
-                // Trigger file selection
-                const fileInput = document.querySelector('#multipleForm input[type="file"]');
-                fileInput.click();
-            };
-
-            window.submitMultipleForm = function() {
-                const multipleForm = document.getElementById('multipleForm');
-                const button = multipleForm.querySelector('.submit-btn');
-                button.disabled = true;
-                button.textContent = '🔄 Processing...';
-                multipleForm.submit();
-            };
-
-            window.submitFormWithFile = function(form) {
-                const button = form.querySelector('.submit-btn');
-                if (button) {
-                    button.disabled = true;
-                    button.textContent = '🔄 Processing...';
-                }
-                form.submit();
-            };
-
-            // Check task status
-            window.checkTaskStatus = function() {
-                const taskId = document.getElementById('taskIdInput').value.trim();
-                if (!taskId) {
-                    alert('Please enter a task ID');
-                    return;
-                }
-
-                const taskStatus = document.getElementById('taskStatus');
-                taskStatus.style.display = 'block';
-                taskStatus.innerHTML = '<p>🔄 Checking task status...</p>';
-
-                fetch(`/api/vision/tasks/${taskId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        let statusHtml = `
-                            <h4>Task Status</h4>
-                            <p><strong>Task ID:</strong> ${data.taskId}</p>
-                            <p><strong>Status:</strong> ${data.status}</p>
-                            <p><strong>Completion:</strong> ${data.completion}%</p>
-                            <p><strong>Message:</strong> ${data.message || 'N/A'}</p>
-                        `;
-
-                        if (data.result) {
-                            statusHtml += `
-                                <h5>Result</h5>
-                                <p><strong>Type:</strong> ${data.result.type}</p>
-                                <p><strong>Count:</strong> ${data.result.count}</p>
-                                <p><strong>Avg Confidence:</strong> ${data.result.avgConfidence}</p>
-                            `;
+                const urlForm = document.getElementById('urlForm');
+                if (urlForm) {
+                    urlForm.addEventListener('submit', function(e){
+                        const button = urlForm.querySelector('.submit-btn');
+                        if (button) {
+                            button.disabled = true;
+                            button.textContent = '🔄 Processing...';
                         }
-
-                        taskStatus.innerHTML = statusHtml;
-                    })
-                    .catch(error => {
-                        taskStatus.innerHTML = `<p style="color: red;">❌ Error checking task status: ${error.message}</p>`;
                     });
-            };
-
-            // Load backend information
-            window.loadBackendInfo = function() {
-                fetch('/api/vision/health')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('backendId').textContent = data.backendId;
-                        document.getElementById('backendName').textContent = data.backendName;
-                        document.getElementById('backendVersion').textContent = data.backendVersion;
-                        document.getElementById('backendStatus').textContent = data.status;
-
-                        const supportedTypes = document.getElementById('supportedTypes');
-                        supportedTypes.innerHTML = '';
-                        data.supportedDetectionTypes.forEach(type => {
-                            const badge = document.createElement('span');
-                            badge.className = 'badge';
-                            badge.textContent = type;
-                            badge.style.cssText = `
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                color: white;
-                                padding: 5px 10px;
-                                border-radius: 15px;
-                                font-size: 12px;
-                                font-weight: 500;
-                            `;
-                            supportedTypes.appendChild(badge);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading backend info:', error);
-                    });
-            };
-
-            // Add CSS for badges
-            const style = document.createElement('style');
-            style.textContent = `
-                .badge {
-                    display: inline-block;
-                    margin: 2px;
                 }
-            `;
-            document.head.appendChild(style);
+
+                // Copy button functionality
+                document.querySelectorAll('.copy-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const embeddingText = this.parentElement.getAttribute('data-full-text');
+                        navigator.clipboard.writeText(embeddingText).then(() => {
+                            alert('Embedding text copied to clipboard!');
+                        }, err => {
+                            alert('Failed to copy text: ' + err);
+                        });
+                    });
+                });
+
+                // Load backend information on page load
+                // wrap in try to avoid unhandled promise failures aborting script
+                try { loadBackendInfo(); } catch (e) { console.warn('loadBackendInfo failed to start:', e); }
+
+                // Batch file count update
+                window.updateBatchFileCount = function() {
+                    const batchFiles = document.getElementById('batchFiles');
+                    const batchFileCount = document.getElementById('batchFileCount');
+                    const count = batchFiles && batchFiles.files ? batchFiles.files.length : 0;
+                    if (batchFileCount) batchFileCount.textContent = count > 0 ? `${count} file(s) selected` : 'No files selected';
+                };
+
+                // File selection helpers
+                window.selectFileForForm = function(formId) {
+                    const formEl = document.getElementById(formId);
+                    if (!formEl) {
+                        console.warn('selectFileForForm: form not found', formId);
+                        return;
+                    }
+                    const fileInputEl = formEl.querySelector('input[type="file"]');
+                    if (!fileInputEl) {
+                        console.warn('selectFileForForm: file input not found for form', formId);
+                        return;
+                    }
+                    // Some browsers prevent opening a file picker on elements with display:none.
+                    // Ensure the input is focusable/visible momentarily.
+                    const prevDisplay = fileInputEl.style.display;
+                    try {
+                        fileInputEl.style.display = 'block';
+                        fileInputEl.style.position = 'absolute';
+                        fileInputEl.style.left = '-9999px';
+                        fileInputEl.click();
+                    } finally {
+                        fileInputEl.style.display = prevDisplay || 'none';
+                    }
+                };
+
+                window.selectMultipleFilesForForm = function(form) {
+                    const fileInput = form.querySelector('input[type="file"]');
+                    if (fileInput) fileInput.click();
+                };
+
+                // Enhanced form submission handling
+                document.querySelectorAll('form').forEach(formEl => {
+                    if (formEl.id !== 'uploadForm' && formEl.id !== 'urlForm') {
+                        formEl.addEventListener('submit', function(e) {
+                            const button = this.querySelector('.submit-btn');
+                            if (button) {
+                                button.disabled = true;
+                                button.textContent = '🔄 Processing...';
+                            }
+                        });
+                    }
+                });
+
+                // Special handling for multiple detection types form
+                window.prepareAndSubmitMultipleForm = function() {
+                    const checkboxes = document.querySelectorAll('.detectionTypeCheckbox:checked');
+                    if (checkboxes.length === 0) {
+                        alert('Please select at least one detection type');
+                        return;
+                    }
+
+                    const types = Array.from(checkboxes).map(cb => cb.value);
+                    const hidden = document.getElementById('detectionTypesHidden');
+                    if (hidden) hidden.value = types.join(',');
+
+                    // Trigger file selection
+                    const fileInput = document.querySelector('#multipleForm input[type="file"]');
+                    if (fileInput) fileInput.click();
+                };
+
+                window.submitMultipleForm = function() {
+                    const multipleForm = document.getElementById('multipleForm');
+                    if (!multipleForm) return;
+                    const button = multipleForm.querySelector('.submit-btn');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = '🔄 Processing...';
+                    }
+                    multipleForm.submit();
+                };
+
+                window.submitFormWithFile = function(form) {
+                    const button = form.querySelector('.submit-btn');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = '🔄 Processing...';
+                    }
+                    form.submit();
+                };
+
+                // Check task status
+                window.checkTaskStatus = function() {
+                    const taskInput = document.getElementById('taskIdInput');
+                    const taskId = taskInput ? taskInput.value.trim() : '';
+                    if (!taskId) {
+                        alert('Please enter a task ID');
+                        return;
+                    }
+
+                    const taskStatus = document.getElementById('taskStatus');
+                    if (taskStatus) {
+                        taskStatus.style.display = 'block';
+                        taskStatus.innerHTML = '<p>🔄 Checking task status...</p>';
+                    }
+
+                    fetch(`/api/vision/tasks/${taskId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            let statusHtml = `
+                                <h4>Task Status</h4>
+                                <p><strong>Task ID:</strong> ${data.taskId}</p>
+                                <p><strong>Status:</strong> ${data.status}</p>
+                                <p><strong>Completion:</strong> ${data.completion}%</p>
+                                <p><strong>Message:</strong> ${data.message || 'N/A'}</p>
+                            `;
+
+                            if (data.result && taskStatus) {
+                                statusHtml += `
+                                    <h5>Result</h5>
+                                    <p><strong>Type:</strong> ${data.result.type}</p>
+                                    <p><strong>Count:</strong> ${data.result.count}</p>
+                                    <p><strong>Avg Confidence:</strong> ${data.result.avgConfidence}</p>
+                                `;
+                            }
+
+                            if (taskStatus) taskStatus.innerHTML = statusHtml;
+                        })
+                        .catch(error => {
+                            if (taskStatus) taskStatus.innerHTML = `<p style="color: red;">❌ Error checking task status: ${error.message}</p>`;
+                        });
+                };
+
+                // Load backend information
+                window.loadBackendInfo = function() {
+                    fetch('/api/vision/health')
+                        .then(response => response.json())
+                        .then(data => {
+                            const idEl = document.getElementById('backendId');
+                            const nameEl = document.getElementById('backendName');
+                            const verEl = document.getElementById('backendVersion');
+                            const statusEl = document.getElementById('backendStatus');
+                            if (idEl) idEl.textContent = data.backendId;
+                            if (nameEl) nameEl.textContent = data.backendName;
+                            if (verEl) verEl.textContent = data.backendVersion;
+                            if (statusEl) statusEl.textContent = data.status;
+
+                            const supportedTypes = document.getElementById('supportedTypes');
+                            if (supportedTypes) {
+                                supportedTypes.innerHTML = '';
+                                (data.supportedDetectionTypes || []).forEach(type => {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'badge';
+                                    badge.textContent = type;
+                                    badge.style.cssText = `
+                                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                        color: white;
+                                        padding: 5px 10px;
+                                        border-radius: 15px;
+                                        font-size: 12px;
+                                        font-weight: 500;
+                                    `;
+                                    supportedTypes.appendChild(badge);
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading backend info:', error);
+                        });
+                };
+
+                // Add CSS for badges
+                const style = document.createElement('style');
+                style.textContent = `
+                    .badge {
+                        display: inline-block;
+                        margin: 2px;
+                    }
+                `;
+                document.head.appendChild(style);
+
+            } catch (err) {
+                console.error('Error initializing page scripts', err);
+            }
         })();
     </script>
 </body>

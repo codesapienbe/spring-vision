@@ -23,7 +23,7 @@
         <module>one-million-challenge</module>
         <module>gwt-application</module>
         <module>vaadin-application</module>
-        <module>picocli-application</module>
+        <module>cli-application</module>
         <module>javafx-application</module>
     </modules>
 
