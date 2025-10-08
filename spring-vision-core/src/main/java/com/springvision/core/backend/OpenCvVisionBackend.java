@@ -2261,7 +2261,6 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     /**
      * Advanced face quality assessment for recognition accuracy.
      * Returns a score from 0.0 (poor) to 1.0 (excellent).
-     * Enhanced to better detect and filter false positives.
      */
     private double assessFaceQuality(Mat grayImage, Rect faceRect) {
         try {
@@ -2271,43 +2270,34 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             int w = Math.min(grayImage.cols() - x, faceRect.width());
             int h = Math.min(grayImage.rows() - y, faceRect.height());
 
-            if (w <= 0 || h <= 0 || w < 20 || h < 20) {
+            if (w <= 0 || h <= 0) {
                 return 0.0;
             }
 
             Mat faceRegion = new Mat(grayImage, new Rect(x, y, w, h));
 
-            // 1. Enhanced blur assessment with edge detection
-            double blurScore = computeEnhancedBlurScore(faceRegion);
+            // 1. Blur assessment (Laplacian variance)
+            double blurScore = computeBlurScore(faceRegion);
 
             // 2. Resolution assessment
             double resolutionScore = computeResolutionScore(w, h);
 
-            // 3. Enhanced illumination uniformity assessment
-            double illuminationScore = computeIlluminationUniformityScore(faceRegion);
+            // 3. Illumination assessment
+            double illuminationScore = computeIlluminationScore(faceRegion);
 
-            // 4. Improved pose assessment using facial feature detection
-            double poseScore = computeEnhancedPoseScore(faceRegion);
+            // 4. Pose assessment (frontal vs profile)
+            double poseScore = computePoseScore(faceRegion);
 
-            // 5. Enhanced aspect ratio and shape validation
-            double aspectScore = computeEnhancedAspectScore(w, h, faceRegion);
-
-            // 6. NEW: Texture analysis to detect skin-like patterns
-            double textureScore = computeTextureScore(faceRegion);
-
-            // 7. NEW: Contrast analysis for face-like features
-            double contrastScore = computeContrastScore(faceRegion);
+            // 5. Aspect ratio assessment (face shape validity)
+            double aspectScore = computeAspectScore(w, h);
 
             // Combine scores with weighted importance for recognition
-            // Increased weights for texture and contrast to better detect false positives
             double qualityScore =
-                0.25 * blurScore +          // Important for recognition
-                0.20 * resolutionScore +    // Critical for feature extraction
-                0.15 * illuminationScore +  // Important for consistency
-                0.15 * poseScore +          // Affects recognition accuracy
-                0.10 * aspectScore +        // Basic validity check
-                0.10 * textureScore +       // NEW: Detect skin-like texture
-                0.05 * contrastScore;       // NEW: Face-like contrast patterns
+                0.3 * blurScore +       // Most important for recognition
+                0.25 * resolutionScore + // Critical for feature extraction
+                0.2 * illuminationScore + // Important for consistency
+                0.15 * poseScore +      // Affects recognition accuracy
+                0.1 * aspectScore;      // Basic validity check
 
             faceRegion.releaseReference();
 
@@ -2316,6 +2306,42 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         } catch (Exception e) {
             logger.debug("Quality assessment failed: {}", e.getMessage());
             return 0.5; // Default moderate quality
+        }
+    }
+
+    /**
+     * Compute blur score using Laplacian variance.
+     */
+    private double computeBlurScore(Mat faceRegion) {
+        try {
+            Mat laplacian = new Mat();
+            org.bytedeco.opencv.global.opencv_imgproc.Laplacian(faceRegion, laplacian,
+                org.bytedeco.opencv.global.opencv_core.CV_64F);
+
+            Mat meanMat = new Mat();
+            Mat stddevMat = new Mat();
+            org.bytedeco.opencv.global.opencv_core.meanStdDev(laplacian, meanMat, stddevMat);
+
+            double variance = 0.0;
+            if (!stddevMat.empty()) {
+                java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
+                if (db != null && db.remaining() > 0) {
+                    double stddev = db.get(0);
+                    variance = stddev * stddev;
+                }
+            }
+
+            // Normalize variance to [0,1] - higher is less blurry
+            double blurScore = Math.min(1.0, variance / 500.0); // Threshold tuned for faces
+
+            laplacian.releaseReference();
+            meanMat.releaseReference();
+            stddevMat.releaseReference();
+
+            return blurScore;
+
+        } catch (Exception e) {
+            return 0.5;
         }
     }
 
@@ -2335,32 +2361,18 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     }
 
     /**
-     * Enhanced blur score using multiple edge detection techniques.
+     * Compute illumination score for even lighting.
      */
-    private double computeEnhancedBlurScore(Mat faceRegion) {
+    private double computeIlluminationScore(Mat faceRegion) {
         try {
-            // Use multiple kernels for better edge detection
-            Mat edges1 = new Mat();
-            Mat edges2 = new Mat();
+            double meanIntensity = org.bytedeco.opencv.global.opencv_core.mean(faceRegion).get(0);
 
-            // Sobel edge detection
-            org.bytedeco.opencv.global.opencv_imgproc.Sobel(faceRegion, edges1, org.bytedeco.opencv.global.opencv_core.CV_64F, 1, 0);
-            org.bytedeco.opencv.global.opencv_imgproc.Sobel(faceRegion, edges2, org.bytedeco.opencv.global.opencv_core.CV_64F, 0, 1);
+            // Optimal range: 80-180 (avoiding very dark or very bright)
+            double optimal = 128.0;
+            double deviation = Math.abs(meanIntensity - optimal) / optimal;
+            double illuminationScore = Math.max(0.0, 1.0 - deviation);
 
-            // Compute variance for both directions
-            double varianceX = computeVariance(edges1);
-            double varianceY = computeVariance(edges2);
-
-            // Combine variances
-            double combinedVariance = (varianceX + varianceY) / 2.0;
-
-            // Normalize to [0,1] - higher variance = less blurry
-            double blurScore = Math.min(1.0, combinedVariance / 800.0);
-
-            edges1.releaseReference();
-            edges2.releaseReference();
-
-            return blurScore;
+            return illuminationScore;
 
         } catch (Exception e) {
             return 0.5;
@@ -2368,165 +2380,31 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     }
 
     /**
-     * Compute variance of a matrix.
+     * Compute pose score (frontal faces score higher).
      */
-    private double computeVariance(Mat mat) {
-        try {
-            Mat meanMat = new Mat();
-            Mat stddevMat = new Mat();
-            org.bytedeco.opencv.global.opencv_core.meanStdDev(mat, meanMat, stddevMat);
-
-            double stddev = 0.0;
-            if (!stddevMat.empty()) {
-                java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
-                if (db != null && db.remaining() > 0) {
-                    stddev = db.get(0);
-                }
-            }
-
-            double variance = stddev * stddev;
-
-            meanMat.releaseReference();
-            stddevMat.releaseReference();
-
-            return variance;
-
-        } catch (Exception e) {
-            return 0.0;
-        }
-    }
-
-    /**
-     * Enhanced illumination uniformity assessment.
-     */
-    private double computeIlluminationUniformityScore(Mat faceRegion) {
-        try {
-            // Divide face into regions and check illumination consistency
-            int width = faceRegion.cols();
-            int height = faceRegion.rows();
-
-            // Create regions: forehead, eyes, nose, mouth, cheeks
-            int regions[][] = {
-                {0, 0, width, height/3},           // Top third (forehead)
-                {width/4, height/3, width/2, height/3}, // Middle (eyes/nose area)
-                {0, 2*height/3, width, height/3}   // Bottom third (mouth/chin)
-            };
-
-            double[] regionMeans = new double[regions.length];
-            double overallMean = org.bytedeco.opencv.global.opencv_core.mean(faceRegion).get(0);
-
-            for (int i = 0; i < regions.length; i++) {
-                int[] region = regions[i];
-                if (region[0] + region[2] > width || region[1] + region[3] > height) continue;
-
-                Mat regionMat = new Mat(faceRegion, new Rect(region[0], region[1], region[2], region[3]));
-                regionMeans[i] = org.bytedeco.opencv.global.opencv_core.mean(regionMat).get(0);
-                regionMat.releaseReference();
-            }
-
-            // Calculate standard deviation of region means
-            double sumSquares = 0.0;
-            int validRegions = 0;
-
-            for (double mean : regionMeans) {
-                if (mean > 0) {
-                    sumSquares += (mean - overallMean) * (mean - overallMean);
-                    validRegions++;
-                }
-            }
-
-            if (validRegions == 0) return 0.5;
-
-            double stddev = Math.sqrt(sumSquares / validRegions);
-            double cv = stddev / overallMean; // Coefficient of variation
-
-            // Lower coefficient of variation = more uniform illumination
-            double uniformityScore = Math.max(0.0, 1.0 - cv);
-
-            return uniformityScore;
-
-        } catch (Exception e) {
-            return 0.5;
-        }
-    }
-
-    /**
-     * Enhanced pose score using improved facial feature detection.
-     */
-    private double computeEnhancedPoseScore(Mat faceRegion) {
+    private double computePoseScore(Mat faceRegion) {
         try {
             int width = faceRegion.cols();
             int height = faceRegion.rows();
 
-            if (width < 30 || height < 30) return 0.5; // Too small for meaningful analysis
-
-            // Enhanced symmetry check for frontal pose using multiple regions
-            double symmetryScore = computeFacialSymmetryScore(faceRegion);
-
-            // Check for typical facial proportions (eyes in upper third, etc.)
-            double proportionScore = computeFacialProportionScore(faceRegion);
-
-            // Combine scores
-            double poseScore = 0.7 * symmetryScore + 0.3 * proportionScore;
-
-            return poseScore;
-
-        } catch (Exception e) {
-            return 0.5;
-        }
-    }
-
-    /**
-     * Compute facial symmetry score using multiple facial regions.
-     */
-    private double computeFacialSymmetryScore(Mat faceRegion) {
-        try {
-            int width = faceRegion.cols();
-            int height = faceRegion.rows();
-
-            // Create left and right halves
+            // Simple symmetry check for frontal pose
             Mat leftHalf = new Mat(faceRegion, new Rect(0, 0, width/2, height));
-            Mat rightHalf = new Mat(faceRegion, new Rect(width/2, 0, width - width/2, height));
+            Mat rightHalf = new Mat(faceRegion, new Rect(width/2, 0, width/2, height));
 
             // Flip right half for comparison
             Mat rightFlipped = new Mat();
             flip(rightHalf, rightFlipped, 1);
 
-            // Compare multiple regions for better accuracy
-            double totalCorrelation = 0.0;
-            int regions = 0;
-
-            // Compare overall regions
+            // Compare histograms using our custom vector implementations
             Mat leftHist = new Mat();
             Mat rightHist = new Mat();
 
+            // Use our custom histogram calculation function
             calculateHistogram(leftHalf, new Mat(), leftHist, new IntVector(256), new FloatVector(0, 256));
             calculateHistogram(rightFlipped, new Mat(), rightHist, new IntVector(256), new FloatVector(0, 256));
 
             double correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist,
                 org.bytedeco.opencv.global.opencv_imgproc.HISTCMP_CORREL);
-            totalCorrelation += correlation;
-            regions++;
-
-            leftHist.releaseReference();
-            rightHist.releaseReference();
-
-            // Compare upper region (forehead/eyes)
-            if (height > 40) {
-                Mat upperLeft = new Mat(leftHalf, new Rect(0, 0, width/2, height/2));
-                Mat upperRightFlipped = new Mat(rightFlipped, new Rect(0, 0, width/2, height/2));
-
-                calculateHistogram(upperLeft, new Mat(), leftHist, new IntVector(256), new FloatVector(0, 256));
-                calculateHistogram(upperRightFlipped, new Mat(), rightHist, new IntVector(256), new FloatVector(0, 256));
-
-                correlation = org.bytedeco.opencv.global.opencv_imgproc.compareHist(leftHist, rightHist,
-                    org.bytedeco.opencv.global.opencv_imgproc.HISTCMP_CORREL);
-                totalCorrelation += correlation;
-                regions++;
-
-                upperLeft.releaseReference();
-                upperRightFlipped.releaseReference();
-            }
 
             leftHalf.releaseReference();
             rightHalf.releaseReference();
@@ -2534,200 +2412,25 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             leftHist.releaseReference();
             rightHist.releaseReference();
 
-            // Average correlation score
-            double avgCorrelation = regions > 0 ? totalCorrelation / regions : 0.0;
-
-            // Convert correlation to score (higher correlation = more frontal)
-            double symmetryScore = Math.max(0.0, Math.min(1.0, (avgCorrelation + 1.0) / 2.0));
-
-            return symmetryScore;
+            return Math.max(0.0, Math.min(1.0, correlation));
 
         } catch (Exception e) {
-            return 0.5;
+            return 0.7; // Default good pose score
         }
     }
 
     /**
-     * Compute facial proportion score based on typical face structure.
+     * Compute aspect ratio score for face shape validity.
      */
-    private double computeFacialProportionScore(Mat faceRegion) {
-        try {
-            int width = faceRegion.cols();
-            int height = faceRegion.rows();
+    private double computeAspectScore(int width, int height) {
+        double aspectRatio = (double) width / height;
 
-            // Typical facial proportions:
-            // - Eyes should be in the upper 1/3
-            // - Nose/mouth in lower 2/3
-            // - Face should be roughly 1.2-1.6 times wider than tall for frontal view
-
-            double aspectRatio = (double) width / height;
-
-            // Ideal aspect ratio for frontal face
-            double idealAspectRatio = 1.3; // Slightly wider than tall
-            double aspectScore = 1.0 - Math.min(1.0, Math.abs(aspectRatio - idealAspectRatio) / 0.5);
-
-            // Check if proportions seem reasonable for a face
-            if (aspectRatio < 0.8 || aspectRatio > 2.0) {
-                aspectScore *= 0.5; // Penalize extreme aspect ratios
-            }
-
-            return Math.max(0.0, aspectScore);
-
-        } catch (Exception e) {
-            return 0.5;
-        }
+        // Typical face aspect ratios: 0.7 to 1.3
+        if (aspectRatio >= 0.7 && aspectRatio <= 1.3) return 1.0;
+        if (aspectRatio >= 0.6 && aspectRatio <= 1.5) return 0.8;
+        if (aspectRatio >= 0.5 && aspectRatio <= 1.8) return 0.5;
+        return 0.2;
     }
-
-    /**
-     * Enhanced aspect ratio and shape validation using edge analysis.
-     */
-    private double computeEnhancedAspectScore(int width, int height, Mat faceRegion) {
-        try {
-            double aspectRatio = (double) width / height;
-
-            // Optimal face aspect ratio range
-            double idealMin = 0.9;
-            double idealMax = 1.6;
-
-            double aspectScore;
-            if (aspectRatio >= idealMin && aspectRatio <= idealMax) {
-                aspectScore = 1.0;
-            } else if (aspectRatio < idealMin) {
-                aspectScore = Math.max(0.0, aspectRatio / idealMin);
-            } else {
-                aspectScore = Math.max(0.0, idealMax / aspectRatio);
-            }
-
-            // Additional shape validation using edge analysis
-            if (faceRegion.cols() > 30 && faceRegion.rows() > 30) {
-                Mat edges = new Mat();
-                org.bytedeco.opencv.global.opencv_imgproc.Canny(faceRegion, edges, 50, 150);
-
-                // Count edge pixels
-                int edgePixels = 0;
-                for (int y = 0; y < edges.rows(); y++) {
-                    for (int x = 0; x < edges.cols(); x++) {
-                        if (edges.ptr(y, x).get() > 0) {
-                            edgePixels++;
-                        }
-                    }
-                }
-
-                double edgeDensity = (double) edgePixels / (width * height);
-
-                // Faces typically have moderate edge density (0.1-0.4)
-                double densityScore = 1.0 - Math.abs(edgeDensity - 0.25) / 0.25;
-                densityScore = Math.max(0.0, Math.min(1.0, densityScore));
-
-                // Combine aspect ratio and edge density scores
-                aspectScore = 0.7 * aspectScore + 0.3 * densityScore;
-
-                edges.releaseReference();
-            }
-
-            return aspectScore;
-
-        } catch (Exception e) {
-            return 0.5;
-        }
-    }
-
-    /**
-     * Compute texture score to detect skin-like patterns vs. uniform/regular patterns.
-     */
-    private double computeTextureScore(Mat faceRegion) {
-        try {
-            // Use Local Binary Patterns or simple texture analysis
-            Mat grayRegion = new Mat();
-            if (faceRegion.channels() > 1) {
-                cvtColor(faceRegion, grayRegion, COLOR_BGR2GRAY);
-            } else {
-                grayRegion = faceRegion;
-            }
-
-            // Compute gradient magnitude
-            Mat gradX = new Mat();
-            Mat gradY = new Mat();
-            org.bytedeco.opencv.global.opencv_imgproc.Sobel(grayRegion, gradX, org.bytedeco.opencv.global.opencv_core.CV_32F, 1, 0);
-            org.bytedeco.opencv.global.opencv_imgproc.Sobel(grayRegion, gradY, org.bytedeco.opencv.global.opencv_core.CV_32F, 0, 1);
-
-            // Compute magnitude
-            Mat magnitude = new Mat();
-            org.bytedeco.opencv.global.opencv_core.magnitude(gradX, gradY, magnitude);
-
-            // Compute texture score based on gradient distribution
-            double meanMagnitude = org.bytedeco.opencv.global.opencv_core.mean(magnitude).get(0);
-
-            // Normalize texture score - moderate texture is good for faces
-            double textureScore = 1.0 - Math.abs(meanMagnitude - 15.0) / 15.0;
-            textureScore = Math.max(0.0, Math.min(1.0, textureScore));
-
-            gradX.releaseReference();
-            gradY.releaseReference();
-            magnitude.releaseReference();
-            if (grayRegion != faceRegion) {
-                grayRegion.releaseReference();
-            }
-
-            return textureScore;
-
-        } catch (Exception e) {
-            return 0.5;
-        }
-    }
-
-    /**
-     * Compute contrast score to detect face-like contrast patterns.
-     */
-    private double computeContrastScore(Mat faceRegion) {
-        try {
-            Mat grayRegion = new Mat();
-            if (faceRegion.channels() > 1) {
-                cvtColor(faceRegion, grayRegion, COLOR_BGR2GRAY);
-            } else {
-                grayRegion = faceRegion;
-            }
-
-            // Compute local contrast using adaptive thresholding
-            Mat binary = new Mat();
-            org.bytedeco.opencv.global.opencv_imgproc.adaptiveThreshold(
-                grayRegion, binary, 255,
-                org.bytedeco.opencv.global.opencv_imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
-                org.bytedeco.opencv.global.opencv_imgproc.THRESH_BINARY, 11, 2);
-
-            // Count contrast transitions
-            int transitions = 0;
-            for (int y = 1; y < binary.rows(); y++) {
-                for (int x = 1; x < binary.cols(); x++) {
-                    byte current = binary.ptr(y, x).get();
-                    byte above = binary.ptr(y-1, x).get();
-                    byte left = binary.ptr(y, x-1).get();
-
-                    if (current != above || current != left) {
-                        transitions++;
-                    }
-                }
-            }
-
-            double totalPixels = binary.rows() * binary.cols();
-            double contrastRatio = (double) transitions / totalPixels;
-
-            // Faces typically have moderate contrast (0.3-0.7 range)
-            double contrastScore = 1.0 - Math.abs(contrastRatio - 0.5) / 0.5;
-            contrastScore = Math.max(0.0, Math.min(1.0, contrastScore));
-
-            binary.releaseReference();
-            if (grayRegion != faceRegion) {
-                grayRegion.releaseReference();
-            }
-
-            return contrastScore;
-
-        } catch (Exception e) {
-            return 0.5;
-        }
-    }
-
 
     /**
      * Fuse detection candidates using consensus voting and quality ranking.
@@ -2746,7 +2449,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         for (List<CandidateDetection> group : groups) {
             CandidateDetection bestCandidate = selectBestCandidate(group);
 
-            if (bestCandidate != null && bestCandidate.qualityScore > 0.5) { // Increased quality threshold to reduce false positives
+            if (bestCandidate != null && bestCandidate.qualityScore > 0.3) { // Quality threshold
                 BoundingBox bbox = clampAndCreateBox(
                     (double) bestCandidate.rect.x() / image.cols(),
                     (double) bestCandidate.rect.y() / image.rows(),
@@ -2760,14 +2463,9 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
                     attributes.put("consensus_votes", group.size());
                     attributes.put("primary_detector", bestCandidate.detector);
 
-                    // Combine confidence with quality for final score - weighted towards quality to reduce false positives
-                    double finalConfidence = (bestCandidate.confidence * 0.3) + (bestCandidate.qualityScore * 0.7);
+                    // Combine confidence with quality for final score and clamp to [0,1]
+                    double finalConfidence = (bestCandidate.confidence + bestCandidate.qualityScore) / 2.0;
                     finalConfidence = clamp01(finalConfidence);
-
-                    // Additional validation: if quality is very low, significantly reduce confidence
-                    if (bestCandidate.qualityScore < 0.4) {
-                        finalConfidence *= 0.5;
-                    }
 
                     finalDetections.add(new Detection(
                         DetectionType.FACE.getCode(),
@@ -2779,10 +2477,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             }
         }
 
-        // 3. Apply post-processing validation to filter false positives
-        finalDetections = postProcessValidation(image, finalDetections);
-
-        // 4. Sort by confidence and limit results
+        // 3. Sort by confidence and limit results
         finalDetections.sort((a, b) -> Double.compare(b.confidence(), a.confidence()));
 
         return finalDetections;
@@ -2806,7 +2501,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             for (int j = i + 1; j < candidates.size(); j++) {
                 if (assigned[j]) continue;
 
-                if (calculateIoU(candidates.get(i).rect, candidates.get(j).rect) > 0.7) { // Stricter IoU threshold to avoid merging unrelated detections
+                if (calculateIoU(candidates.get(i).rect, candidates.get(j).rect) > 0.5) {
                     group.add(candidates.get(j));
                     assigned[j] = true;
                 }
@@ -2858,164 +2553,6 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         }
 
         return best;
-    }
-
-    /**
-     * Post-processing validation to filter out common false positive patterns.
-     */
-    private List<Detection> postProcessValidation(Mat image, List<Detection> detections) {
-        if (detections.isEmpty()) {
-            return detections;
-        }
-
-        List<Detection> validatedDetections = new ArrayList<>();
-        int imageWidth = image.cols();
-        int imageHeight = image.rows();
-
-        for (Detection detection : detections) {
-            BoundingBox bbox = detection.boundingBox();
-
-            // 1. Size validation - filter extremely small or large detections
-            double area = bbox.width() * bbox.height();
-            double imageArea = (double) imageWidth * imageHeight;
-
-            if (area < 0.001 * imageArea) { // Too small (< 0.1% of image)
-                logger.debug("Filtered detection due to small size: area={}, threshold={}", area, 0.001 * imageArea);
-                continue;
-            }
-
-            if (area > 0.8 * imageArea) { // Too large (> 80% of image)
-                logger.debug("Filtered detection due to large size: area={}, threshold={}", area, 0.8 * imageArea);
-                continue;
-            }
-
-            // 2. Position validation - avoid edge cases and unlikely face positions
-            if (isUnlikelyFacePosition(bbox, imageWidth, imageHeight)) {
-                logger.debug("Filtered detection due to unlikely position");
-                continue;
-            }
-
-            // 3. Aspect ratio validation - faces should have reasonable proportions
-            double aspectRatio = bbox.width() / bbox.height();
-            if (aspectRatio < 0.5 || aspectRatio > 3.0) { // Too skinny or too wide
-                logger.debug("Filtered detection due to extreme aspect ratio: {}", aspectRatio);
-                continue;
-            }
-
-            // 4. Context validation - check if detection overlaps with other validated faces too much
-            boolean overlapsWithValidated = validatedDetections.stream()
-                .anyMatch(validated -> calculateIoU(bbox, validated.boundingBox()) > 0.8);
-
-            if (overlapsWithValidated) {
-                logger.debug("Filtered detection due to excessive overlap with existing detection");
-                continue;
-            }
-
-            // 5. Confidence boost for central, well-sized detections
-            double positionBonus = calculatePositionBonus(bbox, imageWidth, imageHeight);
-
-            // If detection passes all validations, add it (potentially with confidence adjustment)
-            double adjustedConfidence = detection.confidence();
-            if (positionBonus > 0.1) {
-                adjustedConfidence = Math.min(1.0, adjustedConfidence + positionBonus * 0.1);
-            }
-
-            Detection adjustedDetection = new Detection(
-                detection.label(),
-                adjustedConfidence,
-                detection.boundingBox(),
-                detection.attributes()
-            );
-
-            validatedDetections.add(adjustedDetection);
-        }
-
-        logger.debug("Post-processing validation: {} detections passed out of {}",
-                    validatedDetections.size(), detections.size());
-
-        return validatedDetections;
-    }
-
-    /**
-     * Check if a bounding box is in an unlikely position for a face.
-     */
-    private boolean isUnlikelyFacePosition(BoundingBox bbox, int imageWidth, int imageHeight) {
-        double centerX = bbox.x() + bbox.width() / 2.0;
-        double centerY = bbox.y() + bbox.height() / 2.0;
-
-        // Avoid extreme edges (within 5% of image boundaries)
-        double edgeMargin = 0.05;
-        if (centerX < edgeMargin || centerX > 1.0 - edgeMargin ||
-            centerY < edgeMargin || centerY > 1.0 - edgeMargin) {
-            return true;
-        }
-
-        // Avoid very top or very bottom of image (faces rarely there)
-        if (centerY < 0.1 || centerY > 0.9) {
-            return true;
-        }
-
-        // Avoid very left or very right edges (faces rarely there unless group photo)
-        if (centerX < 0.1 || centerX > 0.9) {
-            // Allow if it's a reasonably sized detection (might be a side face in group photo)
-            if (bbox.width() > 0.15 && bbox.height() > 0.15) {
-                return false;
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Calculate position bonus for central, well-positioned detections.
-     */
-    private double calculatePositionBonus(BoundingBox bbox, int imageWidth, int imageHeight) {
-        double centerX = bbox.x() + bbox.width() / 2.0;
-        double centerY = bbox.y() + bbox.height() / 2.0;
-
-        // Central positions get bonus (faces are usually centered)
-        double centerXBonus = 1.0 - Math.abs(centerX - 0.5) / 0.5;
-        double centerYBonus = 1.0 - Math.abs(centerY - 0.5) / 0.5;
-
-        // Combine bonuses (geometric mean)
-        double positionBonus = Math.sqrt(centerXBonus * centerYBonus);
-
-        // Size appropriateness bonus
-        double area = bbox.width() * bbox.height();
-        double imageArea = (double) imageWidth * imageHeight;
-        double relativeArea = area / imageArea;
-
-        // Optimal face size: 2-10% of image area
-        double sizeBonus;
-        if (relativeArea >= 0.02 && relativeArea <= 0.1) {
-            sizeBonus = 1.0;
-        } else if (relativeArea >= 0.01 && relativeArea <= 0.15) {
-            sizeBonus = 0.7;
-        } else {
-            sizeBonus = 0.3;
-        }
-
-        return Math.min(1.0, positionBonus * 0.6 + sizeBonus * 0.4);
-    }
-
-    /**
-     * Calculate Intersection over Union (IoU) between two BoundingBox objects.
-     */
-    private double calculateIoU(BoundingBox box1, BoundingBox box2) {
-        double x1 = Math.max(box1.x(), box2.x());
-        double y1 = Math.max(box1.y(), box2.y());
-        double x2 = Math.min(box1.x() + box1.width(), box2.x() + box2.width());
-        double y2 = Math.min(box1.y() + box1.height(), box2.y() + box2.height());
-
-        if (x2 <= x1 || y2 <= y1) return 0.0;
-
-        double intersection = (x2 - x1) * (y2 - y1);
-        double area1 = box1.width() * box1.height();
-        double area2 = box2.width() * box2.height();
-        double union = area1 + area2 - intersection;
-
-        return union > 0 ? intersection / union : 0.0;
     }
 
     /**
