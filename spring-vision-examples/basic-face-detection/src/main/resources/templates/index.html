@@ -301,7 +301,7 @@
         <!-- Quick Start Section -->
         <div class="card upload-section">
             <h2>🚀 Quick Start - Face Detection</h2>
-            <form id="uploadForm" th:action="@{/detect}" method="post" enctype="multipart/form-data">
+            <form id="uploadForm" action="/detect" method="post" enctype="multipart/form-data">
                 <div class="upload-form">
                     <div class="file-input-group">
                         <input type="file" id="file" name="file" accept="image/*" class="file-input">
@@ -314,7 +314,7 @@
             <div class="or-divider">
                 <span>or</span>
             </div>
-            <form id="urlForm" th:action="@{/detect/url}" method="post">
+            <form id="urlForm" action="/detect/url" method="post">
                 <input class="url-input" type="url" name="imageUrl" placeholder="https://example.com/image.jpg" required>
                 <button type="submit" class="submit-btn" style="margin-top: 15px;">🌐 Detect from URL</button>
             </form>
@@ -324,16 +324,16 @@
         <div class="card">
             <h2>🔧 Advanced Detection Types</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <form id="objectForm" th:action="@{/detect/objects}" method="post" enctype="multipart/form-data" style="display: inline;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                <form id="objectForm" action="/api/vision/detect/objects" method="post" enctype="multipart/form-data" style="display: inline;">
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectFileForForm('objectForm')" style="width: 100%;">📦 Object Detection</button>
                 </form>
-                <form id="barcodeForm" th:action="@{/detect/barcodes}" method="post" enctype="multipart/form-data" style="display: inline;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                <form id="barcodeForm" action="/api/vision/detect/barcodes" method="post" enctype="multipart/form-data" style="display: inline;">
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectFileForForm('barcodeForm')" style="width: 100%;">📱 Barcode/QR Detection</button>
                 </form>
-                <form id="textForm" th:action="@{/detect/text}" method="post" enctype="multipart/form-data" style="display: inline;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                <form id="textForm" action="/api/vision/detect/text" method="post" enctype="multipart/form-data" style="display: inline;">
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectFileForForm('textForm')" style="width: 100%;">📝 Text Recognition</button>
                 </form>
             </div>
@@ -342,9 +342,9 @@
         <!-- Batch Processing Section -->
         <div class="card">
             <h2>📦 Batch Processing</h2>
-            <form id="batchForm" th:action="@{/batch/faces}" method="post" enctype="multipart/form-data">
+            <form id="batchForm" action="/api/vision/batch/faces" method="post" enctype="multipart/form-data">
                 <div style="margin-bottom: 20px;">
-                    <input type="file" id="batchFiles" name="files" accept="image/*" multiple style="display: none;" onchange="updateBatchFileCount()">
+                    <input type="file" id="batchFiles" name="files" accept="image/*" multiple style="display: none;" onchange="submitBatchForm()">
                     <button type="button" class="submit-btn" onclick="document.getElementById('batchFiles').click()">📁 Select Multiple Files</button>
                     <div id="batchFileCount" style="margin-top: 10px; color: #666;">No files selected</div>
                 </div>
@@ -355,8 +355,8 @@
                 <span>Batch Detection Types</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
-                <form th:each="type : ${T(com.springvision.core.DetectionType).values()}" th:action="@{/batch/{type}(type=${type.code})}" method="post" enctype="multipart/form-data" style="display: inline;">
-                    <input type="file" name="files" accept="image/*" multiple style="display: none;" onchange="this.form.submit()">
+                <form th:each="type : ${T(com.springvision.core.DetectionType).values()}" th:action="'/api/vision/batch/' + ${type.code}" method="post" enctype="multipart/form-data" style="display: inline;">
+                    <input type="file" name="files" accept="image/*" multiple style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectMultipleFilesForForm(this.form)" style="width: 100%; font-size: 12px;" th:text="'📦 ' + ${type.displayName}">Detection Type</button>
                 </form>
             </div>
@@ -367,8 +367,8 @@
             <h2>⚡ Asynchronous Processing</h2>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div th:each="type : ${T(com.springvision.core.DetectionType).values()}">
-                    <form th:id="'asyncForm' + ${type.code}" th:action="@{/tasks/{type}(type=${type.code})}" method="post" enctype="multipart/form-data" style="display: inline;">
-                        <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                    <form th:id="'asyncForm' + ${type.code}" th:action="'/api/vision/tasks/detect/' + ${type.code}" method="post" enctype="multipart/form-data" style="display: inline;">
+                        <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                         <button type="button" class="submit-btn" onclick="selectFileForForm('asyncForm' + ${type.code})" style="width: 100%;"
                                 th:text="'⚡ ' + ${type.displayName}">Async Detection</button>
                     </form>
@@ -388,7 +388,7 @@
         <!-- Advanced Annotation Section -->
         <div class="card">
             <h2>🎨 Advanced Annotations</h2>
-            <form id="annotationForm" th:action="@{/annotate}" method="post" enctype="multipart/form-data">
+            <form id="annotationForm" action="/api/vision/annotate" method="post" enctype="multipart/form-data">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600;">Action:</label>
@@ -420,7 +420,7 @@
                     </div>
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectFileForForm('annotationForm')">🎨 Apply Annotation</button>
                 </div>
             </form>
@@ -429,7 +429,7 @@
         <!-- Detection Query Section -->
         <div class="card">
             <h2>🎯 Advanced Detection Query</h2>
-            <form id="queryForm" th:action="@{/detect/query}" method="post" enctype="multipart/form-data">
+            <form id="queryForm" action="/api/vision/detect/query" method="post" enctype="multipart/form-data">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <div>
                         <label style="display: block; margin-bottom: 5px; font-weight: 600;">Detection Type:</label>
@@ -447,7 +447,7 @@
                     </div>
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
                     <button type="button" class="submit-btn" onclick="selectFileForForm('queryForm')">🎯 Detect with Query</button>
                 </div>
             </form>
@@ -456,19 +456,20 @@
         <!-- Multiple Detection Types Section -->
         <div class="card">
             <h2>🔄 Multiple Detection Types</h2>
-            <form id="multipleForm" th:action="@{/detect/multiple}" method="post" enctype="multipart/form-data">
+            <form id="multipleForm" action="/api/vision/detect/multiple" method="post" enctype="multipart/form-data">
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 10px; font-weight: 600;">Select Detection Types:</label>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
                         <label th:each="type : ${T(com.springvision.core.DetectionType).values()}" style="display: flex; align-items: center; gap: 5px;">
-                            <input type="checkbox" th:value="${type.code}" th:id="'type_' + ${type.code}" name="detectionTypes">
+                            <input type="checkbox" th:value="${type.code}" th:id="'type_' + ${type.code}" class="detectionTypeCheckbox">
                             <span th:text="${type.displayName}">Type</span>
                         </label>
                     </div>
                 </div>
                 <div style="margin-bottom: 20px;">
-                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
-                    <button type="button" class="submit-btn" onclick="selectFileForForm('multipleForm')">🔄 Detect Multiple Types</button>
+                    <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitMultipleForm()">
+                    <input type="hidden" name="detectionTypes" id="detectionTypesHidden">
+                    <button type="button" class="submit-btn" onclick="prepareAndSubmitMultipleForm()">🔄 Detect Multiple Types</button>
                 </div>
             </form>
         </div>
@@ -608,6 +609,52 @@
             window.selectMultipleFilesForForm = function(form) {
                 const fileInput = form.querySelector('input[type="file"]');
                 fileInput.click();
+            };
+
+            // Enhanced form submission handling
+            document.querySelectorAll('form').forEach(form => {
+                if (form.id !== 'uploadForm' && form.id !== 'urlForm') {
+                    form.addEventListener('submit', function(e) {
+                        const button = this.querySelector('.submit-btn');
+                        if (button) {
+                            button.disabled = true;
+                            button.textContent = '🔄 Processing...';
+                        }
+                    });
+                }
+            });
+
+            // Special handling for multiple detection types form
+            window.prepareAndSubmitMultipleForm = function() {
+                const checkboxes = document.querySelectorAll('.detectionTypeCheckbox:checked');
+                if (checkboxes.length === 0) {
+                    alert('Please select at least one detection type');
+                    return;
+                }
+
+                const types = Array.from(checkboxes).map(cb => cb.value);
+                document.getElementById('detectionTypesHidden').value = types.join(',');
+
+                // Trigger file selection
+                const fileInput = document.querySelector('#multipleForm input[type="file"]');
+                fileInput.click();
+            };
+
+            window.submitMultipleForm = function() {
+                const multipleForm = document.getElementById('multipleForm');
+                const button = multipleForm.querySelector('.submit-btn');
+                button.disabled = true;
+                button.textContent = '🔄 Processing...';
+                multipleForm.submit();
+            };
+
+            window.submitFormWithFile = function(form) {
+                const button = form.querySelector('.submit-btn');
+                if (button) {
+                    button.disabled = true;
+                    button.textContent = '🔄 Processing...';
+                }
+                form.submit();
             };
 
             // Check task status

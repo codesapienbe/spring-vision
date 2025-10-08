@@ -727,6 +727,24 @@ public class FaceDetectionController {
         }
     }
 
+    // Basic Detection Endpoints
+    @PostMapping(value = "/api/vision/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseBody
+    public ResponseEntity<java.util.Map<String,Object>> detectFacesApi(@RequestParam("file") MultipartFile file) {
+        try {
+            ImageData imageData = ImageData.fromBytes(file.getBytes());
+            VisionResult result = visionTemplate.detectFaces(imageData);
+            return ResponseEntity.ok(java.util.Map.of(
+                "detectionType", "face",
+                "detections", result.detections(),
+                "count", result.detectionCount(),
+                "avgConfidence", result.averageConfidence()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
     // Object Detection Endpoints
     @PostMapping(value = "/api/vision/detect/objects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody

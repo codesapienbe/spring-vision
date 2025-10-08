@@ -1,8 +1,6 @@
 package com.springvision.core.benchmark;
 
 import com.springvision.core.*;
-import com.springvision.core.backend.OpenCvVisionBackend;
-import com.springvision.core.logging.VisionLogger;
 import com.springvision.core.metrics.VisionMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
