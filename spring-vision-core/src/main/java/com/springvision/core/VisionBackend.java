@@ -105,58 +105,17 @@ public interface VisionBackend {
     BackendHealthInfo getHealthInfo();
 
     /** Performs face detection on the provided image data. */
-    List<Detection> detectFaces(ImageData imageData);
+    default List<Detection> detectFaces(ImageData imageData) {
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Face detection is not supported by backend '%s'", getBackendId()),
+            "detectFaces", null);
+    }
 
     /** Performs object detection on the provided image data. */
-    List<Detection> detectObjects(ImageData imageData);
-
-    /**
-     * Performs a generic detection operation based on the specified detection type.
-     *
-     * <p>Default implementation routes via capability interfaces when available.
-     * Implementations may override for backend-specific routing.</p>
-     */
-    default List<Detection> detect(ImageData imageData, DetectionType detectionType) {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
-        }
-        if (detectionType == null) {
-            throw new IllegalArgumentException("Detection type must not be null");
-        }
-        if (!supportsDetectionType(detectionType)) {
-            throw new IllegalArgumentException(
-                String.format("Detection type '%s' is not supported by backend '%s'",
-                    detectionType.getDisplayName(), getBackendId()));
-        }
-
-        switch (detectionType) {
-            case FACE -> {
-                return detectFaces(imageData);
-            }
-            case OBJECT -> {
-                return detectObjects(imageData);
-            }
-            case TEXT -> {
-                return detectText(imageData);
-            }
-            case BARCODE -> {
-                return detectBarcodes(imageData);
-            }
-            case LANDMARK -> {
-                return detectLandmarks(imageData);
-            }
-            case POSE -> {
-                return detectPoses(imageData);
-            }
-            case HAND -> {
-                return detectHands(imageData);
-            }
-            case CUSTOM -> {
-                return detectCustom(imageData);
-            }
-            default -> throw new com.springvision.core.exception.VisionUnsupportedException(
-                "Unsupported detection type: " + detectionType, "detect", detectionType == null ? null : detectionType.name());
-        }
+    default List<Detection> detectObjects(ImageData imageData) {
+        throw new com.springvision.core.exception.VisionUnsupportedException(
+            String.format("Object detection is not supported by backend '%s'", getBackendId()),
+            "detectObjects", null);
     }
 
     /** Performs text recognition (OCR) on the provided image data. */
@@ -255,5 +214,54 @@ public interface VisionBackend {
      */
     default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         return com.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
+    }
+
+    /**
+     * Performs a generic detection operation based on the specified detection type.
+     *
+     * <p>Default implementation routes via capability interfaces when available.
+     * Implementations may override for backend-specific routing.</p>
+     */
+    default List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+        if (imageData == null) {
+            throw new IllegalArgumentException("Image data must not be null");
+        }
+        if (detectionType == null) {
+            throw new IllegalArgumentException("Detection type must not be null");
+        }
+        if (!supportsDetectionType(detectionType)) {
+            throw new IllegalArgumentException(
+                String.format("Detection type '%s' is not supported by backend '%s'",
+                    detectionType.getDisplayName(), getBackendId()));
+        }
+
+        switch (detectionType) {
+            case FACE -> {
+                return detectFaces(imageData);
+            }
+            case OBJECT -> {
+                return detectObjects(imageData);
+            }
+            case TEXT -> {
+                return detectText(imageData);
+            }
+            case BARCODE -> {
+                return detectBarcodes(imageData);
+            }
+            case LANDMARK -> {
+                return detectLandmarks(imageData);
+            }
+            case POSE -> {
+                return detectPoses(imageData);
+            }
+            case HAND -> {
+                return detectHands(imageData);
+            }
+            case CUSTOM -> {
+                return detectCustom(imageData);
+            }
+            default -> throw new com.springvision.core.exception.VisionUnsupportedException(
+                "Unsupported detection type: " + detectionType, "detect", detectionType == null ? null : detectionType.name());
+        }
     }
 }

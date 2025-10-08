@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'spring-vision-basic'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/actuator/prometheus'
+package com.springvision.deepface;
+  - job_name: 'spring-vision-challenge'
+    static_configs:
+      - targets: ['localhost:8081']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'spring-vision-vaadin'
+    static_configs:
+      - targets: ['localhost:8082']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'spring-vision-gwt'
+    static_configs:
+      - targets: ['localhost:8083']
+    metrics_path: '/actuator/prometheus'
+
+import com.springvision.core.DetectionType;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class DeepFaceBackendTest {
+
+    @Test
+    void testBackendId() {
+        DeepFaceBackend backend = new DeepFaceBackend();
+        assertEquals("deepface", backend.getBackendId());
+    }
+
+    @Test
+    void testDisplayName() {
+        DeepFaceBackend backend = new DeepFaceBackend();
+        assertEquals("DeepFace Backend", backend.getDisplayName());
+    }
+
+    @Test
+    void testSupportedDetectionTypes() {
+        DeepFaceBackend backend = new DeepFaceBackend();
+        assertTrue(backend.getSupportedDetectionTypes().contains(DetectionType.FACE));
+    }
+
+    @Test
+    void testIsHealthy() {
+        DeepFaceBackend backend = new DeepFaceBackend();
+        assertTrue(backend.isHealthy()); // Placeholder
+    }
+}

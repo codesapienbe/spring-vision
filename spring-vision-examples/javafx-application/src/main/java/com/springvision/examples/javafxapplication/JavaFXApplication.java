@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -29,9 +28,6 @@ import com.springvision.core.ImageData;
 import com.springvision.core.VisionBackend;
 import com.springvision.core.VisionResult;
 import com.springvision.core.VisionTemplate;
-import com.springvision.backend.compreface.CompreFaceVisionBackend;
-import com.springvision.backend.deepface.DeepFaceVisionBackend;
-import com.springvision.backend.facebytes.FaceBytesVisionBackend;
 import com.springvision.core.backend.OpenCvVisionBackend;
 import com.springvision.core.exception.VisionProcessingException;
 
@@ -79,16 +75,6 @@ import javafx.stage.Stage;
 public class JavaFXApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(JavaFXApplication.class);
-
-    /**
-     * Main entry point for the JavaFX application.
-     *
-     * @param args command line arguments
-     */
-    public static void main(String[] args) {
-        logger.info("Starting Spring Vision JavaFX Application");
-        SpringApplication.run(JavaFXApplication.class, args);
-    }
 
     /**
      * JavaFX Application class that handles the GUI.
@@ -208,10 +194,15 @@ public class JavaFXApplication {
             clearButton.setStyle("-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-weight: bold;");
             clearButton.setOnAction(e -> clearResults());
 
-            // Backend selector
+            // Backend selector - only show backends available on the classpath
             backendComboBox = new ComboBox<>();
-            backendComboBox.getItems().addAll("opencv", "facebytes", "deepface", "compreface");
-            String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : "opencv";
+            java.util.List<String> backendOptions = new java.util.ArrayList<>();
+            backendOptions.add("opencv");
+            if (classExists("com.springvision.backend.facebytes.FaceBytesVisionBackend")) backendOptions.add("facebytes");
+            if (classExists("com.springvision.backend.deepface.DeepFaceVisionBackend")) backendOptions.add("deepface");
+            if (classExists("com.springvision.backend.compreface.CompreFaceVisionBackend")) backendOptions.add("compreface");
+            backendComboBox.getItems().addAll(backendOptions);
+            String currentBackend = visionTemplate != null ? visionTemplate.getBackendId() : backendOptions.get(0);
             backendComboBox.getSelectionModel().select(currentBackend);
             backendComboBox.setOnAction(e -> onBackendChanged());
 
@@ -236,48 +227,91 @@ public class JavaFXApplication {
         }
 
         private void switchBackend(String backendId) throws Exception {
-            logger.info("Switching vision backend", Map.of("component", "JavaFXApplication", "backendId", backendId));
+            logger.info("Switching vision backend: {}", Map.of("component", "JavaFXApplication", "backendId", backendId));
 
             VisionBackend backend;
             switch (backendId) {
                 case "facebytes": {
-                    FaceBytesVisionBackend fb = new FaceBytesVisionBackend();
-                    logger.info("FaceBytes backend initialized successfully", Map.of("component", "JavaFXApplication"));
-                    backend = fb;
+                    try {
+                        Class<?> cls = Class.forName("com.springvision.backend.facebytes.FaceBytesVisionBackend");
+                        Object inst = cls.getDeclaredConstructor().newInstance();
+                        logger.info("FaceBytes backend initialized successfully: {}", Map.of("component", "JavaFXApplication"));
+                        backend = (VisionBackend) inst;
+                    } catch (ClassNotFoundException cnf) {
+                        throw new Exception("FaceBytes backend not available on classpath. Add spring-vision-facebytes module.", cnf);
+                    }
                     break;
                 }
 
-                case "opencv":
-                default: {
+                case "opencv": {
                     OpenCvVisionBackend ocv = new OpenCvVisionBackend();
                     ocv.initialize();
-                    logger.info("OpenCV backend initialized successfully", Map.of("component", "JavaFXApplication"));
+                    logger.info("OpenCV backend initialized successfully: {}", Map.of("component", "JavaFXApplication"));
                     backend = ocv;
                     break;
                 }
                 case "deepface": {
-                    // Use DeepFace HTTP API
-                    DeepFaceVisionBackend deepFace = new DeepFaceVisionBackend("http://localhost:5000");
-                    deepFace.initialize();
-                    logger.info("DeepFace backend initialized successfully", Map.of("component", "JavaFXApplication"));
-                    backend = deepFace;
+                    // Use DeepFace HTTP API (optional module)
+                    try {
+                        Class<?> cls = Class.forName("com.springvision.backend.deepface.DeepFaceVisionBackend");
+                        Object inst = cls.getDeclaredConstructor(String.class).newInstance("http://localhost:5000");
+                        try {
+                            cls.getMethod("initialize").invoke(inst);
+                        } catch (NoSuchMethodException ignored) {
+                            // initialize method may not be present; ignore
+                        }
+                        logger.info("DeepFace backend initialized successfully: {}", Map.of("component", "JavaFXApplication"));
+                        backend = (VisionBackend) inst;
+                    } catch (ClassNotFoundException cnf) {
+                        throw new Exception("DeepFace backend not available on classpath. Add spring-vision-deepface module.", cnf);
+                    }
                     break;
                 }
                 case "compreface": {
-                    // Use CompreFace HTTP API
-                    CompreFaceVisionBackend compreFace = new CompreFaceVisionBackend("http://localhost:8000");
-                    compreFace.initialize();
-                    logger.info("CompreFace backend initialized successfully", Map.of("component", "JavaFXApplication"));
-                    backend = compreFace;
+                    // Use CompreFace HTTP API (optional module)
+                    try {
+                        Class<?> cls = Class.forName("com.springvision.backend.compreface.CompreFaceVisionBackend");
+                        Object inst = cls.getDeclaredConstructor(String.class).newInstance("http://localhost:8000");
+                        try {
+                            cls.getMethod("initialize").invoke(inst);
+                        } catch (NoSuchMethodException ignored) {
+                            // initialize method may not be present; ignore
+                        }
+                        logger.info("CompreFace backend initialized successfully: {}", Map.of("component", "JavaFXApplication"));
+                        backend = (VisionBackend) inst;
+                    } catch (ClassNotFoundException cnf) {
+                        throw new Exception("CompreFace backend not available on classpath. Add spring-vision-compreface module.", cnf);
+                    }
+                    break;
+                }
+                default: {
+                    // Fallback to OpenCV if nothing matched -- keep default last
+                    OpenCvVisionBackend ocv = new OpenCvVisionBackend();
+                    ocv.initialize();
+                    logger.info("Fallback to OpenCV backend initialized: {}", Map.of("component", "JavaFXApplication"));
+                    backend = ocv;
                     break;
                 }
             }
             this.visionTemplate = new VisionTemplate(backend);
-            logger.info("Vision template created with backend", Map.of(
+            logger.info("Vision template created with backend: {}", Map.of(
                 "component", "JavaFXApplication",
                 "backendId", backend.getBackendId(),
                 "backendName", backend.getDisplayName()
             ));
+        }
+
+        // Helper to check presence of optional backend classes on the classpath.
+        // Using Class.forName avoids compile-time coupling to optional modules.
+        private boolean classExists(String fqcn) {
+            if (fqcn == null || fqcn.isBlank()) return false;
+            try {
+                Class.forName(fqcn);
+                return true;
+            } catch (Throwable t) {
+                // Be defensive: ClassNotFoundException, NoClassDefFoundError, LinkageError, etc.
+                return false;
+            }
         }
 
         /**
@@ -774,18 +808,7 @@ public class JavaFXApplication {
             return new DisplayMetrics(displayedWidth, displayedHeight, offsetX, offsetY);
         }
 
-        private static final class DisplayMetrics {
-            final double displayedWidth;
-            final double displayedHeight;
-            final double offsetX;
-            final double offsetY;
-
-            DisplayMetrics(double displayedWidth, double displayedHeight, double offsetX, double offsetY) {
-                this.displayedWidth = displayedWidth;
-                this.displayedHeight = displayedHeight;
-                this.offsetX = offsetX;
-                this.offsetY = offsetY;
-            }
+        private record DisplayMetrics(double displayedWidth, double displayedHeight, double offsetX, double offsetY) {
         }
 
         /**

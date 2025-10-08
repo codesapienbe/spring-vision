@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.annotation.PreDestroy;
+
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacv.OpenCVFrameConverter;
 import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
@@ -46,6 +48,8 @@ import com.springvision.core.VisionTemplate;
 import com.springvision.core.exception.BaseVisionException;
 import com.springvision.core.exception.VisionBackendException;
 import com.springvision.core.exception.VisionProcessingException;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * OpenCV-based implementation of the VisionBackend interface.
@@ -72,6 +76,8 @@ import com.springvision.core.exception.VisionProcessingException;
  * @see VisionBackend
  * @see VisionTemplate
  */
+@Component
+@ConfigurationProperties(prefix = "spring.vision.opencv")
 public class OpenCvVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.ObjectDetectionCapability, com.springvision.core.capabilities.AnnotationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
@@ -113,7 +119,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
     private static final String DNN_CAFFE_PROTO_TXT_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt";
     private static final String DNN_CAFFE_MODEL_URL =
-        "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
+        "https://raw.githubusercontent.com/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
     private static final String DNN_CAFFE_MODEL_URL_ALT =
         "https://github.com/opencv/opencv_3rdparty/raw/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel";
 
@@ -166,9 +172,17 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
      * Values chosen conservatively for desktop usage while keeping good accuracy.
      */
     @SuppressWarnings("unused")
-    private static final long MAX_SAFE_PIXELS = 8_000_000L; // ~8 MP (e.g., 3264x2448)
-    @SuppressWarnings("unused")
     private static final int MAX_SAFE_DIMENSION = 4000;     // Cap either width or height to 4K
+
+    // Configuration properties
+    private boolean enabled = true;
+    private double confidenceThreshold = 0.8;
+    private int maxDetections = 10;
+    private boolean enableAutoDownload = true;
+    private int downloadTimeoutSeconds = 30;
+    private String modelPath = "~/.spring-vision/models/opencv";
+    private int maxPoolSize = 5;
+    private int poolTimeoutSeconds = 60;
 
     /**
      * Face detection cascade classifier.
@@ -1407,7 +1421,7 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
             int idxG = h * w;
             int idxR = 2 * h * w;
             for (int y = 0; y < h; y++) {
-                bp.position(y * stride);
+                bp.position((long) y * stride);
                 bp.get(rowBuf);
                 int p = 0;
                 for (int x = 0; x < w; x++) {
@@ -2841,6 +2855,114 @@ public class OpenCvVisionBackend implements VisionBackend, com.springvision.core
         } catch (Exception e) {
             logger.warn("Barcode detection failed: {}", e.getMessage());
             return List.of();
+        }
+    }
+
+    // Getters and setters for configuration properties
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public double getConfidenceThreshold() {
+        return confidenceThreshold;
+    }
+
+    public void setConfidenceThreshold(double confidenceThreshold) {
+        this.confidenceThreshold = confidenceThreshold;
+    }
+
+    public int getMaxDetections() {
+        return maxDetections;
+    }
+
+    public void setMaxDetections(int maxDetections) {
+        this.maxDetections = maxDetections;
+    }
+
+    public boolean isEnableAutoDownload() {
+        return enableAutoDownload;
+    }
+
+    public void setEnableAutoDownload(boolean enableAutoDownload) {
+        this.enableAutoDownload = enableAutoDownload;
+    }
+
+    public int getDownloadTimeoutSeconds() {
+        return downloadTimeoutSeconds;
+    }
+
+    public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
+        this.downloadTimeoutSeconds = downloadTimeoutSeconds;
+    }
+
+    public String getModelPath() {
+        return modelPath;
+    }
+
+    public void setModelPath(String modelPath) {
+        this.modelPath = modelPath;
+    }
+
+    public int getMaxPoolSize() {
+        return maxPoolSize;
+    }
+
+    public void setMaxPoolSize(int maxPoolSize) {
+        this.maxPoolSize = maxPoolSize;
+    }
+
+    public int getPoolTimeoutSeconds() {
+        return poolTimeoutSeconds;
+    }
+
+    public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
+        this.poolTimeoutSeconds = poolTimeoutSeconds;
+    }
+
+    /**
+     * Destroys resources and performs cleanup before shutdown.
+     */
+    @PreDestroy
+    public void cleanup() {
+        try {
+            logger.info("Cleaning up OpenCV backend resources");
+
+            // Release face cascade
+            if (faceCascade != null) {
+                faceCascade.close();
+                faceCascade = null;
+            }
+
+            // Release frame converter
+            if (frameConverter != null) {
+                frameConverter.close();
+                frameConverter = null;
+            }
+
+            // Release DNN resources
+            if (dnnFaceNet != null) {
+                dnnFaceNet = null;
+            }
+
+            // Release YuNet detector
+            if (yuNetDetector != null) {
+                yuNetDetector.close();
+                yuNetDetector = null;
+            }
+
+            // Release SFace recognizer
+            if (sFaceRecognizer != null) {
+                sFaceRecognizer = null;
+            }
+
+            logger.info("OpenCV backend resources cleaned up successfully");
+        } catch (Exception e) {
+            logger.warn("Error during OpenCV backend cleanup: {}", e.getMessage());
         }
     }
 }

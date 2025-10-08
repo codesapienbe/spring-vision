@@ -531,98 +531,38 @@ spring:
 
 ## REST API Endpoints
 
-When using `spring-vision-starter`, the following REST endpoints are automatically available:
+The Spring Vision example applications provide REST APIs for various computer vision tasks.
 
-### POST /api/vision/detect/faces
+### Basic Face Detection (Port 8080)
 
-Detect faces in uploaded image.
+- `POST /api/detect/faces` - Detect faces in uploaded image
+  - Request: `multipart/form-data` with `file` parameter
+  - Response: JSON array of detections with bounding boxes and confidence
 
-**Request:**
-- Method: `POST`
-- Content-Type: `multipart/form-data`
-- Parameters:
-  - `file` (required): Image file
-  - `minConfidence` (optional): Minimum confidence threshold (0.0-1.0)
+- `GET /api/health` - Health check endpoint
+  - Response: `{"status": "UP"}`
 
-**Response:**
-```json
-{
-  "message": "Success",
-  "detectionCount": 2,
-  "detections": [
-    {
-      "type": "FACE",
-      "category": "FACE", 
-      "boundingBox": {
-        "x": 0.25,
-        "y": 0.30,
-        "width": 0.15,
-        "height": 0.20
-      },
-      "confidence": 0.89,
-      "label": "Face",
-      "attributes": {
-        "category": "FACE"
-      }
-    }
-  ]
-}
-```
+### One Million Challenge (Port 8081)
 
-### POST /api/vision/detect/data
+- `POST /api/search` - Search for similar faces in the database
+  - Request: `multipart/form-data` with `file` parameter
+  - Response: JSON with top matches and similarity scores
 
-Detect faces in raw image data.
+- `POST /api/enroll` - Enroll a new face in the database
+  - Request: `multipart/form-data` with `file` and `name` parameters
+  - Response: Enrollment confirmation
 
-**Request:**
-- Method: `POST`
-- Content-Type: `application/octet-stream`
-- Body: Raw image bytes
-- Parameters:
-  - `minConfidence` (optional): Minimum confidence threshold
+### Vaadin Application (Port 8082)
 
-**Response:** Same as `/detect/faces`
+- Web UI for face detection and management
+- Endpoints: Standard Vaadin Flow endpoints
 
-### GET /api/vision/health
+### GWT Application (Port 8083)
 
-Get backend health information.
+- Web UI for computer vision tasks
+- Endpoints: Standard GWT RPC endpoints
 
-**Response:**
-```json
-{
-  "status": "UP",
-  "backend": "OpenCvVisionBackend",
-  "version": "1.0.0",
-  "supportedTypes": ["FACE", "OBJECT"],
-  "capabilities": ["EmbeddingCapability"],
-  "details": {
-    "cascadeLoaded": true,
-    "lastCheckTime": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-### GET /api/vision/backends
-
-List all available backends.
-
-**Response:**
-```json
-{
-  "activeBackend": "OpenCvVisionBackend",
-  "availableBackends": [
-    {
-      "name": "OpenCvVisionBackend",
-      "status": "UP",
-      "supportedTypes": ["FACE", "OBJECT"]
-    },
-    {
-      "name": "FaceBytesBackend", 
-      "status": "DOWN",
-      "supportedTypes": ["FACE"]
-    }
-  ]
-}
-```
+All endpoints return JSON responses and use standard HTTP status codes.
 
 ## Events and Metrics
 
@@ -853,4 +793,4 @@ public interface BarcodeCapability extends VisionBackend {
 
 ---
 
-This API reference provides comprehensive documentation for integrating and extending the Spring Vision framework. For additional examples and tutorials, see the [Getting Started Guide](GETTING_STARTED.md) and [Architecture Documentation](ARCHITECTURE.md). 
+This API reference provides comprehensive documentation for integrating and extending the Spring Vision framework. For additional examples and tutorials, see the [Getting Started Guide](GETTING_STARTED.md) and [Architecture Documentation](ARCHITECTURE.md).

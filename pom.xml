@@ -46,6 +46,7 @@
     <modules>
         <module>spring-vision-core</module>
         <module>spring-vision-starter</module>
+        <module>spring-vision-tesseract</module>
         <module>spring-vision-facebytes</module>
         <module>spring-vision-mediapipe</module>
         <module>spring-vision-insightface</module>
@@ -164,9 +165,9 @@
                     <version>${maven-surefire-plugin.version}</version>
                        <configuration>
                         <argLine>
-                            -Xmx2048m 
-                            -XX:+UseG1GC 
-                            -XX:+HeapDumpOnOutOfMemoryError 
+                            -Xmx2048m
+                            -XX:+UseG1GC
+                            -XX:+HeapDumpOnOutOfMemoryError
                             -XX:HeapDumpPath=target/heapdumps/
                         </argLine>
                         <forkCount>1</forkCount>
@@ -467,9 +468,9 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
 
-                            
+
+
                             <!-- Download dev queries groundtruth -->
                             <execution>
                                 <id>download-dev-groundtruth</id>
@@ -484,7 +485,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download test queries -->
                             <execution>
                                 <id>download-test-queries</id>
@@ -499,7 +500,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download test queries groundtruth -->
                             <execution>
                                 <id>download-test-groundtruth</id>
@@ -514,7 +515,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download attributions -->
                             <execution>
                                 <id>download-attributions</id>
@@ -528,7 +529,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download YFCC attributions -->
                             <execution>
                                 <id>download-yfcc-attributions</id>
@@ -542,7 +543,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_0.zip -->
                             <execution>
                                 <id>download-refs-50k-0</id>
@@ -556,7 +557,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_01.zip -->
                             <execution>
                                 <id>download-refs-50k-01</id>
@@ -570,7 +571,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_02.zip -->
                             <execution>
                                 <id>download-refs-50k-02</id>
@@ -584,7 +585,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_03.zip -->
                             <execution>
                                 <id>download-refs-50k-03</id>
@@ -598,7 +599,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_04.zip -->
                             <execution>
                                 <id>download-refs-50k-04</id>
@@ -612,7 +613,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_05.zip -->
                             <execution>
                                 <id>download-refs-50k-05</id>
@@ -626,7 +627,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_06.zip -->
                             <execution>
                                 <id>download-refs-50k-06</id>
@@ -640,7 +641,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_07.zip -->
                             <execution>
                                 <id>download-refs-50k-07</id>
@@ -654,7 +655,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_08.zip -->
                             <execution>
                                 <id>download-refs-50k-08</id>
@@ -668,13 +669,13 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_09.zip -->
                             <execution>
                                 <id>download-refs-50k-09</id>
                                 <phase>generate-resources</phase>
                                 <goals>
-                                    <goal>wget</goal>
+                                    <goal>download</goal>
                                 </goals>
                                 <configuration>
                                     <url>https://scontent.fbru2-1.fna.fbcdn.net/m1/v/t6/An_KPT-RcKgH7471Omw1P2EZO9YOFqu9Taee9VlzmTdzbbrR-ScnIRdSWPQ_n3K9ftHc8MQrI5dLmOvMAnuNj12_t9y6W9IZBqWud93asNw.zip?_nc_gid=KBGIBg_QuNEMBkuAS_j9ag&amp;_nc_oc=Adn7UVFdMkJ2jDxF8VICqV12MFJYcLUfygHoKdt8M_SZqpcBkR9iUcN53gr-N-D2ytFKwqc36AAQnh0zslVPJ7dB&amp;ccb=10-5&amp;oh=00_AfVcyRGF1tXAH9uyuYT-wlqiZisaetilPz59aQaSKyC7VQ&amp;oe=68D6242B&amp;_nc_sid=e9ffdc</url>
@@ -682,7 +683,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_10.zip -->
                             <execution>
                                 <id>download-refs-50k-10</id>
@@ -696,7 +697,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_11.zip -->
                             <execution>
                                 <id>download-refs-50k-11</id>
@@ -710,7 +711,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_12.zip -->
                             <execution>
                                 <id>download-refs-50k-12</id>
@@ -724,7 +725,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_13.zip -->
                             <execution>
                                 <id>download-refs-50k-13</id>
@@ -738,7 +739,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_14.zip -->
                             <execution>
                                 <id>download-refs-50k-14</id>
@@ -752,7 +753,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_15.zip -->
                             <execution>
                                 <id>download-refs-50k-15</id>
@@ -766,7 +767,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_16.zip -->
                             <execution>
                                 <id>download-refs-50k-16</id>
@@ -780,7 +781,7 @@
                                     <outputDirectory>${project.basedir}/dataset</outputDirectory>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_17.zip -->
                             <execution>
                                 <id>download-refs-50k-17</id>
@@ -795,7 +796,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_18.zip -->
                             <execution>
                                 <id>download-refs-50k-18</id>
@@ -810,7 +811,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download refs_50k_19.zip -->
                             <execution>
                                 <id>download-refs-50k-19</id>
@@ -825,7 +826,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download train_50k_0.zip -->
                             <execution>
                                 <id>download-train-50k-0</id>
@@ -840,7 +841,7 @@
                                     <skipIfExists>true</skipIfExists>
                                 </configuration>
                             </execution>
-                            
+
                             <!-- Download train_50k_1.zip -->
                             <execution>
                                 <id>download-train-50k-1</id>
@@ -857,7 +858,7 @@
                             </execution>
                         </executions>
                     </plugin>
-                    
+
                     <!-- Maven Antrun Plugin for extracting zip files -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -875,12 +876,12 @@
                                     <target>
                                         <!-- Create face_dataset directory if it doesn't exist -->
                                         <mkdir dir="${project.basedir}/dataset/face_dataset"/>
-                                        
+
                                         <!-- Extract all zip files -->
                                         <unzip dest="${project.basedir}/dataset/face_dataset" overwrite="false">
                                             <fileset dir="${project.basedir}/dataset" includes="*.zip"/>
                                         </unzip>
-                                        
+
                                         <!-- Log extraction completion -->
                                         <echo message="Dataset files extracted to ${project.basedir}/dataset/face_dataset"/>
                                     </target>

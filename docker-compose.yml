@@ -64,6 +64,70 @@ services:
     networks:
       - spring-vision-network
 
+  # Basic Face Detection Example
+  basic-face-detection:
+    build:
+      context: ./spring-vision-examples/basic-face-detection
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - DEEPFACE_BASE_URL=http://deepface:5000
+      - COMPREFACE_BASE_URL=http://compreface
+    depends_on:
+      - deepface
+      - compreface
+    networks:
+      - spring-vision-network
+
+  # One Million Challenge Example
+  one-million-challenge:
+    build:
+      context: ./spring-vision-examples/one-million-challenge
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      - DEEPFACE_BASE_URL=http://deepface:5000
+      - COMPREFACE_BASE_URL=http://compreface
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/springvision
+      - SPRING_DATASOURCE_USERNAME=springvision
+      - SPRING_DATASOURCE_PASSWORD=springvision
+    depends_on:
+      - deepface
+      - compreface
+      - postgres
+    networks:
+      - spring-vision-network
+
+  # Vaadin Application Example
+  vaadin-application:
+    build:
+      context: ./spring-vision-examples/vaadin-application
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment:
+      - DEEPFACE_BASE_URL=http://deepface:5000
+      - COMPREFACE_BASE_URL=http://compreface
+    depends_on:
+      - deepface
+      - compreface
+    networks:
+      - spring-vision-network
+
+  # GWT Application Example
+  gwt-application:
+    build:
+      context: ./spring-vision-examples/gwt-application
+    ports:
+      - "127.0.0.1:8083:8080"
+    environment:
+      - DEEPFACE_BASE_URL=http://deepface:5000
+      - COMPREFACE_BASE_URL=http://compreface
+    depends_on:
+      - deepface
+      - compreface
+    networks:
+      - spring-vision-network
+
 volumes:
   postgres-data:
     driver: local
