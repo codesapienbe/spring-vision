@@ -456,7 +456,7 @@ mvn spring-boot:run
 mvn clean package
 
 # Run with production profile
-java -jar target/basic-face-detection-1.0.0-SNAPSHOT.jar \
+java -jar target/basic-face-detection-1.0.jar \
   --spring.profiles.active=prod
 ```
 

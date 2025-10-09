@@ -160,12 +160,12 @@ public class FaceDetectionController {
                     return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
                 } catch (Exception e) {
                     logger.error("Error processing URL image", e);
-                    return ResponseEntity.<byte[]>badRequest().body(new byte[0]);
+                    return ResponseEntity.badRequest().body(new byte[0]);
                 }
             }))
             .onErrorResume(ex -> {
                 logger.warn("Failed to process URL: {}", ex.getMessage());
-                return Mono.just(ResponseEntity.<byte[]>badRequest().body(new byte[0]));
+                return Mono.just(ResponseEntity.badRequest().body(new byte[0]));
             });
     }
 
@@ -177,7 +177,7 @@ public class FaceDetectionController {
     public Mono<ResponseEntity<java.util.Map<String,Object>>> detectFacesFromUrlApi(@RequestParam("imageUrl") String imageUrl) {
         logger.info("Processing REST face detection request for URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isBlank()) {
-            return Mono.just(ResponseEntity.<java.util.Map<String,Object>>badRequest().body(new java.util.HashMap<>()));
+            return Mono.just(ResponseEntity.badRequest().body(new java.util.HashMap<>()));
         }
         return webClient.get()
             .uri(imageUrl)
@@ -199,19 +199,19 @@ public class FaceDetectionController {
                     payload.put("detections", result.detections());
                     payload.put("count", result.detectionCount());
                     payload.put("avgConfidence", result.averageConfidence());
-                    return ResponseEntity.<java.util.Map<String,Object>>ok(payload);
+                    return ResponseEntity.ok(payload);
                 } catch (Exception e) {
                     logger.error("Error processing URL image", e);
                     java.util.Map<String,Object> err = new java.util.HashMap<>();
                     err.put("error", e.getMessage());
-                    return ResponseEntity.<java.util.Map<String,Object>>badRequest().body(err);
+                    return ResponseEntity.badRequest().body(err);
                 }
             }))
             .onErrorResume(ex -> {
                 logger.warn("Failed to process URL: {}", ex.getMessage());
                 java.util.Map<String,Object> err = new java.util.HashMap<>();
                 err.put("error", ex.getMessage());
-                return Mono.just(ResponseEntity.<java.util.Map<String,Object>>badRequest().body(err));
+                return Mono.just(ResponseEntity.badRequest().body(err));
             });
     }
 
@@ -243,6 +243,7 @@ public class FaceDetectionController {
                 .categories(java.util.Set.of(com.springvision.core.DetectionCategory.FACE))
                 .build();
             VisionResult result = visionTemplate.detect(imageData, query);
+            logger.debug("VisionTemplate returned result: detections={}, avgConfidence={}", result.detectionCount(), result.averageConfidence());
 
             // Generate annotated image
             byte[] annotatedBytes = annotateImageBytes(imageBytes, result.detections());
@@ -263,7 +264,9 @@ public class FaceDetectionController {
                 // Crop faces and encode as base64
                 List<String> croppedImages = new ArrayList<>();
                 List<String> embeddingStrings = new ArrayList<>();
+                int faceIndex = 0;
                 for (Detection d : sortedDetections) {
+                    logger.debug("Processing face #{} for cropping/embedding", faceIndex);
                     com.springvision.core.BoundingBox b = d.boundingBox();
                     int imgW = img.getWidth();
                     int imgH = img.getHeight();
@@ -286,21 +289,27 @@ public class FaceDetectionController {
                     // Extract embedding for this face
                     try {
                         ImageData faceImageData = ImageData.fromBytes(faceBytes);
+                        logger.debug("Calling extractEmbeddings for face #{} ({} bytes)", faceIndex, faceBytes.length);
                         List<float[]> faceEmbeddings = visionTemplate.getBackend().extractEmbeddings(faceImageData);
+                        logger.debug("extractEmbeddings returned {} embeddings for face #{}", faceEmbeddings == null ? 0 : faceEmbeddings.size(), faceIndex);
                         if (!faceEmbeddings.isEmpty()) {
                             embeddingStrings.add(Arrays.toString(faceEmbeddings.get(0)));
                         } else {
                             embeddingStrings.add("No embedding extracted");
                         }
                     } catch (Exception e) {
+                        logger.error("Error extracting embedding for face #{}: {}", faceIndex, e.getMessage(), e);
                         embeddingStrings.add("Error extracting embedding: " + e.getMessage());
                     }
+                    logger.debug("Finished processing face #{}", faceIndex);
+                    faceIndex++;
                 }
 
                 model.addAttribute("detections", sortedDetections);
                 model.addAttribute("croppedImages", croppedImages);
                 model.addAttribute("embeddingStrings", embeddingStrings);
                 logger.info("Detected {} faces in image", sortedDetections.size());
+                logger.debug("Completed building model attributes for {} faces; returning template", sortedDetections.size());
 
             } else {
                 model.addAttribute("error", "No faces detected in the uploaded image");
@@ -315,6 +324,7 @@ public class FaceDetectionController {
             model.addAttribute("error", "Error during face detection: " + e.getMessage());
         }
 
+        logger.debug("Returning index template to caller");
         return "index";
     }
 

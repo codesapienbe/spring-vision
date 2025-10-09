@@ -37,7 +37,7 @@ echo ""
 # Note: JavaFX requires the --module-path and --add-modules arguments
 java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
      --add-modules javafx.controls,javafx.fxml,javafx.graphics \
-     -jar target/javafx-application-1.0.0-SNAPSHOT.jar
+     -jar target/javafx-application-1.0.jar
 
 echo ""
 echo "Application closed."

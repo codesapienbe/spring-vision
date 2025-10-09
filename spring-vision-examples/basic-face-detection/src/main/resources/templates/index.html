@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -369,8 +369,9 @@
                 <div th:each="type : ${T(com.springvision.core.DetectionType).values()}">
                     <form th:id="'asyncForm' + ${type.code}" th:action="'/api/vision/tasks/detect/' + ${type.code}" method="post" enctype="multipart/form-data" style="display: inline;">
                         <input type="file" name="file" accept="image/*" style="display: none;" onchange="submitFormWithFile(this.form)">
-                        <button type="button" class="submit-btn" th:onclick="|selectFileForForm('asyncForm${type.code}')|" style="width: 100%;"
-                                th:text="'⚡ ' + ${type.displayName}">Async Detection</button>
+                        <!-- Use a data attribute (trusted) and a static onclick that reads it to avoid Thymeleaf event attribute restrictions -->
+                        <button type="button" class="submit-btn" onclick="selectFileForForm(this.getAttribute('data-form-id'))" style="width: 100%;"
+                                th:attr="data-form-id=${'asyncForm' + type.code}" th:text="'⚡ ' + ${type.displayName}">Async Detection</button>
                     </form>
                 </div>
             </div>
@@ -416,6 +417,7 @@
                             <option value="HAND">Hand</option>
                             <option value="BODY">Body</option>
                             <option value="POSE">Pose</option>
+                            <option value="HEALTH">Health</option>
                         </select>
                     </div>
                 </div>
@@ -680,7 +682,7 @@
                 // Enhanced form submission handling
                 document.querySelectorAll('form').forEach(formEl => {
                     if (formEl.id !== 'uploadForm' && formEl.id !== 'urlForm') {
-                        formEl.addEventListener('submit', function(e) {
+                        formEl.addEventListener('submit', function() {
                             const button = this.querySelector('.submit-btn');
                             if (button) {
                                 button.disabled = true;

@@ -49,37 +49,37 @@ The PicoCLI Application provides a powerful command-line interface for performin
 
 #### Show Help
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --help
+java -jar target/picocli-application-1.0.jar --help
 ```
 
 #### Interactive Mode
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --interactive
+java -jar target/picocli-application-1.0.jar --interactive
 ```
 
 #### Detect Faces in a Single Image
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg
+java -jar target/picocli-application-1.0.jar --detect /path/to/image.jpg
 ```
 
 #### Detect Faces with JSON Output
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg -f json
+java -jar target/picocli-application-1.0.jar --detect /path/to/image.jpg -f json
 ```
 
 #### Detect Faces with Verbose Output
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect /path/to/image.jpg -V
+java -jar target/picocli-application-1.0.jar --detect /path/to/image.jpg -V
 ```
 
 #### Batch Processing with Progress
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --batch /path/to/images --confidence 0.7 --progress -f csv
+java -jar target/picocli-application-1.0.jar --batch /path/to/images --confidence 0.7 --progress -f csv
 ```
 
 #### Check Health Status
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --health
+java -jar target/picocli-application-1.0.jar --health
 ```
 
 ### Command Options
@@ -190,7 +190,7 @@ The application provides comprehensive error handling:
 
 ### Example 1: Basic Face Detection
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect family-photo.jpg
+$ java -jar target/picocli-application-1.0.jar --detect family-photo.jpg
 Face Detection Results for: family-photo.jpg
 ==================================================
 Total faces detected: 4
@@ -204,7 +204,7 @@ Detected faces:
 
 ### Example 2: JSON Output for Scripting
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect image.jpg -f json
+$ java -jar target/picocli-application-1.0.jar --detect image.jpg -f json
 {
   "filename": "image.jpg",
   "totalFaces": 1,
@@ -225,7 +225,7 @@ $ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect image.jpg -f 
 
 ### Example 3: Batch Processing with Progress
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --batch /path/to/images/ -f csv --progress
+$ java -jar target/picocli-application-1.0.jar --batch /path/to/images/ -f csv --progress
 Processing 15 images...
 Completed: 15/15 (100%)
 Results printed to stdout
@@ -233,7 +233,7 @@ Results printed to stdout
 
 ### Example 4: Interactive Mode
 ```bash
-$ java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --interactive
+$ java -jar target/picocli-application-1.0.jar --interactive
 Image file path > /path/to/image.jpg
 Output format [text|json|csv] (default: text) > json
 Confidence threshold [0.0-1.0] (default: 0.5) > 0.6
@@ -290,7 +290,7 @@ mvn spring-boot:run -- --detect /path/to/image.jpg
 
 Enable verbose logging for detailed debugging:
 ```bash
-java -jar target/picocli-application-1.0.0-SNAPSHOT.jar --detect image.jpg -V
+java -jar target/picocli-application-1.0.jar --detect image.jpg -V
 ```
 
 ### Log Files
@@ -322,4 +322,4 @@ For issues and questions:
 ---
 
 *Last Updated: 2025-08-07*
-*Version: 1.0.0-SNAPSHOT* 
+*Version: 1.0* 

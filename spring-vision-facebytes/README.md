@@ -51,7 +51,7 @@ FaceBytes
 <dependency>
     <groupId>com.springvision</groupId>
     <artifactId>spring-vision-facebytes</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0</version>
 </dependency>
 ```
 

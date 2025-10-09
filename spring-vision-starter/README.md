@@ -12,7 +12,7 @@ Add the starter dependency to your `pom.xml`:
 <dependency>
     <groupId>com.springvision</groupId>
     <artifactId>spring-vision-starter</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0</version>
 </dependency>
 ```
 
@@ -21,7 +21,7 @@ Add the starter dependency to your `pom.xml`:
 Add the starter dependency to your `build.gradle`:
 
 ```gradle
-implementation 'com.springvision:spring-vision-starter:1.0.0-SNAPSHOT'
+implementation 'com.springvision:spring-vision-starter:1.0'
 ```
 
 ### Usage
@@ -393,4 +393,4 @@ For issues and questions:
 
 | Spring Vision | Spring Boot | Java | OpenCV | JavaCV |
 |---------------|-------------|------|--------|--------|
-| 1.0.0-SNAPSHOT | 3.0+ | 21+ | 4.8.1 | 1.5.9 | 
+| 1.0 | 3.0+ | 21+ | 4.8.1 | 1.5.9 | 

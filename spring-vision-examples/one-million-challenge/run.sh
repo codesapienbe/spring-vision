@@ -90,7 +90,7 @@ fi
 echo
 
 # Build if necessary
-if [ ! -f "target/one-million-challenge-1.0.0-SNAPSHOT.jar" ]; then
+if [ ! -f "target/one-million-challenge-1.0.jar" ]; then
     print_info "Building application..."
     mvn clean package -DskipTests -q
     if [ $? -ne 0 ]; then
@@ -144,4 +144,4 @@ else
     echo -e "  ${BLUE}3.${NC} Verify Java 21+ and Maven are installed"
     echo -e "  ${BLUE}4.${NC} Check available memory (4GB recommended)"
     exit 1
-fi 
+fi

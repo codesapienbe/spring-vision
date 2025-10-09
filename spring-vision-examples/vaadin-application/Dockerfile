@@ -1,6 +1,6 @@
 FROM openjdk:21-jdk-alpine
 
-COPY target/vaadin-application-1.0.0-SNAPSHOT.jar app.jar
+COPY target/vaadin-application-1.0.jar app.jar
 
 EXPOSE 8080
 

@@ -8,13 +8,29 @@
     <parent>
         <groupId>com.springvision</groupId>
         <artifactId>spring-vision</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>spring-vision-mcp</artifactId>
     <name>Spring Vision -> MCP Server</name>
     <description>MCP Server for Spring Vision using Spring AI</description>
+
+    <!-- Add properties for the plugin version and image name; these can be overridden by the user or parent pom -->
+    <properties>
+        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <!-- Default image name (can be overridden with -Ddocker.image.name=yourrepo/spring-vision:tag) -->
+        <docker.image.name>spring-vision:${project.version}</docker.image.name>
+    </properties>
+
+    <!-- Explicit pluginRepositories to help analyzers and ensure plugin resolution during tooling checks -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencies>
         <!-- Spring Vision Core -->
@@ -58,6 +74,41 @@
                     <execution>
                         <goals>
                             <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Jib plugin: builds a Docker image into the local Docker daemon during the install phase. -->
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <configuration>
+                    <!-- Target image; override with -Ddocker.image.name if needed -->
+                    <from>
+                        <!-- Use a Java 21 base image to match the project's Java version -->
+                        <image>eclipse-temurin:21-jdk</image>
+                    </from>
+                    <to>
+                        <image>${docker.image.name}</image>
+                    </to>
+                    <container>
+                        <mainClass>com.springvision.mcp.SpringVisionMcpServerApplication</mainClass>
+                        <ports>
+                            <port>8080</port>
+                        </ports>
+                    </container>
+                    <!-- Use the project's JAR produced by spring-boot-maven-plugin -->
+                    <useCurrentTimestamp>true</useCurrentTimestamp>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>docker-build</id>
+                        <phase>install</phase>
+                        <goals>
+                            <!-- dockerBuild pushes the image into the local Docker daemon -->
+                            <goal>dockerBuild</goal>
                         </goals>
                     </execution>
                 </executions>

@@ -31,7 +31,7 @@ mvn clean package
 
 ```bash
 # Run with a test image
-java -jar target/deepface-example-1.0.0-SNAPSHOT.jar /path/to/face.jpg
+java -jar target/deepface-example-1.0.jar /path/to/face.jpg
 
 # Or run with Maven
 mvn spring-boot:run -- -Dspring-boot.run.arguments="/path/to/face.jpg"

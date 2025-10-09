@@ -18,7 +18,7 @@ Add this module as a dependency to your Spring Boot application:
 <dependency>
     <groupId>com.springvision</groupId>
     <artifactId>spring-vision-mediapipe</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0</version>
 </dependency>
 ```
 

@@ -5,7 +5,7 @@ FROM openjdk:21-jdk-slim
 WORKDIR /app
 
 # Copy the built JAR file
-COPY target/spring-vision-mcp-1.0.0-SNAPSHOT.jar app.jar
+COPY target/spring-vision-mcp-1.0.jar app.jar
 
 # Expose port 8080 for the web server
 EXPOSE 8080

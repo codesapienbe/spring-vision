@@ -78,7 +78,7 @@ docker run -p 8080:8080 \
 ### Using Java directly
 ```bash
 # From the spring-vision-mcp directory
-java -jar target/spring-vision-mcp-1.0.0-SNAPSHOT.jar
+java -jar target/spring-vision-mcp-1.0.jar
 ```
 
 ## Environment Variables

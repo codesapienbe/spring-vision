@@ -70,7 +70,7 @@ mvn javafx:run
 ```bash
 java --module-path "$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
      --add-modules javafx.controls,javafx.fxml,javafx.graphics \
-     -jar target/javafx-application-1.0.0-SNAPSHOT.jar
+     -jar target/javafx-application-1.0.jar
 ```
 
 ### Using the Application
@@ -504,4 +504,4 @@ For issues and questions:
 ---
 
 *Last Updated: 2025-08-07*
-*Version: 1.0.0-SNAPSHOT*
+*Version: 1.0*
