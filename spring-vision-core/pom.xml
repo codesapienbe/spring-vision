@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>spring-vision-core</artifactId>
-    <name>Spring Vision Core</name>
+    <name>Spring Vision -> Core</name>
     <description>Core domain classes and interfaces for Spring Vision</description>
 
     <dependencies>
@@ -87,42 +87,42 @@
             <artifactId>micrometer-core</artifactId>
             <version>1.12.0</version>
         </dependency>
-        
+
         <!-- Micrometer registry -->
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <version>1.12.0</version>
         </dependency>
-        
+
         <!-- Javax annotation API -->
         <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
             <version>1.3.2</version>
         </dependency>
-        
+
         <!-- Logback JSON encoder for structured logging -->
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>7.4</version>
         </dependency>
-        
+
         <!-- HNSW library via JNA - correct Maven coordinates -->
         <dependency>
             <groupId>com.stepstone.search.hnswlib.jna</groupId>
             <artifactId>hnswlib-jna</artifactId>
             <version>1.4.2</version>
         </dependency>
-        
+
         <!-- Chronicle Map for high-performance key-value storage -->
         <dependency>
             <groupId>net.openhft</groupId>
             <artifactId>chronicle-map</artifactId>
             <version>3.24ea4</version>
         </dependency>
-        
+
         <!-- LZ4 compression for efficient index storage -->
         <dependency>
             <groupId>org.lz4</groupId>

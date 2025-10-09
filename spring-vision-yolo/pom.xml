@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>spring-vision-yolo</artifactId>
-    <name>Spring Vision YOLO Backend</name>
+    <name>Spring Vision -> YOLO Backend</name>
     <description>YOLO backend implementation for Spring Vision framework</description>
 
     <dependencies>
@@ -70,4 +70,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>

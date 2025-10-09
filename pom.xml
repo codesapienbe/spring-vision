@@ -14,6 +14,22 @@
     <description>The seamless, idiomatic Computer Vision starter for the Spring Boot ecosystem</description>
     <url>https://github.com/codesapienbe/spring-vision</url>
 
+    <!-- distributionManagement for automated deploys (example: OSSRH). Update credentials in CI or settings.xml -->
+    <distributionManagement>
+        <!-- Release staging repository (Sonatype OSSRH example) -->
+        <repository>
+            <id>ossrh</id>
+            <name>OSSRH Staging</name>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <!-- Snapshot repository -->
+        <snapshotRepository>
+            <id>ossrh-snapshots</id>
+            <name>OSSRH Snapshots</name>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -32,8 +48,7 @@
         <onnxruntime.version>1.15.1</onnxruntime.version>
         <djl.version>0.27.0</djl.version>
         <picocli.version>4.7.5</picocli.version>
-
-
+        <spring-ai.version>1.0.0-SNAPSHOT</spring-ai.version>
 
         <!-- Code Quality & Plugins -->
         <checkstyle.version>10.12.5</checkstyle.version>
@@ -42,6 +57,17 @@
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <modules>
         <module>spring-vision-core</module>
@@ -55,6 +81,8 @@
         <module>spring-vision-yolo</module>
         <module>spring-vision-examples</module>
         <module>spring-vision-jpa</module>
+        <module>spring-vision-mcp</module>
+        <module>spring-vision-health</module>
     </modules>
 
     <dependencyManagement>
@@ -132,6 +160,13 @@
                 <artifactId>spring-boot-docker-compose</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
+
+            <!-- Byte Buddy for Java 25 support -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.14.12</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -169,6 +204,7 @@
                             -XX:+UseG1GC
                             -XX:+HeapDumpOnOutOfMemoryError
                             -XX:HeapDumpPath=target/heapdumps/
+                            -Dnet.bytebuddy.experimental=true
                         </argLine>
                         <forkCount>1</forkCount>
                         <reuseForks>false</reuseForks>
@@ -182,7 +218,7 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven-failsafe-plugin.version}</version>
                     <configuration>
-                        <argLine>-Xmx1024m</argLine>
+                        <argLine>-Xmx1024m -Dnet.bytebuddy.experimental=true</argLine>
                         <includes>
                             <include>**/*IT.java</include>
                             <include>**/*IntegrationTest.java</include>
@@ -231,8 +267,66 @@
                         </execution>
                     </executions>
                 </plugin>
-            </plugins>
-        </pluginManagement>
+
+                <!-- Source, Javadoc, GPG and Nexus Staging (for deploy) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>4.2.1</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.5.1</version>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>3.2.0</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>sign</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.sonatype.plugins</groupId>
+                    <artifactId>nexus-staging-maven-plugin</artifactId>
+                    <version>1.6.13</version>
+                    <extensions>false</extensions>
+                    <configuration>
+                        <serverId>ossrh</serverId>
+                        <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                        <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    </configuration>
+                </plugin>
+             </plugins>
+         </pluginManagement>
 
         <plugins>
             <!-- Enforce Java 21 -->

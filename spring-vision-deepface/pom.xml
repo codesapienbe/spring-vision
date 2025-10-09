@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>spring-vision-deepface</artifactId>
-    <name>Spring Vision DeepFace Backend</name>
+    <name>Spring Vision -> DeepFace Backend</name>
     <description>DeepFace backend implementation for Spring Vision framework</description>
 
     <dependencies>
@@ -72,4 +72,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>

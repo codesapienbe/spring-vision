@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>spring-vision-tesseract</artifactId>
-    <name>Spring Vision Tesseract Backend</name>
+    <name>Spring Vision -> Tesseract Backend</name>
     <description>Tesseract OCR backend implementation for Spring Vision framework</description>
 
     <dependencies>

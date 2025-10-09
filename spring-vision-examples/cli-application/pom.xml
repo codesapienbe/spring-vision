@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>cli-application</artifactId>
-    <name>CLI Application</name>
+    <name>Spring Vision -> Examples -> CLI Example</name>
     <description>Spring Boot application demonstrating CLI capabilities for face detection using Apache Commons CLI</description>
 
     <properties>

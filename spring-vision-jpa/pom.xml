@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>spring-vision-jpa</artifactId>
-    <name>Spring Vision JPA</name>
+    <name>Spring Vision -> JPA</name>
 
     <dependencies>
         <dependency>
@@ -82,4 +82,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>

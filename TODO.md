@@ -1,33 +1,25 @@
-# TODO – First Version Deployment
 
-## Features to Implement
+# TODO
 
-- **AnnotationCapability** – Implement annotation tools for image/video overlays.
-- **BarcodeCapability** – Add barcode detection and decoding support. (Implemented: Default ZXing support in VisionBackend)
-- **EmbeddingCapability** – Provide feature embedding generation for downstream tasks. (Implemented: DeepFace and CompreFace backends with verify support)
-- **FaceDetectionCapability** – Integrate robust face detection across supported models. (Implemented: DeepFace and CompreFace backends)
-- **HandDetectionCapability** – Enable detection of hands and gestures. (Implemented: MediaPipe backend)
-- **LandmarkDetectionCapability** – Implement detection of facial and body landmarks. (Implemented: MediaPipe backend)
-- **ObjectDetectionCapability** – Add generic object detection pipelines. (Implemented: YOLO backend)
-- **PoseEstimationCapability** – Provide pose estimation for full‑body keypoints. (Implemented: MediaPipe backend)
-- **TextOcrCapability** – Integrate OCR for extracting text from images. (Implemented: Tesseract backend)
+This file tracks planned features and modules for the Spring Vision project.
 
-## Deployment Checklist
+## Future Modules
 
-- [x] Verify Maven multi‑module build (`mvn clean install`).
-- [x] Containerize each module with Docker (ensure Dockerfiles exist).
-- [x] Create a `docker-compose.yml` that starts all services.
-- [x] Configure environment variables for model paths and API keys.
-- [x] Set up CI/CD pipeline (GitHub Actions/GitLab CI) to build and push images.
-- [x] Write integration tests for each capability.
-- [x] Document API endpoints in `docs/API_REFERENCE.md`.
-- [x] Prepare monitoring and logging (Prometheus, Grafana).
+### `spring-vision-health`
 
-## Project Organization
+- **Real-time Heart Rate Monitoring**: Implement real-time heart rate monitoring from a video source.
+- **Brain Tumor Classification**: Develop a deep learning model for brain tumor classification from MRI scans (glioma, meningioma, pituitary, no tumor) using the BRISC 2025 dataset.
+- **Fall Detection**: Create a module for detecting falls from video streams, aimed at monitoring elderly or at-risk individuals.
+- **Stress Level Analysis**: Implement a feature to analyze stress levels based on facial expressions and other physiological signals from video.
 
-- **spring-vision-core** – Core interfaces and shared utilities.
-- **spring-vision-*** – Individual capability modules (e.g., `spring-vision-facebytes`, `spring-vision-deepface`).
-- **spring-vision-examples** – Example applications demonstrating each capability.
-- **docs/** – Documentation, deployment guides, and API specs.
+### `spring-vision-cyber`
 
-*All items marked with a checkbox are part of the first release. Update this file as progress is made.*
+-   **Visual QR Code Hijacking Detection**: Detect and flag suspicious QR codes that may lead to malicious websites.
+-   **Shoulder Surfing Prevention**: Analyze video streams to detect and alert when someone is looking over a user's shoulder at a screen.
+-   **Physical Access Monitoring**: Use face recognition to monitor and log access to secure areas.
+
+### `spring-vision-robotics`
+
+-   **Automated Defect Detection**: Implement models to identify defects in products on a production line from a video feed.
+-   **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
+-   **Component Verification**: Verify that the correct components are used during assembly.

@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>javafx-application</artifactId>
-    <name>JavaFX Application</name>
+    <name>Spring Vision -> Examples -> JavaFX Example</name>
     <description>Spring Boot application demonstrating JavaFX capabilities for face detection</description>
 
     <properties>
@@ -156,27 +156,6 @@
                 </configuration>
             </plugin>
 
-            <!-- Maven Shade Plugin for creating fat JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.4.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.springvision.examples.javafxapplication.JavaFXApplication</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>

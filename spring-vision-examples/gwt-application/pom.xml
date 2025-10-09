@@ -14,8 +14,7 @@
 
     <artifactId>gwt-application</artifactId>
     <packaging>jar</packaging>
-
-    <name>Spring Vision GWT Example</name>
+    <name>Spring Vision -> Examples -> GWT Example</name>
     <description>Example demonstrating a GWT-based GUI application using Spring Vision</description>
 
     <properties>

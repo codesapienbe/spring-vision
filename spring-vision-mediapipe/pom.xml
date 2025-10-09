@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>spring-vision-mediapipe</artifactId>
-    <name>Spring Vision MediaPipe Backend</name>
+    <name>Spring Vision -> MediaPipe Backend</name>
     <description>MediaPipe backend implementation for Spring Vision framework</description>
 
     <dependencies>
@@ -66,4 +66,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>

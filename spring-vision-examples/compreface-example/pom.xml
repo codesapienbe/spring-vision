@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>compreface-example</artifactId>
-    <name>CompreFace Example</name>
+    <name>Spring Vision -> Examples -> CompreFace Example</name>
     <description>Example application demonstrating CompreFace backend usage</description>
 
     <properties>

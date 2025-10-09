@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>spring-vision-starter</artifactId>
-    <name>Spring Vision Starter</name>
+    <name>Spring Vision -> Starter</name>
     <description>Spring Boot starter for Spring Vision</description>
 
     <dependencies>
@@ -23,7 +23,7 @@
             <artifactId>spring-vision-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
         <!-- Optional JPA module -->
         <dependency>
             <groupId>com.springvision</groupId>

@@ -94,7 +94,27 @@ public enum DetectionType {
      * <p>This detection type allows for custom, user-defined detection operations
      * that may not fit into the standard categories. Requires custom backend implementations.</p>
      */
-    CUSTOM("custom", "Custom Detection", false, "User-defined custom detection operations");
+    CUSTOM("custom", "Custom Detection", false, "User-defined custom detection operations"),
+
+    /**
+     * Heart rate detection - analyze a temporal sequence of images to infer heart rate statistics.
+     */
+    HEART_RATE("heart-rate", "Heart Rate Detection", false, "Estimate heart-rate from image sequences"),
+
+    /**
+     * Fall detection - detect fall events from temporal image sequences.
+     */
+    FALL("fall", "Fall Detection", false, "Detect falls from image sequences"),
+
+    /**
+     * Stress analysis - infer stress level estimates from sequences of images.
+     */
+    STRESS("stress", "Stress Analysis", false, "Estimate stress levels from image sequences"),
+
+    /**
+     * Tumor classification - perform MRI brain tumor classification.
+     */
+    TUMOR("tumor", "Tumor Classification", false, "Classify brain tumors in MRI images");
 
     private final String code;
     private final String displayName;

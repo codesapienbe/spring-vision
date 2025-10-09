@@ -14,8 +14,7 @@
 
     <artifactId>vaadin-application</artifactId>
     <packaging>jar</packaging>
-
-    <name>Spring Vision Vaadin Example</name>
+    <name>Spring Vision -> Examples -> Vaadin Example</name>
     <description>Example demonstrating a Vaadin-based GUI application using Spring Vision</description>
 
     <properties>

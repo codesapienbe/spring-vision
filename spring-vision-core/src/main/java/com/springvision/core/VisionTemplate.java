@@ -324,19 +324,19 @@ public class VisionTemplate {
         try {
             java.util.List<List<Detection>> detectionLists = backend.detectMultiple(imageData, detectionTypes);
             long processingTime = System.currentTimeMillis() - startTime;
-            
+
             // Convert List<List<Detection>> to List<VisionResult>
             java.util.List<VisionResult> results = new ArrayList<>();
             for (int i = 0; i < detectionTypes.size(); i++) {
                 List<Detection> detections = detectionLists.get(i);
                 DetectionType detectionType = detectionTypes.get(i);
-                
+
                 VisionResult result = VisionResult.of(detectionType, detections,
                     detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
                     processingTime);
                 results.add(result);
             }
-            
+
             int totalDetections = results.stream().mapToInt(VisionResult::detectionCount).sum();
 
             logger.info("Multi-detection completed", Map.of(
@@ -411,9 +411,9 @@ public class VisionTemplate {
         try {
             List<Detection> detections = backend.detect(imageData, query.getType());
             long processingTime = System.currentTimeMillis() - startTime;
-            
+
             // Convert List<Detection> to VisionResult
-            VisionResult result = VisionResult.of(query.getType(), detections, 
+            VisionResult result = VisionResult.of(query.getType(), detections,
                 detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
                 processingTime);
 
@@ -581,6 +581,48 @@ public class VisionTemplate {
             .categories(categories)
             .build();
         return annotate(imageData, req);
+    }
+
+    /**
+     * Detect heart-rate estimates from a temporal list of images using backend capability when available.
+     */
+    public java.util.List<com.springvision.core.Detection> detectHeartRate(java.util.List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof com.springvision.core.capabilities.HeartRateCapability cap) {
+            return cap.detectHeartRate(imageDataList);
+        }
+        throw new com.springvision.core.exception.VisionProcessingException(
+            "Heart rate capability not supported by backend",
+            "detectHeartRate",
+            "heart-rate"
+        );
+    }
+
+    /**
+     * Detect falls from a temporal list of images using backend capability when available.
+     */
+    public java.util.List<com.springvision.core.Detection> detectFall(java.util.List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof com.springvision.core.capabilities.FallDetectionCapability cap) {
+            return cap.detectFall(imageDataList);
+        }
+        throw new com.springvision.core.exception.VisionProcessingException(
+            "Fall detection capability not supported by backend",
+            "detectFall",
+            "fall"
+        );
+    }
+
+    /**
+     * Detect stress estimates from a temporal list of images using backend capability when available.
+     */
+    public java.util.List<com.springvision.core.Detection> detectStress(java.util.List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof com.springvision.core.capabilities.StressAnalysisCapability cap) {
+            return cap.detectStress(imageDataList);
+        }
+        throw new com.springvision.core.exception.VisionProcessingException(
+            "Stress analysis capability not supported by backend",
+            "detectStress",
+            "stress"
+        );
     }
 
     /** Generates a unique correlation ID for tracking operations. */

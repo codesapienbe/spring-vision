@@ -78,7 +78,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConfigurationProperties(prefix = "spring.vision.opencv")
-public class OpenCvVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability, com.springvision.core.capabilities.ObjectDetectionCapability, com.springvision.core.capabilities.AnnotationCapability {
+public class OpenCvVisionBackend implements VisionBackend, com.springvision.core.capabilities.FaceDetectionCapability,
+    com.springvision.core.capabilities.ObjectDetectionCapability, com.springvision.core.capabilities.AnnotationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
 

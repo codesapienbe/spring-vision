@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>one-million-challenge</artifactId>
-    <name>One Million Challenge</name>
+    <name>Spring Vision -> Examples -> One Million Challenge</name>
     <description>The One Million Challenge - Sub-second face search across 1M+ photos using Spring Vision</description>
 
     <properties>
@@ -87,4 +87,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>

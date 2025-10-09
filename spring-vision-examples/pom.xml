@@ -14,8 +14,7 @@
 
     <artifactId>spring-vision-examples</artifactId>
     <packaging>pom</packaging>
-
-    <name>Spring Vision Examples</name>
+    <name>Spring Vision -> Examples</name>
     <description>Example applications demonstrating Spring Vision framework capabilities</description>
 
     <modules>
@@ -31,6 +30,8 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <logstash-logback-encoder.version>7.4</logstash-logback-encoder.version>
+        <!-- Skip deploying the examples parent module to Maven Central -->
+        <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
     <dependencies>

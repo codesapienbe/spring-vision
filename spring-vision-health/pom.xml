@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>spring-vision-health</artifactId>
-    <name>Spring Vision - Health</name>
+    <name>Spring Vision -> Health Monitoring Backend</name>
     <description>Health-related computer vision interfaces and designs (API only)</description>
 
     <dependencies>
@@ -21,6 +21,7 @@
         <dependency>
             <groupId>com.springvision</groupId>
             <artifactId>spring-vision-core</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Spring Boot Starter (optional for future implementations) -->
@@ -56,4 +57,3 @@
         </plugins>
     </build>
 </project>
-

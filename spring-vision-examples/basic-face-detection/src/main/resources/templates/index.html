@@ -540,6 +540,11 @@
                 <img th:src="${annotatedImage}" alt="Annotated output" class="annotated-image" />
             </div>
         </div>
+
+        <div id="apiResults" class="card" style="display: none;">
+            <h3>API Response</h3>
+            <pre id="apiResultsContent"></pre>
+        </div>
     </main>
 
     <footer class="footer">
@@ -564,9 +569,9 @@
 
                 if (form) {
                     form.addEventListener('submit', function(e){
+                        e.preventDefault();
                         const file = fileInput && fileInput.files && fileInput.files[0];
                         if (!file) {
-                            e.preventDefault();
                             alert('Please select a file first.');
                             return;
                         }
@@ -575,17 +580,46 @@
                             button.disabled = true;
                             button.textContent = '🔄 Processing...';
                         }
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        fetch('/api/vision/detect/faces', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            displayResults(data);
+                            if (button) {
+                                button.disabled = false;
+                                button.textContent = '🔍 Detect Faces';
+                            }
+                        })
+                        .catch(error => {
+                            displayError(error);
+                            if (button) {
+                                button.disabled = false;
+                                button.textContent = '🔍 Detect Faces';
+                            }
+                        });
                     });
                 }
 
                 const urlForm = document.getElementById('urlForm');
                 if (urlForm) {
                     urlForm.addEventListener('submit', function(e){
+                        e.preventDefault();
                         const button = urlForm.querySelector('.submit-btn');
                         if (button) {
                             button.disabled = true;
                             button.textContent = '🔄 Processing...';
                         }
+                        const formData = new FormData();
+                        formData.append('imageUrl', this.imageUrl.value);
+                        fetch('/api/vision/detect/faces/url', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
                     });
                 }
 
@@ -681,7 +715,56 @@
                         button.disabled = true;
                         button.textContent = '🔄 Processing...';
                     }
-                    multipleForm.submit();
+                    const formData = new FormData(multipleForm);
+                    fetch(multipleForm.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = '🔄 Detect Multiple Types';
+                        }
+                    })
+                    .catch(error => {
+                        displayError(error);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = '🔄 Detect Multiple Types';
+                        }
+                    });
+                };
+
+                window.submitBatchForm = function() {
+                    updateBatchFileCount();
+                    const batchForm = document.getElementById('batchForm');
+                    const button = batchForm.querySelector('.submit-btn');
+                    if (button) {
+                        button.disabled = true;
+                        button.textContent = '🔄 Processing...';
+                    }
+                    const formData = new FormData(batchForm);
+                    fetch(batchForm.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = '🚀 Process Batch (Faces)';
+                        }
+                    })
+                    .catch(error => {
+                        displayError(error);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = '🚀 Process Batch (Faces)';
+                        }
+                    });
                 };
 
                 window.submitFormWithFile = function(form) {
@@ -690,7 +773,26 @@
                         button.disabled = true;
                         button.textContent = '🔄 Processing...';
                     }
-                    form.submit();
+                    const formData = new FormData(form);
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = button.textContent.replace('🔄 Processing...', form.querySelector('input[type="submit"]') ? 'Submit' : button.textContent.split(' ')[0] + ' ' + button.textContent.split(' ')[1]);
+                        }
+                    })
+                    .catch(error => {
+                        displayError(error);
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = button.textContent.replace('🔄 Processing...', form.querySelector('input[type="submit"]') ? 'Submit' : button.textContent.split(' ')[0] + ' ' + button.textContent.split(' ')[1]);
+                        }
+                    });
                 };
 
                 // Check task status

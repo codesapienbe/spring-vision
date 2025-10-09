@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>spring-vision-facebytes</artifactId>
-    <name>Spring Vision FaceBytes</name>
+    <name>Spring Vision -> FaceBytes Backend</name>
     <description>Java rewrite of DeepFace core features for Spring Vision</description>
 
     <dependencies>
@@ -94,7 +94,7 @@
                     <release>21</release>
                 </configuration>
             </plugin>
-            
+
             <!-- Maven Surefire Plugin with enhanced JVM options for native library stability -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -113,7 +113,7 @@
                     </excludes>
                 </configuration>
             </plugin>
-            
+
             <!-- Download Haar cascade classifier at build time -->
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>

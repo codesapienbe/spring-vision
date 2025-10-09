@@ -132,7 +132,7 @@ public class FaceDetectionController {
     public Mono<ResponseEntity<byte[]>> annotatedFromUrl(@RequestParam("imageUrl") String imageUrl) {
         logger.info("Processing annotated image request for URL: {}", imageUrl);
         if (imageUrl == null || imageUrl.isBlank()) {
-            return Mono.just(ResponseEntity.badRequest().build());
+            return Mono.just(ResponseEntity.<byte[]>badRequest().body(new byte[0]));
         }
         return webClient.get()
             .uri(imageUrl)
@@ -160,12 +160,58 @@ public class FaceDetectionController {
                     return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(png);
                 } catch (Exception e) {
                     logger.error("Error processing URL image", e);
-                    throw new RuntimeException(e);
+                    return ResponseEntity.<byte[]>badRequest().body(new byte[0]);
                 }
             }))
-            .onErrorResume(e -> {
-                logger.warn("Failed to process URL: {}", e.getMessage());
-                return Mono.just(ResponseEntity.badRequest().build());
+            .onErrorResume(ex -> {
+                logger.warn("Failed to process URL: {}", ex.getMessage());
+                return Mono.just(ResponseEntity.<byte[]>badRequest().body(new byte[0]));
+            });
+    }
+
+    /**
+     * REST API endpoint for face detection from public image URL - returns JSON with detections.
+     */
+    @PostMapping(value = "/api/vision/detect/faces/url", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @ResponseBody
+    public Mono<ResponseEntity<java.util.Map<String,Object>>> detectFacesFromUrlApi(@RequestParam("imageUrl") String imageUrl) {
+        logger.info("Processing REST face detection request for URL: {}", imageUrl);
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return Mono.just(ResponseEntity.<java.util.Map<String,Object>>badRequest().body(new java.util.HashMap<>()));
+        }
+        return webClient.get()
+            .uri(imageUrl)
+            .retrieve()
+            .bodyToMono(byte[].class)
+            .flatMap(imageBytes -> Mono.fromCallable(() -> {
+                try {
+                    if (!isHttpUrl(imageUrl)) {
+                        throw new IllegalArgumentException("Only HTTP/HTTPS URLs are supported");
+                    }
+                    URL url = URI.create(imageUrl).toURL();
+                    validatePublicHost(url);
+                    // Note: WebClient doesn't check content-type easily, assuming it's image
+
+                    ImageData imageData = ImageData.fromBytes(imageBytes);
+                    VisionResult result = visionTemplate.detectFaces(imageData);
+                    java.util.Map<String,Object> payload = new java.util.HashMap<>();
+                    payload.put("detectionType", "face");
+                    payload.put("detections", result.detections());
+                    payload.put("count", result.detectionCount());
+                    payload.put("avgConfidence", result.averageConfidence());
+                    return ResponseEntity.<java.util.Map<String,Object>>ok(payload);
+                } catch (Exception e) {
+                    logger.error("Error processing URL image", e);
+                    java.util.Map<String,Object> err = new java.util.HashMap<>();
+                    err.put("error", e.getMessage());
+                    return ResponseEntity.<java.util.Map<String,Object>>badRequest().body(err);
+                }
+            }))
+            .onErrorResume(ex -> {
+                logger.warn("Failed to process URL: {}", ex.getMessage());
+                java.util.Map<String,Object> err = new java.util.HashMap<>();
+                err.put("error", ex.getMessage());
+                return Mono.just(ResponseEntity.<java.util.Map<String,Object>>badRequest().body(err));
             });
     }
 
@@ -734,7 +780,7 @@ public class FaceDetectionController {
         try {
             ImageData imageData = ImageData.fromBytes(file.getBytes());
             VisionResult result = visionTemplate.detectFaces(imageData);
-            return ResponseEntity.ok(java.util.Map.of(
+            return ResponseEntity.ok(java.util.Map.<String,Object>of(
                 "detectionType", "face",
                 "detections", result.detections(),
                 "count", result.detectionCount(),

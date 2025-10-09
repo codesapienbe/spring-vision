@@ -91,8 +91,8 @@ import java.util.function.Function;
 public class VisionToolConfiguration {
 
     @Bean
-    @Description("Detects objects, faces, or text in a given image. The image must be provided as a Base64 encoded string.")
-    public Function<VisionToolRequests.DetectRequest, Map> detect(WebClient.Builder webClientBuilder) {
+    @Description("Detects objects, faces, or text in a given image. The image must be provided as a Base64 encoded string. The function name is 'detect'.")
+    public Function<VisionToolRequests.DetectRequest, Map> visionDetectTool(WebClient.Builder webClientBuilder) {
         return request -> {
             WebClient webClient = webClientBuilder.baseUrl("http://localhost:8080").build();
             
@@ -145,7 +145,7 @@ public class VisionAiController {
     public VisionAiController(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder
                 .defaultOptions(OpenAiChatOptions.builder()
-                        .withFunction("detect") // Register our tool function
+                        .withFunction("visionDetectTool") // Register our tool function by its bean name
                         .build())
                 .build();
     }

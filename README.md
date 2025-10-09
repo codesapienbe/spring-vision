@@ -1,80 +1,45 @@
-# Spring Vision 🎯
 
-> **The Ultimate Computer Vision Framework for Spring Boot Applications**
-
-[![Java](https://img.shields.io/badge/Java-21+-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2+-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/springvision/spring-vision/actions)
-[![Maven Central](https://img.shields.io/maven-central/v/com.springvision/spring-vision-starter.svg)](https://search.maven.org/artifact/com.springvision/spring-vision-starter)
+<div align="center">
+  <a href="https://github.com/spring-vision/spring-vision">
+    <img src="https://raw.githubusercontent.com/spring-vision/spring-vision/main/docs/images/spring-vision-logo.png" alt="Spring Vision Logo" width="200">
+  </a>
+  <h1 align="center">Spring Vision</h1>
+  <p align="center">
+    <strong>The Ultimate Computer Vision Framework for Spring Boot Applications</strong>
+    <br />
+    <br />
+    <a href="https://github.com/spring-vision/spring-vision/actions/workflows/build.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/spring-vision/spring-vision/build.yml?branch=main&style=for-the-badge&logo=github" alt="Build Status">
+    </a>
+    <a href="https://search.maven.org/artifact/com.springvision/spring-vision-starter">
+      <img src="https://img.shields.io/maven-central/v/com.springvision/spring-vision-starter.svg?style=for-the-badge&logo=apache-maven" alt="Maven Central">
+    </a>
+    <a href="https://github.com/spring-vision/spring-vision/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/spring-vision/spring-vision?style=for-the-badge" alt="License">
+    </a>
+    <a href="https://github.com/spring-vision/spring-vision/stargazers">
+      <img src="https://img.shields.io/github/stars/spring-vision/spring-vision?style=for-the-badge&logo=github" alt="GitHub stars">
+    </a>
+    <a href="https://github.com/spring-vision/spring-vision/network/members">
+      <img src="https://img.shields.io/github/forks/spring-vision/spring-vision?style=for-the-badge&logo=github" alt="GitHub forks">
+    </a>
+  </p>
+</div>
 
 **Spring Vision** is a production-ready computer vision framework that brings powerful AI capabilities to your Spring Boot applications. Detect faces, recognize objects, analyze emotions, and build intelligent applications with just a few lines of code.
 
-## ✨ **Why Spring Vision?**
+## ✨ Why Spring Vision?
 
-### 🚀 **Zero-Configuration Setup**
-```java
-@Autowired
-private VisionTemplate visionTemplate;
+- **🚀 Zero-Configuration Setup**: Get started in minutes with auto-configuration and sensible defaults.
+- **🎨 Production-Ready Features**: Enterprise security, real-time monitoring, and high performance for production workloads.
+- **🔌 Pluggable Backends**: Switch between OpenCV, FaceBytes, YOLO, MediaPipe, and more.
+- **🌐 Cross-Platform**: Works on Linux, macOS, and Windows.
+- **🏗️ Spring Boot Native**: Health checks, metrics, and async support with virtual threads.
 
-// That's it! Your app now has computer vision capabilities
-List<Detection> faces = visionTemplate.detectFaces(imageBytes);
-```
+## 🚀 Getting Started
 
-### 🎨 **Production-Ready Features**
-- **🔒 Enterprise Security** - Built-in SSRF protection, input validation, and secure defaults
-- **📊 Real-time Monitoring** - Health checks, metrics, and structured logging
-- **⚡ High Performance** - Optimized for production workloads with async processing
-- **🔄 Multiple Backends** - Switch between OpenCV, FaceBytes, YOLO, MediaPipe, and more
-- **🌐 Cross-Platform** - Works on Linux, macOS, and Windows
+### 1. Add Dependency
 
-### 🏗️ **Spring Boot Native**
-- **Auto-Configuration** - Works out of the box with sensible defaults
-- **Health Checks** - Monitor via Spring Boot Actuator
-- **Metrics Integration** - Micrometer metrics for observability
-- **Async Support** - Virtual threads for non-blocking processing
-
-## 🎨 **What Can You Build?**
-
-### 🎯 **Face Recognition & Verification**
-```java
-// Face verification - are these the same person?
-boolean isSamePerson = visionTemplate.verify(image1, image2);
-
-// Extract face embeddings for similarity search
-List<float[]> embeddings = visionTemplate.extractEmbeddings(imageData);
-
-// Face analysis - age, gender, emotion
-List<AnalysisResult> analysis = visionTemplate.analyze(imageData);
-```
-
-### 🎯 **Object Detection & Recognition**
-```java
-// Detect objects in images
-List<Detection> objects = visionTemplate.detectObjects(imageData);
-
-// Detect specific object types
-List<Detection> cars = visionTemplate.detect(imageData, DetectionType.OBJECT)
-    .stream()
-    .filter(d -> "car".equals(d.label()))
-    .collect(Collectors.toList());
-```
-
-### 🔒 **Privacy Protection**
-```java
-// Automatically blur faces for privacy
-ImageData blurredImage = visionTemplate.obscureFaces(imageData);
-```
-
-### 🎯 **Batch Processing**
-```java
-// Process thousands of images efficiently
-BatchResult result = visionTemplate.processBatch(imageList, DetectionType.FACE);
-```
-
-## 🏃‍♂️ **Quick Start**
-
-### 1. **Add Dependency**
 ```xml
 <dependency>
     <groupId>com.springvision</groupId>
@@ -83,17 +48,8 @@ BatchResult result = visionTemplate.processBatch(imageList, DetectionType.FACE);
 </dependency>
 ```
 
-### 2. **Configure (Optional)**
-```yaml
-spring:
-  vision:
-    backend: facebytes  # or opencv, yolo, mediapipe
-    facebytes:
-      enabled: true
-      confidence-threshold: 0.7
-```
+### 2. Use in Your Code
 
-### 3. **Use in Your Code**
 ```java
 @RestController
 public class VisionController {
@@ -105,21 +61,22 @@ public class VisionController {
     public List<Detection> detectFaces(@RequestParam("file") MultipartFile file) {
         return visionTemplate.detectFaces(file.getBytes());
     }
-    
-    @PostMapping("/verify-faces")
-    public boolean verifyFaces(@RequestParam("file1") MultipartFile file1,
-                              @RequestParam("file2") MultipartFile file2) {
-        return visionTemplate.verify(file1.getBytes(), file2.getBytes());
-    }
 }
 ```
 
-**That's it!** Your Spring Boot application now has state-of-the-art computer vision capabilities.
+That's it! Your Spring Boot application now has state-of-the-art computer vision capabilities.
 
-## 🎯 **Supported Backends**
+## 🎨 Features
+
+- **🎯 Face Recognition & Verification**: Verify identities and extract face embeddings.
+- **🎯 Object Detection & Recognition**: Detect and recognize objects in images.
+- **🔒 Privacy Protection**: Automatically blur faces for privacy.
+- **🎯 Batch Processing**: Process thousands of images efficiently.
+
+## 🔌 Supported Backends
 
 | Backend | Capabilities | Performance | Use Case |
-|---------|-------------|-------------|----------|
+|---|---|---|---|
 | **🎯 FaceBytes** | Face recognition, verification, analysis | ⭐⭐⭐⭐⭐ | Production face recognition |
 | **⚡ OpenCV** | Face detection, object detection | ⭐⭐⭐⭐⭐ | High-performance detection |
 | **🎯 YOLO** | Real-time object detection | ⭐⭐⭐⭐⭐ | Object recognition |
@@ -128,257 +85,85 @@ public class VisionController {
 | **🧠 DeepFace** | Advanced deep learning | ⭐⭐⭐ | Research & development |
 | **🔍 InsightFace** | State-of-the-art recognition | ⭐⭐⭐⭐⭐ | High-accuracy recognition |
 
-## 🎯 **Complete Example Applications**
-
-### 🖥️ **Web Applications**
-- **[Vaadin GUI](spring-vision-examples/vaadin-application/)** - Modern web interface with real-time updates
-- **[Basic Web App](spring-vision-examples/basic-face-detection/)** - Simple file upload interface
-- **[GWT Application](spring-vision-examples/gwt-application/)** - Rich client-side application
-
-### 🖥️ **Desktop Applications**
-- **[JavaFX Desktop](spring-vision-examples/javafx-application/)** - Cross-platform desktop app
-- **[CLI Application](spring-vision-examples/picocli-application/)** - Command-line interface
-
-### 🚀 **Performance Examples**
-- **[One Million Challenge](spring-vision-examples/one-million-challenge/)** - High-throughput processing
-
-## 🏗️ **Architecture**
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Spring Vision Framework                    │
 ├─────────────────────────────────────────────────────────────┤
-│  🎨 Application Layer                                       │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────────┐ │
-│  │   Web UI    │ │  REST API   │ │      CLI/Desktop       │ │
-│  │  (Vaadin/   │ │ (Spring MVC)│ │    (JavaFX/PicoCLI)    │ │
-│  │   GWT)      │ │             │ │                        │ │
-│  └─────────────┘ └─────────────┘ └─────────────────────────┘ │
+│  🎨 Application Layer (Web UI, REST API, CLI/Desktop)         │
 ├─────────────────────────────────────────────────────────────┤
-│  🧠 Framework Core                                          │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │              VisionTemplate                            │ │
-│  │         (Main API Entry Point)                        │ │
-│  └─────────────────────────────────────────────────────────┘ │
+│  🧠 Framework Core (VisionTemplate)                         │
 ├─────────────────────────────────────────────────────────────┤
-│  🎯 Backend Implementations                                 │
-│  ┌──────────┐ ┌──────────┐ ┌─────────────┐ ┌─────────────┐ │
-│  │ FaceBytes│ │  OpenCV  │ │    YOLO     │ │  MediaPipe  │ │
-│  │(Embedded)│ │ (Native) │ │ (ONNX RT)   │ │ (Google ML) │ │
-│  └──────────┘ └──────────┘ └─────────────┘ └─────────────┘ │
-│  ┌──────────┐ ┌──────────┐ ┌─────────────┐ ┌─────────────┐ │
-│  │CompreFace│ │ DeepFace │ │ InsightFace │ │   Custom    │ │
-│  │(External)│ │(External)│ │ (External)  │ │  Backends   │ │
-│  └──────────┘ └──────────┘ └─────────────┘ └─────────────┘ │
+│  🎯 Backend Implementations (FaceBytes, OpenCV, YOLO, etc.)   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📊 **Performance Benchmarks**
+## 🤝 Contributing
 
-| Backend | Images/sec | Latency (avg) | Memory Usage | Accuracy |
-|---------|------------|---------------|--------------|----------|
-| **FaceBytes** | 20-40 | 50-100ms | Medium | ⭐⭐⭐⭐⭐ |
-| **OpenCV** | 50-100 | 20-50ms | Low | ⭐⭐⭐⭐ |
-| **YOLO** | 30-60 | 30-80ms | Medium | ⭐⭐⭐⭐⭐ |
-| **MediaPipe** | 40-80 | 25-60ms | Low | ⭐⭐⭐⭐ |
-| **CompreFace** | 10-30 | 100-300ms | Low | ⭐⭐⭐⭐ |
+We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for more details.
 
-*Results based on 640x480 images on modern hardware*
+### Areas Needing Contribution
 
-## 🔧 **Configuration**
+- **🔌 New Backends**: MediaPipe, YOLO, InsightFace integrations.
+- **⚡ Performance**: Optimization and benchmarking.
+- **📖 Documentation**: Tutorials, examples, and guides.
+- **🧪 Testing**: Integration tests and example improvements.
+- **🔒 Security**: Security audits and improvements.
 
-### **Basic Configuration**
-```yaml
-spring:
-  vision:
-    backend: facebytes
-    performance:
-      max-image-size: 10485760  # 10MB
-      thread-pool-size: 10
-```
+## 🗺️ Roadmap
 
-### **Backend-Specific Configuration**
-```yaml
-spring:
-  vision:
-    facebytes:
-      enabled: true
-      confidence-threshold: 0.7
-      model-path: ~/.spring-vision/models
-    yolo:
-      enabled: true
-      model-name: yolov8n.onnx
-      confidence-threshold: 0.25
-      nms-threshold: 0.45
-    opencv:
-      enabled: true
-      cascade-path: classpath:haarcascades/
-```
+### 🚀 Version 1.1 (Q2 2024)
 
-## 📖 **Documentation**
+- ✅ **MediaPipe Backend**: Google's ML framework integration.
+- ✅ **YOLO Backend**: Real-time object detection.
+- ⚡ **Performance Optimizations**: Enhanced throughput and latency.
+- 🔒 **Enhanced Security**: Advanced security features.
 
-### **🚀 Getting Started Guide**
-- **[🚀 Getting Started Guide](docs/GETTING_STARTED.md)** - Step-by-step tutorial
-- **[📚 Core Module Features](docs/core-features.md)** - All features of the core module
-- **[📖 API Reference](docs/API_REFERENCE.md)** - Complete API documentation
-- **[🏗️ Architecture Guide](docs/ARCHITECTURE.md)** - Framework design and internals
-- **[🎯 Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute
+### 🎯 Version 1.2 (Q3 2024)
 
-### **🔌 Backend Integration Guides**
-- **[🎯 FaceBytes Integration](spring-vision-facebytes/README.md)** - Advanced face recognition
-- **[☁️ CompreFace Integration](docs/COMPREFACE_INTEGRATION.md)** - Enterprise recognition
-- **[🧠 DeepFace Integration](docs/DEEPFACE_INTEGRATION.md)** - Deep learning models
+- ✅ **InsightFace Backend**: State-of-the-art face recognition.
+- ✅ **Batch Processing**: High-throughput image processing.
+- ☁️ **Cloud Deployment**: Kubernetes and cloud-native guides.
+- ✅ **Advanced Metrics**: Enhanced monitoring and observability.
 
-### **📱 Example Applications**
-- **[🖥️ Vaadin GUI](spring-vision-examples/vaadin-application/README.md)** - Modern web interface
-- **[🖥️ JavaFX Desktop](spring-vision-examples/javafx-application/README.md)** - Desktop application
-- **[⚡ CLI Application](spring-vision-examples/picocli-application/README.md)** - Command-line interface
+## 💡 Planned Features
 
-## 🔒 **Security & Privacy**
+### ❤️ `spring-vision-health`
 
-### **🔒 Built-in Security**
-- **Input Validation** - Size limits, format validation, memory protection
-- **SSRF Protection** - Host validation, protocol restrictions, timeout controls
-- **Data Protection** - No sensitive logging, sanitized outputs, secure defaults
-- **Privacy Features** - Automatic face blurring and data anonymization
+A new module focused on health-related computer vision tasks is under active development.
 
-### **🔐 Privacy by Design**
-```java
-// Automatically protect privacy
-ImageData anonymized = visionTemplate.obscureFaces(imageData);
+-   **Real-time Heart Rate Monitoring**: Implement real-time heart rate monitoring from a video source.
+-   **Brain Tumor Classification**: Develop a deep learning model for brain tumor classification from MRI scans (glioma, meningioma, pituitary, no tumor) using the BRISC 2025 dataset.
+-   **Fall Detection**: Create a module for detecting falls from video streams, aimed at monitoring elderly or at-risk individuals.
+-   **Stress Level Analysis**: Implement a feature to analyze stress levels based on facial expressions and other physiological signals from video.
 
-// Process without storing sensitive data
-List<Detection> results = visionTemplate.detectFaces(imageData);
-// Image data is automatically cleaned up
-```
+### 🔒 `spring-vision-cyber`
 
-## 📈 **Monitoring & Observability**
+This upcoming module will focus on applying computer vision to cybersecurity challenges.
 
-### **📊 Built-in Metrics**
-```java
-// Health checks via Spring Boot Actuator
-GET /actuator/health/vision
+-   **Visual QR Code Hijacking Detection**: Detect and flag suspicious QR codes that may lead to malicious websites.
+-   **Shoulder Surfing Prevention**: Analyze video streams to detect and alert when someone is looking over a user's shoulder at a screen.
+-   **Physical Access Monitoring**: Use face recognition to monitor and log access to secure areas.
 
-// Custom metrics
-GET /actuator/metrics/vision.detections.total
-GET /actuator/metrics/vision.processing.time
-```
+### 🤖 `spring-vision-robotics`
 
-### **🔧 Structured Logging**
-```json
-{
-  "timestamp": "2024-01-15T10:30:00Z",
-  "level": "INFO",
-  "component": "VisionTemplate",
-  "message": "Face detection completed",
-  "correlation_id": "req-12345",
-  "detection_count": 3,
-  "processing_time_ms": 45
-}
-```
+This module will be dedicated to industrial automation and robotics.
 
-## 🎯 **Use Cases**
+-   **Automated Defect Detection**: Implement models to identify defects in products on a production line from a video feed.
+-   **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
+-   **Component Verification**: Verify that the correct components are used during assembly.
 
-### **🏢 Enterprise Applications**
-- **Employee Recognition** - Time tracking, access control
-- **Customer Analytics** - Demographics, emotion analysis
-- **Security Systems** - Intrusion detection, person identification
-- **Content Moderation** - Inappropriate content detection
+## 💬 Community
 
-### **📱 Consumer Applications**
-- **Photo Management** - Automatic face tagging, duplicate detection
-- **Social Media** - Content filtering, user verification
-- **E-commerce** - Product recognition, visual search
-- **Gaming** - Player recognition, emotion-based gameplay
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/spring-vision/spring-vision/issues)
+- **🎯 Feature Requests**: [GitHub Discussions](https://github.com/spring-vision/spring-vision/discussions)
+- **❓ Questions**: [Stack Overflow](https://stackoverflow.com/questions/tagged/spring-vision)
 
-### **🔬 Research & Development**
-- **Computer Vision Research** - Model evaluation, dataset analysis
-- **AI/ML Development** - Prototype development, model testing
-- **Academic Projects** - Student projects, research applications
+## 🙏 Acknowledgments
 
-## 🎯 **Contributing**
+Spring Vision builds upon excellent open-source projects like OpenCV, Spring Boot, and more. See the full list in our [documentation](docs/ACKNOWLEDGMENTS.md).
 
-We welcome contributions! Here's how you can help:
-
-### **🚀 Quick Start**
-```bash
-# Fork and clone
-git clone https://github.com/yourusername/spring-vision.git
-cd spring-vision
-
-# Build and test
-mvn clean install -DskipTests
-./test.sh --all
-
-# Create feature branch
-git checkout -b feature/my-awesome-feature
-```
-
-### **🎯 Areas Needing Contribution**
-- **🔌 New Backends** - MediaPipe, YOLO, InsightFace integrations
-- **⚡ Performance** - Optimization and benchmarking
-- **📖 Documentation** - Tutorials, examples, and guides
-- **🧪 Testing** - Integration tests and example improvements
-- **🔒 Security** - Security audits and improvements
-
-## 📋 **Roadmap**
-
-### **🚀 Version 1.1** *(Q2 2024)*
-- ✅ **MediaPipe Backend** - Google's ML framework integration
-- ✅ **YOLO Backend** - Real-time object detection
-- ⚡ **Performance Optimizations** - Enhanced throughput and latency
-- 🔒 **Enhanced Security** - Advanced security features
-
-### **🎯 Version 1.2** *(Q3 2024)*
-- ✅ **InsightFace Backend** - State-of-the-art face recognition
-- ✅ **Batch Processing** - High-throughput image processing
-- ☁️ **Cloud Deployment** - Kubernetes and cloud-native guides
-- ✅ **Advanced Metrics** - Enhanced monitoring and observability
-
-### **🎯 Version 2.0** *(Q4 2024)*
-- 🔌 **Plugin Architecture** - Custom backend development
-- 🎯 **Multi-Category Detection** - Enhanced detection capabilities
-- ⚡ **Performance Boost** - Memory and processing optimizations
-- 🧠 **AI/ML Integration** - Advanced model management
-
-## 🐛 **Support & Community**
-
-### **💬 Get Help**
-- **🐛 Bug Reports** - [GitHub Issues](https://github.com/springvision/spring-vision/issues)
-- **🎯 Feature Requests** - [GitHub Discussions](https://github.com/springvision/spring-vision/discussions)
-- **❓ Questions** - [Stack Overflow](https://stackoverflow.com/questions/tagged/spring-vision)
-- **📖 Documentation** - [Project Wiki](https://github.com/springvision/spring-vision/wiki)
-
-### **🌟 Show Your Support**
-- ⭐ **Star the repository** if you find it useful
-- 🍴 **Fork and contribute** to help improve the project
-- 📢 **Share with others** who might benefit from Spring Vision
-
-## 🙏 **Acknowledgments**
-
-Spring Vision builds upon excellent open-source projects:
-
-- **[OpenCV](https://opencv.org/)** - Computer vision library
-- **[Spring Boot](https://spring.io/projects/spring-boot)** - Application framework
-- **[ByteDeco JavaCV](https://github.com/bytedeco/javacv)** - Java bindings for OpenCV
-- **[PicoCLI](https://picocli.info/)** - Command-line interface framework
-- **[Vaadin](https://vaadin.com/)** - Modern web application framework
-- **[ONNX Runtime](https://onnxruntime.ai/)** - Cross-platform ML inference
-
-## 📄 **License**
+## 📄 License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-**Made with ❤️ by the Spring Vision team**
-
-*Empowering developers to build intelligent applications with computer vision*
-
-[![GitHub stars](https://img.shields.io/github/stars/springvision/spring-vision.svg?style=social&label=Star)](https://github.com/springvision/spring-vision)
-[![GitHub forks](https://img.shields.io/github/forks/springvision/spring-vision.svg?style=social&label=Fork)](https://github.com/springvision/spring-vision/fork)
-[![Twitter Follow](https://img.shields.io/twitter/follow/springvision?style=social)](https://twitter.com/springvision)
-
-</div>

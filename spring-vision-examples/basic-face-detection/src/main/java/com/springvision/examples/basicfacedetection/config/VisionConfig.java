@@ -79,17 +79,5 @@ public class VisionConfig {
         public com.springvision.core.BackendHealthInfo getHealthInfo() {
             return com.springvision.core.BackendHealthInfo.healthy("basic", "Basic backend is working", 0);
         }
-
-        @Override
-        public java.util.List<com.springvision.core.Detection> detectFaces(com.springvision.core.ImageData imageData) {
-            // Return empty list for fallback implementation
-            return java.util.List.of();
-        }
-
-        @Override
-        public java.util.List<com.springvision.core.Detection> detectObjects(com.springvision.core.ImageData imageData) {
-            // Return empty list for fallback implementation
-            return java.util.List.of();
-        }
     }
 }

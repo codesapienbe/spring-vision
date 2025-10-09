@@ -13,7 +13,7 @@
     </parent>
 
     <artifactId>basic-face-detection</artifactId>
-    <name>Basic Face Detection Example</name>
+    <name>Spring Vision -> Examples -> Basic Example</name>
     <description>Simple Spring Boot application demonstrating face detection capabilities</description>
 
     <properties>
