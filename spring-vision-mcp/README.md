@@ -16,36 +16,49 @@ Once connected, your AI can analyze images to detect faces, objects, and text. I
 
 ---
 
-## 🏁 Step 1: Start the Spring Vision MCP Server 🐳
+## 🏁 Step 1: Configure Spring Vision MCP Server 🔧
 
-First, you need to get the Spring Vision MCP server running on your computer. We'll use Docker to make this super simple.
+Spring Vision MCP uses **stdio transport** for communication with MCP clients. This means it communicates via standard input/output (stdin/stdout) using JSON-RPC protocol.
 
-1. **Open your terminal**:
-    * On Mac: `Applications > Utilities > Terminal`
-    * On Windows: `PowerShell` or `Command Prompt`
-    * On Linux: Your favorite terminal emulator
+### For MCP Clients (like Claude Desktop, Cline, etc.)
 
-2. **Run the command**:
-   Copy and paste the following command into your terminal and press **Enter**.
+Add the following configuration to your MCP client settings:
 
-   ```bash
-   docker run -d -p 8080:8080 --name spring-vision-mcp docker.io/codesapienbe/spring-vision:latest
-   ```
+**Using the JAR file:**
 
-3. **Check if it's running** ✅
-   To make sure it's working, run this command:
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "/path/to/spring-vision-mcp-1.0.jar"
+      ]
+    }
+  }
+}
+```
 
-   ```bash
-   curl http://localhost:8080/actuator/health
-   ```
+**Using Docker:**
 
-   You should see a response indicating the service is ready:
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "codesapienbe/spring-vision:1.0"
+      ]
+    }
+  }
+}
+```
 
-   ```json
-   {
-     "status": "UP"
-   }
-   ```
+**Note:** The `-i` flag is crucial for Docker as it enables interactive mode (stdin).
 
 ---
 
@@ -139,6 +152,7 @@ Extracts face embeddings from an image URL.
 The simple configuration you mentioned **will work** for all tools:
 
 ```java
+
 @Bean
 public VisionTemplate visionTemplate() {
     return new VisionTemplate();
@@ -169,10 +183,11 @@ For **high-quality face embeddings** in production, consider using specialized b
 #### 1. **InsightFace Backend** (Recommended for Face Embeddings)
 
 ```java
+
 @Bean
 public VisionTemplate visionTemplate() {
     InsightFaceBackend backend = new InsightFaceBackend(
-        "http://localhost:5001" // InsightFace service URL
+            "http://localhost:5001" // InsightFace service URL
     );
     return new VisionTemplate(backend);
 }
@@ -189,10 +204,11 @@ docker run -d -p 5001:5000 deepinsight/insightface-rest
 #### 2. **DeepFace Backend**
 
 ```java
+
 @Bean
 public VisionTemplate visionTemplate() {
     DeepFaceBackend backend = new DeepFaceBackend(
-        "http://localhost:5002"
+            "http://localhost:5002"
     );
     return new VisionTemplate(backend);
 }
@@ -209,11 +225,12 @@ docker run -d -p 5002:5000 serengil/deepface
 #### 3. **CompreFace Backend**
 
 ```java
+
 @Bean
 public VisionTemplate visionTemplate() {
     CompreFaceBackend backend = new CompreFaceBackend(
-        "http://localhost:8000",
-        "your-api-key"
+            "http://localhost:8000",
+            "your-api-key"
     );
     return new VisionTemplate(backend);
 }
@@ -230,6 +247,7 @@ docker-compose -f compreface-docker-compose.yml up -d
 #### 4. **FaceBytes Backend**
 
 ```java
+
 @Bean
 public VisionTemplate visionTemplate() {
     FaceBytesBackend backend = new FaceBytesBackend();
@@ -262,12 +280,13 @@ spring:
 Then in your configuration:
 
 ```java
+
 @Configuration
 public class CustomVisionConfig {
-    
+
     @Value("${spring.vision.insightface.url:http://localhost:5001}")
     private String insightFaceUrl;
-    
+
     @Bean
     public VisionTemplate visionTemplate() {
         InsightFaceBackend backend = new InsightFaceBackend(insightFaceUrl);
