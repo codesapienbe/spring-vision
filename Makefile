@@ -26,7 +26,7 @@ clean:
 # Deploy: push Docker image to registry (assumes docker is logged in and IMAGE is set to the full repo:tag)
 deploy:
 	@echo "Pushing Docker image spring-vision:latest to registry...";
-	docker tag spring-vision:1.1 docker.io/codesapienbe/spring-vision:latest;
+	docker tag spring-vision:1.0 docker.io/codesapienbe/spring-vision:latest &&\
 	docker push docker.io/codesapienbe/spring-vision:latest
 
 # Release: deploy to Maven Central via Sonatype
