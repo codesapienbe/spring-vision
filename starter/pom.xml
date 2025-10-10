@@ -12,7 +12,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-starter</artifactId>
+  <artifactId>starter</artifactId>
   <name>Spring Vision -> Starter</name>
   <description>Spring Boot starter for Spring Vision</description>
 
@@ -20,14 +20,14 @@
     <!-- Spring Vision Core -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <!-- Optional JPA module -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-persistence</artifactId>
+      <artifactId>persistence</artifactId>
       <version>${project.version}</version>
       <optional>true</optional>
     </dependency>

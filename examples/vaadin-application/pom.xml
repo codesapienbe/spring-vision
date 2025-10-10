@@ -7,7 +7,7 @@
 
   <parent>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-examples</artifactId>
+    <artifactId>examples</artifactId>
     <version>1.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
@@ -30,7 +30,7 @@
     </dependency>
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-starter</artifactId>
+      <artifactId>starter</artifactId>
       <version>1.0</version>
     </dependency>
     <!-- Docker Compose dependency removed - services managed externally -->

@@ -10,7 +10,7 @@
     <version>1.0</version>
   </parent>
 
-  <artifactId>spring-vision-insightface</artifactId>
+  <artifactId>insightface</artifactId>
   <name>Spring Vision -> InsightFace Backend</name>
   <description>InsightFace backend implementation for Spring Vision framework</description>
 
@@ -18,7 +18,7 @@
     <!-- Core Spring Vision API -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

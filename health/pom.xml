@@ -12,7 +12,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-health</artifactId>
+  <artifactId>health</artifactId>
   <name>Spring Vision -> Health Monitoring Backend</name>
   <description>Health-related computer vision interfaces and designs (API only)</description>
 
@@ -20,7 +20,7 @@
     <!-- Depend on core module for shared types -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

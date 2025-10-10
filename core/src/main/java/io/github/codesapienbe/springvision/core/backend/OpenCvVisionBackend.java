@@ -13,6 +13,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceLookupCapability;
 import jakarta.annotation.PreDestroy;
 
 import org.bytedeco.javacpp.FloatPointer;
@@ -82,8 +87,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "spring.vision.opencv")
 @ConditionalOnProperty(prefix = "spring.vision.opencv", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class OpenCvVisionBackend implements VisionBackend, io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability,
-    io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability, io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability {
+public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability,
+    AnnotationCapability, FaceVerificationCapability, FaceLookupCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
 
@@ -2783,7 +2788,7 @@ public class OpenCvVisionBackend implements VisionBackend, io.github.codesapienb
 
     /**
      * Performs actual object detection (placeholder for now).
-     * OpenCV backend primarily focuses on face detection.
+     * OpenCV backend primarily focuses on face detection
      */
     private List<Detection> performObjectDetection(ImageData imageData) {
         if (imageData == null || imageData.isEmpty()) {
@@ -2797,7 +2802,7 @@ public class OpenCvVisionBackend implements VisionBackend, io.github.codesapienb
         return Collections.emptyList();
     }
 
-    @Override
+    // Implementation of EmbeddingCapability interface, not VisionBackend
     public java.util.List<float[]> extractEmbeddings(io.github.codesapienbe.springvision.core.ImageData imageData) throws io.github.codesapienbe.springvision.core.exception.BaseVisionException {
         // Use SFace when available; otherwise fallback to default FaceBytes-based embeddings
         if (this.sFaceRecognizer == null) {
@@ -2871,128 +2876,131 @@ public class OpenCvVisionBackend implements VisionBackend, io.github.codesapienb
         }
     }
 
+    // New methods: verify and nearest-lookup
+
     @Override
-    public List<Detection> detectBarcodes(ImageData imageData) {
-        // Prefer OpenCV native QRCodeDetector when available via JavaCV; fall back to ZXing
-        if (imageData == null || imageData.isEmpty()) {
-            throw new IllegalArgumentException("Image data must not be null or empty");
+    public boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
+        if (a == null || b == null) {
+            throw new IllegalArgumentException("Image data must not be null");
         }
-
         try {
-            // Try native OpenCV QRCodeDetector via reflection to avoid hard dependency issues
-            if (opencvAvailable) {
-                try {
-                    Mat mat = loadImageToMat(imageData);
-                    Class<?> qrClass = Class.forName("org.bytedeco.opencv.opencv_objdetect.QRCodeDetector");
-                    Object detector = qrClass.getDeclaredConstructor().newInstance();
-
-                    // Attempt detectAndDecode(Mat) -> String
-                    try {
-                        java.lang.reflect.Method detectAndDecode = qrClass.getMethod("detectAndDecode", Mat.class);
-                        Object res = detectAndDecode.invoke(detector, mat);
-                        if (res instanceof String s && s != null && !s.isEmpty()) {
-                            // We couldn't reliably extract bounding points via reflection portably here,
-                            // so return a detection with full-image bbox and decoded text as attribute.
-                            // Try ZXing to obtain precise bounding box and heuristic confidence
-                            try {
-                                java.util.List<Detection> zx = io.github.codesapienbe.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
-                                if (zx != null && !zx.isEmpty()) {
-                                    return zx;
-                                }
-                            } catch (Throwable ignore) {
-                                // If ZXing fails, fall back to full-frame bbox with conservative confidence
-                            }
-                            BoundingBox full = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                            java.util.Map<String, Object> attrs = new java.util.HashMap<>();
-                            attrs.put("text", s);
-                            attrs.put("confidence_source", "opencv:detectAndDecode");
-                            Detection d = new Detection("barcode", 0.85, full, attrs);
-                            return List.of(d);
-                        }
-                    } catch (NoSuchMethodException ignored) {
-                        // Fall through to ZXing fallback
-                    }
-                } catch (Throwable t) {
-                    logger.debug("OpenCV QRCodeDetector unavailable or failed: {}", t.getMessage());
-                    // fall through to ZXing fallback
-                }
+            java.util.List<float[]> ea = extractEmbeddings(a);
+            java.util.List<float[]> eb = extractEmbeddings(b);
+            if (ea == null || eb == null || ea.isEmpty() || eb.isEmpty()) {
+                return false;
             }
-
-            // Fallback to ZXing-based detector implemented in core utilities
-            return io.github.codesapienbe.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
-
-        } catch (io.github.codesapienbe.springvision.core.exception.VisionProcessingException vpe) {
-            throw vpe;
+            float[] va = ea.get(0);
+            float[] vb = eb.get(0);
+            if (va == null || vb == null) return false;
+            double dist;
+            if ("euclidean".equalsIgnoreCase(metric)) {
+                dist = euclideanDistance(va, vb);
+            } else {
+                dist = cosineDistance(va, vb);
+            }
+            return dist <= threshold;
+        } catch (BaseVisionException e) {
+            throw e;
         } catch (Exception e) {
-            logger.warn("Barcode detection failed: {}", e.getMessage());
-            return List.of();
+            // Fall back to default verification implementation
+            return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
         }
     }
 
-    // Getters and setters for configuration properties
+    @Override
+    public java.util.List<Integer> findNearestEmbeddings(ImageData probeImage, float[] probeEmbedding, java.util.List<float[]> galleryEmbeddings, String metric, int topK) throws BaseVisionException {
+        if ((probeImage == null && probeEmbedding == null) || galleryEmbeddings == null || galleryEmbeddings.isEmpty()) {
+            throw new IllegalArgumentException("Probe and gallery must be provided");
+        }
+        try {
+            float[] probe = probeEmbedding;
+            if (probe == null) {
+                java.util.List<float[]> pe = extractEmbeddings(probeImage);
+                if (pe == null || pe.isEmpty()) {
+                    throw new VisionProcessingException("Failed to extract probe embedding", "findNearest", null);
+                }
+                probe = pe.getFirst();
+            }
+            // Normalize for cosine; for euclidean keep original
+            float[] probeNorm = probe.clone();
+            boolean useEuclidean = "euclidean".equalsIgnoreCase(metric);
+            if (!useEuclidean) probeNorm = l2NormalizeLocal(probeNorm);
 
-    public boolean isEnabled() {
-        return enabled;
+            java.util.List<java.util.Map.Entry<Integer, Double>> list = new java.util.ArrayList<>();
+            for (int i = 0; i < galleryEmbeddings.size(); i++) {
+                float[] g = galleryEmbeddings.get(i);
+                if (g == null) continue;
+                float[] gNorm = g.clone();
+                if (!useEuclidean) gNorm = l2NormalizeLocal(gNorm);
+                double dist = useEuclidean ? euclideanDistance(probeNorm, gNorm) : cosineDistance(probeNorm, gNorm);
+                if (Double.isNaN(dist)) continue;
+                list.add(new java.util.AbstractMap.SimpleEntry<>(i, dist));
+            }
+            list.sort(java.util.Comparator.comparingDouble(java.util.Map.Entry::getValue));
+            int k = Math.max(0, Math.min(topK, list.size()));
+            java.util.List<Integer> out = new java.util.ArrayList<>(k);
+            for (int i = 0; i < k; i++) out.add(list.get(i).getKey());
+            return out;
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            // Delegate to EmbeddingSupport as a robust fallback
+            return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, probeEmbedding, galleryEmbeddings, metric, topK);
+        }
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    /**
+     * Convenience: search a gallery of ImageData and return top-K matching indices.
+     */
+    public java.util.List<Integer> findNearestInGallery(ImageData probeImage, java.util.List<ImageData> galleryImages, String metric, int topK) throws BaseVisionException {
+        if (probeImage == null || galleryImages == null || galleryImages.isEmpty()) {
+            throw new IllegalArgumentException("Probe and gallery must not be null/empty");
+        }
+        java.util.List<float[]> galleryEmb = new java.util.ArrayList<>();
+        for (ImageData gi : galleryImages) {
+            try {
+                java.util.List<float[]> e = extractEmbeddings(gi);
+                if (e != null && !e.isEmpty()) galleryEmb.add(e.get(0));
+            } catch (Exception ignore) {
+                // skip images that fail to produce embeddings
+            }
+        }
+        return findNearestEmbeddings(probeImage, null, galleryEmb, metric, topK);
     }
 
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
+    // Local helper functions for distances and normalization (kept private to avoid changing EmbeddingSupport API)
+    private static float[] l2NormalizeLocal(float[] vec) {
+        if (vec == null || vec.length == 0) return vec;
+        double s = 0.0;
+        for (float v : vec) s += v * v;
+        s = Math.sqrt(s);
+        if (s <= 0) return vec;
+        float[] out = new float[vec.length];
+        for (int i = 0; i < vec.length; i++) out[i] = (float) (vec[i] / s);
+        return out;
     }
 
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
+    private static double cosineDistance(float[] a, float[] b) {
+        if (a == null || b == null || a.length != b.length) return Double.NaN;
+        double dot = 0.0, na = 0.0, nb = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        if (na <= 0 || nb <= 0) return Double.NaN;
+        double sim = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        return 1.0 - sim;
     }
 
-    public int getMaxDetections() {
-        return maxDetections;
-    }
-
-    public void setMaxDetections(int maxDetections) {
-        this.maxDetections = maxDetections;
-    }
-
-    public boolean isEnableAutoDownload() {
-        return enableAutoDownload;
-    }
-
-    public void setEnableAutoDownload(boolean enableAutoDownload) {
-        this.enableAutoDownload = enableAutoDownload;
-    }
-
-    public int getDownloadTimeoutSeconds() {
-        return downloadTimeoutSeconds;
-    }
-
-    public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
-        this.downloadTimeoutSeconds = downloadTimeoutSeconds;
-    }
-
-    public String getModelPath() {
-        return modelPath;
-    }
-
-    public void setModelPath(String modelPath) {
-        this.modelPath = modelPath;
-    }
-
-    public int getMaxPoolSize() {
-        return maxPoolSize;
-    }
-
-    public void setMaxPoolSize(int maxPoolSize) {
-        this.maxPoolSize = maxPoolSize;
-    }
-
-    public int getPoolTimeoutSeconds() {
-        return poolTimeoutSeconds;
-    }
-
-    public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
-        this.poolTimeoutSeconds = poolTimeoutSeconds;
+    private static double euclideanDistance(float[] a, float[] b) {
+        if (a == null || b == null || a.length != b.length) return Double.NaN;
+        double s = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            double d = a[i] - b[i];
+            s += d * d;
+        }
+        return Math.sqrt(s);
     }
 
     /**

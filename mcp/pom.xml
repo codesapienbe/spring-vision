@@ -12,7 +12,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-mcp</artifactId>
+  <artifactId>mcp</artifactId>
   <name>Spring Vision -> MCP Server</name>
   <description>MCP Server for Spring Vision using Spring AI</description>
 
@@ -82,7 +82,7 @@
     <!-- Spring Vision Core -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

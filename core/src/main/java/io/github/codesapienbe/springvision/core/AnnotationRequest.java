@@ -86,6 +86,13 @@ public final class AnnotationRequest {
         private String label;
 
         /**
+         * Creates a new {@link Builder}.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
          * Sets the annotation action.
          *
          * @param action the action to set

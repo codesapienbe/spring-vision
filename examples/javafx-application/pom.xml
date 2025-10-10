@@ -7,7 +7,7 @@
 
   <parent>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-examples</artifactId>
+    <artifactId>examples</artifactId>
     <version>1.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
@@ -30,24 +30,24 @@
     <!-- Spring Vision Starter -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-starter</artifactId>
+      <artifactId>starter</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <!-- Spring Vision Backend Dependencies -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-facebytes</artifactId>
+      <artifactId>facebytes</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-compreface</artifactId>
+      <artifactId>compreface</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-deepface</artifactId>
+      <artifactId>deepface</artifactId>
       <version>${project.version}</version>
     </dependency>
 

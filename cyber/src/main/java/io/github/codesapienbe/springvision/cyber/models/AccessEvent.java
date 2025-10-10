@@ -28,46 +28,89 @@ public class AccessEvent {
         this.action = builder.action;
     }
 
+    /**
+     * Gets the unique event identifier.
+     * @return The event ID.
+     */
     public String getEventId() {
         return eventId;
     }
 
+    /**
+     * Gets the identifier of the person involved in the event.
+     * @return The person's ID.
+     */
     public String getPersonId() {
         return personId;
     }
 
+    /**
+     * Gets the name of the person involved in the event.
+     * @return The person's name.
+     */
     public String getPersonName() {
         return personName;
     }
 
+    /**
+     * Gets the timestamp of when the event occurred.
+     * @return The event timestamp.
+     */
     public LocalDateTime getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Checks if the access was authorized.
+     * @return {@code true} if authorized, {@code false} otherwise.
+     */
     public boolean isAuthorized() {
         return authorized;
     }
 
+    /**
+     * Gets the location where the event occurred.
+     * @return The event location.
+     */
     public String getLocation() {
         return location;
     }
 
+    /**
+     * Sets the location where the event occurred.
+     * @param location The event location.
+     */
     public void setLocation(String location) {
         this.location = location;
     }
 
+    /**
+     * Gets the action that was performed (e.g., "entry", "exit").
+     * @return The action performed.
+     */
     public String getAction() {
         return action;
     }
 
+    /**
+     * Sets the action that was performed.
+     * @param action The action performed.
+     */
     public void setAction(String action) {
         this.action = action;
     }
 
+    /**
+     * Creates a new builder for creating an {@link AccessEvent}.
+     * @return A new {@link Builder} instance.
+     */
     public static Builder builder() {
         return new Builder();
     }
 
+    /**
+     * Builder for {@link AccessEvent}.
+     */
     public static class Builder {
         private String personId;
         private String personName;
@@ -76,36 +119,70 @@ public class AccessEvent {
         private String location;
         private String action;
 
+        /**
+         * Sets the person's ID.
+         * @param personId The person's ID.
+         * @return This builder.
+         */
         public Builder personId(String personId) {
             this.personId = personId;
             return this;
         }
 
+        /**
+         * Sets the person's name.
+         * @param personName The person's name.
+         * @return This builder.
+         */
         public Builder personName(String personName) {
             this.personName = personName;
             return this;
         }
 
+        /**
+         * Sets the event timestamp.
+         * @param timestamp The timestamp.
+         * @return This builder.
+         */
         public Builder timestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
             return this;
         }
 
+        /**
+         * Sets whether the access was authorized.
+         * @param authorized {@code true} if authorized, {@code false} otherwise.
+         * @return This builder.
+         */
         public Builder authorized(boolean authorized) {
             this.authorized = authorized;
             return this;
         }
 
+        /**
+         * Sets the event location.
+         * @param location The location.
+         * @return This builder.
+         */
         public Builder location(String location) {
             this.location = location;
             return this;
         }
 
+        /**
+         * Sets the action performed.
+         * @param action The action.
+         * @return This builder.
+         */
         public Builder action(String action) {
             this.action = action;
             return this;
         }
 
+        /**
+         * Builds the {@link AccessEvent}.
+         * @return A new {@link AccessEvent} instance.
+         */
         public AccessEvent build() {
             return new AccessEvent(this);
         }
@@ -124,4 +201,3 @@ public class AccessEvent {
             '}';
     }
 }
-

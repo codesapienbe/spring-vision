@@ -85,6 +85,7 @@ public class AsyncVisionProcessor {
 
     /**
      * Creates a new AsyncVisionProcessor with default settings and the provided VisionTemplate.
+     * @param visionTemplate The VisionTemplate to use for processing.
      */
     public AsyncVisionProcessor(VisionTemplate visionTemplate) {
         this(visionTemplate, Executors.newFixedThreadPool(
@@ -143,6 +144,11 @@ public class AsyncVisionProcessor {
 
     /**
      * Submits an async task and returns a handle containing the taskId and future.
+     * @param imageData The image data to process.
+     * @param detectionType The type of detection to perform.
+     * @param parameters The processing parameters.
+     * @param progressCallback A callback for receiving progress updates.
+     * @return A {@link TaskHandle} containing the task ID and a {@link CompletableFuture} for the result.
      */
     public TaskHandle<VisionResult> processAsyncWithHandle(
         ImageData imageData,

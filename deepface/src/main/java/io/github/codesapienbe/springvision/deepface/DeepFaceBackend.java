@@ -12,6 +12,8 @@ import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceLookupCapability;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -54,7 +56,7 @@ import java.util.*;
  */
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.deepface", name = "enabled", havingValue = "true")
-public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability {
+public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability, FaceVerificationCapability, FaceLookupCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DeepFaceBackend.class);
 
@@ -576,5 +578,13 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         if (seconds <= 0) throw new IllegalArgumentException("timeoutSeconds must be positive");
         this.timeout = Duration.ofSeconds(seconds);
         logger.info("DeepFace backend timeout configured: {}s", seconds);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<Integer> findNearestEmbeddings(ImageData probeImage, float[] probeEmbedding, List<float[]> galleryEmbeddings, String metric, int topK) throws BaseVisionException {
+        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, probeEmbedding, galleryEmbeddings, metric, topK);
     }
 }

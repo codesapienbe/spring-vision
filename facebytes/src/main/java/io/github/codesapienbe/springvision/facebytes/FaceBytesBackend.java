@@ -10,6 +10,10 @@ import java.util.Set;
 
 import javax.imageio.ImageIO;
 
+import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,7 +45,8 @@ import io.github.codesapienbe.springvision.core.DetectionQuery;
  */
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.facebytes", name = "enabled", havingValue = "true")
-public final class FaceBytesBackend implements VisionBackend, io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability, io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability, io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability {
+public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability,
+    BarcodeCapability, ObjectDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(FaceBytesBackend.class);
 

@@ -6,7 +6,7 @@ default: build
 # Build target: Maven package and optional Docker image build
 build:
 	@echo "Building project: Maven install (will also build the docker image)"
-	mvn clean install -DskipTests
+	mvn clean install -DskipTests -q
 
 verify:
 	@echo "Testing project: Maven test"

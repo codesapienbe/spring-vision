@@ -223,16 +223,28 @@ public class FaceDatabaseBuilder {
         // Load image
         ImageData imageData = loadImageData(imageFile);
 
-        // Detect faces
-        List<Detection> detections = visionBackend.detectFaces(imageData);
+        // Detect faces using capability interface
+        List<Detection> detections;
+        if (visionBackend instanceof io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability faceDetectionCap) {
+            detections = faceDetectionCap.detectFaces(imageData);
+        } else {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Face detection not supported by backend", "detectFaces", null);
+        }
 
         if (detections.isEmpty()) {
             logger.debug("No faces detected in image: {}", imageFile);
             return;
         }
 
-        // Extract embeddings for quality faces
-        List<float[]> embeddings = visionBackend.extractEmbeddings(imageData);
+        // Extract embeddings using capability interface
+        List<float[]> embeddings;
+        if (visionBackend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingCap) {
+            embeddings = embeddingCap.extractEmbeddings(imageData, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+        } else {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Embedding extraction not supported by backend", "extractEmbeddings", null);
+        }
 
         List<FaceEmbeddingIndex.EmbeddingEntry> qualityEmbeddings = new ArrayList<>();
 

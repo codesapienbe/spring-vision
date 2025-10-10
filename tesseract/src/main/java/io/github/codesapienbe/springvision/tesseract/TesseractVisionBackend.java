@@ -150,14 +150,4 @@ public class TesseractVisionBackend implements VisionBackend, TextOcrCapability 
         }
     }
 
-    // Default implementations for other detection types (not supported)
-    @Override
-    public List<Detection> detectFaces(ImageData imageData) {
-        throw new UnsupportedOperationException("Face detection not supported by Tesseract backend");
-    }
-
-    @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        throw new UnsupportedOperationException("Object detection not supported by Tesseract backend");
-    }
 }

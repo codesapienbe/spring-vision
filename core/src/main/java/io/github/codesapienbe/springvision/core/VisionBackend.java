@@ -1,6 +1,5 @@
 package io.github.codesapienbe.springvision.core;
 
-import java.util.List;
 import java.util.Set;
 
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
@@ -9,21 +8,23 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
  * Service Provider Interface for computer vision backends.
  *
  * <p>This interface defines the contract that all vision backends must implement
- * to integrate with the Spring Vision framework. It provides a unified API for
- * performing various computer vision operations regardless of the underlying
- * implementation (OpenCV, MediaPipe, YOLO, etc.).</p>
+ * to integrate with the Spring Vision framework. It provides metadata about the
+ * backend including its identifier, version, health status, and supported detection types.</p>
  *
- * <p>The interface supports multiple detection types and provides methods for
- * checking backend capabilities, health status, and performing detections.</p>
+ * <p>The interface is designed to hold only backend metadata and capabilities information.
+ * Actual detection operations are performed through capability interfaces that backends
+ * implement (e.g., {@link io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability},
+ * {@link io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability}, etc.).</p>
  *
  * <p>Example usage:</p>
  * <pre>{@code
  * // Get available backends
  * ServiceLoader<VisionBackend> backends = ServiceLoader.load(VisionBackend.class);
  *
- * // Use a specific backend
+ * // Use a backend via VisionTemplate
  * VisionBackend opencvBackend = // ... get OpenCV backend
- * VisionResult result = opencvBackend.detectFaces(imageData);
+ * VisionTemplate template = new VisionTemplate(opencvBackend);
+ * VisionResult result = template.detectFaces(imageData);
  * }</pre>
  *
  * <p>Implementations should be registered using the Java Service Provider
@@ -105,139 +106,6 @@ public interface VisionBackend {
     BackendHealthInfo getHealthInfo();
 
     /**
-     * Performs face detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectFaces(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Face detection is not supported by backend '%s'", getBackendId()),
-            "detectFaces", null);
-    }
-
-    /**
-     * Performs object detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectObjects(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Object detection is not supported by backend '%s'", getBackendId()),
-            "detectObjects", null);
-    }
-
-    /**
-     * Performs text recognition (OCR) on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectText(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Text detection is not supported by backend '%s'", getBackendId()),
-            "detectText", null);
-    }
-
-    /**
-     * Performs barcode/QR code detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectBarcodes(ImageData imageData) {
-        try {
-            // Attempt a generic ZXing-based implementation located in core utilities.
-            return io.github.codesapienbe.springvision.core.util.ZxingBarcodeScanner.detectBarcodes(imageData);
-        } catch (io.github.codesapienbe.springvision.core.exception.VisionProcessingException e) {
-            // If ZXing is present but processing failed, rethrow processing exception
-            throw e;
-        } catch (NoClassDefFoundError | Exception e) {
-            // ZXing not available or other unexpected error - indicate unsupported capability
-            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-                String.format("Barcode detection is not supported by backend '%s'", getBackendId()),
-                "detectBarcodes", null);
-        }
-    }
-
-    /**
-     * Performs landmark detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectLandmarks(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Landmark detection is not supported by backend '%s'", getBackendId()),
-            "detectLandmarks", null);
-    }
-
-    /**
-     * Performs pose estimation on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectPoses(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Pose detection is not supported by backend '%s'", getBackendId()),
-            "detectPoses", null);
-    }
-
-    /**
-     * Performs hand detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectHands(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Hand detection is not supported by backend '%s'", getBackendId()),
-            "detectHands", null);
-    }
-
-    /**
-     * Performs custom detection on the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return a list of detections
-     */
-    default List<Detection> detectCustom(ImageData imageData) {
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-            String.format("Custom detection is not supported by backend '%s'", getBackendId()),
-            "detectCustom", null);
-    }
-
-    /**
-     * Performs multiple detection types on the provided image data.
-     *
-     * @param imageData      the image data to process
-     * @param detectionTypes the list of detection types to perform
-     * @return a list of lists of detections, one for each detection type
-     */
-    default List<List<Detection>> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes) {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
-        }
-        if (detectionTypes == null || detectionTypes.isEmpty()) {
-            throw new IllegalArgumentException("Detection types must not be null or empty");
-        }
-
-        for (DetectionType detectionType : detectionTypes) {
-            if (!supportsDetectionType(detectionType)) {
-                throw new IllegalArgumentException(
-                    String.format("Detection type '%s' is not supported by backend '%s'",
-                        detectionType.getDisplayName(), getBackendId()));
-            }
-        }
-
-        return detectionTypes.stream()
-            .map(detectionType -> detect(imageData, detectionType))
-            .toList();
-    }
-
-    /**
      * Initializes the backend and performs any necessary setup.
      *
      * @throws BaseVisionException if initialization fails
@@ -255,82 +123,5 @@ public interface VisionBackend {
         // Default no-op
     }
 
-    /**
-     * Extracts face embeddings from the provided image.
-     * Default implementation delegates to FaceBytes support if available.
-     *
-     * @param imageData the image data to process
-     * @return a list of face embeddings
-     * @throws BaseVisionException if embedding extraction fails
-     */
-    default java.util.List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
-    }
 
-    /**
-     * Verifies whether two images belong to the same identity using embeddings.
-     *
-     * @param a         the first image
-     * @param b         the second image
-     * @param metric    the distance metric to use
-     * @param threshold the similarity threshold
-     * @return true if the images are a match, false otherwise
-     * @throws BaseVisionException if verification fails
-     */
-    default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
-    }
-
-    /**
-     * Performs a generic detection operation based on the specified detection type.
-     *
-     * <p>Default implementation routes via capability interfaces when available.
-     * Implementations may override for backend-specific routing.</p>
-     *
-     * @param imageData     the image data to process
-     * @param detectionType the detection type to perform
-     * @return a list of detections
-     */
-    default List<Detection> detect(ImageData imageData, DetectionType detectionType) {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
-        }
-        if (detectionType == null) {
-            throw new IllegalArgumentException("Detection type must not be null");
-        }
-        if (!supportsDetectionType(detectionType)) {
-            throw new IllegalArgumentException(
-                String.format("Detection type '%s' is not supported by backend '%s'",
-                    detectionType.getDisplayName(), getBackendId()));
-        }
-
-        switch (detectionType) {
-            case FACE -> {
-                return detectFaces(imageData);
-            }
-            case OBJECT -> {
-                return detectObjects(imageData);
-            }
-            case TEXT -> {
-                return detectText(imageData);
-            }
-            case BARCODE -> {
-                return detectBarcodes(imageData);
-            }
-            case LANDMARK -> {
-                return detectLandmarks(imageData);
-            }
-            case POSE -> {
-                return detectPoses(imageData);
-            }
-            case HAND -> {
-                return detectHands(imageData);
-            }
-            case CUSTOM -> {
-                return detectCustom(imageData);
-            }
-            default -> throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-                "Unsupported detection type: " + detectionType, "detect", detectionType == null ? null : detectionType.name());
-        }
-    }
 }

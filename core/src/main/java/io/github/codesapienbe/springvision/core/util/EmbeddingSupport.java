@@ -10,7 +10,9 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
 
 /**
  * Utility support for default embeddings and verification using FaceBytes.
@@ -160,5 +162,84 @@ public final class EmbeddingSupport {
             s += d * d;
         }
         return Math.sqrt(s);
+    }
+
+    /**
+     * Find the nearest gallery embeddings given either a probe ImageData or a probe embedding.
+     * Returns the indices of the topK nearest gallery vectors sorted by increasing distance.
+     */
+    public static List<Integer> findNearest(ImageData probeImage, float[] probeEmbedding, List<float[]> galleryEmbeddings, String metric, int topK) throws BaseVisionException {
+        if (galleryEmbeddings == null || galleryEmbeddings.isEmpty()) {
+            throw new IllegalArgumentException("Gallery embeddings must not be null or empty");
+        }
+        try {
+            float[] probe = probeEmbedding;
+            if (probe == null) {
+                if (probeImage == null) {
+                    throw new IllegalArgumentException("Either probeImage or probeEmbedding must be provided");
+                }
+                List<float[]> pe = defaultExtractEmbeddings(probeImage);
+                if (pe == null || pe.isEmpty()) {
+                    throw new BaseVisionException("Failed to extract probe embedding", null) {
+                    };
+                }
+                probe = pe.get(0);
+            }
+
+            if (probe == null) {
+                throw new BaseVisionException("Probe embedding is null", null) {
+                };
+            }
+
+            // Normalize probe for cosine comparisons; for euclidean we keep as-is
+            float[] probeNorm = probe.clone();
+            if (!"euclidean".equalsIgnoreCase(metric)) {
+                probeNorm = l2Normalize(probeNorm);
+            }
+
+            // Use a simple priority queue (min-heap by distance)
+            PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingDouble(a -> a[1]));
+
+            for (int i = 0; i < galleryEmbeddings.size(); i++) {
+                float[] g = galleryEmbeddings.get(i);
+                if (g == null) continue;
+                float[] gNorm = g.clone();
+                if (!"euclidean".equalsIgnoreCase(metric)) {
+                    gNorm = l2Normalize(gNorm);
+                }
+                double dist = "euclidean".equalsIgnoreCase(metric) ? euclideanDistance(probeNorm, gNorm) : cosineDistance(probeNorm, gNorm);
+                if (Double.isNaN(dist)) continue;
+                pq.add(new int[]{i, (int) 0}); // placeholder, we'll store distance separately in parallel array approach
+                // We can't store distance as double in int[], so switch approach: build list instead
+            }
+
+            // Simpler: build list of pairs then sort
+            List<java.util.Map.Entry<Integer, Double>> list = new ArrayList<>();
+            for (int i = 0; i < galleryEmbeddings.size(); i++) {
+                float[] g = galleryEmbeddings.get(i);
+                if (g == null) continue;
+                float[] gNorm = g.clone();
+                if (!"euclidean".equalsIgnoreCase(metric)) {
+                    gNorm = l2Normalize(gNorm);
+                }
+                double dist = "euclidean".equalsIgnoreCase(metric) ? euclideanDistance(probeNorm, gNorm) : cosineDistance(probeNorm, gNorm);
+                if (Double.isNaN(dist)) continue;
+                list.add(new java.util.AbstractMap.SimpleEntry<>(i, dist));
+            }
+
+            list.sort(Comparator.comparingDouble(java.util.Map.Entry::getValue));
+
+            int k = Math.max(0, Math.min(topK, list.size()));
+            List<Integer> out = new ArrayList<>(k);
+            for (int i = 0; i < k; i++) {
+                out.add(list.get(i).getKey());
+            }
+            return out;
+        } catch (BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BaseVisionException("Failed to find nearest embeddings: " + e.getMessage(), e) {
+            };
+        }
     }
 }

@@ -39,6 +39,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class BasicFaceDetectionApplication {
 
     /**
+     * Creates a new {@link BasicFaceDetectionApplication}.
+     */
+    public BasicFaceDetectionApplication() {
+        // Default constructor
+    }
+
+    /**
      * Main method to start the Spring Boot application.
      *
      * @param args command line arguments

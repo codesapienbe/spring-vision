@@ -12,7 +12,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-core</artifactId>
+  <artifactId>core</artifactId>
   <name>Spring Vision -> Core</name>
   <description>Core domain classes and interfaces for Spring Vision</description>
 

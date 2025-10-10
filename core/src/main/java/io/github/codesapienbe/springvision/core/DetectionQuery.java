@@ -14,7 +14,7 @@ import java.util.Set;
  * maximum detections, class labels, and backend-specific options.</p>
  *
  * <p>In 1.x, this is an additive convenience. Backends may ignore unsupported
- * fields gracefully. Core will delegate to {@link VisionBackend#detect(ImageData, DetectionType)}
+ * fields gracefully. Core will delegate to {@link VisionTemplate#detect(ImageData, DetectionType)}
  * when only the type is present.</p>
  */
 public final class DetectionQuery {

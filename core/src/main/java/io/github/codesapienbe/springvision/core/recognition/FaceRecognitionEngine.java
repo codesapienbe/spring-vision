@@ -168,7 +168,15 @@ public class FaceRecognitionEngine {
 
         logger.debug("Detecting faces [{}]", correlationId);
 
-        List<Detection> allDetections = visionBackend.detectFaces(imageData);
+        // Use capability interface instead of direct backend call
+        List<Detection> allDetections;
+        if (visionBackend instanceof io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability cap) {
+            allDetections = cap.detectFaces(imageData);
+        } else {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Face detection not supported by backend", "detectFaces", null);
+        }
+
         List<Detection> validDetections = new ArrayList<>();
 
         for (Detection detection : allDetections) {
@@ -275,7 +283,14 @@ public class FaceRecognitionEngine {
         logger.debug("Extracting embedding [{}]", correlationId);
 
         try {
-            List<float[]> embeddings = visionBackend.extractEmbeddings(imageData);
+            // Use capability interface instead of direct backend call
+            List<float[]> embeddings;
+            if (visionBackend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
+                embeddings = cap.extractEmbeddings(imageData, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+            } else {
+                throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    "Embedding extraction not supported by backend", "extractEmbeddings", null);
+            }
 
             if (embeddings.isEmpty()) {
                 logger.warn("No embeddings extracted [{}]", correlationId);
@@ -486,8 +501,14 @@ public class FaceRecognitionEngine {
                 return detection.confidence() >= 0.8;
             }
 
-            // Detect landmarks in the image
-            List<Detection> landmarks = visionBackend.detectLandmarks(imageData);
+            // Use capability interface instead of direct backend call
+            List<Detection> landmarks;
+            if (visionBackend instanceof io.github.codesapienbe.springvision.core.capabilities.LandmarkDetectionCapability cap) {
+                landmarks = cap.detectLandmarks(imageData);
+            } else {
+                // Fallback: if landmark detection not available, accept high-confidence detections
+                return detection.confidence() >= 0.8;
+            }
 
             // Check if any landmarks are within the face bounding box and their distribution
             var bbox = detection.boundingBox();

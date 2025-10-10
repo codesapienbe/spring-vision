@@ -12,6 +12,8 @@ import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceLookupCapability;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -54,7 +56,7 @@ import java.util.*;
  */
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.compreface", name = "enabled", havingValue = "true")
-public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability {
+public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability, FaceVerificationCapability, FaceLookupCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(CompreFaceBackend.class);
 
@@ -572,5 +574,13 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
     public String toString() {
         return String.format("CompreFaceBackend{baseUrl='%s', timeout=%s, initialized=%s}",
             baseUrl, timeout, initialized);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public java.util.List<java.lang.Integer> findNearestEmbeddings(io.github.codesapienbe.springvision.core.ImageData probeImage, float[] probeEmbedding, java.util.List<float[]> galleryEmbeddings, java.lang.String metric, int topK) throws io.github.codesapienbe.springvision.core.exception.BaseVisionException {
+        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, probeEmbedding, galleryEmbeddings, metric, topK);
     }
 }

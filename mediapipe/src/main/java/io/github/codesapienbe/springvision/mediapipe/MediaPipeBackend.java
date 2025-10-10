@@ -8,6 +8,8 @@ import io.github.codesapienbe.springvision.core.DetectionQuery;
 import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.mediapipe", name = "enabled", havingValue = "true")
-public class MediaPipeBackend implements VisionBackend {
+public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(MediaPipeBackend.class);
 
@@ -163,7 +165,10 @@ public class MediaPipeBackend implements VisionBackend {
         return detect(imageData, DetectionType.OBJECT);
     }
 
-    @Override
+    public List<Detection> detectLandmarks(ImageData imageData) {
+        throw new UnsupportedOperationException("Landmark detection not yet implemented in MediaPipe backend");
+    }
+
     public List<Detection> detect(ImageData imageData, DetectionType type) {
         validateInput(imageData, new DetectionQuery.Builder().type(type).build());
 

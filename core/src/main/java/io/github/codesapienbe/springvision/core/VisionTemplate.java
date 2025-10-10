@@ -330,66 +330,83 @@ public class VisionTemplate {
     // Capability-aware routing (optional, non-breaking)
     private VisionResult routeViaCapabilitiesIfAvailable(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
         Object b = this.backend;
+        List<Detection> detections = null;
+
         switch (detectionType) {
             case FACE -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability cap) {
-                    List<Detection> detections = cap.detectFaces(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectFaces(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Face detection is not supported by backend '%s'", getBackendId()),
+                        "detectFaces", null);
                 }
             }
             case OBJECT -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability cap) {
-                    List<Detection> detections = cap.detectObjects(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectObjects(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Object detection is not supported by backend '%s'", getBackendId()),
+                        "detectObjects", null);
                 }
             }
             case TEXT -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.TextOcrCapability cap) {
-                    List<Detection> detections = cap.detectText(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectText(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Text detection is not supported by backend '%s'", getBackendId()),
+                        "detectText", null);
                 }
             }
             case BARCODE -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability cap) {
-                    List<Detection> detections = cap.detectBarcodes(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectBarcodes(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Barcode detection is not supported by backend '%s'", getBackendId()),
+                        "detectBarcodes", null);
                 }
             }
             case LANDMARK -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.LandmarkDetectionCapability cap) {
-                    List<Detection> detections = cap.detectLandmarks(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectLandmarks(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Landmark detection is not supported by backend '%s'", getBackendId()),
+                        "detectLandmarks", null);
                 }
             }
             case POSE -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability cap) {
-                    List<Detection> detections = cap.detectPoses(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectPoses(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Pose detection is not supported by backend '%s'", getBackendId()),
+                        "detectPoses", null);
                 }
             }
             case HAND -> {
                 if (b instanceof io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability cap) {
-                    List<Detection> detections = cap.detectHands(imageData);
-                    return VisionResult.of(detectionType, detections,
-                        detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                        0);
+                    detections = cap.detectHands(imageData);
+                } else {
+                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                        String.format("Hand detection is not supported by backend '%s'", getBackendId()),
+                        "detectHands", null);
                 }
             }
-            case CUSTOM -> { /* fall through to backend */ }
+            case CUSTOM -> {
+                throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    String.format("Custom detection is not supported by backend '%s'", getBackendId()),
+                    "detectCustom", null);
+            }
+            default -> {
+                throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    "Unsupported detection type: " + detectionType, "detect", detectionType.name());
+            }
         }
-        List<Detection> detections = backend.detect(imageData, detectionType);
+
         return VisionResult.of(detectionType, detections,
             detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
             0);
@@ -424,21 +441,14 @@ public class VisionTemplate {
         ));
 
         try {
-            java.util.List<List<Detection>> detectionLists = backend.detectMultiple(imageData, detectionTypes);
-            long processingTime = System.currentTimeMillis() - startTime;
-
-            // Convert List<List<Detection>> to List<VisionResult>
+            // Route each detection type individually through capabilities
             java.util.List<VisionResult> results = new ArrayList<>();
-            for (int i = 0; i < detectionTypes.size(); i++) {
-                List<Detection> detections = detectionLists.get(i);
-                DetectionType detectionType = detectionTypes.get(i);
-
-                VisionResult result = VisionResult.of(detectionType, detections,
-                    detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                    processingTime);
+            for (DetectionType detectionType : detectionTypes) {
+                VisionResult result = routeViaCapabilitiesIfAvailable(imageData, detectionType);
                 results.add(result);
             }
 
+            long processingTime = System.currentTimeMillis() - startTime;
             int totalDetections = results.stream().mapToInt(VisionResult::detectionCount).sum();
 
             logger.info("Multi-detection completed", Map.of(
@@ -518,18 +528,14 @@ public class VisionTemplate {
         ));
 
         try {
-            List<Detection> detections = backend.detect(imageData, query.getType());
+            // Route through capability-based detection
+            VisionResult result = routeViaCapabilitiesIfAvailable(imageData, query.getType());
             long processingTime = System.currentTimeMillis() - startTime;
-
-            // Convert List<Detection> to VisionResult
-            VisionResult result = VisionResult.of(query.getType(), detections,
-                detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                processingTime);
 
             logger.info("Detection query completed", Map.of(
                 "correlationId", correlationId,
                 "detectionType", query.getType().getDisplayName(),
-                "detectionCount", detections.size(),
+                "detectionCount", result.detectionCount(),
                 "processingTimeMs", processingTime,
                 "backendId", getBackendId()
             ));
@@ -563,19 +569,6 @@ public class VisionTemplate {
     }
 
     /**
-     * Performs a generic detection on byte array using a rich query.
-     *
-     * @param imageBytes the image data to process
-     * @param query      the detection query
-     * @return the vision result
-     * @throws BaseVisionException if detection fails
-     */
-    public VisionResult detect(byte[] imageBytes, DetectionQuery query) throws BaseVisionException {
-        ImageData imageData = ImageData.fromBytes(imageBytes);
-        return detect(imageData, query);
-    }
-
-    /**
      * Extracts face embeddings using the backend's implementation or default support.
      *
      * @param imageData the image data to process
@@ -594,7 +587,16 @@ public class VisionTemplate {
             "imageFormat", imageData.format(),
             "backendId", getBackendId()
         ));
-        List<float[]> embeddings = backend.extractEmbeddings(imageData);
+
+        // Route through EmbeddingCapability if available
+        List<float[]> embeddings;
+        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
+            embeddings = cap.extractEmbeddings(imageData, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+        } else {
+            // Fall back to default support (e.g., FaceBytes)
+            embeddings = io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+        }
+
         long processingTime = System.currentTimeMillis() - startTime;
         logger.info("Embedding extraction completed", Map.of(
             "correlationId", correlationId,
@@ -630,7 +632,16 @@ public class VisionTemplate {
             "threshold", threshold,
             "backendId", getBackendId()
         ));
-        boolean result = backend.verify(a, b, metric, threshold);
+
+        // Route through FaceVerificationCapability if available
+        boolean result;
+        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability cap) {
+            result = cap.verify(a, b, metric, threshold);
+        } else {
+            // Fall back to default support
+            result = io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
+        }
+
         long processingTime = System.currentTimeMillis() - startTime;
         logger.info("Verification completed", Map.of(
             "correlationId", correlationId,

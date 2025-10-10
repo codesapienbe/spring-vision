@@ -23,6 +23,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 public class AsyncConfig {
 
     /**
+     * Creates a new {@link AsyncConfig}.
+     */
+    public AsyncConfig() {
+        // Default constructor
+    }
+
+    /**
      * Creates a custom executor for asynchronous vision processing tasks.
      *
      * <p>This executor is configured with appropriate thread pool settings and

@@ -150,6 +150,8 @@ public class BasicFaceQualityAssessor implements FaceQualityAssessor {
 
     /**
      * Get a detailed quality assessment with individual factors.
+     * @param detection The detection to assess.
+     * @return A detailed quality assessment.
      */
     public QualityAssessment getDetailedAssessment(Detection detection) {
         if (detection == null) {
@@ -201,6 +203,8 @@ public class BasicFaceQualityAssessor implements FaceQualityAssessor {
 
     /**
      * Check if a face meets minimum quality requirements for recognition.
+     * @param detection The detection to check.
+     * @return {@code true} if the face is ready for recognition, {@code false} otherwise.
      */
     public boolean isRecognitionReady(Detection detection) {
         return assessQuality(detection) >= MIN_CONFIDENCE;
@@ -208,6 +212,7 @@ public class BasicFaceQualityAssessor implements FaceQualityAssessor {
 
     /**
      * Get the minimum confidence threshold for face detection.
+     * @return The minimum confidence threshold.
      */
     public double getMinConfidence() {
         return MIN_CONFIDENCE;
@@ -215,6 +220,7 @@ public class BasicFaceQualityAssessor implements FaceQualityAssessor {
 
     /**
      * Get the minimum face size ratio threshold.
+     * @return The minimum face size ratio.
      */
     public double getMinFaceSizeRatio() {
         return MIN_FACE_SIZE_RATIO;
@@ -222,6 +228,7 @@ public class BasicFaceQualityAssessor implements FaceQualityAssessor {
 
     /**
      * Get the maximum face size ratio threshold.
+     * @return The maximum face size ratio.
      */
     public double getMaxFaceSizeRatio() {
         return MAX_FACE_SIZE_RATIO;

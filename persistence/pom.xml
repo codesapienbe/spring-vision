@@ -11,7 +11,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-persistence</artifactId>
+  <artifactId>persistence</artifactId>
   <name>Spring Vision -> JPA</name>
   <description>Persistence support for multiple vendors.</description>
 
@@ -23,7 +23,7 @@
 
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

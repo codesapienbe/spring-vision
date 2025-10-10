@@ -410,27 +410,28 @@ public class BatchVisionProcessor {
                     try {
                         long startTime = System.currentTimeMillis();
 
-                        VisionResult result;
+                        List<Detection> detections;
                         switch (detectionType) {
                             case FACE:
-                                List<Detection> faceDetections = backend.detectFaces(imageData);
-                                result = VisionResult.of(detectionType, faceDetections,
-                                    faceDetections.isEmpty() ? 0.0 : faceDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                                    0);
+                                if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability cap) {
+                                    detections = cap.detectFaces(imageData);
+                                } else {
+                                    throw new IllegalArgumentException("Face detection not supported by backend");
+                                }
                                 break;
                             case OBJECT:
-                                List<Detection> objectDetections = backend.detectObjects(imageData);
-                                result = VisionResult.of(detectionType, objectDetections,
-                                    objectDetections.isEmpty() ? 0.0 : objectDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                                    0);
+                                if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability cap) {
+                                    detections = cap.detectObjects(imageData);
+                                } else {
+                                    throw new IllegalArgumentException("Object detection not supported by backend");
+                                }
                                 break;
                             case TEXT:
-                                // For text detection, we'll use object detection as a fallback
-                                // In a real implementation, this would use OCR
-                                List<Detection> textDetections = backend.detectObjects(imageData);
-                                result = VisionResult.of(detectionType, textDetections,
-                                    textDetections.isEmpty() ? 0.0 : textDetections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
-                                    0);
+                                if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.TextOcrCapability cap) {
+                                    detections = cap.detectText(imageData);
+                                } else {
+                                    throw new IllegalArgumentException("Text detection not supported by backend");
+                                }
                                 break;
                             default:
                                 throw new IllegalArgumentException("Unsupported detection type: " + detectionType);
@@ -441,10 +442,10 @@ public class BatchVisionProcessor {
                         // Create a new result with the actual processing time
                         return new VisionResult(
                             detectionType,
-                            result.detections(),
-                            result.averageConfidence(),
+                            detections,
+                            detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0),
                             processingTime,
-                            result.timestamp(),
+                            java.time.Instant.now(),
                             Map.of("batchProcessed", true, "backend", "opencv")
                         );
 
