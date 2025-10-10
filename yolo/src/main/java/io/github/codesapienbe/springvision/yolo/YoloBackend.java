@@ -168,7 +168,6 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         return detect(imageData, DetectionType.OBJECT);
     }
 
-    @Override
     public List<Detection> detect(ImageData imageData, DetectionType type) {
         validateInput(imageData, new DetectionQuery.Builder().type(type).build());
 

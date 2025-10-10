@@ -1,8 +1,0 @@
-services:
-  deepface:
-    image: serengil/deepface:latest
-    container_name: gwt-deepface
-    ports:
-      - "5003:5000"
-    environment:
-      - PYTHONUNBUFFERED=1

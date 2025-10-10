@@ -1,8 +1,0 @@
-services:
-  deepface:
-    image: serengil/deepface:latest
-    container_name: vaadin-deepface
-    ports:
-      - "5001:5000"
-    environment:
-      - PYTHONUNBUFFERED=1

@@ -6,16 +6,16 @@ default: build
 # Build target: Maven package and optional Docker image build
 build:
 	@echo "Building project: Maven install (will also build the docker image)"
-	mvn clean install -DskipTests -q
+	mvn clean install -DskipTests
 
 verify:
 	@echo "Testing project: Maven test"
 	mvn clean test test
 
-# Run the example (unchanged)
+# Run the MCP server
 run:
-	@echo "Running basic-face-detection example..."
-	cd examples/basic-face-detection && mvn -o spring-boot:run
+	@echo "Running MCP server..."
+	cd mcp && mvn -o spring-boot:run
 
 # Clean the project (unchanged)
 clean:

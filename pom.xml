@@ -99,7 +99,6 @@
     <module>compreface</module>
     <module>deepface</module>
     <module>yolo</module>
-    <module>examples</module>
     <module>mcp</module>
     <module>health</module>
     <module>cyber</module>
