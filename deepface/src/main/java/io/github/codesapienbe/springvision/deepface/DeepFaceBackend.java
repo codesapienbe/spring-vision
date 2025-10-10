@@ -119,21 +119,33 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getBackendId() {
         return BACKEND_ID;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getDisplayName() {
         return DISPLAY_NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getVersion() {
         return VERSION;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
         return Set.of(
@@ -142,6 +154,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isHealthy() {
         if (!initialized) {
@@ -165,6 +180,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BackendHealthInfo getHealthInfo() {
         long startTime = System.currentTimeMillis();
@@ -216,6 +234,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
         validateState();
@@ -243,12 +264,18 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
         // DeepFace can detect faces as objects, so reuse face detection
         return detectFaces(imageData);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<float[]> extractEmbeddings(ImageData imageData, DetectionCategory subject) {
         // TODO: Implement embedding extraction from DeepFace
@@ -256,6 +283,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         return List.of();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean verify(ImageData image1, ImageData image2, String metric, double threshold) {
         try {
@@ -291,6 +321,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void initialize() throws BaseVisionException {
         if (initialized) {
@@ -326,6 +359,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void shutdown() throws BaseVisionException {
         if (!initialized) {
@@ -469,6 +505,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         return timeout;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return String.format("DeepFaceBackend{baseUrl='%s', timeout=%s, initialized=%s}",

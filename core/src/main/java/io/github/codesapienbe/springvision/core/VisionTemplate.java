@@ -52,6 +52,8 @@ public class VisionTemplate {
 
     /**
      * Constructs a new VisionTemplate with the specified backend.
+     *
+     * @param backend the vision backend to use
      */
     public VisionTemplate(VisionBackend backend) {
         this(backend, null);
@@ -69,6 +71,9 @@ public class VisionTemplate {
 
     /**
      * New constructor that accepts an optional VectorService implementation.
+     *
+     * @param backend       the vision backend to use
+     * @param vectorService the vector service to use
      */
     public VisionTemplate(VisionBackend backend, VectorService vectorService) {
         this.backend = Objects.requireNonNull(backend, "Vision backend must not be null");
@@ -78,6 +83,8 @@ public class VisionTemplate {
 
     /**
      * Gets the underlying vision backend.
+     *
+     * @return the vision backend
      */
     public VisionBackend getBackend() {
         return backend;
@@ -85,6 +92,8 @@ public class VisionTemplate {
 
     /**
      * Gets the backend identifier.
+     *
+     * @return the backend identifier
      */
     public String getBackendId() {
         return backend.getBackendId();
@@ -92,6 +101,8 @@ public class VisionTemplate {
 
     /**
      * Gets the backend display name.
+     *
+     * @return the backend display name
      */
     public String getBackendDisplayName() {
         return backend.getDisplayName();
@@ -99,6 +110,8 @@ public class VisionTemplate {
 
     /**
      * Gets the backend version.
+     *
+     * @return the backend version
      */
     public String getBackendVersion() {
         return backend.getVersion();
@@ -106,6 +119,8 @@ public class VisionTemplate {
 
     /**
      * Gets the set of detection types supported by this backend.
+     *
+     * @return the set of supported detection types
      */
     public java.util.Set<DetectionType> getSupportedDetectionTypes() {
         return backend.getSupportedDetectionTypes();
@@ -113,6 +128,9 @@ public class VisionTemplate {
 
     /**
      * Checks if this backend supports a specific detection type.
+     *
+     * @param detectionType the detection type to check
+     * @return true if supported, false otherwise
      */
     public boolean supportsDetectionType(DetectionType detectionType) {
         return backend.supportsDetectionType(detectionType);
@@ -120,6 +138,8 @@ public class VisionTemplate {
 
     /**
      * Checks if the backend is healthy.
+     *
+     * @return true if healthy, false otherwise
      */
     public boolean isBackendHealthy() {
         return backend.isHealthy();
@@ -127,6 +147,8 @@ public class VisionTemplate {
 
     /**
      * Gets detailed health information about the backend.
+     *
+     * @return the backend health info
      */
     public BackendHealthInfo getBackendHealthInfo() {
         return backend.getHealthInfo();
@@ -134,6 +156,10 @@ public class VisionTemplate {
 
     /**
      * Detects faces in the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detectFaces(ImageData imageData) throws BaseVisionException {
         return detect(imageData, DetectionType.FACE);
@@ -141,6 +167,14 @@ public class VisionTemplate {
 
     /**
      * Store an embedding using the configured VectorService (if available).
+     *
+     * @param personId   the person ID
+     * @param embedding  the embedding vector
+     * @param modelName  the model name
+     * @param imageHash  the image hash
+     * @param confidence the detection confidence
+     * @param metadata   additional metadata
+     * @return the stored embedding ID
      */
     public String storeFaceEmbedding(String personId, float[] embedding, String modelName, String imageHash, Double confidence, java.util.Map<String, Object> metadata) {
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
@@ -149,6 +183,15 @@ public class VisionTemplate {
 
     /**
      * Lookup similar faces using the configured VectorService (if available).
+     *
+     * @param queryEmbedding   the query embedding
+     * @param modelName        the model name
+     * @param metric           the distance metric
+     * @param threshold        the similarity threshold
+     * @param limit            the maximum number of results
+     * @param includePersonIds person IDs to include
+     * @param excludePersonIds person IDs to exclude
+     * @return a list of similar faces
      */
     public java.util.List<java.util.Map<String, Object>> lookupFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, java.util.Set<String> includePersonIds, java.util.Set<String> excludePersonIds) {
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
@@ -157,6 +200,10 @@ public class VisionTemplate {
 
     /**
      * Detects faces in the provided byte array.
+     *
+     * @param imageBytes the image data to process
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detectFaces(byte[] imageBytes) throws BaseVisionException {
         ImageData imageData = ImageData.fromBytes(imageBytes);
@@ -165,6 +212,10 @@ public class VisionTemplate {
 
     /**
      * Detects objects in the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detectObjects(ImageData imageData) throws BaseVisionException {
         return detect(imageData, DetectionType.OBJECT);
@@ -172,6 +223,10 @@ public class VisionTemplate {
 
     /**
      * Detects objects in the provided byte array.
+     *
+     * @param imageBytes the image data to process
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detectObjects(byte[] imageBytes) throws BaseVisionException {
         ImageData imageData = ImageData.fromBytes(imageBytes);
@@ -180,6 +235,11 @@ public class VisionTemplate {
 
     /**
      * Performs a generic detection operation based on the specified detection type.
+     *
+     * @param imageData     the image data to process
+     * @param detectionType the detection type to perform
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detect(ImageData imageData, DetectionType detectionType) throws BaseVisionException {
         if (imageData == null) {
@@ -256,6 +316,11 @@ public class VisionTemplate {
 
     /**
      * Performs a generic detection operation on byte array data.
+     *
+     * @param imageBytes    the image data to process
+     * @param detectionType the detection type to perform
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detect(byte[] imageBytes, DetectionType detectionType) throws BaseVisionException {
         ImageData imageData = ImageData.fromBytes(imageBytes);
@@ -332,6 +397,11 @@ public class VisionTemplate {
 
     /**
      * Performs multiple detection types on the provided image data.
+     *
+     * @param imageData      the image data to process
+     * @param detectionTypes the list of detection types to perform
+     * @return a list of vision results
+     * @throws BaseVisionException if detection fails
      */
     public java.util.List<VisionResult> detectMultiple(ImageData imageData, java.util.List<DetectionType> detectionTypes)
         throws BaseVisionException {
@@ -409,6 +479,11 @@ public class VisionTemplate {
 
     /**
      * Performs a generic detection using a rich query.
+     *
+     * @param imageData the image data to process
+     * @param query     the detection query
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detect(ImageData imageData, DetectionQuery query) throws BaseVisionException {
         if (imageData == null) {
@@ -489,6 +564,11 @@ public class VisionTemplate {
 
     /**
      * Performs a generic detection on byte array using a rich query.
+     *
+     * @param imageBytes the image data to process
+     * @param query      the detection query
+     * @return the vision result
+     * @throws BaseVisionException if detection fails
      */
     public VisionResult detect(byte[] imageBytes, DetectionQuery query) throws BaseVisionException {
         ImageData imageData = ImageData.fromBytes(imageBytes);
@@ -497,6 +577,10 @@ public class VisionTemplate {
 
     /**
      * Extracts face embeddings using the backend's implementation or default support.
+     *
+     * @param imageData the image data to process
+     * @return a list of face embeddings
+     * @throws BaseVisionException if embedding extraction fails
      */
     public List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
         if (imageData == null) {
@@ -523,6 +607,13 @@ public class VisionTemplate {
 
     /**
      * Verifies whether two images belong to the same identity.
+     *
+     * @param a         the first image
+     * @param b         the second image
+     * @param metric    the distance metric
+     * @param threshold the similarity threshold
+     * @return true if the images are a match, false otherwise
+     * @throws BaseVisionException if verification fails
      */
     public boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         if (a == null) {
@@ -552,6 +643,10 @@ public class VisionTemplate {
 
     /**
      * Obscures faces in the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return the modified image data
+     * @throws BaseVisionException if obscuring fails
      */
     public ImageData obscureFaces(ImageData imageData) throws BaseVisionException {
         if (imageData == null) {
@@ -589,6 +684,11 @@ public class VisionTemplate {
 
     /**
      * Generic annotate call for clients wanting TAG/MARK/OBSCURE with categories.
+     *
+     * @param imageData the image data to process
+     * @param request   the annotation request
+     * @return the modified image data
+     * @throws BaseVisionException if annotation fails
      */
     public ImageData annotate(ImageData imageData, io.github.codesapienbe.springvision.core.AnnotationRequest request) throws BaseVisionException {
         if (imageData == null) {
@@ -610,6 +710,12 @@ public class VisionTemplate {
 
     /**
      * Convenience: draw labels for detections of categories using TAG action.
+     *
+     * @param imageData  the image data to process
+     * @param label      the label to draw
+     * @param categories the categories to tag
+     * @return the modified image data
+     * @throws BaseVisionException if tagging fails
      */
     public ImageData tag(ImageData imageData, String label, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
         io.github.codesapienbe.springvision.core.AnnotationRequest req = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
@@ -622,6 +728,11 @@ public class VisionTemplate {
 
     /**
      * Convenience: draw rectangles for detections of categories using MARK action.
+     *
+     * @param imageData  the image data to process
+     * @param categories the categories to mark
+     * @return the modified image data
+     * @throws BaseVisionException if marking fails
      */
     public ImageData mark(ImageData imageData, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
         io.github.codesapienbe.springvision.core.AnnotationRequest req = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
@@ -633,6 +744,10 @@ public class VisionTemplate {
 
     /**
      * Detect heart-rate estimates from a temporal list of images using backend capability when available.
+     *
+     * @param imageDataList the list of images to process
+     * @return a list of detections
+     * @throws BaseVisionException if detection fails
      */
     public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectHeartRate(java.util.List<ImageData> imageDataList) throws BaseVisionException {
         if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability cap) {
@@ -647,6 +762,10 @@ public class VisionTemplate {
 
     /**
      * Detect falls from a temporal list of images using backend capability when available.
+     *
+     * @param imageDataList the list of images to process
+     * @return a list of detections
+     * @throws BaseVisionException if detection fails
      */
     public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectFall(java.util.List<ImageData> imageDataList) throws BaseVisionException {
         if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability cap) {
@@ -661,6 +780,10 @@ public class VisionTemplate {
 
     /**
      * Detect stress estimates from a temporal list of images using backend capability when available.
+     *
+     * @param imageDataList the list of images to process
+     * @return a list of detections
+     * @throws BaseVisionException if detection fails
      */
     public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectStress(java.util.List<ImageData> imageDataList) throws BaseVisionException {
         if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability cap) {
@@ -675,6 +798,8 @@ public class VisionTemplate {
 
     /**
      * Generates a unique correlation ID for tracking operations.
+     *
+     * @return a unique correlation ID
      */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();

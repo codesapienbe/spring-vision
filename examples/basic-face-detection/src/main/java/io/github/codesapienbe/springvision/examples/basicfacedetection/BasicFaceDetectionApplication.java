@@ -33,7 +33,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * @author Spring Vision Team
  * @see io.github.codesapienbe.springvision.examples.basicfacedetection.controller.FaceDetectionController
- * @see io.github.codesapienbe.springvision.examples.basicfacedetection.service.FaceDetectionService
  * @since 1.0.0
  */
 @SpringBootApplication

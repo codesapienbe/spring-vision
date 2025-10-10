@@ -72,7 +72,7 @@ public class FaceDetectionController {
     private final WebClient webClient;
 
     /**
-     * Constructor with VisionTemplate and WebClient dependency injection.
+     * Constructs a new FaceDetectionController.
      *
      * @param visionTemplate the vision template for processing images
      * @param webClientBuilder the web client builder for reactive HTTP calls
@@ -98,13 +98,17 @@ public class FaceDetectionController {
 
     /**
      * Annotated image endpoint (upload) - returns PNG with rectangles drawn around faces.
+     *
+     * @param file the uploaded image file
+     * @return response entity containing the annotated image as PNG
+     * @throws IOException if an I/O error occurs while processing the image
      */
     @PostMapping(value = "/api/vision/detect/annotated", produces = MediaType.IMAGE_PNG_VALUE)
     @ResponseBody
     public ResponseEntity<byte[]> annotatedFromUpload(@RequestParam("file") MultipartFile file) throws IOException {
         logger.info("Processing annotated image request for file: {}", file.getOriginalFilename());
 
-        if (file == null || file.isEmpty()) {
+        if (file.isEmpty()) {
             logger.warn("No file provided for annotated request");
             return ResponseEntity.badRequest().build();
         }
@@ -118,7 +122,7 @@ public class FaceDetectionController {
             .build();
         VisionResult result = visionTemplate.detect(imageData, query);
 
-        // Filter detections by confidence threshold
+        // Filter detections by the confidence threshold
         List<Detection> filteredDetections = result.detections().stream()
             .filter(d -> d.confidence() >= 0.3)
             .collect(Collectors.toList());
@@ -129,6 +133,9 @@ public class FaceDetectionController {
 
     /**
      * Annotated image endpoint (URL) - downloads URL in-memory and returns PNG with rectangles.
+     *
+     * @param imageUrl the URL of the image to process
+     * @return mono containing a response entity with the annotated image
      */
     @PostMapping(value = "/api/vision/detect/annotated/url", produces = MediaType.IMAGE_PNG_VALUE)
     @ResponseBody
@@ -296,7 +303,7 @@ public class FaceDetectionController {
                         List<float[]> faceEmbeddings = visionTemplate.getBackend().extractEmbeddings(faceImageData);
                         logger.debug("extractEmbeddings returned {} embeddings for face #{}", faceEmbeddings == null ? 0 : faceEmbeddings.size(), faceIndex);
                         if (!faceEmbeddings.isEmpty()) {
-                            embeddingStrings.add(Arrays.toString(faceEmbeddings.get(0)));
+                            embeddingStrings.add(Arrays.toString(faceEmbeddings.getFirst()));
                         } else {
                             embeddingStrings.add("No embedding extracted");
                         }
@@ -399,7 +406,7 @@ public class FaceDetectionController {
                         ImageData faceImageData = ImageData.fromBytes(faceBytes);
                         List<float[]> faceEmbeddings = visionTemplate.getBackend().extractEmbeddings(faceImageData);
                         if (!faceEmbeddings.isEmpty()) {
-                            embeddingStrings.add(Arrays.toString(faceEmbeddings.get(0)));
+                            embeddingStrings.add(Arrays.toString(faceEmbeddings.getFirst()));
                         } else {
                             embeddingStrings.add("No embedding extracted");
                         }

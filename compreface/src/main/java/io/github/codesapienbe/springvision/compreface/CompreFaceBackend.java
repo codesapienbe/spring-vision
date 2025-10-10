@@ -117,21 +117,33 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getBackendId() {
         return BACKEND_ID;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getDisplayName() {
         return DISPLAY_NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getVersion() {
         return VERSION;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
         return Set.of(
@@ -140,6 +152,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isHealthy() {
         // Consider backend healthy by default when not shut down; tests expect a fresh instance to be healthy
@@ -163,6 +178,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public BackendHealthInfo getHealthInfo() {
         long startTime = System.currentTimeMillis();
@@ -214,6 +232,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Detection> detectFaces(ImageData imageData) {
         validateState();
@@ -241,6 +262,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
         // CompreFace primarily supports face detection
@@ -248,6 +272,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         return Collections.emptyList();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<float[]> extractEmbeddings(ImageData imageData, DetectionCategory subject) {
         // TODO: Implement embedding extraction from CompreFace
@@ -255,6 +282,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         return List.of();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean verify(ImageData image1, ImageData image2, String metric, double threshold) {
         try {
@@ -289,6 +319,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void initialize() throws BaseVisionException {
         if (initialized) {
@@ -328,6 +361,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void shutdown() throws BaseVisionException {
         if (!initialized) {
@@ -488,6 +524,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
      * - If value is already in 0..1 range it's returned as-is (clamped).
      * - If value looks like a percentage (0..100) it will be divided by 100.
      * - The result is clamped into [0.0, 1.0].
+     *
+     * @param raw the raw confidence score
+     * @return the normalized confidence score
      */
     private double normalizeConfidence(double raw) {
         if (Double.isNaN(raw) || Double.isInfinite(raw)) return 0.0;
@@ -524,6 +563,9 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         return timeout;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return String.format("CompreFaceBackend{baseUrl='%s', timeout=%s, initialized=%s}",

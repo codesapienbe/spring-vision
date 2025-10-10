@@ -13,6 +13,8 @@ import java.net.URL;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * VisionTool: provides tool methods that can be exposed to MCP clients via Spring AI.
@@ -21,6 +23,9 @@ import java.util.Map;
 public class VisionTool {
 
     private final VisionTemplate visionTemplate;
+
+    // Default similarity threshold for face comparison (cosine similarity)
+    private static final double DEFAULT_SIMILARITY_THRESHOLD = 0.6;
 
     public VisionTool(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
@@ -39,6 +44,28 @@ public class VisionTool {
         } catch (Exception e) {
             throw new IOException("Failed to download image from URL: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Calculate cosine similarity between two embedding vectors.
+     * Returns a value between -1 and 1, where 1 means identical.
+     */
+    private double cosineSimilarity(float[] embedding1, float[] embedding2) {
+        if (embedding1.length != embedding2.length) {
+            throw new IllegalArgumentException("Embeddings must have the same dimension");
+        }
+
+        double dotProduct = 0.0;
+        double norm1 = 0.0;
+        double norm2 = 0.0;
+
+        for (int i = 0; i < embedding1.length; i++) {
+            dotProduct += embedding1[i] * embedding2[i];
+            norm1 += embedding1[i] * embedding1[i];
+            norm2 += embedding2[i] * embedding2[i];
+        }
+
+        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 
     @Tool(description = "Detect objects in an image. Accepts raw bytes and optional detectionType (FACE|OBJECT)")
@@ -193,5 +220,158 @@ public class VisionTool {
         } catch (IOException e) {
             return Map.of("error", "Failed to download image from URL: " + e.getMessage());
         }
+    }
+
+    @Tool(description = "Compare faces from multiple image URLs to determine if they show the same person. Returns similarity scores and a match verdict.")
+    public Map<String, Object> compareFacesFromUrls(List<String> imageUrls, Double threshold) {
+        if (imageUrls == null || imageUrls.size() < 2) {
+            return Map.of("error", "At least 2 image URLs are required for comparison");
+        }
+
+        double similarityThreshold = threshold != null ? threshold : DEFAULT_SIMILARITY_THRESHOLD;
+
+        try {
+            // Extract embeddings from all images
+            List<List<float[]>> allEmbeddings = new ArrayList<>();
+            List<String> imageLabels = new ArrayList<>();
+
+            for (int i = 0; i < imageUrls.size(); i++) {
+                String imageUrl = imageUrls.get(i);
+                if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                    return Map.of("error", "Image URL at index " + i + " is empty or null");
+                }
+
+                byte[] imageBytes = downloadImageFromUrl(imageUrl);
+                ImageData imgData = ImageData.fromBytes(imageBytes);
+                List<float[]> embeddings = visionTemplate.extractEmbeddings(imgData);
+
+                if (embeddings == null || embeddings.isEmpty()) {
+                    return Map.of("error", "No face detected in image " + (i + 1) + ": " + imageUrl);
+                }
+
+                allEmbeddings.add(embeddings);
+                imageLabels.add("Image " + (i + 1));
+            }
+
+            return performFaceComparison(allEmbeddings, imageLabels, similarityThreshold);
+
+        } catch (Exception e) {
+            return Map.of("error", "Face comparison failed: " + e.getMessage());
+        }
+    }
+
+    @Tool(description = "Compare faces from multiple base64-encoded images to determine if they show the same person. Returns similarity scores and a match verdict.")
+    public Map<String, Object> compareFacesFromBase64(List<String> base64Images, Double threshold) {
+        if (base64Images == null || base64Images.size() < 2) {
+            return Map.of("error", "At least 2 base64 images are required for comparison");
+        }
+
+        double similarityThreshold = threshold != null ? threshold : DEFAULT_SIMILARITY_THRESHOLD;
+
+        try {
+            // Extract embeddings from all images
+            List<List<float[]>> allEmbeddings = new ArrayList<>();
+            List<String> imageLabels = new ArrayList<>();
+
+            for (int i = 0; i < base64Images.size(); i++) {
+                String base64Image = base64Images.get(i);
+                if (base64Image == null || base64Image.trim().isEmpty()) {
+                    return Map.of("error", "Base64 image at index " + i + " is empty or null");
+                }
+
+                byte[] imageBytes = Base64.getDecoder().decode(base64Image);
+                ImageData imgData = ImageData.fromBytes(imageBytes);
+                List<float[]> embeddings = visionTemplate.extractEmbeddings(imgData);
+
+                if (embeddings == null || embeddings.isEmpty()) {
+                    return Map.of("error", "No face detected in image " + (i + 1));
+                }
+
+                allEmbeddings.add(embeddings);
+                imageLabels.add("Image " + (i + 1));
+            }
+
+            return performFaceComparison(allEmbeddings, imageLabels, similarityThreshold);
+
+        } catch (Exception e) {
+            return Map.of("error", "Face comparison failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Performs pairwise face comparison between all images.
+     * Uses the first detected face from each image for comparison.
+     */
+    private Map<String, Object> performFaceComparison(List<List<float[]>> allEmbeddings,
+                                                      List<String> imageLabels,
+                                                      double threshold) {
+        Map<String, Object> response = new HashMap<>();
+        List<Map<String, Object>> comparisons = new ArrayList<>();
+
+        // Use the first face from each image
+        List<float[]> primaryEmbeddings = new ArrayList<>();
+        for (int i = 0; i < allEmbeddings.size(); i++) {
+            primaryEmbeddings.add(allEmbeddings.get(i).get(0));
+
+            if (allEmbeddings.get(i).size() > 1) {
+                response.put("warning_image_" + (i + 1),
+                    "Multiple faces detected in " + imageLabels.get(i) + ". Using the first detected face.");
+            }
+        }
+
+        // Perform pairwise comparisons
+        double minSimilarity = 1.0;
+        double maxSimilarity = -1.0;
+        double totalSimilarity = 0.0;
+        int comparisonCount = 0;
+
+        for (int i = 0; i < primaryEmbeddings.size(); i++) {
+            for (int j = i + 1; j < primaryEmbeddings.size(); j++) {
+                double similarity = cosineSimilarity(primaryEmbeddings.get(i), primaryEmbeddings.get(j));
+
+                Map<String, Object> comparison = new HashMap<>();
+                comparison.put("pair", imageLabels.get(i) + " vs " + imageLabels.get(j));
+                comparison.put("similarity", Math.round(similarity * 10000.0) / 10000.0);
+                comparison.put("match", similarity >= threshold);
+                comparison.put("confidence", getConfidenceLevel(similarity));
+
+                comparisons.add(comparison);
+
+                minSimilarity = Math.min(minSimilarity, similarity);
+                maxSimilarity = Math.max(maxSimilarity, similarity);
+                totalSimilarity += similarity;
+                comparisonCount++;
+            }
+        }
+
+        double averageSimilarity = totalSimilarity / comparisonCount;
+        boolean allMatch = minSimilarity >= threshold;
+
+        response.put("comparisons", comparisons);
+        response.put("summary", Map.of(
+            "allMatch", allMatch,
+            "minSimilarity", Math.round(minSimilarity * 10000.0) / 10000.0,
+            "maxSimilarity", Math.round(maxSimilarity * 10000.0) / 10000.0,
+            "avgSimilarity", Math.round(averageSimilarity * 10000.0) / 10000.0,
+            "threshold", threshold,
+            "imagesCompared", imageLabels.size()
+        ));
+
+        response.put("verdict", allMatch ?
+            "All images appear to show the same person" :
+            "Images likely show different people or comparison is uncertain");
+
+        return response;
+    }
+
+    /**
+     * Get a human-readable confidence level based on similarity score.
+     */
+    private String getConfidenceLevel(double similarity) {
+        if (similarity >= 0.8) return "Very High";
+        if (similarity >= 0.7) return "High";
+        if (similarity >= 0.6) return "Medium";
+        if (similarity >= 0.5) return "Low";
+        return "Very Low";
     }
 }

@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuration to ensure VisionTemplate bean is available with real OpenCV backend.
  * This guarantees the application starts and provides actual face detection.
+ *
+ * @author Spring Vision Team
+ * @since 1.0.0
  */
 @Configuration
 public class VisionConfig {
@@ -19,6 +22,8 @@ public class VisionConfig {
     /**
      * Creates a VisionTemplate bean with real OpenCV backend.
      * This ensures the application starts and provides actual face detection.
+     *
+     * @return configured VisionTemplate instance with OpenCV backend
      */
     @Bean
     public VisionTemplate visionTemplate() {

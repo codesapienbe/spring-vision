@@ -1,18 +1,15 @@
-# Use OpenJDK 21 as the base image
-FROM openjdk:21-jdk-slim
+# Use JRE instead of JDK for smaller image size
+FROM eclipse-temurin:21-jre-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy the built JAR file
+# Copy only the built JAR file
 COPY target/spring-vision-mcp-1.0.jar app.jar
 
-# Expose port 8080 for the web server
-EXPOSE 8080
+# Run as non-root user for security
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
 
-# Set environment variables with defaults
-ENV SPRING_PROFILES_ACTIVE=default
-ENV SERVER_PORT=8080
-
-# Run the application
+# MCP server runs in stdio mode - no port exposure needed
 ENTRYPOINT ["java", "-jar", "app.jar"]

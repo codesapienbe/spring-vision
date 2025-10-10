@@ -44,30 +44,65 @@ public final class DetectionQuery {
         }
     }
 
+    /**
+     * Gets the primary detection type.
+     *
+     * @return the detection type
+     */
     public DetectionType getType() {
         return type;
     }
 
+    /**
+     * Gets the set of detection categories to focus on.
+     *
+     * @return the categories
+     */
     public Set<DetectionCategory> getCategories() {
         return categories;
     }
 
+    /**
+     * Gets the set of class labels to detect.
+     *
+     * @return the class labels
+     */
     public Set<String> getClassLabels() {
         return classLabels;
     }
 
+    /**
+     * Gets the minimum confidence threshold for detections.
+     *
+     * @return the minimum confidence
+     */
     public double getMinConfidence() {
         return minConfidence;
     }
 
+    /**
+     * Gets the maximum number of detections to return.
+     *
+     * @return the maximum number of detections
+     */
     public int getMaxDetections() {
         return maxDetections;
     }
 
+    /**
+     * Gets the region of interest for detection.
+     *
+     * @return the region of interest, or null if not set
+     */
     public BoundingBox getRoi() {
         return roi;
     }
 
+    /**
+     * Gets the backend-specific options.
+     *
+     * @return the options map
+     */
     public Map<String, Object> getOptions() {
         return options;
     }
@@ -75,6 +110,8 @@ public final class DetectionQuery {
     /**
      * Gets the NMS (Non-Maximum Suppression) threshold from options.
      * Defaults to 0.45 if not specified.
+     *
+     * @return the NMS threshold
      */
     public double getNmsThreshold() {
         Object nmsThreshold = options.get("nmsThreshold");
@@ -96,41 +133,88 @@ public final class DetectionQuery {
         private BoundingBox roi;
         private Map<String, Object> options = Map.of();
 
+        /**
+         * Sets the detection type.
+         *
+         * @param type the detection type
+         * @return the builder instance
+         */
         public Builder type(DetectionType type) {
             this.type = type;
             return this;
         }
 
+        /**
+         * Sets the detection categories.
+         *
+         * @param categories the categories
+         * @return the builder instance
+         */
         public Builder categories(Set<DetectionCategory> categories) {
             this.categories = categories;
             return this;
         }
 
+        /**
+         * Sets the class labels.
+         *
+         * @param classLabels the class labels
+         * @return the builder instance
+         */
         public Builder classLabels(Set<String> classLabels) {
             this.classLabels = classLabels;
             return this;
         }
 
+        /**
+         * Sets the minimum confidence.
+         *
+         * @param minConfidence the minimum confidence
+         * @return the builder instance
+         */
         public Builder minConfidence(double minConfidence) {
             this.minConfidence = minConfidence;
             return this;
         }
 
+        /**
+         * Sets the maximum number of detections.
+         *
+         * @param maxDetections the maximum detections
+         * @return the builder instance
+         */
         public Builder maxDetections(int maxDetections) {
             this.maxDetections = maxDetections;
             return this;
         }
 
+        /**
+         * Sets the region of interest.
+         *
+         * @param roi the region of interest
+         * @return the builder instance
+         */
         public Builder roi(BoundingBox roi) {
             this.roi = roi;
             return this;
         }
 
+        /**
+         * Sets the backend-specific options.
+         *
+         * @param options the options
+         * @return the builder instance
+         */
         public Builder options(Map<String, Object> options) {
             this.options = options;
             return this;
         }
 
+        /**
+         * Builds the {@link DetectionQuery} instance.
+         *
+         * @return a new {@link DetectionQuery}
+         */
         public DetectionQuery build() {
             return new DetectionQuery(this);
         }

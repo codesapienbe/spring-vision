@@ -106,6 +106,9 @@ public interface VisionBackend {
 
     /**
      * Performs face detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectFaces(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -115,6 +118,9 @@ public interface VisionBackend {
 
     /**
      * Performs object detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectObjects(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -124,6 +130,9 @@ public interface VisionBackend {
 
     /**
      * Performs text recognition (OCR) on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectText(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -133,6 +142,9 @@ public interface VisionBackend {
 
     /**
      * Performs barcode/QR code detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectBarcodes(ImageData imageData) {
         try {
@@ -151,6 +163,9 @@ public interface VisionBackend {
 
     /**
      * Performs landmark detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectLandmarks(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -160,6 +175,9 @@ public interface VisionBackend {
 
     /**
      * Performs pose estimation on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectPoses(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -169,6 +187,9 @@ public interface VisionBackend {
 
     /**
      * Performs hand detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectHands(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -178,6 +199,9 @@ public interface VisionBackend {
 
     /**
      * Performs custom detection on the provided image data.
+     *
+     * @param imageData the image data to process
+     * @return a list of detections
      */
     default List<Detection> detectCustom(ImageData imageData) {
         throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
@@ -187,6 +211,10 @@ public interface VisionBackend {
 
     /**
      * Performs multiple detection types on the provided image data.
+     *
+     * @param imageData      the image data to process
+     * @param detectionTypes the list of detection types to perform
+     * @return a list of lists of detections, one for each detection type
      */
     default List<List<Detection>> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes) {
         if (imageData == null) {
@@ -211,6 +239,8 @@ public interface VisionBackend {
 
     /**
      * Initializes the backend and performs any necessary setup.
+     *
+     * @throws BaseVisionException if initialization fails
      */
     default void initialize() throws BaseVisionException {
         // Default no-op
@@ -218,14 +248,20 @@ public interface VisionBackend {
 
     /**
      * Shuts down the backend and releases resources.
+     *
+     * @throws BaseVisionException if shutdown fails
      */
-    default void shutdown() {
+    default void shutdown() throws BaseVisionException {
         // Default no-op
     }
 
     /**
      * Extracts face embeddings from the provided image.
      * Default implementation delegates to FaceBytes support if available.
+     *
+     * @param imageData the image data to process
+     * @return a list of face embeddings
+     * @throws BaseVisionException if embedding extraction fails
      */
     default java.util.List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
         return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
@@ -233,6 +269,13 @@ public interface VisionBackend {
 
     /**
      * Verifies whether two images belong to the same identity using embeddings.
+     *
+     * @param a         the first image
+     * @param b         the second image
+     * @param metric    the distance metric to use
+     * @param threshold the similarity threshold
+     * @return true if the images are a match, false otherwise
+     * @throws BaseVisionException if verification fails
      */
     default boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
@@ -243,6 +286,10 @@ public interface VisionBackend {
      *
      * <p>Default implementation routes via capability interfaces when available.
      * Implementations may override for backend-specific routing.</p>
+     *
+     * @param imageData     the image data to process
+     * @param detectionType the detection type to perform
+     * @return a list of detections
      */
     default List<Detection> detect(ImageData imageData, DetectionType detectionType) {
         if (imageData == null) {

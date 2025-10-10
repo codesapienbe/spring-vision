@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Console appender for MCP stdio mode - outputs to stderr to avoid interfering with stdio protocol -->
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%15.15t] %-40.40logger{39} : %m%n%ex</pattern>
+    </encoder>
+  </appender>
+
+  <!-- File appender for persistent logging -->
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>mcp.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>mcp.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%15.15t] %-40.40logger{39} : %m%n%ex</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Root logger -->
+  <root level="INFO">
+    <appender-ref ref="STDERR"/>
+    <appender-ref ref="FILE"/>
+  </root>
+
+  <!-- Reduce verbosity of some frameworks -->
+  <logger name="org.springframework" level="WARN"/>
+  <logger name="io.netty" level="WARN"/>
+  <logger name="reactor.netty" level="WARN"/>
+  <logger name="io.modelcontextprotocol" level="INFO"/>
+
+  <!-- Spring Vision logging -->
+  <logger name="io.github.codesapienbe.springvision" level="INFO"/>
+</configuration>
