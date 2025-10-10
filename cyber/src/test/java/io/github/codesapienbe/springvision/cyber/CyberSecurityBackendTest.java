@@ -2,7 +2,6 @@ package io.github.codesapienbe.springvision.cyber;
 
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.cyber.detectors.QRCodeSecurityDetector;
 import io.github.codesapienbe.springvision.cyber.detectors.PhysicalAccessMonitor;
 import io.github.codesapienbe.springvision.cyber.models.AuthorizedPerson;
@@ -43,6 +42,10 @@ class CyberSecurityBackendTest {
         assertNotNull(types);
         assertTrue(types.contains(DetectionType.FACE));
         assertTrue(types.contains(DetectionType.BARCODE));
+        assertTrue(types.contains(DetectionType.THREAT));
+        assertTrue(types.contains(DetectionType.EAVESDROPPING));
+        assertTrue(types.contains(DetectionType.ACCESS_AUTH));
+        assertTrue(types.contains(DetectionType.SECURITY_INCIDENT));
     }
 
     @Test

@@ -16,7 +16,7 @@ Every module follows this exact workflow:
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-{module}</artifactId>
+    <artifactId>{module}</artifactId>
     <version>1.0</version>
 </dependency>
 ```

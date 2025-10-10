@@ -1,10 +1,7 @@
 package io.github.codesapienbe.springvision.cyber;
 
-import io.github.codesapienbe.springvision.core.BackendHealthInfo;
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.*;
+import io.github.codesapienbe.springvision.core.DetectionType.*;
 import io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EavesdroppingDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
@@ -80,9 +77,15 @@ public class CyberSecurityBackend implements VisionBackend, ThreatDetectionCapab
 
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
-        // This backend doesn't directly support standard detection types
-        // It provides security-specific capabilities
-        return Set.of();
+        // This backend supports cyber security specific detection types
+        return Set.of(
+            DetectionType.THREAT,
+            DetectionType.EAVESDROPPING,
+            DetectionType.ACCESS_AUTH,
+            DetectionType.SECURITY_INCIDENT,
+            DetectionType.FACE,      // Still support face detection for access control
+            DetectionType.BARCODE    // Still support barcode detection for QR code analysis
+        );
     }
 
     @Override
@@ -250,6 +253,70 @@ public class CyberSecurityBackend implements VisionBackend, ThreatDetectionCapab
 
         logger.info("Detected {} security incidents", incidents.size());
         return incidents;
+    }
+
+    /**
+     * Generic detection method that routes to appropriate security detection capabilities.
+     *
+     * <p>This method provides a unified interface for all detection types supported by this backend.
+     * It routes requests to the appropriate security-specific detection methods based on the type.</p>
+     *
+     * @param imageData     the image data to analyze (can be null for defensive handling)
+     * @param detectionType the type of detection to perform (can be null for defensive handling)
+     * @return list of detections, empty if input is null or invalid
+     */
+    public List<Detection> detect(ImageData imageData, DetectionType detectionType) {
+        if (imageData == null) {
+            logger.warn("Received null image data for detection");
+            return List.of();
+        }
+
+        if (detectionType == null) {
+            logger.warn("Received null detection type");
+            return List.of();
+        }
+
+        logger.debug("Performing {} detection with cyber security backend", detectionType);
+
+        try {
+            switch (detectionType) {
+                case THREAT -> {
+                    // Use QR code detector for threat analysis
+                    return qrCodeDetector.detectSuspiciousQRCodes(imageData);
+                }
+                case EAVESDROPPING -> {
+                    // Use shoulder surfing detector for eavesdropping detection
+                    return shoulderSurfingDetector.analyzeVideoStream(List.of(imageData));
+                }
+                case ACCESS_AUTH -> {
+                    // Use physical access monitor for access authentication
+                    return physicalAccessMonitor.monitorAccess(imageData);
+                }
+                case SECURITY_INCIDENT -> {
+                    // Use physical access monitor to detect security incidents
+                    List<Detection> accessDetections = physicalAccessMonitor.monitorAccess(imageData);
+                    // Filter for unauthorized access incidents
+                    return accessDetections.stream()
+                        .filter(d -> "UNAUTHORIZED_ACCESS".equals(d.label()))
+                        .toList();
+                }
+                case FACE -> {
+                    // Legacy support: Use physical access monitor for face-based security detection
+                    return physicalAccessMonitor.monitorAccess(imageData);
+                }
+                case BARCODE -> {
+                    // Legacy support: Use QR code detector for barcode/QR security analysis
+                    return qrCodeDetector.detectSuspiciousQRCodes(imageData);
+                }
+                default -> {
+                    logger.warn("Unsupported detection type: {} for cyber security backend", detectionType);
+                    return List.of();
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error during {} detection", detectionType, e);
+            return List.of();
+        }
     }
 
     // ==================== Component Access Methods ====================

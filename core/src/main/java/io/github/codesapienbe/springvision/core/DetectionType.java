@@ -114,7 +114,41 @@ public enum DetectionType {
     /**
      * Tumor classification - perform MRI brain tumor classification.
      */
-    TUMOR("tumor", "Tumor Classification", false, "Classify brain tumors in MRI images");
+    TUMOR("tumor", "Tumor Classification", false, "Classify brain tumors in MRI images"),
+
+    /**
+     * Threat detection - identifies security threats in images.
+     *
+     * <p>This detection type analyzes images for potential security threats including
+     * malicious QR codes, suspicious patterns, tampering indicators, and other
+     * security-related anomalies.</p>
+     */
+    THREAT("threat", "Threat Detection", false, "Detects security threats and malicious content in images"),
+
+    /**
+     * Eavesdropping detection - detects shoulder surfing and privacy violations.
+     *
+     * <p>This detection type analyzes video streams to identify potential eavesdropping
+     * attempts, shoulder surfing behavior, and unauthorized viewing of sensitive information.</p>
+     */
+    EAVESDROPPING("eavesdropping", "Eavesdropping Detection", false, "Detects shoulder surfing and privacy violations"),
+
+    /**
+     * Access authentication - verifies authorized access using biometric data.
+     *
+     * <p>This detection type performs identity verification for access control systems
+     * using face recognition, matching against authorized personnel databases.</p>
+     */
+    ACCESS_AUTH("access-auth", "Access Authentication", false, "Performs biometric access authentication"),
+
+    /**
+     * Security incident detection - identifies potential security breaches.
+     *
+     * <p>This detection type performs comprehensive security analysis to identify
+     * unauthorized access attempts, security breaches, and suspicious activities
+     * requiring immediate attention.</p>
+     */
+    SECURITY_INCIDENT("security-incident", "Security Incident Detection", false, "Detects security incidents and breaches");
 
     private final String code;
     private final String displayName;

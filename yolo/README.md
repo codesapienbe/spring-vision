@@ -20,7 +20,7 @@ This module provides YOLO (You Only Look Once) backend implementation for the Sp
 ```xml
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-yolo</artifactId>
+    <artifactId>yolo</artifactId>
     <version>1.0</version>
 </dependency>
 ```
@@ -373,7 +373,7 @@ This module provides DeepFace backend implementation for the Spring Vision frame
 ```xml
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-deepface</artifactId>
+    <artifactId>deepface</artifactId>
     <version>1.0</version>
 </dependency>
 ```

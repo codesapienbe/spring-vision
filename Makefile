@@ -10,22 +10,23 @@ build:
 
 verify:
 	@echo "Testing project: Maven test"
-	mvn clean test test
+	mvn clean test
 
 # Run the MCP server
 run:
-	@echo "Running MCP server..."
-	cd mcp && mvn -o spring-boot:run
+	@echo "Finding an available port..."
+	@PORT=$$(python3 -c "import socket; s=socket.socket(); s.bind((\'\',0)); print(s.getsockname()[1]); s.close()"); \
+	echo "Running MCP server on port $$PORT"; \
+	cd mcp && mvn spring-boot:run -Dserver.port=$$PORT
 
 # Clean the project (unchanged)
 clean:
-	mvn clean
-    docker image rm spring-vision:latest
+	mvn clean -q && docker image rm spring-vision:latest;
 
 # Deploy: push Docker image to registry (assumes docker is logged in and IMAGE is set to the full repo:tag)
 deploy:
 	@echo "Pushing Docker image spring-vision:latest to registry...";
-	docker tag spring-vision:1.0 docker.io/codesapienbe/spring-vision:latest;
+	docker tag spring-vision:1.1 docker.io/codesapienbe/spring-vision:latest;
 	docker push docker.io/codesapienbe/spring-vision:latest
 
 # Release: deploy to Maven Central via Sonatype

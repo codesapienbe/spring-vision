@@ -12,7 +12,7 @@ Add the starter dependency to your `pom.xml`:
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-starter</artifactId>
+    <artifactId>starter</artifactId>
     <version>1.0</version>
 </dependency>
 ```

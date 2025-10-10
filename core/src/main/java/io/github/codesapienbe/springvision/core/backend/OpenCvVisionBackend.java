@@ -2661,15 +2661,10 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
      * Custom IntVector implementation for histogram calculation.
      * Replaces the missing IntVector class from OpenCV JavaCV.
      */
-    private static class IntVector {
-        private final int[] data;
-
-        public IntVector(int... values) {
-            this.data = values;
-        }
+    private record IntVector(int... data) {
 
         public IntVector(int size) {
-            this.data = new int[size];
+            this(new int[size]);
         }
 
         public int get(int index) {
@@ -2691,7 +2686,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             return data.length;
         }
 
-        public int[] getData() {
+        @Override
+        public int[] data() {
             return data.clone(); // Return copy for safety
         }
 
@@ -2705,22 +2701,17 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
      * Custom FloatVector implementation for histogram calculation.
      * Replaces the missing FloatVector class from OpenCV JavaCV.
      */
-    private static class FloatVector {
-        private final float[] data;
-
-        public FloatVector(float... values) {
-            this.data = values;
-        }
+    private record FloatVector(float... data) {
 
         public FloatVector(double... values) {
-            this.data = new float[values.length];
+            this(new float[values.length]);
             for (int i = 0; i < values.length; i++) {
                 this.data[i] = (float) values[i];
             }
         }
 
         public FloatVector(int size) {
-            this.data = new float[size];
+            this(new float[size]);
         }
 
         public float get(int index) {
@@ -2742,7 +2733,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             return data.length;
         }
 
-        public float[] getData() {
+        @Override
+        public float[] data() {
             return data.clone(); // Return copy for safety
         }
 
@@ -2960,7 +2952,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         for (ImageData gi : galleryImages) {
             try {
                 java.util.List<float[]> e = extractEmbeddings(gi);
-                if (e != null && !e.isEmpty()) galleryEmb.add(e.get(0));
+                if (e != null && !e.isEmpty()) galleryEmb.add(e.getFirst());
             } catch (Exception ignore) {
                 // skip images that fail to produce embeddings
             }

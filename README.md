@@ -1,7 +1,6 @@
-
 <div align="center">
   <a href="https://github.com/spring-vision/spring-vision">
-    <img src="https://raw.githubusercontent.com/spring-vision/spring-vision/main/docs/images/spring-vision-logo.png" alt="Spring Vision Logo" width="200">
+    <img src="https://raw.githubusercontent.com/spring-vision/spring-vision/main/assets/logo.png" alt="Spring Vision Logo" width="200">
   </a>
   <h1 align="center">Spring Vision</h1>
   <p align="center">
@@ -41,22 +40,24 @@
 ### 1. Add Dependency
 
 ```xml
+
 <dependency>
     <groupId>com.springvision</groupId>
-    <artifactId>spring-vision-starter</artifactId>
-    <version>1.0</version>
+    <artifactId>starter</artifactId>
+    <version>1.1</version>
 </dependency>
 ```
 
 ### 2. Use in Your Code
 
 ```java
+
 @RestController
 public class VisionController {
-    
+
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     @PostMapping("/detect-faces")
     public List<Detection> detectFaces(@RequestParam("file") MultipartFile file) {
         return visionTemplate.detectFaces(file.getBytes());
@@ -75,15 +76,18 @@ That's it! Your Spring Boot application now has state-of-the-art computer vision
 
 ## 🔌 Supported Backends
 
-| Backend | Capabilities | Performance | Use Case |
-|---|---|---|---|
-| **🎯 FaceBytes** | Face recognition, verification, analysis | ⭐⭐⭐⭐⭐ | Production face recognition |
-| **⚡ OpenCV** | Face detection, object detection | ⭐⭐⭐⭐⭐ | High-performance detection |
-| **🎯 YOLO** | Real-time object detection | ⭐⭐⭐⭐⭐ | Object recognition |
-| **🎯 MediaPipe** | Face, hand, pose detection | ⭐⭐⭐⭐ | Multi-modal detection |
-| **☁️ CompreFace** | Enterprise face recognition | ⭐⭐⭐ | Cloud-based recognition |
-| **🧠 DeepFace** | Advanced deep learning | ⭐⭐⭐ | Research & development |
-| **🔍 InsightFace** | State-of-the-art recognition | ⭐⭐⭐⭐⭐ | High-accuracy recognition |
+| Backend                | Capabilities                                                                | Performance | Use Case                    |
+|------------------------|-----------------------------------------------------------------------------|-------------|-----------------------------|
+| **🎯 FaceBytes**       | Face recognition, verification, analysis                                    | ⭐⭐⭐⭐⭐       | Production face recognition |
+| **⚡ OpenCV**           | Face detection, object detection                                            | ⭐⭐⭐⭐⭐       | High-performance detection  |
+| **🎯 YOLO**            | Real-time object detection                                                  | ⭐⭐⭐⭐⭐       | Object recognition          |
+| **🎯 MediaPipe**       | Face, hand, pose detection                                                  | ⭐⭐⭐⭐        | Multi-modal detection       |
+| **☁️ CompreFace**      | Enterprise face recognition                                                 | ⭐⭐⭐         | Cloud-based recognition     |
+| **🧠 DeepFace**        | Advanced deep learning                                                      | ⭐⭐⭐         | Research & development      |
+| **🔍 InsightFace**     | State-of-the-art recognition                                                | ⭐⭐⭐⭐⭐       | High-accuracy recognition   |
+| ❤️ **Health (v2.0)**   | Real-time heart rate, tumor classification, fall detection, stress analysis | TBD         | Healthcare                  |
+| 🔒 **Cyber (v2.0)**    | QR code hijacking, shoulder surfing prevention, physical access monitoring  | TBD         | Cybersecurity               |
+| 🤖 **Robotics (v2.0)** | Automated defect detection, robotic arm guidance, component verification    | TBD         | Industrial Automation       |
 
 ## 🏗️ Architecture
 
@@ -105,54 +109,59 @@ We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.
 
 ### Areas Needing Contribution
 
-- **🔌 New Backends**: MediaPipe, YOLO, InsightFace integrations.
-- **⚡ Performance**: Optimization and benchmarking.
-- **📖 Documentation**: Tutorials, examples, and guides.
-- **🧪 Testing**: Integration tests and example improvements.
-- **🔒 Security**: Security audits and improvements.
+- **🔌 New Backends**: We are always looking for new backend integrations.
+- **⚡ Performance**: Optimization and benchmarking for existing and new backends.
+- **📖 Documentation**: Tutorials, examples, and guides for new features.
+- **🧪 Testing**: More integration tests and examples for different use cases.
+- **🔒 Security**: Security audits and improvements are always welcome.
 
 ## 🗺️ Roadmap
 
-### 🚀 Version 1.1 (Q2 2024)
+### ✅ **Version 1.1 (Released Q2 2024)**
 
-- ✅ **MediaPipe Backend**: Google's ML framework integration.
-- ✅ **YOLO Backend**: Real-time object detection.
-- ⚡ **Performance Optimizations**: Enhanced throughput and latency.
-- 🔒 **Enhanced Security**: Advanced security features.
+- **New Backends**: Integrated MediaPipe and YOLO backends for multi-modal and real-time object detection.
+- **Performance**: Major performance optimizations, enhancing throughput and latency.
+- **Security**: Added advanced security features for enterprise-grade deployments.
 
-### 🎯 Version 1.2 (Q3 2024)
+### 🚀 **Version 1.2 (Q3 2024)**
 
-- ✅ **InsightFace Backend**: State-of-the-art face recognition.
-- ✅ **Batch Processing**: High-throughput image processing.
-- ☁️ **Cloud Deployment**: Kubernetes and cloud-native guides.
-- ✅ **Advanced Metrics**: Enhanced monitoring and observability.
+- **InsightFace Backend**: Integration of the state-of-the-art face recognition model.
+- **Batch Processing**: High-throughput image processing capabilities.
+- **Cloud-Native Deployment**: Official guides for Kubernetes and other cloud platforms.
+- **Advanced Metrics**: Deeper monitoring and observability into the vision pipelines.
 
-## 💡 Planned Features
+### 🎯 **Version 2.0 (Q4 2024)**
+
+- **New Modules**: Introduction of `spring-vision-health`, `spring-vision-cyber`, and `spring-vision-robotics`.
+- **API Overhaul**: A major revision of the API for improved usability, performance, and consistency.
+- **Community Focus**: Expanded documentation, more examples, and streamlined contribution process.
+
+## 💡 Planned Features (v2.0)
 
 ### ❤️ `spring-vision-health`
 
-A new module focused on health-related computer vision tasks is under active development.
+A new module focused on health-related computer vision tasks.
 
--   **Real-time Heart Rate Monitoring**: Implement real-time heart rate monitoring from a video source.
--   **Brain Tumor Classification**: Develop a deep learning model for brain tumor classification from MRI scans (glioma, meningioma, pituitary, no tumor) using the BRISC 2025 dataset.
--   **Fall Detection**: Create a module for detecting falls from video streams, aimed at monitoring elderly or at-risk individuals.
--   **Stress Level Analysis**: Implement a feature to analyze stress levels based on facial expressions and other physiological signals from video.
+- **Real-time Heart Rate Monitoring**: Monitor heart rate from a video source.
+- **Brain Tumor Classification**: Classify brain tumors from MRI scans (glioma, meningioma, pituitary).
+- **Fall Detection**: Detect falls from video streams to monitor at-risk individuals.
+- **Stress Level Analysis**: Analyze stress levels from facial expressions and other physiological signals.
 
 ### 🔒 `spring-vision-cyber`
 
-This upcoming module will focus on applying computer vision to cybersecurity challenges.
+This module will apply computer vision to cybersecurity challenges.
 
--   **Visual QR Code Hijacking Detection**: Detect and flag suspicious QR codes that may lead to malicious websites.
--   **Shoulder Surfing Prevention**: Analyze video streams to detect and alert when someone is looking over a user's shoulder at a screen.
--   **Physical Access Monitoring**: Use face recognition to monitor and log access to secure areas.
+- **Visual QR Code Hijacking Detection**: Detect and flag suspicious QR codes.
+- **Shoulder Surfing Prevention**: Analyze video streams to detect and alert when someone is looking over a user's shoulder.
+- **Physical Access Monitoring**: Use face recognition to monitor and log access to secure areas.
 
 ### 🤖 `spring-vision-robotics`
 
 This module will be dedicated to industrial automation and robotics.
 
--   **Automated Defect Detection**: Implement models to identify defects in products on a production line from a video feed.
--   **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
--   **Component Verification**: Verify that the correct components are used during assembly.
+- **Automated Defect Detection**: Identify defects in products on a production line from a video feed.
+- **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
+- **Component Verification**: Verify correct component usage during assembly.
 
 ## 💬 Community
 

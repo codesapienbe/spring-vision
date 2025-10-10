@@ -22,7 +22,7 @@ The **Spring Vision Health** module is designed around image-based APIs rather t
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-health</artifactId>
+    <artifactId>health</artifactId>
     <version>1.0</version>
 </dependency>
 ```

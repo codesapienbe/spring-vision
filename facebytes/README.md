@@ -55,7 +55,7 @@ FaceBytes
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-facebytes</artifactId>
+    <artifactId>facebytes</artifactId>
     <version>1.0</version>
 </dependency>
 ```

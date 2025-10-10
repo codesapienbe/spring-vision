@@ -20,7 +20,7 @@ This module provides MediaPipe backend implementation for the Spring Vision fram
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-mediapipe</artifactId>
+    <artifactId>mediapipe</artifactId>
     <version>1.0</version>
 </dependency>
 ```

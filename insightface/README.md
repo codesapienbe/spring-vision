@@ -20,7 +20,7 @@ This module provides InsightFace backend implementation for the Spring Vision fr
 ```xml
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-insightface</artifactId>
+    <artifactId>insightface</artifactId>
     <version>1.0</version>
 </dependency>
 ```

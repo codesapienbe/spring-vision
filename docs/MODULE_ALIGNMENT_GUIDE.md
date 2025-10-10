@@ -17,7 +17,7 @@ Every module in the Spring Vision ecosystem follows this exact pattern:
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-{module}</artifactId>
+    <artifactId>{module}</artifactId>
     <version>1.0</version>
 </dependency>
 ```
@@ -221,7 +221,7 @@ spring.datasource.password=password
 <!-- Include starter for zero-config setup -->
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-starter</artifactId>
+    <artifactId>starter</artifactId>
     <version>1.0</version>
 </dependency>
 ```
@@ -248,7 +248,7 @@ Brief description of what the module does.
 ```xml
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-{module}</artifactId>
+    <artifactId>{module}</artifactId>
     <version>1.0</version>
 </dependency>
 ```

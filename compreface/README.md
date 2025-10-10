@@ -21,7 +21,7 @@ This module provides CompreFace backend implementation for the Spring Vision fra
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-compreface</artifactId>
+    <artifactId>compreface</artifactId>
     <version>1.0</version>
 </dependency>
 ```

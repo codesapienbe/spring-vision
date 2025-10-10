@@ -16,7 +16,7 @@ Quick start
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-starter</artifactId>
+    <artifactId>starter</artifactId>
     <version>${project.version}</version>
 </dependency>
 ```

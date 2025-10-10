@@ -14,7 +14,7 @@
  * <pre>{@code
  * <dependency>
  *     <groupId>com.springvision</groupId>
- *     <artifactId>spring-vision-starter</artifactId>
+ *     <artifactId>starter</artifactId>
  *     <version>1.0</version>
  * </dependency>
  * }</pre>

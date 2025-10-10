@@ -31,7 +31,7 @@ VisionTemplate offers convenience wrappers for these capabilities so you can cal
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-cyber</artifactId>
+    <artifactId>cyber</artifactId>
     <version>1.0</version>
 </dependency>
 ```
@@ -170,6 +170,7 @@ public class CustomSecurityConfig {
 ## Example: Complete Security Application
 
 ```java
+
 @SpringBootApplication
 public class SecurityApplication {
     public static void main(String[] args) {
@@ -180,21 +181,21 @@ public class SecurityApplication {
 @RestController
 @RequestMapping("/api/security")
 class SecurityEndpoints {
-    
+
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     @PostMapping("/scan-qr")
     public SecurityReport scanQRCode(@RequestParam("image") MultipartFile file) throws IOException {
         ImageData imageData = ImageData.fromBytes(file.getBytes());
         List<Detection> threats = visionTemplate.detectThreat(List.of(imageData));
-        
+
         return new SecurityReport(
-            threats.size(),
-            threats.stream()
-                .filter(d -> "CRITICAL".equals(d.attributes().get("severity")))
-                .count(),
-            threats
+                threats.size(),
+                threats.stream()
+                        .filter(d -> "CRITICAL".equals(d.attributes().get("severity")))
+                        .count(),
+                threats
         );
     }
 }

@@ -21,7 +21,7 @@ This module provides DeepFace backend implementation for the Spring Vision frame
 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision-deepface</artifactId>
+    <artifactId>deepface</artifactId>
     <version>1.0</version>
 </dependency>
 ```
@@ -215,24 +215,25 @@ println("Confidence: "+face.confidence());
 ### Face Verification
 
 ```java
+
 @Service
 public class FaceVerificationService {
 
     @Autowired
     private VisionTemplate visionTemplate;
 
-    public boolean verifyIdentity(MultipartFile photo1, MultipartFile photo2) 
+    public boolean verifyIdentity(MultipartFile photo1, MultipartFile photo2)
             throws IOException {
         ImageData img1 = ImageData.fromBytes(photo1.getBytes());
         ImageData img2 = ImageData.fromBytes(photo2.getBytes());
-        
+
         List<Detection> faces1 = visionTemplate.detectFaces(img1);
         List<Detection> faces2 = visionTemplate.detectFaces(img2);
-        
+
         if (faces1.isEmpty() || faces2.isEmpty()) {
             return false;
         }
-        
+
         // Use embeddings or verification API
         return compareFaceEmbeddings(faces1.get(0), faces2.get(0));
     }

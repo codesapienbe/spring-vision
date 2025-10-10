@@ -11,7 +11,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>spring-vision-cyber</artifactId>
+  <artifactId>cyber</artifactId>
   <name>Spring Vision -> Cyber Security Backend</name>
   <description>Cybersecurity-focused computer vision module for Spring Vision</description>
 
@@ -19,7 +19,7 @@
     <!-- Core Spring Vision API -->
     <dependency>
       <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>spring-vision-core</artifactId>
+      <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
