@@ -16,8 +16,38 @@ import java.util.Map;
  */
 public final class EmotionPredictor {
 
+    /**
+     * Represents different emotional states that can be detected.
+     */
     public enum Emotion {
-        HAPPY, SAD, ANGRY, SURPRISED, FEARFUL, DISGUSTED, NEUTRAL
+        /**
+         * Happy emotion
+         */
+        HAPPY,
+        /**
+         * Sad emotion
+         */
+        SAD,
+        /**
+         * Angry emotion
+         */
+        ANGRY,
+        /**
+         * Surprised emotion
+         */
+        SURPRISED,
+        /**
+         * Fearful emotion
+         */
+        FEARFUL,
+        /**
+         * Disgusted emotion
+         */
+        DISGUSTED,
+        /**
+         * Neutral emotion
+         */
+        NEUTRAL
     }
 
     private static final int DEFAULT_INPUT_SIZE = 224;

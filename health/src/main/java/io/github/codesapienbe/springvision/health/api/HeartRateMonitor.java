@@ -13,7 +13,7 @@ import java.util.List;
 public interface HeartRateMonitor {
 
     /**
-     * Analyze a temporal sequence of images and return heart-rate related detections.
+     * Analyze a temporal sequence of images and return heart-rate-related detections.
      * Typical usage: caller supplies consecutive frames; backend returns detections
      * encoding min/max/average bpm and confidence as Detection metadata.
      */

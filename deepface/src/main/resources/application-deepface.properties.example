@@ -1,0 +1,31 @@
+# DeepFace Module Configuration Example
+# Enable or disable the DeepFace backend
+spring.vision.deepface.enabled=true
+
+# DeepFace API server URL
+spring.vision.deepface.base-url=http://localhost:5000
+
+# Request timeout
+spring.vision.deepface.timeout=30s
+
+# Confidence threshold (0.0 - 1.0)
+spring.vision.deepface.confidence-threshold=0.6
+
+# Maximum number of faces to detect
+spring.vision.deepface.max-detections=10
+
+# Face detection backend (opencv, ssd, dlib, mtcnn, retinaface, mediapipe)
+spring.vision.deepface.detector-backend=opencv
+
+# Face recognition model (VGG-Face, Facenet, Facenet512, OpenFace, DeepFace, DeepID, ArcFace, Dlib)
+spring.vision.deepface.model=VGG-Face
+
+# Distance metric (cosine, euclidean, euclidean_l2)
+spring.vision.deepface.distance-metric=cosine
+
+# Enable face alignment
+spring.vision.deepface.align=true
+
+# Enable normalization
+spring.vision.deepface.normalization=true
+

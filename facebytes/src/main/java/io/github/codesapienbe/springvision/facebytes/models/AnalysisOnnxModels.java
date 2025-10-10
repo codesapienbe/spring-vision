@@ -15,6 +15,12 @@ public final class AnalysisOnnxModels {
     private AnalysisOnnxModels() {
     }
 
+    /**
+     * Gets or creates the emotion analysis ONNX model.
+     *
+     * @return the emotion ONNX model
+     * @throws Exception if the model cannot be loaded
+     */
     public static OnnxSimpleModel getEmotion() throws Exception {
         if (emotion == null) {
             synchronized (AnalysisOnnxModels.class) {
@@ -28,6 +34,12 @@ public final class AnalysisOnnxModels {
         return emotion;
     }
 
+    /**
+     * Gets or creates the gender analysis ONNX model.
+     *
+     * @return the gender ONNX model
+     * @throws Exception if the model cannot be loaded
+     */
     public static OnnxSimpleModel getGender() throws Exception {
         if (gender == null) {
             synchronized (AnalysisOnnxModels.class) {
@@ -41,6 +53,12 @@ public final class AnalysisOnnxModels {
         return gender;
     }
 
+    /**
+     * Gets or creates the age analysis ONNX model.
+     *
+     * @return the age ONNX model
+     * @throws Exception if the model cannot be loaded
+     */
     public static OnnxSimpleModel getAge() throws Exception {
         if (age == null) {
             synchronized (AnalysisOnnxModels.class) {
@@ -54,6 +72,12 @@ public final class AnalysisOnnxModels {
         return age;
     }
 
+    /**
+     * Gets or creates the race analysis ONNX model.
+     *
+     * @return the race ONNX model
+     * @throws Exception if the model cannot be loaded
+     */
     public static OnnxSimpleModel getRace() throws Exception {
         if (race == null) {
             synchronized (AnalysisOnnxModels.class) {

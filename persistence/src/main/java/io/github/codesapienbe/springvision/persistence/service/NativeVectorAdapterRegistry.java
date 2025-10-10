@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Registry to find NativeVectorAdapter implementations by provider id.
+ * A registry for discovering and accessing {@link NativeVectorAdapter} implementations.
+ * This class is populated at startup with all available adapter beans and allows for easy lookup by provider ID.
  */
 @Service
 public class NativeVectorAdapterRegistry {
@@ -16,9 +17,9 @@ public class NativeVectorAdapterRegistry {
     private final Map<String, NativeVectorAdapter> byProvider;
 
     /**
-     * Constructs a native vector adapter registry.
+     * Constructs a new registry and populates it with the provided list of adapters.
      *
-     * @param adapters the list of available adapters
+     * @param adapters A list of {@link NativeVectorAdapter} beans discovered in the application context.
      */
     public NativeVectorAdapterRegistry(List<NativeVectorAdapter> adapters) {
         if (adapters == null || adapters.isEmpty()) {
@@ -33,10 +34,10 @@ public class NativeVectorAdapterRegistry {
     }
 
     /**
-     * Gets the adapter for a specific provider.
+     * Retrieves the adapter for a specific database provider.
      *
-     * @param provider the provider ID
-     * @return the native vector adapter, or null if not found
+     * @param provider The ID of the provider (e.g., "postgres", "mysql").
+     * @return The corresponding {@link NativeVectorAdapter}, or null if no adapter is found for the given provider.
      */
     public NativeVectorAdapter getAdapter(String provider) {
         if (provider == null) return null;

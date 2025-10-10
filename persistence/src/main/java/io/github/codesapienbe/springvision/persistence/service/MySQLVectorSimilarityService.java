@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * MySQL-backed vector similarity service (placeholder).
+ * A {@link VectorSimilarityService} implementation for MySQL.
+ * This service leverages native SQL queries for vector operations when possible, using a JSON representation for vectors.
+ * It is activated when the `spring.vision.vector.provider` property is set to `mysql`.
  */
 @Service
 @ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "mysql")
@@ -32,11 +34,11 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
     private NativeVectorAdapter nativeVectorAdapter;
 
     /**
-     * Constructs a MySQL vector similarity service.
+     * Constructs a new MySQLVectorSimilarityService.
      *
-     * @param repository   the MySQL face embedding repository
-     * @param jdbcTemplate the JDBC template for native queries
-     * @param registry     the native vector adapter registry
+     * @param repository   The repository for face embedding data.
+     * @param jdbcTemplate The JDBC template for executing native SQL queries.
+     * @param registry     The registry for obtaining the appropriate native vector adapter.
      */
     @Autowired
     public MySQLVectorSimilarityService(io.github.codesapienbe.springvision.persistence.repository.MySQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, io.github.codesapienbe.springvision.persistence.service.NativeVectorAdapterRegistry registry) {

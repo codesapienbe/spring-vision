@@ -102,6 +102,7 @@
     <module>examples</module>
     <module>mcp</module>
     <module>health</module>
+    <module>cyber</module>
   </modules>
 
   <dependencyManagement>
@@ -286,7 +287,7 @@
           </executions>
         </plugin>
 
-        <!-- Source, Javadoc, GPG and Nexus Staging (for deploy) -->
+        <!-- Source, Javadoc, GPG and Nexus Staging (for deployment) -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>

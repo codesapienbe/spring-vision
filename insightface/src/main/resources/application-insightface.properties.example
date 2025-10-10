@@ -1,0 +1,37 @@
+# InsightFace Module Configuration Example
+# Enable or disable the InsightFace backend
+spring.vision.insightface.enabled=true
+
+# InsightFace API URL
+spring.vision.insightface.api-url=http://localhost:8000
+
+# API key for authentication
+spring.vision.insightface.api-key=your-api-key-here
+
+# Model name (buffalo_l, buffalo_m, buffalo_s)
+spring.vision.insightface.model-name=buffalo_l
+
+# Confidence threshold (0.0 - 1.0)
+spring.vision.insightface.confidence-threshold=0.5
+
+# Verification threshold (0.0 - 1.0)
+spring.vision.insightface.verification-threshold=0.6
+
+# Maximum number of faces to detect
+spring.vision.insightface.max-detections=10
+
+# Enable age and gender analysis
+spring.vision.insightface.enable-age-gender=true
+
+# Enable emotion detection
+spring.vision.insightface.enable-emotion=true
+
+# Enable landmark detection
+spring.vision.insightface.enable-landmarks=true
+
+# Request timeout (seconds)
+spring.vision.insightface.timeout-seconds=30
+
+# Maximum retry attempts
+spring.vision.insightface.max-retries=3
+

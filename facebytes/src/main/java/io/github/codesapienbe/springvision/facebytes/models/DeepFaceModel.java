@@ -6,13 +6,33 @@ import io.github.codesapienbe.springvision.facebytes.utils.Logs;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
+/**
+ * DeepFace face recognition model implementation.
+ * Provides face embedding generation using the original DeepFace architecture.
+ */
 public final class DeepFaceModel {
+    /**
+     * Default input size for DeepFace model.
+     */
     public static final int DEFAULT_INPUT_SIZE = 152;
 
+    /**
+     * Generates face embedding using default input size.
+     *
+     * @param face the face image
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face) {
         return generateEmbedding(face, DEFAULT_INPUT_SIZE);
     }
 
+    /**
+     * Generates face embedding with specified input size.
+     *
+     * @param face       the face image
+     * @param targetSize the target input size for the model
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
         if (face == null) {
             throw new IllegalArgumentException("Face image cannot be null");

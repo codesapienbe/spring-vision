@@ -2,23 +2,23 @@ package io.github.codesapienbe.springvision.core.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 
 /**
  * Spring Boot auto-configuration for Spring Vision framework.
@@ -66,7 +66,20 @@ public class VisionAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionAutoConfiguration.class);
 
-    public VisionAutoConfiguration() {
+    private final Environment environment;
+
+    // Support both legacy "vision.*" and unified "spring.vision.*" prefixes
+    @Value("${spring.vision.enabled:#{null}}")
+    private Boolean springVisionEnabled;
+
+    @Value("${spring.vision.fail-fast:#{null}}")
+    private Boolean springVisionFailFast;
+
+    @Value("${spring.vision.backend:#{null}}")
+    private String springVisionBackend;
+
+    public VisionAutoConfiguration(Environment environment) {
+        this.environment = environment;
         logger.info("VisionAutoConfiguration constructor called - auto-configuration is being loaded");
     }
 
@@ -77,36 +90,32 @@ public class VisionAutoConfiguration {
     @Bean
     @Primary
     @ConditionalOnMissingBean(VisionBackend.class)
-    @ConditionalOnExpression("${vision.enabled:true} && ${vision.fail-fast:true}")
+    @ConditionalOnExpression("(${spring.vision.enabled:true} and ${spring.vision.fail-fast:true}) or (${vision.enabled:true} and ${vision.fail-fast:true})")
     public VisionBackend visionBackendFailFast(VisionProperties properties) {
         logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean (fail-fast mode) ===");
 
-        // Normalize backend name, defaulting to opencv if null or empty
-        String backendName = properties.getBackend();
-        if (backendName == null || backendName.trim().isEmpty()) {
-            backendName = "opencv";
-            logger.info("No backend specified, using default: opencv");
-        } else {
-            logger.info("Configuring vision backend: {}", backendName);
-        }
+        // Determine effective settings, preferring spring.vision.* if provided
+        boolean enabled = springVisionEnabled != null ? springVisionEnabled : properties.isEnabled();
+        boolean failFast = springVisionFailFast != null ? springVisionFailFast : properties.isFailFast();
+        String configuredBackend = (springVisionBackend != null && !springVisionBackend.isBlank())
+            ? springVisionBackend
+            : properties.getBackend();
 
-        return switch (backendName.toLowerCase().trim()) {
-            case "opencv" -> {
-                logger.info("Initializing OpenCV backend (default)");
-                yield createOpenCvBackend(properties);
-            }
-            default -> {
-                logger.warn("Backend '{}' not supported in core module. Use OpenCV (default) or add the appropriate backend module.", backendName);
-                yield createOpenCvBackend(properties);
-            }
-        };
+        logger.info("Vision enabled={}, failFast={}, backend={}", enabled, failFast, configuredBackend);
+
+        // Normalize backend name, defaulting to opencv if null or empty
+        String backendName = (configuredBackend == null || configuredBackend.trim().isEmpty())
+            ? "opencv"
+            : configuredBackend.trim().toLowerCase();
+
+        return createBackendByName(backendName, properties);
     }
 
     /**
      * Skips vision backend creation when failFast is disabled.
      * This allows applications to provide their own fallback implementations.
      */
-    @ConditionalOnExpression("${vision.enabled:true} && !${vision.fail-fast:true}")
+    @ConditionalOnExpression("(${spring.vision.enabled:true} and !${spring.vision.fail-fast:true}) or (${vision.enabled:true} and !${vision.fail-fast:true})")
     @ConditionalOnMissingBean(VisionBackend.class)
     public void skipVisionBackendCreation() {
         logger.info("=== VisionAutoConfiguration: Skipping VisionBackend creation (fail-fast=false) ===");
@@ -182,6 +191,90 @@ public class VisionAutoConfiguration {
     }
 
     /**
+     * Create a vision backend by name, using reflection for optional modules to avoid hard dependencies.
+     * Falls back to OpenCV when the requested backend isn't on classpath.
+     */
+    private VisionBackend createBackendByName(String backendName, VisionProperties properties) {
+        return switch (backendName) {
+            case "opencv" -> {
+                logger.info("Initializing OpenCV backend (default)");
+                yield createOpenCvBackend(properties);
+            }
+            case "mediapipe" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.mediapipe.MediaPipeBackend", properties);
+            case "yolo" -> reflectInstantiate("io.github.codesapienbe.springvision.yolo.YoloBackend", properties);
+            case "deepface" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.deepface.DeepFaceBackend", properties);
+            case "insightface" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.insightface.InsightFaceBackend", properties);
+            case "compreface" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.compreface.CompreFaceBackend", properties);
+            case "tesseract" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.tesseract.TesseractVisionBackend", properties);
+            case "facebytes" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.facebytes.FaceBytesBackend", properties);
+            case "cyber" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", properties);
+            default -> {
+                logger.warn("Backend '{}' not supported or not on classpath. Falling back to OpenCV.", backendName);
+                yield createOpenCvBackend(properties);
+            }
+        };
+    }
+
+    private VisionBackend reflectInstantiate(String className, VisionProperties properties) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            Object instance = clazz.getDeclaredConstructor().newInstance();
+            logger.info("Initialized backend via reflection: {}", className);
+
+            // Attempt to bind configuration properties for this backend
+            bindBackendProperties(instance);
+
+            return (VisionBackend) instance;
+        } catch (Throwable t) {
+            logger.warn("Could not initialize backend '{}': {}. Falling back to OpenCV.", className, t.toString());
+            return createOpenCvBackend(properties);
+        }
+    }
+
+    /**
+     * Binds spring.vision.<module> properties to the given backend instance using Spring Boot Binder.
+     */
+    private void bindBackendProperties(Object backend) {
+        try {
+            String backendId = backend.getClass().getSimpleName().toLowerCase();
+            String prefix = resolvePropertiesPrefix(backend);
+            if (prefix == null) {
+                logger.debug("No properties prefix resolved for backend class: {}", backend.getClass().getName());
+                return;
+            }
+            Binder binder = Binder.get(environment);
+            binder.bind(prefix, Bindable.ofInstance(backend));
+            logger.info("Bound properties for backend: prefix={} -> beanClass={}", prefix, backend.getClass().getName());
+        } catch (Exception e) {
+            logger.debug("Property binding skipped/failed for backend {}: {}", backend.getClass().getName(), e.getMessage());
+        }
+    }
+
+    /**
+     * Resolve the configuration properties prefix for a backend instance.
+     */
+    private String resolvePropertiesPrefix(Object backend) {
+        String pkg = backend.getClass().getPackageName();
+        if (pkg.contains("mediapipe")) return "spring.vision.mediapipe";
+        if (pkg.contains("yolo")) return "spring.vision.yolo";
+        if (pkg.contains("deepface")) return "spring.vision.deepface";
+        if (pkg.contains("insightface")) return "spring.vision.insightface";
+        if (pkg.contains("compreface")) return "spring.vision.compreface";
+        if (pkg.contains("tesseract")) return "spring.vision.tesseract";
+        if (pkg.contains("facebytes")) return "spring.vision.facebytes";
+        if (pkg.contains("cyber")) return "spring.vision.cyber";
+        if (pkg.contains("opencv")) return "spring.vision.opencv";
+        return null;
+    }
+
+    /**
      * Creates an OpenCV vision backend with the specified configuration.
      *
      * @param properties the vision configuration properties
@@ -200,7 +293,7 @@ public class VisionAutoConfiguration {
             String errorMessage = String.format(
                 "OpenCV native libraries not found. Please ensure OpenCV is properly installed. " +
                     "You can disable vision auto-configuration with 'vision.enabled=false' or " +
-                    "choose a different backend with 'vision.backend=mediapipe'. Error: %s",
+                    "choose a different backend with 'spring.vision.backend=mediapipe'. Error: %s",
                 e.getMessage()
             );
             logger.error(errorMessage, e);

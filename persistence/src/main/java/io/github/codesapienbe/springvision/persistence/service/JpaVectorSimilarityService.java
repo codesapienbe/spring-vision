@@ -14,8 +14,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Simple JPA-based vector similarity service. This is a fallback implementation
- * that stores embeddings as blobs and computes similarity in-memory.
+ * A generic, JPA-based implementation of {@link VectorSimilarityService}.
+ * This service provides a fallback mechanism for vector similarity search that works with any standard JPA provider.
+ * It stores embeddings as blobs and performs similarity calculations in-memory, which may not be suitable for large-scale production use
+ * but is excellent for testing and development environments without a specialized vector database.
  */
 @Service
 public class JpaVectorSimilarityService implements VectorSimilarityService {
@@ -23,9 +25,9 @@ public class JpaVectorSimilarityService implements VectorSimilarityService {
     private final FaceEmbeddingRepository embeddingRepository;
 
     /**
-     * Constructs a JPA vector similarity service.
+     * Constructs a new JpaVectorSimilarityService.
      *
-     * @param embeddingRepository the face embedding repository
+     * @param embeddingRepository The repository for accessing face embedding data.
      */
     public JpaVectorSimilarityService(FaceEmbeddingRepository embeddingRepository) {
         this.embeddingRepository = embeddingRepository;

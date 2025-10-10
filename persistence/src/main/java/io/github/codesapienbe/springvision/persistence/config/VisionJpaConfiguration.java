@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
- * Basic JPA configuration for Spring Vision JPA module.
+ * Configures the core JPA settings for the Spring Vision persistence module.
+ * This class enables JPA repositories and auditing, and is activated when `spring.vision.jpa.enabled` is true.
  */
 @Configuration
 @EnableJpaRepositories(basePackages = "io.github.codesapienbe.springvision.persistence.repository")

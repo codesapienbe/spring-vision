@@ -3,13 +3,33 @@ package io.github.codesapienbe.springvision.facebytes.models;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
+/**
+ * DeepID face recognition model implementation.
+ * Provides face embedding generation using the DeepID architecture.
+ */
 public final class DeepIdModel {
+    /**
+     * Default input size for DeepID model.
+     */
     public static final int DEFAULT_INPUT_SIZE = 96;
 
+    /**
+     * Generates face embedding using default input size.
+     *
+     * @param face the face image
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face) {
         return generateEmbedding(face, DEFAULT_INPUT_SIZE);
     }
 
+    /**
+     * Generates face embedding with specified input size.
+     *
+     * @param face       the face image
+     * @param targetSize the target input size for the model
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
         if (face == null) {
             throw new IllegalArgumentException("Face image cannot be null");

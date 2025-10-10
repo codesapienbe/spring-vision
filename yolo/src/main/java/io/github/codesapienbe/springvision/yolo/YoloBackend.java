@@ -4,7 +4,7 @@ import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import io.github.codesapienbe.springvision.core.util.OnnxRuntimeGuard;
 
@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
  * @since 1.1.0
  */
 @Component
-@ConfigurationProperties(prefix = "spring.vision.yolo")
+@ConditionalOnProperty(prefix = "spring.vision.yolo", name = "enabled", havingValue = "true")
 public class YoloBackend implements VisionBackend, ObjectDetectionCapability, FaceDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(YoloBackend.class);
@@ -607,81 +607,181 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         logger.info("YOLO backend shutdown completed: backend=yolo");
     }
 
-    // Configuration getters and setters
+    //<editor-fold desc="Configuration Getters and Setters">
+
+    /**
+     * Checks if the YOLO backend is enabled.
+     *
+     * @return true if enabled, false otherwise.
+     */
     public boolean isEnabled() {
         return enabled;
     }
 
+    /**
+     * Enables or disables the YOLO backend.
+     *
+     * @param enabled true to enable, false to disable.
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
+    /**
+     * Gets the local file system path where models are stored.
+     *
+     * @return The model path.
+     */
     public String getModelPath() {
         return modelPath;
     }
 
+    /**
+     * Sets the local file system path for storing models.
+     *
+     * @param modelPath The path to the model directory.
+     */
     public void setModelPath(String modelPath) {
         this.modelPath = modelPath;
     }
 
+    /**
+     * Gets the name of the YOLO model file to use.
+     *
+     * @return The model name.
+     */
     public String getModelName() {
         return modelName;
     }
 
+    /**
+     * Sets the name of the YOLO model file to use.
+     *
+     * @param modelName The name of the model file (e.g., "yolov8n.onnx").
+     */
     public void setModelName(String modelName) {
         this.modelName = modelName;
     }
 
+    /**
+     * Gets the confidence threshold for filtering detections.
+     *
+     * @return The confidence threshold.
+     */
     public double getConfidenceThreshold() {
         return confidenceThreshold;
     }
 
+    /**
+     * Sets the confidence threshold for filtering detections.
+     * Detections with a score below this value will be discarded.
+     *
+     * @param confidenceThreshold The threshold value (0.0 to 1.0).
+     */
     public void setConfidenceThreshold(double confidenceThreshold) {
         this.confidenceThreshold = confidenceThreshold;
     }
 
+    /**
+     * Gets the Non-Maximum Suppression (NMS) threshold.
+     *
+     * @return The NMS threshold.
+     */
     public double getNmsThreshold() {
         return nmsThreshold;
     }
 
+    /**
+     * Sets the Non-Maximum Suppression (NMS) threshold.
+     * Higher values result in fewer suppressed boxes.
+     *
+     * @param nmsThreshold The NMS threshold value (0.0 to 1.0).
+     */
     public void setNmsThreshold(double nmsThreshold) {
         this.nmsThreshold = nmsThreshold;
     }
 
+    /**
+     * Gets the maximum number of detections to return.
+     *
+     * @return The maximum number of detections.
+     */
     public int getMaxDetections() {
         return maxDetections;
     }
 
+    /**
+     * Sets the maximum number of detections to return after NMS.
+     *
+     * @param maxDetections The maximum number of detections.
+     */
     public void setMaxDetections(int maxDetections) {
         this.maxDetections = maxDetections;
     }
 
+    /**
+     * Checks if automatic model downloading is enabled.
+     *
+     * @return true if auto-download is enabled, false otherwise.
+     */
     public boolean isEnableAutoDownload() {
         return enableAutoDownload;
     }
 
+    /**
+     * Enables or disables automatic downloading of models.
+     *
+     * @param enableAutoDownload true to enable, false to disable.
+     */
     public void setEnableAutoDownload(boolean enableAutoDownload) {
         this.enableAutoDownload = enableAutoDownload;
     }
 
+    /**
+     * Gets the timeout for model downloads in seconds.
+     *
+     * @return The download timeout in seconds.
+     */
     public int getDownloadTimeoutSeconds() {
         return downloadTimeoutSeconds;
     }
 
+    /**
+     * Sets the timeout for model downloads.
+     *
+     * @param downloadTimeoutSeconds The timeout in seconds.
+     */
     public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
         this.downloadTimeoutSeconds = downloadTimeoutSeconds;
     }
 
+    /**
+     * Gets the input size (width and height) for the YOLO model.
+     *
+     * @return The input size.
+     */
     public int getInputSize() {
         return inputSize;
     }
 
+    /**
+     * Sets the input size for the YOLO model.
+     * Images will be resized to this dimension before inference.
+     *
+     * @param inputSize The input size (e.g., 640).
+     */
     public void setInputSize(int inputSize) {
         this.inputSize = inputSize;
     }
 
+    //</editor-fold>
+
     /**
-     * Model information including URL, checksum, and name.
+     * Holds information about a downloadable YOLO model.
+     *
+     * @param url      The download URL for the model.
+     * @param checksum The SHA256 checksum for verifying the downloaded file's integrity.
+     * @param name     The name of the model.
      */
     private static record ModelInfo(String url, String checksum, String name) {
     }

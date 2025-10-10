@@ -3,14 +3,19 @@ package io.github.codesapienbe.springvision.persistence.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuration properties for vector similarity auto-configuration.
+ * Configuration properties for vector similarity features within the persistence module.
+ * These properties allow for fine-tuning the behavior of vector indexes and similarity search providers.
  */
 @ConfigurationProperties(prefix = "spring.vision.vector")
 public class VectorSimilarityProperties {
 
+    /** The desired vector provider. AUTO will attempt to detect the best one based on the database vendor. */
     private VectorProvider provider = VectorProvider.AUTO;
+    /** PostgreSQL-specific vector settings. */
     private PostgreSQL postgresql = new PostgreSQL();
+    /** Oracle-specific vector settings. */
     private Oracle oracle = new Oracle();
+    /** MySQL-specific vector settings. */
     private MySQL mysql = new MySQL();
 
     public VectorProvider getProvider() {
@@ -45,6 +50,9 @@ public class VectorSimilarityProperties {
         this.mysql = mysql;
     }
 
+    /**
+     * Configuration for PostgreSQL vector similarity using the pgvector extension.
+     */
     public static class PostgreSQL {
         private boolean enabled = true;
         private String indexType = "hnsw";
@@ -84,6 +92,9 @@ public class VectorSimilarityProperties {
         }
     }
 
+    /**
+     * Configuration for Oracle vector similarity features.
+     */
     public static class Oracle {
         private boolean enabled = true;
         private String indexType = "hnsw";
@@ -114,6 +125,9 @@ public class VectorSimilarityProperties {
         }
     }
 
+    /**
+     * Configuration for MySQL vector similarity features.
+     */
     public static class MySQL {
         private boolean enabled = true;
         private String indexType = "hnsw";
@@ -135,7 +149,21 @@ public class VectorSimilarityProperties {
         }
     }
 
+    /**
+     * Enumerates the supported vector providers for similarity search.
+     */
     public enum VectorProvider {
-        AUTO, POSTGRES, ORACLE, MYSQL, JPA, H2
+        /** Automatically detect the provider based on the database vendor. */
+        AUTO,
+        /** Use PostgreSQL with the pgvector extension. */
+        POSTGRES,
+        /** Use Oracle's native vector capabilities. */
+        ORACLE,
+        /** Use MySQL's native vector capabilities. */
+        MYSQL,
+        /** Use a generic JPA-based implementation (fallback). */
+        JPA,
+        /** Use an H2-specific implementation for in-memory testing. */
+        H2
     }
 }

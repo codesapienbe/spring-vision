@@ -23,11 +23,19 @@ public final class AgePredictor {
     private final DeepFaceConfig config;
     private final int inputSize;
 
+    /**
+     * Creates a new AgePredictor with default configuration.
+     */
     public AgePredictor() {
         this.config = DeepFaceConfig.current();
         this.inputSize = config.ageInputSize();
     }
 
+    /**
+     * Creates a new AgePredictor with custom configuration.
+     *
+     * @param config the configuration to use
+     */
     public AgePredictor(DeepFaceConfig config) {
         this.config = config;
         this.inputSize = config.ageInputSize();

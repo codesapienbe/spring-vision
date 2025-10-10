@@ -7,22 +7,38 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * Adapter for PostgreSQL provider (postgres). Produces a representation usable by
- * pgvector extension when available.
+ * Adapter for the PostgreSQL vector provider ("postgres").
+ * This adapter converts the generic byte array representation of a vector into a format
+ * that is usable by the pgvector extension in PostgreSQL.
  */
 @Component
 public class PgNativeVectorAdapter implements NativeVectorAdapter {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String provider() {
         return "postgres";
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Converts the native vector byte array into a string representation suitable for a query parameter (e.g., "[1.0,2.0,3.0]").
+     */
     @Override
     public Object toQueryParam(byte[] nativeVector) {
         return NativeVectorMapper.toPostgresVectorString(nativeVector);
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Converts the native vector byte array into a {@code org.postgresql.util.PGobject} of type "vector".
+     * This is the recommended way to pass vector data to the PostgreSQL JDBC driver for use with pgvector.
+     * If the PostgreSQL driver is not available at runtime, it falls back to a string representation.
+     */
     @Override
     public Object toInsertValue(byte[] nativeVector) {
         String vec = NativeVectorMapper.toPostgresVectorString(nativeVector);

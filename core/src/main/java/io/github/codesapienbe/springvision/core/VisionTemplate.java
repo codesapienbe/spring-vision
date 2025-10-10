@@ -804,4 +804,52 @@ public class VisionTemplate {
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
     }
+
+    // --- Cybersecurity capabilities wrappers ---
+
+    /**
+     * Detects security threats from a list of images if the backend exposes ThreatDetectionCapability.
+     *
+     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     */
+    public List<Detection> detectThreat(List<ImageData> imageDataList) {
+        Objects.requireNonNull(imageDataList, "imageDataList must not be null");
+        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability cap) {
+            return cap.detectThreat(imageDataList);
+        }
+        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+            String.format("Threat detection is not supported by backend '%s'", getBackendId()),
+            "detectThreat", "cyber-threat");
+    }
+
+    /**
+     * Detects eavesdropping (shoulder surfing) attempts from a sequence of images
+     * if the backend exposes EavesdroppingDetectionCapability.
+     *
+     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     */
+    public List<Detection> detectEavesdropping(List<ImageData> imageDataList) {
+        Objects.requireNonNull(imageDataList, "imageDataList must not be null");
+        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EavesdroppingDetectionCapability cap) {
+            return cap.detectEavesdropping(imageDataList);
+        }
+        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+            String.format("Eavesdropping detection is not supported by backend '%s'", getBackendId()),
+            "detectEavesdropping", "cyber-eavesdropping");
+    }
+
+    /**
+     * Authenticates access from a single image if the backend exposes AccessAuthenticationCapability.
+     *
+     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     */
+    public List<Detection> authenticateAccess(ImageData imageData) {
+        Objects.requireNonNull(imageData, "imageData must not be null");
+        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability cap) {
+            return cap.authenticateAccess(imageData);
+        }
+        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+            String.format("Access authentication is not supported by backend '%s'", getBackendId()),
+            "authenticateAccess", "cyber-auth");
+    }
 }

@@ -154,6 +154,8 @@ public final class DetectorFactory {
 
     /**
      * Gets the current cache size for monitoring. Cleans up cleared weak references first.
+     *
+     * @return the number of cached detectors
      */
     public static int getCacheSize() {
         // Remove entries whose weak references have been cleared

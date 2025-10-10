@@ -13,22 +13,34 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Adapter exposing module VectorSimilarityService as core VectorService.
+ * An adapter that exposes a {@link VectorSimilarityService} from the persistence module as a core {@link VectorService}.
+ * This class acts as a bridge between the persistence-specific service interface and the core application's vector service contract.
  */
 public class VectorServiceAdapter implements VectorService {
 
     private final VectorSimilarityService delegate;
 
+    /**
+     * Constructs a new VectorServiceAdapter.
+     *
+     * @param delegate The persistence-layer {@link VectorSimilarityService} to which this adapter will delegate calls.
+     */
     public VectorServiceAdapter(VectorSimilarityService delegate) {
         this.delegate = delegate;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String storeFaceEmbedding(String personId, float[] embedding, String modelName, String imageHash, Double confidence, Map<String, Object> metadata) {
         StoreFaceEmbeddingRequest req = new StoreFaceEmbeddingRequest(personId, embedding, modelName, imageHash, confidence, metadata == null ? Map.of() : metadata);
         return delegate.storeFaceEmbedding(req);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Map<String, Object>> findSimilarFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, Set<String> includePersonIds, Set<String> excludePersonIds) {
         io.github.codesapienbe.springvision.persistence.dto.SimilaritySearchRequest req = new io.github.codesapienbe.springvision.persistence.dto.SimilaritySearchRequest(

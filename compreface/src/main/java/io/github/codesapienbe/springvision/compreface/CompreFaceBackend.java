@@ -18,6 +18,7 @@ import io.github.codesapienbe.springvision.core.exception.VisionProcessingExcept
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
@@ -52,6 +53,7 @@ import java.util.*;
  * @since 1.0.0
  */
 @Component
+@ConditionalOnProperty(prefix = "spring.vision.compreface", name = "enabled", havingValue = "true")
 public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(CompreFaceBackend.class);

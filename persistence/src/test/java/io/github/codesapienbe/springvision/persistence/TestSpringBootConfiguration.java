@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @SpringBootConfiguration
 @EnableAutoConfiguration
-@ComponentScan(basePackages = "io.github.codesapienbe.springvision.jpa")
+@ComponentScan(basePackages = "io.github.codesapienbe.springvision.persistence")
 @EntityScan(basePackages = "io.github.codesapienbe.springvision.persistence.entity")
 @EnableTransactionManagement
 public class TestSpringBootConfiguration {

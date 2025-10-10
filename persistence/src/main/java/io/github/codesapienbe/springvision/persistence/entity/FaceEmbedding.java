@@ -11,35 +11,60 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 
 /**
- * Entity storing face embeddings.
+ * JPA entity for storing face embeddings in a relational database.
+ * This entity includes the embedding itself, metadata about the person and model, and auditing fields.
  */
 @Entity
 @Table(name = "face_embeddings")
 public class FaceEmbedding extends AuditableEntity {
 
+    /**
+     * The unique identifier for the embedding record.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    /**
+     * An identifier for the person associated with this face embedding.
+     */
     @Column(nullable = false)
     private String personId;
 
+    /**
+     * The name of the model used to generate the embedding (e.g., "arcface").
+     */
     @Column(nullable = false)
     private String modelName;
 
+    /**
+     * The dimension of the embedding vector (e.g., 512).
+     */
     @Column(nullable = false)
     private Integer dimension;
 
+    /**
+     * The raw embedding data, stored as a portable byte array (blob).
+     */
     @Lob
     @Column(name = "embedding_blob", nullable = false)
     private byte[] embeddingBlob;
 
+    /**
+     * A database-native representation of the vector, for use with specialized vector extensions (e.g., pgvector).
+     */
     @jakarta.persistence.Column(name = "native_vector")
     private byte[] nativeVector;
 
+    /**
+     * The SHA-256 hash of the source image from which the embedding was generated.
+     */
     @Column
     private String imageHash;
 
+    /**
+     * The confidence score of the face detection.
+     */
     @Column
     private Double confidence;
 

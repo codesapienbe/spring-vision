@@ -16,15 +16,34 @@ import io.github.codesapienbe.springvision.facebytes.utils.Logs;
  */
 public final class ArcFaceModel {
 
+    /**
+     * Default input size for ArcFace model.
+     */
     public static final int DEFAULT_INPUT_SIZE = 112;
 
+    /**
+     * Creates a new ArcFaceModel instance.
+     */
     public ArcFaceModel() {
     }
 
+    /**
+     * Generates face embedding using default input size.
+     *
+     * @param face the face image
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face) {
         return generateEmbedding(face, DEFAULT_INPUT_SIZE);
     }
 
+    /**
+     * Generates face embedding with specified input size.
+     *
+     * @param face       the face image
+     * @param targetSize the target input size for the model
+     * @return the face embedding vector
+     */
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
         if (face == null) {
             throw new IllegalArgumentException("Face image cannot be null");

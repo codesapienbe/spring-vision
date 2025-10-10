@@ -13,10 +13,11 @@ Quick start
 1. Add the dependency (via `spring-vision-starter` or module artifact):
 
 ```xml
+
 <dependency>
-  <groupId>com.springvision</groupId>
-  <artifactId>spring-vision-starter</artifactId>
-  <version>${project.version}</version>
+    <groupId>io.github.codesapienbe.springvision</groupId>
+    <artifactId>spring-vision-starter</artifactId>
+    <version>${project.version}</version>
 </dependency>
 ```
 
@@ -36,6 +37,7 @@ spring:
 3. Use the enhanced template for lookup/registration (auto-configured when enabled):
 
 ```java
+
 @Autowired
 private io.github.codesapienbe.springvision.core.VisionTemplate visionTemplate;
 

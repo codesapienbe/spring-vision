@@ -11,7 +11,7 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 1.1.0
  */
 @Component
-@ConfigurationProperties(prefix = "spring.vision.mediapipe")
+@ConditionalOnProperty(prefix = "spring.vision.mediapipe", name = "enabled", havingValue = "true")
 public class MediaPipeBackend implements VisionBackend {
 
     private static final Logger logger = LoggerFactory.getLogger(MediaPipeBackend.class);

@@ -9,8 +9,9 @@ Spring Boot starter for the Spring Vision framework, providing easy integration 
 Add the starter dependency to your `pom.xml`:
 
 ```xml
+
 <dependency>
-    <groupId>com.springvision</groupId>
+    <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision-starter</artifactId>
     <version>1.0</version>
 </dependency>
@@ -21,7 +22,7 @@ Add the starter dependency to your `pom.xml`:
 Add the starter dependency to your `build.gradle`:
 
 ```gradle
-implementation 'com.springvision:spring-vision-starter:1.0'
+implementation 'io.github.codesapienbe.springvision:spring-vision-starter:1.0'
 ```
 
 ### Usage
@@ -29,14 +30,15 @@ implementation 'com.springvision:spring-vision-starter:1.0'
 Simply inject the `VisionTemplate` into your components:
 
 ```java
+
 @Component
 public class ImageService {
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     public void processImage(byte[] imageData) {
         VisionResult result = visionTemplate.detectFaces(imageData);
-        
+
         if (result.hasDetections()) {
             result.detections().forEach(detection -> {
                 System.out.println("Face detected with confidence: " + detection.confidence());
@@ -148,61 +150,64 @@ Metrics are automatically collected and available at:
 ### Face Detection
 
 ```java
+
 @Service
 public class FaceDetectionService {
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     public List<FaceDetection> detectFaces(byte[] imageData) {
         VisionResult result = visionTemplate.detectFaces(imageData);
-        
+
         return result.detections().stream()
-            .map(detection -> new FaceDetection(
-                detection.confidence(),
-                detection.boundingBox()
-            ))
-            .collect(Collectors.toList());
-        }
+                .map(detection -> new FaceDetection(
+                        detection.confidence(),
+                        detection.boundingBox()
+                ))
+                .collect(Collectors.toList());
     }
+}
 ```
 
 ### Object Detection
 
 ```java
+
 @Service
 public class ObjectDetectionService {
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     public List<ObjectDetection> detectObjects(byte[] imageData) {
         VisionResult result = visionTemplate.detectObjects(imageData);
-        
+
         return result.detections().stream()
-            .map(detection -> new ObjectDetection(
-                detection.label(),
-                detection.confidence(),
-                detection.boundingBox()
-            ))
-            .collect(Collectors.toList());
-        }
+                .map(detection -> new ObjectDetection(
+                        detection.label(),
+                        detection.confidence(),
+                        detection.boundingBox()
+                ))
+                .collect(Collectors.toList());
     }
+}
 ```
 
 ### Multiple Detection Types
 
 ```java
+
 @Service
 public class MultiDetectionService {
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     public DetectionResults detectAll(byte[] imageData) {
         List<DetectionType> types = List.of(DetectionType.FACE, DetectionType.OBJECT);
         List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
-        
+
         return new DetectionResults(
-            results.get(0).detections(), // Face detections
-            results.get(1).detections()  // Object detections
+                results.get(0).detections(), // Face detections
+                results.get(1).detections()  // Object detections
         );
     }
 }
@@ -211,11 +216,12 @@ public class MultiDetectionService {
 ### Health Monitoring
 
 ```java
+
 @Component
 public class HealthCheckService {
     @Autowired
     private VisionTemplate visionTemplate;
-    
+
     public void checkHealth() {
         if (visionTemplate.isBackendHealthy()) {
             var healthInfo = visionTemplate.getBackendHealthInfo();
@@ -266,6 +272,7 @@ mvn test -pl spring-vision-starter
 Provide your own backend implementation:
 
 ```java
+
 @Configuration
 public class CustomVisionConfiguration {
     @Bean
@@ -281,6 +288,7 @@ public class CustomVisionConfiguration {
 Override default configuration:
 
 ```java
+
 @Configuration
 public class CustomVisionConfiguration {
     @Bean
@@ -298,8 +306,9 @@ public class CustomVisionConfiguration {
 Exclude specific auto-configuration classes:
 
 ```java
+
 @SpringBootApplication(exclude = {
-    VisionAutoConfiguration.class
+        VisionAutoConfiguration.class
 })
 public class MyApplication {
     // Custom configuration...
@@ -339,6 +348,7 @@ The starter includes:
 **Error**: `OutOfMemoryError` during image processing
 
 **Solution**: Increase JVM heap size:
+
 ```bash
 java -Xmx4g -jar your-application.jar
 ```
@@ -348,6 +358,7 @@ java -Xmx4g -jar your-application.jar
 **Symptoms**: Slow face detection
 
 **Solutions**:
+
 - Reduce image size before processing
 - Adjust confidence thresholds
 - Enable GPU acceleration (if available)
@@ -393,4 +404,4 @@ For issues and questions:
 
 | Spring Vision | Spring Boot | Java | OpenCV | JavaCV |
 |---------------|-------------|------|--------|--------|
-| 1.0 | 3.0+ | 21+ | 4.8.1 | 1.5.9 | 
+| 1.0           | 3.0+        | 21+  | 4.8.1  | 1.5.9  |

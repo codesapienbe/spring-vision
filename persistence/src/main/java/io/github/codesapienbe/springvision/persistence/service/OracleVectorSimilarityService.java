@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Oracle-backed vector similarity service (placeholder implementation).
+ * A {@link VectorSimilarityService} implementation for Oracle Database.
+ * This service is a placeholder and demonstrates how native vector operations would be integrated.
+ * It is activated when the `spring.vision.vector.provider` property is set to `oracle`.
  */
 @Service
 @ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "oracle")
@@ -31,6 +33,13 @@ public class OracleVectorSimilarityService implements VectorSimilarityService {
     private final JdbcTemplate jdbcTemplate;
     private NativeVectorAdapter nativeVectorAdapter;
 
+    /**
+     * Constructs a new OracleVectorSimilarityService.
+     *
+     * @param repository   The repository for face embedding data.
+     * @param jdbcTemplate The JDBC template for executing native SQL queries.
+     * @param registry     The registry for obtaining the appropriate native vector adapter.
+     */
     @Autowired
     public OracleVectorSimilarityService(io.github.codesapienbe.springvision.persistence.repository.OracleFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, io.github.codesapienbe.springvision.persistence.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;

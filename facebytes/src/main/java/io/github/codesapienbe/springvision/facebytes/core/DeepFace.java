@@ -47,9 +47,21 @@ import static io.github.codesapienbe.springvision.facebytes.utils.ImageUtils.loa
 import io.github.codesapienbe.springvision.facebytes.utils.Logs;
 
 /**
- * Core FaceBytes API providing DeepFace-like operations: verify, represent, extractFaces, analyze.
- * <p>
- * All path-based methods validate file size and log structured events. Analysis is not implemented yet.
+ * Core FaceBytes API providing DeepFace-like operations for face recognition and analysis.
+ * This class offers a static interface for common face-related tasks, including:
+ * <ul>
+ *     <li><b>verify:</b> Compare two faces to determine if they belong to the same person.</li>
+ *     <li><b>find:</b> Find the most similar face in a gallery for a given query face.</li>
+ *     <li><b>represent:</b> Convert a face image into a compact numerical vector (embedding).</li>
+ *     <li><b>extractFaces:</b> Detect and crop face regions from an image.</li>
+ *     <li><b>analyze:</b> Predict attributes like age, gender, emotion, and race for a face.</li>
+ * </ul>
+ * The class is designed to be a pure-Java, standalone equivalent of the popular Python `deepface` library,
+ * leveraging ONNX models for inference. It includes multiple overloads for handling images from file paths,
+ * byte arrays, and input streams.
+ *
+ * <p>All path-based methods include validation for file existence and size to prevent common errors.
+ * Structured logging is used to provide detailed information about operations and potential issues.</p>
  */
 public final class DeepFace {
 
@@ -61,11 +73,11 @@ public final class DeepFace {
     }
 
     /**
-     * Finds the best match in gallery for the query image using the configured distance metric.
+     * Finds the best match in a gallery of images for a given query image, using the default distance metric.
      *
-     * @param queryImagePath    the path to the query image
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @return the find result
+     * @param queryImagePath    The file path to the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images to search through.
+     * @return A {@link FindResult} containing the path of the best matching image, the distance score, and whether the match is within the configured threshold.
      */
     public static FindResult find(String queryImagePath, List<String> galleryImagePaths) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -98,13 +110,13 @@ public final class DeepFace {
     }
 
     /**
-     * Find with explicit metric and optional threshold override.
+     * Finds the best match with an explicit distance metric and an optional threshold override.
      *
-     * @param queryImagePath    the path to the query image
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @param metric            the distance metric to use
-     * @param thresholdOverride the optional threshold override
-     * @return the find result
+     * @param queryImagePath    The file path to the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @param metric            The {@link DistanceMetric} to use for comparison.
+     * @param thresholdOverride An optional value to override the default similarity threshold.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(String queryImagePath, List<String> galleryImagePaths, DistanceMetric metric, Double thresholdOverride) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -136,11 +148,11 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match for query bytes against gallery paths.
+     * Finds the best match for a query image provided as a byte array against a gallery of image paths.
      *
-     * @param queryImageBytes   the query image bytes
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @return the find result
+     * @param queryImageBytes   The byte array of the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(byte[] queryImageBytes, List<String> galleryImagePaths) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -172,11 +184,11 @@ public final class DeepFace {
 
 
     /**
-     * Finds best match for query stream against gallery paths.
+     * Finds the best match for a query image from an InputStream against a gallery of image paths.
      *
-     * @param queryImageStream  the query image stream
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @return the find result
+     * @param queryImageStream  The InputStream of the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(InputStream queryImageStream, List<String> galleryImagePaths) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -207,13 +219,13 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match for query stream against gallery paths.
+     * Finds the best match for a query image from an InputStream with explicit metric and threshold.
      *
-     * @param queryImageStream  the query image stream
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @param metric            the distance metric to use
-     * @param thresholdOverride the optional threshold override
-     * @return the find result
+     * @param queryImageStream  The InputStream of the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @param metric            The distance metric to use.
+     * @param thresholdOverride An optional override for the similarity threshold.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(InputStream queryImageStream, List<String> galleryImagePaths, DistanceMetric metric, Double thresholdOverride) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -244,11 +256,11 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match using precomputed embeddings for query and a list of gallery embeddings.
+     * Finds the best match for a pre-computed query embedding against a list of pre-computed gallery embeddings.
      *
-     * @param queryEmbedding    the query embedding
-     * @param galleryEmbeddings the list of gallery embeddings
-     * @return the find result
+     * @param queryEmbedding    The embedding vector of the query face.
+     * @param galleryEmbeddings A list of embedding vectors for the gallery faces.
+     * @return A {@link FindResult} with the best match details, where the ID is the index in the gallery list.
      */
     public static FindResult find(float[] queryEmbedding, List<float[]> galleryEmbeddings) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -269,12 +281,12 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match using precomputed embeddings for query and a list of gallery embeddings.
+     * Finds the best match for a query embedding against a gallery of embeddings with associated IDs.
      *
-     * @param queryEmbedding    the query embedding
-     * @param galleryEmbeddings the list of gallery embeddings
-     * @param galleryIds        the list of gallery IDs
-     * @return the find result
+     * @param queryEmbedding    The embedding of the query face.
+     * @param galleryEmbeddings A list of embeddings for the gallery faces.
+     * @param galleryIds        A list of IDs corresponding to each gallery embedding.
+     * @return A {@link FindResult} with the ID and distance of the best match.
      */
     public static FindResult find(float[] queryEmbedding, List<float[]> galleryEmbeddings, List<String> galleryIds) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -295,13 +307,13 @@ public final class DeepFace {
     }
 
     /**
-     * Returns top-K closest matches for a query embedding against gallery embeddings.
+     * Finds the top-K closest matches for a query embedding against a gallery of embeddings.
      *
-     * @param queryEmbedding    the query embedding
-     * @param galleryEmbeddings the list of gallery embeddings
-     * @param galleryIds        the list of gallery IDs
-     * @param k                 the number of top matches to return
-     * @return a list of find matches
+     * @param queryEmbedding    The embedding of the query face.
+     * @param galleryEmbeddings A list of embeddings for the gallery faces.
+     * @param galleryIds        A list of IDs for the gallery embeddings.
+     * @param k                 The number of top matches to return.
+     * @return A list of {@link FindMatch} objects, sorted by distance in ascending order.
      */
     public static List<FindMatch> findTopK(float[] queryEmbedding, List<float[]> galleryEmbeddings, List<String> galleryIds, int k) {
         if (k <= 0) return List.of();
@@ -326,12 +338,13 @@ public final class DeepFace {
     }
 
     /**
-     * Convenience: top-K over gallery paths by computing embeddings internally.
+     * Finds the top-K closest matches for a query image against a gallery of image paths.
+     * This is a convenience method that computes embeddings internally.
      *
-     * @param queryImagePath    the path to the query image
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @param k                 the number of top matches to return
-     * @return a list of find matches
+     * @param queryImagePath    The file path to the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @param k                 The number of top matches to return.
+     * @return A list of {@link FindMatch} objects, sorted by distance.
      */
     public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k) {
         validateFile(queryImagePath);
@@ -370,13 +383,13 @@ public final class DeepFace {
     }
 
     /**
-     * Top-K with explicit metric.
+     * Finds the top-K matches with an explicit distance metric.
      *
-     * @param queryImagePath    the path to the query image
-     * @param galleryImagePaths the list of paths to the gallery images
-     * @param k                 the number of top matches to return
-     * @param metric            the distance metric to use
-     * @return a list of find matches
+     * @param queryImagePath    The file path to the query image.
+     * @param galleryImagePaths A list of file paths for the gallery images.
+     * @param k                 The number of top matches to return.
+     * @param metric            The distance metric to use.
+     * @return A list of {@link FindMatch} objects, sorted by distance.
      */
     public static List<FindMatch> findTopK(String queryImagePath, List<String> galleryImagePaths, int k, DistanceMetric metric) {
         validateFile(queryImagePath);
@@ -413,12 +426,12 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match for query path against gallery bytes list.
+     * Finds the best match for a query image path against a gallery of image byte arrays.
      *
-     * @param queryImagePath        the path to the query image
-     * @param galleryImageBytesList the list of gallery image bytes
-     * @param galleryIds            the list of gallery IDs
-     * @return the find result
+     * @param queryImagePath        The file path to the query image.
+     * @param galleryImageBytesList A list of byte arrays for the gallery images.
+     * @param galleryIds            A list of IDs for the gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(String queryImagePath, List<byte[]> galleryImageBytesList, List<String> galleryIds) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -449,12 +462,12 @@ public final class DeepFace {
     }
 
     /**
-     * Finds best match for query bytes against gallery bytes list.
+     * Finds the best match for a query image byte array against a gallery of image byte arrays.
      *
-     * @param queryImageBytes       the query image bytes
-     * @param galleryImageBytesList the list of gallery image bytes
-     * @param galleryIds            the list of gallery IDs
-     * @return the find result
+     * @param queryImageBytes       The byte array of the query image.
+     * @param galleryImageBytesList A list of byte arrays for the gallery images.
+     * @param galleryIds            A list of IDs for the gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(byte[] queryImageBytes, List<byte[]> galleryImageBytesList, List<String> galleryIds) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -485,12 +498,12 @@ public final class DeepFace {
 
 
     /**
-     * Finds best match for query stream against gallery streams.
+     * Finds the best match for a query image stream against a gallery of image streams.
      *
-     * @param queryImageStream the query image stream
-     * @param galleryStreams   the list of gallery image streams
-     * @param galleryIds       the list of gallery IDs
-     * @return the find result
+     * @param queryImageStream The InputStream of the query image.
+     * @param galleryStreams   A list of InputStreams for the gallery images.
+     * @param galleryIds       A list of IDs for the gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(InputStream queryImageStream, List<InputStream> galleryStreams, List<String> galleryIds) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -523,11 +536,11 @@ public final class DeepFace {
     // ========================= VERIFY =========================
 
     /**
-     * Convenience: verify with defaults using buffered images.
+     * Verifies if two images contain the same person, using default settings.
      *
-     * @param img1 the first image
-     * @param img2 the second image
-     * @return the verification result
+     * @param img1 The first image as a {@link BufferedImage}.
+     * @param img2 The second image as a {@link BufferedImage}.
+     * @return A {@link VerificationResult} indicating if they match, the distance, and the threshold used.
      */
     public static VerificationResult verify(BufferedImage img1, BufferedImage img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -535,11 +548,11 @@ public final class DeepFace {
     }
 
     /**
-     * Convenience: verify with defaults using bytes.
+     * Verifies if two images from byte arrays contain the same person, using default settings.
      *
-     * @param img1 the first image bytes
-     * @param img2 the second image bytes
-     * @return the verification result
+     * @param img1 The byte array of the first image.
+     * @param img2 The byte array of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(byte[] img1, byte[] img2) {
         try {
@@ -552,11 +565,11 @@ public final class DeepFace {
     }
 
     /**
-     * Convenience: verify with defaults using streams.
+     * Verifies if two images from InputStreams contain the same person, using default settings.
      *
-     * @param img1 the first image stream
-     * @param img2 the second image stream
-     * @return the verification result
+     * @param img1 The InputStream of the first image.
+     * @param img2 The InputStream of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(InputStream img1, InputStream img2) {
         try {
@@ -569,11 +582,11 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies whether two images depict the same person using default configuration.
+     * Verifies if two images from file paths contain the same person, using default settings.
      *
-     * @param img1 the path to the first image
-     * @param img2 the path to the second image
-     * @return the verification result
+     * @param img1 The file path of the first image.
+     * @param img2 The file path of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(String img1, String img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -581,14 +594,14 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies whether two images depict the same person.
+     * Verifies if two images from file paths contain the same person, with explicit model, distance metric, and detector.
      *
-     * @param img1     the path to the first image
-     * @param img2     the path to the second image
-     * @param model    the model to use
-     * @param distance the distance metric to use
-     * @param detector the detector backend to use
-     * @return the verification result
+     * @param img1     The file path of the first image.
+     * @param img2     The file path of the second image.
+     * @param model    The {@link ModelType} to use for embedding generation.
+     * @param distance The {@link DistanceMetric} for comparison.
+     * @param detector The {@link DetectorBackend} for face detection.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(String img1, String img2, ModelType model, DistanceMetric distance,
                                             DetectorBackend detector) {
@@ -605,13 +618,13 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two embeddings.
+     * Verifies if two pre-computed embeddings represent the same person.
      *
-     * @param emb1           the first embedding
-     * @param emb2           the second embedding
-     * @param model          the model used to generate the embeddings
-     * @param distanceMetric the distance metric to use
-     * @return the verification result
+     * @param emb1           The first embedding vector.
+     * @param emb2           The second embedding vector.
+     * @param model          The model that generated the embeddings.
+     * @param distanceMetric The distance metric to use for comparison.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(float[] emb1, float[] emb2, ModelType model, DistanceMetric distanceMetric) {
         double d = compute(distanceMetric, emb1, emb2);
@@ -621,14 +634,14 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two buffered images with full control over model/distance/backend.
+     * Verifies if two BufferedImages contain the same person, with full control over model, distance, and detector.
      *
-     * @param img1     the first image
-     * @param img2     the second image
-     * @param model    the model to use
-     * @param distance the distance metric to use
-     * @param detector the detector backend to use
-     * @return the verification result
+     * @param img1     The first image.
+     * @param img2     The second image.
+     * @param model    The model to use.
+     * @param distance The distance metric to use.
+     * @param detector The detector backend to use.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(BufferedImage img1, BufferedImage img2, ModelType model,
                                             DistanceMetric distance, DetectorBackend detector) {
@@ -653,14 +666,14 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two images given as bytes.
+     * Verifies if two images from byte arrays contain the same person, with explicit settings.
      *
-     * @param img1     the first image bytes
-     * @param img2     the second image bytes
-     * @param model    the model to use
-     * @param distance the distance metric to use
-     * @param detector the detector backend to use
-     * @return the verification result
+     * @param img1     The byte array of the first image.
+     * @param img2     The byte array of the second image.
+     * @param model    The model to use.
+     * @param distance The distance metric to use.
+     * @param detector The detector backend to use.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(byte[] img1, byte[] img2, ModelType model, DistanceMetric distance,
                                             DetectorBackend detector) {
@@ -673,14 +686,14 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two images given as streams.
+     * Verifies if two images from InputStreams contain the same person, with explicit settings.
      *
-     * @param img1     the first image stream
-     * @param img2     the second image stream
-     * @param model    the model to use
-     * @param distance the distance metric to use
-     * @param detector the detector backend to use
-     * @return the verification result
+     * @param img1     The InputStream of the first image.
+     * @param img2     The InputStream of the second image.
+     * @param model    The model to use.
+     * @param distance The distance metric to use.
+     * @param detector The detector backend to use.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(InputStream img1, InputStream img2, ModelType model, DistanceMetric distance,
                                             DetectorBackend detector) {
@@ -693,11 +706,11 @@ public final class DeepFace {
     }
 
     /**
-     * Defaulted verify for two embeddings using current config.
+     * Verifies two embeddings using the default model and distance metric.
      *
-     * @param emb1 the first embedding
-     * @param emb2 the second embedding
-     * @return the verification result
+     * @param emb1 The first embedding.
+     * @param emb2 The second embedding.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verify(float[] emb1, float[] emb2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -705,13 +718,13 @@ public final class DeepFace {
     }
 
     /**
-     * Verify two sets of embeddings (e.g., multiple faces) using minimum pairwise distance.
+     * Verifies two sets of embeddings (e.g., from images with multiple faces) by finding the minimum pairwise distance.
      *
-     * @param setA   the first set of embeddings
-     * @param setB   the second set of embeddings
-     * @param model  the model used to generate the embeddings
-     * @param metric the distance metric to use
-     * @return the verification result
+     * @param setA   The first set of embedding vectors.
+     * @param setB   The second set of embedding vectors.
+     * @param model  The model used to generate the embeddings.
+     * @param metric The distance metric for comparison.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verifyEmbeddings(List<float[]> setA, List<float[]> setB, ModelType model, DistanceMetric metric) {
         double best = bestDistance(setA, setB, metric);
@@ -723,10 +736,10 @@ public final class DeepFace {
     // ========================= REPRESENT (multiple overloads) =========================
 
     /**
-     * Generates embeddings for all faces in the image located at {@code imgPath}.
+     * Generates embeddings for all faces in an image from a file path, using default settings.
      *
-     * @param imgPath the path to the image
-     * @return a list of embedding results
+     * @param imgPath The file path to the image.
+     * @return A list of {@link EmbeddingResult} objects, each containing an embedding and the corresponding face region.
      */
     public static List<EmbeddingResult> represent(String imgPath) {
         validateFile(imgPath);
@@ -740,11 +753,11 @@ public final class DeepFace {
     }
 
     /**
-     * Represent with explicit detector backend override.
+     * Generates embeddings with an explicit detector backend.
      *
-     * @param imgPath the path to the image
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param imgPath The file path to the image.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(String imgPath, DetectorBackend backend) {
         validateFile(imgPath);
@@ -757,10 +770,10 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image bytes.
+     * Generates embeddings for all faces in an image from a byte array.
      *
-     * @param imageBytes the image bytes
-     * @return a list of embedding results
+     * @param imageBytes The byte array of the image.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(byte[] imageBytes) {
         try {
@@ -772,11 +785,11 @@ public final class DeepFace {
     }
 
     /**
-     * Represent bytes with explicit detector backend override.
+     * Generates embeddings from a byte array with an explicit detector backend.
      *
-     * @param imageBytes the image bytes
-     * @param backend    the detector backend to use
-     * @return a list of embedding results
+     * @param imageBytes The byte array of the image.
+     * @param backend    The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(byte[] imageBytes, DetectorBackend backend) {
         try {
@@ -788,10 +801,10 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image stream.
+     * Generates embeddings for all faces in an image from an InputStream.
      *
-     * @param imageStream the image stream
-     * @return a list of embedding results
+     * @param imageStream The InputStream of the image.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(InputStream imageStream) {
         try {
@@ -803,11 +816,11 @@ public final class DeepFace {
     }
 
     /**
-     * Represent stream with explicit detector backend override.
+     * Generates embeddings from an InputStream with an explicit detector backend.
      *
-     * @param imageStream the image stream
-     * @param backend     the detector backend to use
-     * @return a list of embedding results
+     * @param imageStream The InputStream of the image.
+     * @param backend     The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(InputStream imageStream, DetectorBackend backend) {
         try {
@@ -819,10 +832,11 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image.
+     * Generates embeddings for all faces in a {@link BufferedImage}.
+     * This is the core `represent` method that others delegate to.
      *
-     * @param img the image
-     * @return a list of embedding results
+     * @param img The image to process.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(BufferedImage img) {
         validateImage(img);
@@ -873,11 +887,11 @@ public final class DeepFace {
     }
 
     /**
-     * Represent with explicit detector backend override.
+     * Generates embeddings from a {@link BufferedImage} with an explicit detector backend.
      *
-     * @param img     the image
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param img     The image to process.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(BufferedImage img, DetectorBackend backend) {
         validateImage(img);
@@ -930,12 +944,12 @@ public final class DeepFace {
     // New: model-aware represent overloads
 
     /**
-     * Generates embeddings for all faces in the image located at {@code imgPath}.
+     * Generates embeddings using a specific model and detector backend.
      *
-     * @param imgPath the path to the image
-     * @param model   the model to use
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param imgPath The file path to the image.
+     * @param model   The model to use for embeddings.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(String imgPath, ModelType model, DetectorBackend backend) {
         validateFile(imgPath);
@@ -948,12 +962,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image bytes.
+     * Generates embeddings from a byte array using a specific model and detector.
      *
-     * @param imageBytes the image bytes
-     * @param model      the model to use
-     * @param backend    the detector backend to use
-     * @return a list of embedding results
+     * @param imageBytes The byte array of the image.
+     * @param model      The model to use.
+     * @param backend    The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(byte[] imageBytes, ModelType model, DetectorBackend backend) {
         try {
@@ -965,12 +979,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image stream.
+     * Generates embeddings from an InputStream using a specific model and detector.
      *
-     * @param imageStream the image stream
-     * @param model       the model to use
-     * @param backend     the detector backend to use
-     * @return a list of embedding results
+     * @param imageStream The InputStream of the image.
+     * @param model       The model to use.
+     * @param backend     The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(InputStream imageStream, ModelType model, DetectorBackend backend) {
         try {
@@ -982,12 +996,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image.
+     * Generates embeddings from a {@link BufferedImage} using a specific model and detector.
      *
-     * @param img     the image
-     * @param model   the model to use
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param img     The image to process.
+     * @param model   The model to use.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> represent(BufferedImage img, ModelType model, DetectorBackend backend) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -1017,10 +1031,10 @@ public final class DeepFace {
     // ========================= REPRESENT (embeddings only helpers) =========================
 
     /**
-     * Generates embeddings for all faces in the image located at {@code imgPath}.
+     * Generates only the embedding vectors for all faces in an image from a file path.
      *
-     * @param imgPath the path to the image
-     * @return a list of embeddings
+     * @param imgPath The file path to the image.
+     * @return A list of float arrays, where each array is an embedding.
      */
     public static List<float[]> representEmbeddings(String imgPath) {
         validateFile(imgPath);
@@ -1033,11 +1047,11 @@ public final class DeepFace {
     }
 
     /**
-     * Embeddings with explicit detector backend override.
+     * Generates embeddings with an explicit detector backend.
      *
-     * @param imgPath the path to the image
-     * @param backend the detector backend to use
-     * @return a list of embeddings
+     * @param imgPath The file path to the image.
+     * @param backend The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(String imgPath, DetectorBackend backend) {
         validateFile(imgPath);
@@ -1050,10 +1064,10 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image bytes.
+     * Generates embeddings from a byte array.
      *
-     * @param imageBytes the image bytes
-     * @return a list of embeddings
+     * @param imageBytes The byte array of the image.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(byte[] imageBytes) {
         try {
@@ -1065,11 +1079,11 @@ public final class DeepFace {
     }
 
     /**
-     * Embeddings with explicit detector backend override.
+     * Generates embeddings from a byte array with an explicit detector.
      *
-     * @param imageBytes the image bytes
-     * @param backend    the detector backend to use
-     * @return a list of embeddings
+     * @param imageBytes The byte array of the image.
+     * @param backend    The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(byte[] imageBytes, DetectorBackend backend) {
         try {
@@ -1081,10 +1095,10 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image stream.
+     * Generates embeddings from an InputStream.
      *
-     * @param imageStream the image stream
-     * @return a list of embeddings
+     * @param imageStream The InputStream of the image.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(InputStream imageStream) {
         try {
@@ -1096,11 +1110,11 @@ public final class DeepFace {
     }
 
     /**
-     * Embeddings with explicit detector backend override.
+     * Generates embeddings from an InputStream with an explicit detector.
      *
-     * @param imageStream the image stream
-     * @param backend     the detector backend to use
-     * @return a list of embeddings
+     * @param imageStream The InputStream of the image.
+     * @param backend     The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(InputStream imageStream, DetectorBackend backend) {
         try {
@@ -1112,10 +1126,10 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image.
+     * Generates embeddings from a {@link BufferedImage}.
      *
-     * @param image the image
-     * @return a list of embeddings
+     * @param image The image to process.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(BufferedImage image) {
         List<EmbeddingResult> results = represent(image);
@@ -1125,11 +1139,11 @@ public final class DeepFace {
     }
 
     /**
-     * Embeddings with explicit detector backend override.
+     * Generates embeddings from a {@link BufferedImage} with an explicit detector.
      *
-     * @param image   the image
-     * @param backend the detector backend to use
-     * @return a list of embeddings
+     * @param image   The image to process.
+     * @param backend The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(BufferedImage image, DetectorBackend backend) {
         List<EmbeddingResult> results = represent(image, backend);
@@ -1141,12 +1155,12 @@ public final class DeepFace {
     // New: model-aware embeddings helpers
 
     /**
-     * Generates embeddings for all faces in the image located at {@code imgPath}.
+     * Generates embeddings using a specific model and detector.
      *
-     * @param imgPath the path to the image
-     * @param model   the model to use
-     * @param backend the detector backend to use
-     * @return a list of embeddings
+     * @param imgPath The file path to the image.
+     * @param model   The model to use.
+     * @param backend The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(String imgPath, ModelType model, DetectorBackend backend) {
         validateFile(imgPath);
@@ -1159,12 +1173,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image bytes.
+     * Generates embeddings from a byte array using a specific model and detector.
      *
-     * @param imageBytes the image bytes
-     * @param model      the model to use
-     * @param backend    the detector backend to use
-     * @return a list of embeddings
+     * @param imageBytes The byte array of the image.
+     * @param model      The model to use.
+     * @param backend    The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(byte[] imageBytes, ModelType model, DetectorBackend backend) {
         try {
@@ -1176,12 +1190,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image stream.
+     * Generates embeddings from an InputStream using a specific model and detector.
      *
-     * @param imageStream the image stream
-     * @param model       the model to use
-     * @param backend     the detector backend to use
-     * @return a list of embeddings
+     * @param imageStream The InputStream of the image.
+     * @param model       The model to use.
+     * @param backend     The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(InputStream imageStream, ModelType model, DetectorBackend backend) {
         try {
@@ -1193,12 +1207,12 @@ public final class DeepFace {
     }
 
     /**
-     * Generates embeddings for all faces in the provided image.
+     * Generates embeddings from a {@link BufferedImage} using a specific model and detector.
      *
-     * @param image   the image
-     * @param model   the model to use
-     * @param backend the detector backend to use
-     * @return a list of embeddings
+     * @param image   The image to process.
+     * @param model   The model to use.
+     * @param backend The detector backend to use.
+     * @return A list of embedding vectors.
      */
     public static List<float[]> representEmbeddings(BufferedImage image, ModelType model, DetectorBackend backend) {
         List<EmbeddingResult> results = represent(image, model, backend);
@@ -1210,23 +1224,23 @@ public final class DeepFace {
     // ========================= DISTANCE UTILITY =========================
 
     /**
-     * Computes the distance between two embeddings.
+     * Computes the distance between two embedding vectors using a specified metric.
      *
-     * @param emb1   the first embedding
-     * @param emb2   the second embedding
-     * @param metric the distance metric to use
-     * @return the distance between the embeddings
+     * @param emb1   The first embedding vector.
+     * @param emb2   The second embedding vector.
+     * @param metric The {@link DistanceMetric} to use for the calculation.
+     * @return The calculated distance as a double.
      */
     public static double distance(float[] emb1, float[] emb2, DistanceMetric metric) {
         return compute(metric, emb1, emb2);
     }
 
     /**
-     * Convenience: distance using current default metric.
+     * Computes the distance between two embeddings using the default distance metric.
      *
-     * @param emb1 the first embedding
-     * @param emb2 the second embedding
-     * @return the distance between the embeddings
+     * @param emb1 The first embedding vector.
+     * @param emb2 The second embedding vector.
+     * @return The calculated distance.
      */
     public static double distance(float[] emb1, float[] emb2) {
         DistanceMetric m = DeepFaceConfig.current().defaultDistanceMetric();
@@ -1236,10 +1250,10 @@ public final class DeepFace {
     // ========================= EXTRACT FACES (multiple overloads) =========================
 
     /**
-     * Extracts face crops from the image located at {@code imgPath}.
+     * Detects and extracts all face regions from an image specified by a file path.
      *
-     * @param imgPath the path to the image
-     * @return a list of face crops
+     * @param imgPath The file path to the image.
+     * @return A list of {@link BufferedImage} objects, each containing a cropped face.
      */
     public static List<BufferedImage> extractFaces(String imgPath) {
         validateFile(imgPath);
@@ -1253,11 +1267,11 @@ public final class DeepFace {
     }
 
     /**
-     * Extract faces with explicit detector backend override.
+     * Extracts faces with an explicit detector backend.
      *
-     * @param imgPath the path to the image
-     * @param backend the detector backend to use
-     * @return a list of face crops
+     * @param imgPath The file path to the image.
+     * @param backend The detector backend to use.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(String imgPath, DetectorBackend backend) {
         validateFile(imgPath);
@@ -1270,10 +1284,10 @@ public final class DeepFace {
     }
 
     /**
-     * Extracts face crops from image bytes.
+     * Extracts faces from an image provided as a byte array.
      *
-     * @param imageBytes the image bytes
-     * @return a list of face crops
+     * @param imageBytes The byte array of the image.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(byte[] imageBytes) {
         try {
@@ -1285,11 +1299,11 @@ public final class DeepFace {
     }
 
     /**
-     * Extract faces with explicit detector backend override.
+     * Extracts faces from a byte array with an explicit detector backend.
      *
-     * @param imageBytes the image bytes
-     * @param backend    the detector backend to use
-     * @return a list of face crops
+     * @param imageBytes The byte array of the image.
+     * @param backend    The detector backend to use.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(byte[] imageBytes, DetectorBackend backend) {
         try {
@@ -1301,10 +1315,10 @@ public final class DeepFace {
     }
 
     /**
-     * Extracts face crops from image stream.
+     * Extracts faces from an image provided as an InputStream.
      *
-     * @param imageStream the image stream
-     * @return a list of face crops
+     * @param imageStream The InputStream of the image.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(InputStream imageStream) {
         try {
@@ -1316,11 +1330,11 @@ public final class DeepFace {
     }
 
     /**
-     * Extract faces with explicit detector backend override.
+     * Extracts faces from an InputStream with an explicit detector backend.
      *
-     * @param imageStream the image stream
-     * @param backend     the detector backend to use
-     * @return a list of face crops
+     * @param imageStream The InputStream of the image.
+     * @param backend     The detector backend to use.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(InputStream imageStream, DetectorBackend backend) {
         try {
@@ -1332,10 +1346,10 @@ public final class DeepFace {
     }
 
     /**
-     * Extracts face crops from the provided buffered image.
+     * Extracts faces from a {@link BufferedImage}.
      *
-     * @param img the image
-     * @return a list of face crops
+     * @param img The image to process.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(BufferedImage img) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -1350,11 +1364,11 @@ public final class DeepFace {
     }
 
     /**
-     * Extract faces with explicit detector backend override.
+     * Extracts faces from a {@link BufferedImage} with an explicit detector backend.
      *
-     * @param img     the image
-     * @param backend the detector backend to use
-     * @return a list of face crops
+     * @param img     The image to process.
+     * @param backend The detector backend to use.
+     * @return A list of cropped face images.
      */
     public static List<BufferedImage> extractFaces(BufferedImage img, DetectorBackend backend) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -1371,31 +1385,31 @@ public final class DeepFace {
     // ========================= ANALYZE =========================
 
     /**
-     * Convenience: analyze with defaults (all actions) from path.
+     * Analyzes all supported attributes (age, gender, emotion, race) for faces in an image from a file path.
      *
-     * @param imgPath the path to the image
-     * @return a list of analysis results
+     * @param imgPath The file path to the image.
+     * @return A list of {@link AnalysisResult} objects, one for each detected face.
      */
     public static List<AnalysisResult> analyze(String imgPath) {
         return analyze(imgPath, null);
     }
 
     /**
-     * Convenience: analyze with defaults (all actions) from buffered image.
+     * Analyzes all supported attributes for faces in a {@link BufferedImage}.
      *
-     * @param image the image
-     * @return a list of analysis results
+     * @param image The image to analyze.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(BufferedImage image) {
         return analyze(image, null);
     }
 
     /**
-     * Analyze from bytes with explicit actions.
+     * Analyzes specified attributes for faces in an image from a byte array.
      *
-     * @param imageBytes the image bytes
-     * @param actions    the actions to perform
-     * @return a list of analysis results
+     * @param imageBytes The byte array of the image.
+     * @param actions    An array of strings specifying the actions to perform (e.g., "age", "gender"). If null or empty, all actions are performed.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(byte[] imageBytes, String[] actions) {
         try {
@@ -1407,11 +1421,11 @@ public final class DeepFace {
     }
 
     /**
-     * Analyze from stream with explicit actions.
+     * Analyzes specified attributes for faces in an image from an InputStream.
      *
-     * @param imageStream the image stream
-     * @param actions     the actions to perform
-     * @return a list of analysis results
+     * @param imageStream The InputStream of the image.
+     * @param actions     The actions to perform.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(InputStream imageStream, String[] actions) {
         try {
@@ -1423,31 +1437,31 @@ public final class DeepFace {
     }
 
     /**
-     * Convenience: analyze from bytes with defaults (all actions).
+     * Analyzes all attributes for faces in an image from a byte array.
      *
-     * @param imageBytes the image bytes
-     * @return a list of analysis results
+     * @param imageBytes The byte array of the image.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(byte[] imageBytes) {
         return analyze(imageBytes, null);
     }
 
     /**
-     * Convenience: analyze from stream with defaults (all actions).
+     * Analyzes all attributes for faces in an image from an InputStream.
      *
-     * @param imageStream the image stream
-     * @return a list of analysis results
+     * @param imageStream The InputStream of the image.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(InputStream imageStream) {
         return analyze(imageStream, null);
     }
 
     /**
-     * Analyzes faces in the image located at {@code imgPath} using configured ONNX models.
+     * Analyzes specified attributes for faces in an image from a file path.
      *
-     * @param imgPath the path to the image
-     * @param actions the actions to perform
-     * @return a list of analysis results
+     * @param imgPath The file path to the image.
+     * @param actions The actions to perform.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(String imgPath, String[] actions) {
         validateFile(imgPath);
@@ -1461,12 +1475,12 @@ public final class DeepFace {
     }
 
     /**
-     * Analyze with explicit detector backend override.
+     * Analyzes attributes with an explicit detector backend.
      *
-     * @param imgPath the path to the image
-     * @param actions the actions to perform
-     * @param backend the detector backend to use
-     * @return a list of analysis results
+     * @param imgPath The file path to the image.
+     * @param actions The actions to perform.
+     * @param backend The detector backend to use.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(String imgPath, String[] actions, DetectorBackend backend) {
         validateFile(imgPath);
@@ -1479,12 +1493,12 @@ public final class DeepFace {
     }
 
     /**
-     * Analyzes faces in the provided image using configured ONNX models.
-     * Supported actions: age, gender, emotion, race.
+     * Analyzes attributes for faces in a {@link BufferedImage}.
+     * Supported actions: "age", "gender", "emotion", "race".
      *
-     * @param image   the image
-     * @param actions the actions to perform
-     * @return a list of analysis results
+     * @param image   The image to analyze.
+     * @param actions The actions to perform. If null, all are performed.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(BufferedImage image, String[] actions) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -1563,12 +1577,12 @@ public final class DeepFace {
     }
 
     /**
-     * Analyze with explicit detector backend override.
+     * Analyzes attributes with an explicit detector backend.
      *
-     * @param image   the image
-     * @param actions the actions to perform
-     * @param backend the detector backend to use
-     * @return a list of analysis results
+     * @param image   The image to analyze.
+     * @param actions The actions to perform.
+     * @param backend The detector backend to use.
+     * @return A list of {@link AnalysisResult} objects.
      */
     public static List<AnalysisResult> analyze(BufferedImage image, String[] actions, DetectorBackend backend) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -1847,13 +1861,13 @@ public final class DeepFace {
     // ========================= FIND (Map-based precomputed galleries) =========================
 
     /**
-     * Finds best match for a query embedding against a precomputed gallery map id -> embeddings list.
+     * Finds the best match for a query embedding against a precomputed gallery of embeddings stored in a map.
      *
-     * @param queryEmbedding        the query embedding
-     * @param galleryEmbeddingsById the gallery embeddings by ID
-     * @param metric                the distance metric to use
-     * @param thresholdOverride     the optional threshold override
-     * @return the find result
+     * @param queryEmbedding        The query embedding vector.
+     * @param galleryEmbeddingsById A map where keys are gallery item IDs and values are lists of embeddings for that item.
+     * @param metric                The distance metric to use.
+     * @param thresholdOverride     An optional override for the similarity threshold.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(float[] queryEmbedding, Map<String, List<float[]>> galleryEmbeddingsById, DistanceMetric metric, Double thresholdOverride) {
         String bestId = null;
@@ -1872,13 +1886,13 @@ public final class DeepFace {
     }
 
     /**
-     * Returns top-K matches for a query embedding against a precomputed gallery map.
+     * Finds the top-K matches for a query embedding against a precomputed gallery map.
      *
-     * @param queryEmbedding        the query embedding
-     * @param galleryEmbeddingsById the gallery embeddings by ID
-     * @param k                     the number of top matches to return
-     * @param metric                the distance metric to use
-     * @return a list of find matches
+     * @param queryEmbedding        The query embedding vector.
+     * @param galleryEmbeddingsById A map of gallery embeddings by ID.
+     * @param k                     The number of top matches to return.
+     * @param metric                The distance metric to use.
+     * @return A list of {@link FindMatch} objects, sorted by distance.
      */
     public static List<FindMatch> findTopK(float[] queryEmbedding, Map<String, List<float[]>> galleryEmbeddingsById, int k, DistanceMetric metric) {
         if (k <= 0) return List.of();
@@ -1906,11 +1920,11 @@ public final class DeepFace {
 
     /**
      * Finds the best match for a query image against all images in a directory (recursively).
-     * Mirrors DeepFace's db_path usage in a simplified form.
+     * This method mimics the `db_path` functionality of the Python DeepFace library.
      *
-     * @param queryImagePath       the path to the query image
-     * @param galleryDirectoryPath the path to the gallery directory
-     * @return the find result
+     * @param queryImagePath       The file path to the query image.
+     * @param galleryDirectoryPath The path to the directory containing gallery images.
+     * @return A {@link FindResult} with the best match details.
      */
     public static FindResult find(String queryImagePath, String galleryDirectoryPath) {
         validateFile(queryImagePath);
@@ -2018,20 +2032,20 @@ public final class DeepFace {
     // ========================= ARCFACE CONVENIENCE =========================
 
     /**
-     * Generates ArcFace embeddings for all detected faces in the image at the given path.
+     * Generates ArcFace embeddings for all detected faces in an image from a file path.
      *
-     * @param imgPath the path to the image
-     * @return a list of embedding results
+     * @param imgPath The file path to the image.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> representArcFace(String imgPath) {
         return represent(imgPath, ModelType.ARCFACE, DeepFaceConfig.current().detectorBackend());
     }
 
     /**
-     * Generates ArcFace embeddings for all detected faces in the provided image.
+     * Generates ArcFace embeddings for all detected faces in a {@link BufferedImage}.
      *
-     * @param image the image
-     * @return a list of embedding results
+     * @param image The image to process.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> representArcFace(BufferedImage image) {
         return represent(image, ModelType.ARCFACE, DeepFaceConfig.current().detectorBackend());
@@ -2040,31 +2054,31 @@ public final class DeepFace {
     /**
      * Generates ArcFace embeddings with an explicit detector backend.
      *
-     * @param imgPath the path to the image
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param imgPath The file path to the image.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> representArcFace(String imgPath, DetectorBackend backend) {
         return represent(imgPath, ModelType.ARCFACE, backend);
     }
 
     /**
-     * Generates ArcFace embeddings with an explicit detector backend.
+     * Generates ArcFace embeddings from a {@link BufferedImage} with an explicit detector backend.
      *
-     * @param image   the image
-     * @param backend the detector backend to use
-     * @return a list of embedding results
+     * @param image   The image to process.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
      */
     public static List<EmbeddingResult> representArcFace(BufferedImage image, DetectorBackend backend) {
         return represent(image, ModelType.ARCFACE, backend);
     }
 
     /**
-     * Verifies two images using ArcFace embeddings and the current default distance metric.
+     * Verifies two images using the ArcFace model and default distance metric.
      *
-     * @param img1 the path to the first image
-     * @param img2 the path to the second image
-     * @return the verification result
+     * @param img1 The file path of the first image.
+     * @param img2 The file path of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verifyArcFace(String img1, String img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -2072,11 +2086,11 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two buffered images using ArcFace embeddings.
+     * Verifies two {@link BufferedImage}s using the ArcFace model.
      *
-     * @param img1 the first image
-     * @param img2 the second image
-     * @return the verification result
+     * @param img1 The first image.
+     * @param img2 The second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verifyArcFace(BufferedImage img1, BufferedImage img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -2084,11 +2098,11 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two byte arrays using ArcFace embeddings.
+     * Verifies two images from byte arrays using the ArcFace model.
      *
-     * @param img1 the first image bytes
-     * @param img2 the second image bytes
-     * @return the verification result
+     * @param img1 The byte array of the first image.
+     * @param img2 The byte array of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verifyArcFace(byte[] img1, byte[] img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -2096,11 +2110,11 @@ public final class DeepFace {
     }
 
     /**
-     * Verifies two image streams using ArcFace embeddings.
+     * Verifies two images from InputStreams using the ArcFace model.
      *
-     * @param img1 the first image stream
-     * @param img2 the second image stream
-     * @return the verification result
+     * @param img1 The InputStream of the first image.
+     * @param img2 The InputStream of the second image.
+     * @return A {@link VerificationResult}.
      */
     public static VerificationResult verifyArcFace(InputStream img1, InputStream img2) {
         DeepFaceConfig cfg = DeepFaceConfig.current();
@@ -2229,4 +2243,3 @@ public final class DeepFace {
         return v < 0 ? 0 : (v > 255 ? 255 : v);
     }
 }
-

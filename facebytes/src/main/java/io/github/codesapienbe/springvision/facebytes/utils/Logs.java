@@ -9,6 +9,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * A simple structured JSON logging utility.
+ * This class provides static methods to log messages in a JSON format, including a timestamp, level, component,
+ * message, and any additional context. It also automatically includes correlation IDs from the SLF4J MDC.
+ */
 public final class Logs {
 
     private static final Logger logger = LoggerFactory.getLogger("application");
@@ -16,18 +21,47 @@ public final class Logs {
     private Logs() {
     }
 
+    /**
+     * Logs an informational message in JSON format.
+     *
+     * @param component The component from which the log originates.
+     * @param message   The log message.
+     * @param context   A map of key-value pairs to include in the log context.
+     */
     public static void info(String component, String message, Map<String, ?> context) {
         logger.info(format("INFO", component, message, null, context));
     }
 
+    /**
+     * Logs a debug message in JSON format.
+     *
+     * @param component The component from which the log originates.
+     * @param message   The log message.
+     * @param context   A map of key-value pairs to include in the log context.
+     */
     public static void debug(String component, String message, Map<String, ?> context) {
         logger.debug(format("DEBUG", component, message, null, context));
     }
 
+    /**
+     * Logs a warning message in JSON format.
+     *
+     * @param component The component from which the log originates.
+     * @param message   The log message.
+     * @param context   A map of key-value pairs to include in the log context.
+     */
     public static void warn(String component, String message, Map<String, ?> context) {
         logger.warn(format("WARN", component, message, null, context));
     }
 
+    /**
+     * Logs an error message in JSON format, including information from a {@link Throwable}.
+     *
+     * @param component The component from which the log originates.
+     * @param message   The log message.
+     * @param t         The throwable to include in the log.
+     * @param context   A map of key-value pairs to include in the log context.
+     */
     public static void error(String component, String message, Throwable t, Map<String, ?> context) {
         logger.error(format("ERROR", component, message, t, context));
     }

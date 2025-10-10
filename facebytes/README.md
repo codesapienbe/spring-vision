@@ -47,838 +47,163 @@ FaceBytes
 └── Exceptions (Error Handling)
 ```
 
-## 📦 Installation
+## 📦 Getting Started
 
-### Maven Dependency
+### 1. Add Maven Dependency
 
 ```xml
 
 <dependency>
-    <groupId>com.springvision</groupId>
+    <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision-facebytes</artifactId>
     <version>1.0</version>
 </dependency>
 ```
 
-### Required Dependencies
+### 2. Configure via Application Properties
 
-- **OpenCV Java**: Face detection and image processing
-- **ONNX Runtime**: Model inference
-- **Apache Commons Math**: Distance calculations
-- **SLF4J**: Logging framework
+```properties
+# Enable the FaceBytes module
+spring.vision.facebytes.enabled=true
+# Model path for FaceBytes models
+spring.vision.facebytes.model-path=~/.spring-vision/models/facebytes
+# Face detection backend (opencv, dlib, retinaface)
+spring.vision.facebytes.detector-backend=opencv
+# Face recognition model (VGG-Face, Facenet, OpenFace, DeepFace)
+spring.vision.facebytes.recognition-model=VGG-Face
+# Distance metric (cosine, euclidean, euclidean_l2)
+spring.vision.facebytes.distance-metric=cosine
+# Confidence threshold (0.0 - 1.0)
+spring.vision.facebytes.confidence-threshold=0.7
+# Maximum number of faces to detect
+spring.vision.facebytes.max-detections=10
+# Enable automatic model download
+spring.vision.facebytes.enable-auto-download=true
+# Enable face alignment
+spring.vision.facebytes.enable-alignment=true
+# Enable face quality validation
+spring.vision.facebytes.enable-quality-check=false
+# Minimum face size (pixels)
+spring.vision.facebytes.min-face-size=20
+```
 
-## 🚀 Quick Start
-
-### Basic Face Verification
+### 3. Use VisionTemplate (Auto-Configured)
 
 ```java
-import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
-import io.github.codesapienbe.springvision.facebytes.core.VerificationResult;
 
-// Simple verification
-VerificationResult result = DeepFace.verify("path/to/face1.jpg", "path/to/face2.jpg");
+@RestController
+@RequestMapping("/api/faces")
+public class FaceRecognitionController {
 
-if(result.
+    @Autowired
+    private VisionTemplate visionTemplate;
 
-        verified()){
-        System.out.
+    @PostMapping("/detect")
+    public ResponseEntity<List<Detection>> detectFaces(
+            @RequestParam("image") MultipartFile file) throws IOException {
 
-        println("Faces match! Distance: "+result.distance());
-        }else{
-        System.out.
+        ImageData imageData = ImageData.fromBytes(file.getBytes());
+        List<Detection> detections = visionTemplate.detectFaces(imageData);
 
-        println("Faces don't match. Distance: "+result.distance());
-        }
-```
-
-### Advanced Verification with Custom Parameters
-
-```java
-import io.github.codesapienbe.springvision.facebytes.enums.ModelType;
-import io.github.codesapienbe.springvision.facebytes.enums.DistanceMetric;
-import io.github.codesapienbe.springvision.facebytes.enums.DetectorBackend;
-
-VerificationResult result = DeepFace.verify(
-        "face1.jpg",
-        "face2.jpg",
-        ModelType.VGG_FACE,           // Use VGG-Face model
-        DistanceMetric.COSINE,        // Use cosine distance
-        DetectorBackend.RETINAFACE    // Use RetinaFace detector
-);
-```
-
-### Face Detection and Extraction
-
-```java
-import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
-
-import java.awt.image.BufferedImage;
-import java.util.List;
-
-// Extract all faces from an image
-List<BufferedImage> faces = DeepFace.extractFaces("group_photo.jpg");
-
-        // Extract faces with specific detector
-        List<BufferedImage> faces = DeepFace.extractFaces(
-                "group_photo.jpg",
-                DetectorBackend.MTCNN
-        );
-
-System.out.
-
-        println("Detected "+faces.size() +" faces");
-```
-
-### Generate Face Embeddings
-
-```java
-import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
-import io.github.codesapienbe.springvision.facebytes.core.EmbeddingResult;
-
-import java.util.List;
-
-// Generate embeddings for all faces in an image
-List<EmbeddingResult> embeddings = DeepFace.represent("face.jpg");
-
-for(
-        EmbeddingResult embedding :embeddings){
-        float[] vector = embedding.embedding();
-    System.out.
-
-        println("Embedding size: "+vector.length);
-
-        // Access face region information
-        FaceRegion region = embedding.faceRegion();
-    System.out.
-
-        println("Face at: "+region.x() +","+region.
-
-        y() +
-        " size: "+region.
-
-        width() +"x"+region.
-
-        height());
-        }
-```
-
-### Facial Analysis
-
-```java
-import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
-import io.github.codesapienbe.springvision.facebytes.core.AnalysisResult;
-
-import java.util.List;
-
-// Analyze age, gender, emotion, and race
-List<AnalysisResult> analysis = DeepFace.analyze("face.jpg");
-
-for(
-        AnalysisResult result :analysis){
-        System.out.
-
-        println("Age: "+result.age());
-        System.out.
-
-        println("Gender: "+result.gender());
-        System.out.
-
-        println("Emotion: "+result.dominantEmotion());
-
-        // Access detailed emotion distribution
-        Map<String, Double> emotions = result.emotionDistribution();
-    emotions.
-
-        forEach((emotion, confidence) ->
-        System.out.
-
-        println(emotion +": "+confidence));
-        }
-```
-
-### Find Best Match in Gallery
-
-```java
-import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
-import io.github.codesapienbe.springvision.facebytes.core.FindResult;
-
-import java.util.List;
-
-List<String> galleryPaths = List.of(
-        "gallery/face1.jpg",
-        "gallery/face2.jpg",
-        "gallery/face3.jpg"
-);
-
-FindResult match = DeepFace.find("query_face.jpg", galleryPaths);
-
-if(match.
-
-matched()){
-        System.out.
-
-println("Best match: "+match.bestMatchPath());
-        System.out.
-
-println("Distance: "+match.distance());
-        System.out.
-
-println("Threshold: "+match.threshold());
-        }else{
-        System.out.
-
-println("No match found above threshold");
-}
-```
-
-## 🔧 Configuration
-
-### DeepFace Configuration
-
-```java
-import io.github.codesapienbe.springvision.facebytes.config.DeepFaceConfig;
-
-DeepFaceConfig config = DeepFaceConfig.current();
-
-// Set default distance metric
-config.
-
-setDefaultDistanceMetric(DistanceMetric.COSINE);
-
-// Set thresholds for different metrics
-config.
-
-setThreshold(DistanceMetric.COSINE, 0.68);
-config.
-
-setThreshold(DistanceMetric.EUCLIDEAN, 0.60);
-config.
-
-setThreshold(DistanceMetric.EUCLIDEAN_L2, 1.13);
-
-// Enable/disable strict face detection
-config.
-
-setEnforceDetection(true);
-```
-
-### Model Configuration
-
-```java
-import io.github.codesapienbe.springvision.facebytes.models.ModelManager;
-
-ModelManager modelManager = new ModelManager();
-
-// Download models automatically
-modelManager.
-
-downloadModel(ModelType.VGG_FACE);
-
-// Set custom model paths
-modelManager.
-
-setModelPath(ModelType.VGG_FACE, "/custom/path/vggface.onnx");
-```
-
-## 🤖 ONNX Model Configuration
-
-FaceBytes requires ONNX models for face recognition and analysis. Models can be configured via environment variables, system properties, or auto-download.
-
-### Environment Variables (Recommended for Production)
-
-Set model paths using environment variables:
-
-```bash
-# Face Recognition Models
-export FACEBYTES_VGGFACE_ONNX_PATH="/path/to/models/vgg_face.onnx"
-export FACEBYTES_ARCFACE_ONNX_PATH="/path/to/models/arcface.onnx"
-export FACEBYTES_FACENET_ONNX_PATH="/path/to/models/facenet.onnx"
-export FACEBYTES_FACENET512_ONNX_PATH="/path/to/models/facenet512.onnx"
-export FACEBYTES_OPENFACE_ONNX_PATH="/path/to/models/openface.onnx"
-export FACEBYTES_DEEPFACE_ONNX_PATH="/path/to/models/deepface.onnx"
-export FACEBYTES_SFACE_ONNX_PATH="/path/to/models/sface.onnx"
-export FACEBYTES_DEEPID_ONNX_PATH="/path/to/models/deepid.onnx"
-
-# Facial Analysis Models
-export FACEBYTES_AGE_ONNX_PATH="/path/to/models/age_predictor.onnx"
-export FACEBYTES_GENDER_ONNX_PATH="/path/to/models/gender_predictor.onnx"
-export FACEBYTES_EMOTION_ONNX_PATH="/path/to/models/emotion_predictor.onnx"
-export FACEBYTES_RACE_ONNX_PATH="/path/to/models/race_predictor.onnx"
-```
-
-### System Properties (Recommended for Development)
-
-Set model paths using JVM system properties:
-
-```java
-// In your application startup
-System.setProperty("facebytes.vggface.onnx","/path/to/models/vgg_face.onnx");
-System.
-
-setProperty("facebytes.arcface.onnx","/path/to/models/arcface.onnx");
-System.
-
-setProperty("facebytes.facenet.onnx","/path/to/models/facenet.onnx");
-System.
-
-setProperty("facebytes.facenet512.onnx","/path/to/models/facenet512.onnx");
-System.
-
-setProperty("facebytes.openface.onnx","/path/to/models/openface.onnx");
-System.
-
-setProperty("facebytes.deepface.onnx","/path/to/models/deepface.onnx");
-System.
-
-setProperty("facebytes.sface.onnx","/path/to/models/sface.onnx");
-System.
-
-setProperty("facebytes.deepid.onnx","/path/to/models/deepid.onnx");
-
-// Facial analysis models
-System.
-
-setProperty("facebytes.age.onnx","/path/to/models/age_predictor.onnx");
-System.
-
-setProperty("facebytes.gender.onnx","/path/to/models/gender_predictor.onnx");
-System.
-
-setProperty("facebytes.emotion.onnx","/path/to/models/emotion_predictor.onnx");
-System.
-
-setProperty("facebytes.race.onnx","/path/to/models/race_predictor.onnx");
-```
-
-Or via JVM arguments:
-
-```bash
-java -Dfacebytes.vggface.onnx=/path/to/vgg_face.onnx \
-     -Dfacebytes.arcface.onnx=/path/to/arcface.onnx \
-     -jar your-application.jar
-```
-
-### Spring Boot Configuration
-
-Add model paths to your `application.yml`:
-
-```yaml
-# application.yml
-facebytes:
-  models:
-    vggface:
-      onnx: "/path/to/models/vgg_face.onnx"
-    arcface:
-      onnx: "/path/to/models/arcface.onnx"
-    facenet:
-      onnx: "/path/to/models/facenet.onnx"
-    facenet512:
-      onnx: "/path/to/models/facenet512.onnx"
-    openface:
-      onnx: "/path/to/models/openface.onnx"
-    deepface:
-      onnx: "/path/to/models/deepface.onnx"
-    sface:
-      onnx: "/path/to/models/sface.onnx"
-    deepid:
-      onnx: "/path/to/models/deepid.onnx"
-  analysis:
-    age:
-      onnx: "/path/to/models/age_predictor.onnx"
-    gender:
-      onnx: "/path/to/models/gender_predictor.onnx"
-    emotion:
-      onnx: "/path/to/models/emotion_predictor.onnx"
-    race:
-      onnx: "/path/to/models/race_predictor.onnx"
-
-  # Auto-download configuration (optional)
-  auto_download:
-    enabled: true
-    cache_directory: "${user.home}/.facebytes/models"
-    verify_checksums: true
-    https_only: true
-```
-
-### Auto-Download Configuration (Advanced)
-
-Enable automatic model downloading for development and testing:
-
-```java
-import io.github.codesapienbe.springvision.facebytes.config.FaceBytesConfiguration;
-
-FaceBytesConfiguration config = new FaceBytesConfiguration();
-config.
-
-setAutoDownloadEnabled(true);
-config.
-
-setModelCacheDirectory("/path/to/cache/directory");
-config.
-
-setVerifyChecksums(true);  // Verify model integrity
-config.
-
-setHttpsOnlyDownloads(true);  // Security: HTTPS only
-```
-
-Or via environment variables:
-
-```bash
-export FACEBYTES_AUTO_DOWNLOAD_ENABLED=true
-export FACEBYTES_MODEL_CACHE_DIRECTORY="/opt/facebytes/models"
-export FACEBYTES_VERIFY_CHECKSUMS=true
-export FACEBYTES_HTTPS_ONLY_DOWNLOADS=true
-```
-
-### Configuration Priority
-
-FaceBytes resolves model paths in the following order (highest to lowest priority):
-
-1. **System Properties** (`-Dfacebytes.vggface.onnx=...`)
-2. **Environment Variables** (`FACEBYTES_VGGFACE_ONNX_PATH`)
-3. **Spring Boot Configuration** (`application.yml`)
-4. **Auto-Download** (if enabled)
-5. **Default Locations** (classpath, common directories)
-
-### Model Requirements
-
-Each model type has specific requirements:
-
-| Model          | Input Size | Output Size | File Size | Use Case                  |
-|----------------|------------|-------------|-----------|---------------------------|
-| **VGG-Face**   | 224x224x3  | 2622-d      | ~500MB    | High-quality recognition  |
-| **ArcFace**    | 112x112x3  | 512-d       | ~250MB    | State-of-the-art accuracy |
-| **FaceNet**    | 160x160x3  | 128-d       | ~90MB     | Efficient recognition     |
-| **FaceNet512** | 160x160x3  | 512-d       | ~90MB     | Extended embeddings       |
-| **OpenFace**   | 96x96x3    | 128-d       | ~30MB     | Lightweight recognition   |
-| **DeepFace**   | 152x152x3  | 4096-d      | ~250MB    | Traditional approach      |
-| **SFace**      | 112x112x3  | 128-d       | ~40MB     | Efficient recognition     |
-| **DeepID**     | 55x47x3    | 160-d       | ~20MB     | Identity-preserving       |
-
-### Error Handling and Troubleshooting
-
-When models are not properly configured, FaceBytes provides clear error messages:
-
-```java
-try{
-VerificationResult result = DeepFace.verify("face1.jpg", "face2.jpg");
-}catch(
-DeepFaceException e){
-        // Example error message:
-        // "VGGFace ONNX model is not available. Configure the model path via 
-        //  'FACEBYTES_VGGFACE_ONNX_PATH' or system property 'facebytes.vggface.onnx', 
-        //  or enable auto-download in configuration."
-
-        System.err.
-
-println("Model configuration error: "+e.getMessage());
-
-// Check configuration
-String modelPath = System.getenv("FACEBYTES_VGGFACE_ONNX_PATH");
-    if(modelPath ==null){
-modelPath =System.
-
-getProperty("facebytes.vggface.onnx");
+        return ResponseEntity.ok(detections);
     }
 
-            if(modelPath ==null){
-        System.err.
+    @PostMapping("/verify")
+    public ResponseEntity<VerificationResult> verifyFaces(
+            @RequestParam("image1") MultipartFile file1,
+            @RequestParam("image2") MultipartFile file2) throws IOException {
 
-println("No VGGFace model path configured. Please set:");
-        System.err.
+        ImageData image1 = ImageData.fromBytes(file1.getBytes());
+        ImageData image2 = ImageData.fromBytes(file2.getBytes());
 
-println("  Environment: FACEBYTES_VGGFACE_ONNX_PATH=/path/to/model.onnx");
-        System.err.
+        boolean verified = visionTemplate.verify(image1, image2);
 
-println("  System Property: -Dfacebytes.vggface.onnx=/path/to/model.onnx");
-        System.err.
+        return ResponseEntity.ok(new VerificationResult(verified));
+    }
 
-println("  Or enable auto-download in configuration");
-    }else{
-            System.err.
+    @PostMapping("/embeddings")
+    public ResponseEntity<List<float[]>> extractEmbeddings(
+            @RequestParam("image") MultipartFile file) throws IOException {
 
-println("Configured model path: "+modelPath);
+        ImageData imageData = ImageData.fromBytes(file.getBytes());
+        List<float[]> embeddings = visionTemplate.extractEmbeddings(
+                imageData,
+                DetectionCategory.FACE
+        );
 
-Path path = Paths.get(modelPath);
-        if(!Files.
-
-exists(path)){
-        System.err.
-
-println("Model file does not exist: "+path);
-        }else if(!Files.
-
-isReadable(path)){
-        System.err.
-
-println("Model file is not readable: "+path);
-        }
-                }
-                }
-```
-
-### Docker Configuration Example
-
-For containerized deployments:
-
-```dockerfile
-# Dockerfile
-FROM openjdk:21-jre
-
-# Create model directory
-RUN mkdir -p /opt/facebytes/models
-
-# Copy pre-downloaded models
-COPY models/ /opt/facebytes/models/
-
-# Set environment variables
-ENV FACEBYTES_VGGFACE_ONNX_PATH=/opt/facebytes/models/vgg_face.onnx
-ENV FACEBYTES_ARCFACE_ONNX_PATH=/opt/facebytes/models/arcface.onnx
-ENV FACEBYTES_AGE_ONNX_PATH=/opt/facebytes/models/age_predictor.onnx
-ENV FACEBYTES_GENDER_ONNX_PATH=/opt/facebytes/models/gender_predictor.onnx
-
-COPY app.jar /app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
-
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  facebytes-app:
-    build: .
-    environment:
-      - FACEBYTES_VGGFACE_ONNX_PATH=/opt/models/vgg_face.onnx
-      - FACEBYTES_ARCFACE_ONNX_PATH=/opt/models/arcface.onnx
-      - FACEBYTES_AUTO_DOWNLOAD_ENABLED=false
-    volumes:
-      - ./models:/opt/models:ro
-    ports:
-      - "8080:8080"
-```
-
-### Kubernetes Configuration Example
-
-```yaml
-# configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: facebytes-config
-data:
-  application.yml: |
-    facebytes:
-      models:
-        vggface:
-          onnx: "/opt/models/vgg_face.onnx"
-        arcface:
-          onnx: "/opt/models/arcface.onnx"
-      auto_download:
-        enabled: false
-
----
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: facebytes-app
-spec:
-  template:
-    spec:
-      containers:
-        - name: app
-          image: facebytes-app:latest
-          env:
-            - name: FACEBYTES_VGGFACE_ONNX_PATH
-              value: "/opt/models/vgg_face.onnx"
-            - name: FACEBYTES_ARCFACE_ONNX_PATH
-              value: "/opt/models/arcface.onnx"
-          volumeMounts:
-            - name: config
-              mountPath: /config
-            - name: models
-              mountPath: /opt/models
-      volumes:
-        - name: config
-          configMap:
-            name: facebytes-config
-        - name: models
-          persistentVolumeClaim:
-            claimName: facebytes-models-pvc
-```
-
-## 🧪 Testing
-
-### Run All Tests
-
-```bash
-mvn test
-```
-
-### Run Specific Test Categories
-
-```bash
-# Core functionality tests
-mvn test -Dtest=DeepFaceIntegrationTest
-
-# Detector tests
-mvn test -Dtest=DetectorFactoryTest
-
-# Advanced functionality tests
-mvn test -Dtest=DeepFaceAdvancedTest
-```
-
-## 📊 Performance
-
-### Detection Performance (200x200 image)
-
-| Backend    | Speed  | Accuracy  | Memory |
-|------------|--------|-----------|--------|
-| OpenCV     | ~50ms  | Good      | Low    |
-| DLIB       | ~100ms | Good      | Low    |
-| MTCNN      | ~200ms | Excellent | Medium |
-| RetinaFace | ~150ms | Excellent | Medium |
-
-### Model Performance
-
-| Model    | Embedding Size | Speed  | Accuracy  |
-|----------|----------------|--------|-----------|
-| VGG-Face | 512            | ~100ms | Excellent |
-| FaceNet  | 128            | ~50ms  | Very Good |
-| ArcFace  | 512            | ~120ms | Excellent |
-| OpenFace | 128            | ~40ms  | Good      |
-
-## 🚨 Error Handling
-
-FaceBytes provides comprehensive error handling with custom exceptions:
-
-```java
-import io.github.codesapienbe.springvision.facebytes.exceptions.DeepFaceException;
-
-try{
-VerificationResult result = DeepFace.verify("face1.jpg", "face2.jpg");
-}catch(
-DeepFaceException e){
-        // Handle face recognition errors
-        log.
-
-error("Face verification failed: {}",e.getMessage());
-        }catch(
-IllegalArgumentException e){
-        // Handle invalid input parameters
-        log.
-
-error("Invalid parameters: {}",e.getMessage());
-        }
-```
-
-## 🔒 Security Features
-
-- **Input Validation**: Comprehensive validation of all inputs
-- **File Size Limits**: Configurable maximum file size limits
-- **Image Dimension Limits**: Protection against memory exhaustion
-- **Secure Downloads**: HTTPS model downloads with integrity checks
-- **Resource Cleanup**: Automatic cleanup of native resources
-
-## 📈 Monitoring and Logging
-
-### Structured Logging
-
-```java
-import io.github.codesapienbe.springvision.facebytes.utils.Logs;
-
-// Log business events
-Logs.info("FaceRecognition","verification.completed",Map.of(
-        "model", "VGG_FACE",
-                  "distance",0.45,
-                  "verified",true
-));
-
-// Log errors with context
-        Logs.
-
-error("FaceRecognition","verification.failed",exception, Map.of(
-        "image1", "path1.jpg",
-              "image2","path2.jpg"
-));
-```
-
-### Performance Metrics
-
-```java
-import io.github.codesapienbe.springvision.facebytes.metrics.VisionMetrics;
-
-// Record processing time
-VisionMetrics.recordProcessingTime("face_verification",durationMs);
-
-// Record detection accuracy
-VisionMetrics.
-
-recordDetectionAccuracy("opencv",detectedFaces, actualFaces);
-```
-
-## 🌟 Advanced Features
-
-### Custom Detector Implementation
-
-```java
-import io.github.codesapienbe.springvision.facebytes.detectors.FaceDetector;
-import io.github.codesapienbe.springvision.facebytes.core.FaceRegion;
-
-import java.awt.image.BufferedImage;
-import java.util.List;
-
-public class CustomDetector implements FaceDetector {
-    @Override
-    public List<FaceRegion> detectFaces(BufferedImage image) {
-        // Implement custom detection logic
-        return List.of(new FaceRegion(0, 0, 100, 100, 0.9, null));
+        return ResponseEntity.ok(embeddings);
     }
 }
 ```
 
-### Batch Processing
+## Configuration Properties
+
+| Property                                       | Type    | Default                             | Description                |
+|------------------------------------------------|---------|-------------------------------------|----------------------------|
+| `spring.vision.facebytes.enabled`              | boolean | false                               | Enable/disable the module  |
+| `spring.vision.facebytes.model-path`           | String  | `~/.spring-vision/models/facebytes` | Model directory path       |
+| `spring.vision.facebytes.detector-backend`     | String  | opencv                              | Detection backend          |
+| `spring.vision.facebytes.recognition-model`    | String  | VGG-Face                            | Recognition model          |
+| `spring.vision.facebytes.distance-metric`      | String  | cosine                              | Distance metric            |
+| `spring.vision.facebytes.confidence-threshold` | double  | 0.7                                 | Detection confidence       |
+| `spring.vision.facebytes.max-detections`       | int     | 10                                  | Max faces to detect        |
+| `spring.vision.facebytes.enable-auto-download` | boolean | true                                | Auto-download models       |
+| `spring.vision.facebytes.enable-alignment`     | boolean | true                                | Enable face alignment      |
+| `spring.vision.facebytes.enable-quality-check` | boolean | false                               | Enable quality validation  |
+| `spring.vision.facebytes.min-face-size`        | int     | 20                                  | Minimum face size (pixels) |
+
+## Advanced Usage
+
+### Custom Configuration
+
+```java
+
+@Configuration
+public class CustomFaceBytesConfig {
+
+    @Bean
+    public FaceBytesBackend faceBytesBackend(FaceBytesProperties properties) {
+        return new FaceBytesBackend();
+    }
+}
+```
+
+### Direct API Access
 
 ```java
 import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
 
-import java.util.List;
+// Direct DeepFace API usage
+BufferedImage image = ImageIO.read(new File("face.jpg"));
+        List<EmbeddingResult> embeddings = DeepFace.represent(image);
 
-List<String> imagePaths = List.of("face1.jpg", "face2.jpg", "face3.jpg");
-
-// Process multiple images efficiently
-for(
-String path :imagePaths){
-List<EmbeddingResult> embeddings = DeepFace.represent(path);
-// Process embeddings...
-}
+        // Face verification
+        boolean match = DeepFace.verify(image1, image2);
 ```
 
-### Face Quality Assessment
+## Performance
 
-```java
-import io.github.codesapienbe.springvision.facebytes.utils.FaceQualityValidator;
+- **OpenCV Detector**: ~50ms per image
+- **DLIB Detector**: ~100ms per image
+- **RetinaFace**: ~150ms per image (higher accuracy)
+- **Embedding Extraction**: ~200ms per face
 
-FaceQualityValidator validator = new FaceQualityValidator();
-boolean isHighQuality = validator.validateFaceQuality(faceImage);
+## Requirements
 
-if(isHighQuality){
-        // Process high-quality face
-        }else{
-        // Request better quality image
-        }
-```
+- Java 21+
+- Spring Boot 3.2+
+- OpenCV (optional, for detection)
+- ONNX Runtime (for model inference)
 
-## 🔄 Migration from Python DeepFace
+## Examples
 
-### Python to Java API Mapping
+See the `examples/` directory for complete sample applications:
 
-| Python DeepFace   | Java FaceBytes            |
-|-------------------|---------------------------|
-| `verify()`        | `DeepFace.verify()`       |
-| `represent()`     | `DeepFace.represent()`    |
-| `extract_faces()` | `DeepFace.extractFaces()` |
-| `analyze()`       | `DeepFace.analyze()`      |
-| `find()`          | `DeepFace.find()`         |
+- Basic face detection
+- Face verification system
+- Face recognition database
+- Real-time face tracking
 
-### Parameter Mapping
+## License
 
-```python
-# Python
-result = DeepFace.verify(img1_path, img2_path, 
-                        model_name="VGG-Face", 
-                        distance_metric="cosine",
-                        detector_backend="opencv")
-```
-
-```java
-// Java
-VerificationResult result = DeepFace.verify(
-                img1Path, img2Path,
-                ModelType.VGG_FACE,
-                DistanceMetric.COSINE,
-                DetectorBackend.OPENCV
-        );
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Setup
-
-1. Clone the repository
-2. Install dependencies: `mvn install`
-3. Run tests: `mvn test`
-4. Build: `mvn clean package`
-
-### Code Style
-
-- Follow Java coding conventions
-- Use comprehensive Javadoc
-- Include unit tests for new features
-- Follow SOLID principles
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **DeepFace Team**: Original Python implementation
-- **OpenCV**: Computer vision library
-- **ONNX Runtime**: Model inference engine
-- **Spring Framework**: Application framework
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/spring-vision/facebytes/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/spring-vision/facebytes/discussions)
-- **Documentation**: [API Reference](docs/API_REFERENCE.md)
-
----
-
-**FaceBytes** - Bringing DeepFace to the Java ecosystem with enterprise-grade quality and performance.
-
-## 📣 Actuator & Prometheus Integration Example
-
-To export FaceBytes model load and inference metrics to Prometheus via Spring Boot Actuator + Micrometer, add the following dependencies to your application's `pom.xml`:
-
-```xml
-<dependency>
-  <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-<dependency>
-  <groupId>io.micrometer</groupId>
-  <artifactId>micrometer-registry-prometheus</artifactId>
-</dependency>
-```
-
-The library auto-configuration provided by FaceBytes (`ModelMetricsAutoConfiguration`) will automatically bind the application's `MeterRegistry` into the FaceBytes `ModelManager` so model metrics are emitted through your application's registry.
-
-Add Prometheus endpoint exposure in `application.yml`:
-
-```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "prometheus,health,info"
-```
-
-Run your Spring Boot application and navigate to `http://localhost:8080/actuator/prometheus`. You should see metrics such as:
-
-- `facebytes_model_load_time_seconds` (timer) — model load durations
-- `facebytes_model_inference_time_seconds{model="arcface"}` — inference durations per model
-
-Example curl to verify:
-
-```bash
-curl -s http://localhost:8080/actuator/prometheus | grep facebytes
-```
-
-Structured logs from model loading and inference will appear via the `Logs` utility (JSON-style) and include `component`, `model`, and `correlation_id` when the latter is set in MDC. Use `ModelManager.setMeterRegistry(yourRegistry)` if you need to bind a custom registry programmatically.
-
-If you'd like, I can also add a short example application project demonstrating full Actuator + FaceBytes integration and a sample Prometheus scrape configuration. 
+See main project LICENSE file.

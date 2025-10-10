@@ -17,7 +17,7 @@ import io.github.codesapienbe.springvision.core.exception.VisionBackendException
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
@@ -53,7 +53,7 @@ import java.util.*;
  * @since 1.0.0
  */
 @Component
-@ConfigurationProperties(prefix = "deepface")
+@ConditionalOnProperty(prefix = "spring.vision.deepface", name = "enabled", havingValue = "true")
 public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DeepFaceBackend.class);
@@ -67,9 +67,9 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     private static final int MAX_RETRIES = 3;
     private static final Duration RETRY_DELAY = Duration.ofMillis(500);
 
-    private final String baseUrl;
-    private final Duration timeout;
-    private final WebClient webClient;
+    private String baseUrl;
+    private Duration timeout;
+    private WebClient webClient;
     private final ObjectMapper objectMapper;
 
     private volatile boolean initialized = false;
@@ -80,7 +80,7 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     /**
      * Creates a new DeepFace backend with default configuration.
      *
-     * <p>Uses the default DeepFace API URL (http://localhost:5000) and default timeout.</p>
+     * <p>Uses the default DeepFace API URL (<a href="http://localhost:5000">...</a>) and default timeout.</p>
      */
     public DeepFaceBackend() {
         this("http://localhost:5000");
@@ -374,6 +374,11 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         logger.info("DeepFace backend shut down successfully");
     }
 
+    /**
+     * Validates that the backend has been initialized.
+     *
+     * @throws VisionBackendException if the backend is not initialized.
+     */
     private void validateState() throws VisionBackendException {
         if (!initialized) {
             throw new VisionBackendException(
@@ -384,6 +389,11 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * Performs a health check of the DeepFace API by sending a minimal request.
+     *
+     * @throws Exception if the health check fails.
+     */
     private void performHealthCheck() throws Exception {
         long startTime = System.currentTimeMillis();
 
@@ -414,6 +424,14 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         }
     }
 
+    /**
+     * Calls the DeepFace /analyze endpoint with the given base64 encoded image.
+     *
+     * @param base64Image   The base64 encoded image string.
+     * @param correlationId The correlation ID for logging and tracking.
+     * @return The JSON response from the DeepFace API as a JsonNode.
+     * @throws BaseVisionException if the API call fails or returns an error.
+     */
     private JsonNode callDeepFaceAnalyze(String base64Image, String correlationId) throws BaseVisionException {
         Map<String, Object> requestBody = Map.of(
             "img_path", "data:image/jpeg;base64," + base64Image,
@@ -436,6 +454,13 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
             .block();
     }
 
+    /**
+     * Parses the JSON response from the DeepFace API to extract face detections.
+     *
+     * @param response      The JSON response as a JsonNode.
+     * @param correlationId The correlation ID for logging.
+     * @return A list of {@link Detection} objects representing the found faces.
+     */
     private List<Detection> parseFaceDetections(JsonNode response, String correlationId) {
         List<Detection> detections = new ArrayList<>();
 
@@ -455,6 +480,12 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         return detections;
     }
 
+    /**
+     * Parses a single face detection result from the DeepFace JSON response.
+     *
+     * @param result The JsonNode representing a single face detection.
+     * @return A {@link Detection} object populated with the face attributes.
+     */
     private Detection parseFaceDetection(JsonNode result) {
         // Extract bounding box from region
         JsonNode region = result.get("region");
@@ -483,6 +514,11 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
         return new Detection("face", confidence, boundingBox, attributes);
     }
 
+    /**
+     * Generates a short, unique correlation ID for request tracking.
+     *
+     * @return A unique correlation ID string.
+     */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
@@ -506,11 +542,39 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     }
 
     /**
-     * {@inheritDoc}
+     * Returns a string representation of the DeepFaceBackend instance.
+     *
+     * @return a string representation of the object.
      */
     @Override
     public String toString() {
         return String.format("DeepFaceBackend{baseUrl='%s', timeout=%s, initialized=%s}",
             baseUrl, timeout, initialized);
+    }
+
+    /**
+     * Allows configuring the DeepFace API URL via properties binding.
+     * Maps from property: spring.vision.deepface.api-url
+     */
+    public void setApiUrl(String apiUrl) {
+        if (apiUrl == null || apiUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("apiUrl must not be null/empty");
+        }
+        this.baseUrl = apiUrl.trim();
+        this.webClient = WebClient.builder()
+            .baseUrl(this.baseUrl)
+            .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+            .build();
+        logger.info("DeepFace backend API URL configured: {}", this.baseUrl);
+    }
+
+    /**
+     * Allows configuring the API timeout (seconds) via properties binding.
+     * Maps from property: spring.vision.deepface.timeout-seconds
+     */
+    public void setTimeoutSeconds(int seconds) {
+        if (seconds <= 0) throw new IllegalArgumentException("timeoutSeconds must be positive");
+        this.timeout = Duration.ofSeconds(seconds);
+        logger.info("DeepFace backend timeout configured: {}s", seconds);
     }
 }

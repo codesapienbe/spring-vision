@@ -8,56 +8,58 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Core service interface for storing and searching face embeddings.
+ * Defines the core service contract for storing, searching, and managing face embeddings in a vector database.
  */
 public interface VectorSimilarityService {
 
     /**
-     * Stores a face embedding in the database.
+     * Stores a new face embedding in the database.
      *
-     * @param request the storage request containing embedding data
-     * @return the ID of the stored embedding
+     * @param request The request object containing the embedding and associated metadata.
+     * @return The unique identifier of the newly stored embedding record.
      */
     String storeFaceEmbedding(StoreFaceEmbeddingRequest request);
 
     /**
-     * Finds similar faces based on an embedding query.
+     * Finds faces in the database that are similar to a given query embedding.
      *
-     * @param request the similarity search request
-     * @return list of similar face results
+     * @param request The request object containing the query embedding and search parameters.
+     * @return A list of {@link SimilaritySearchResult} objects, ordered by similarity.
      */
     List<SimilaritySearchResult> findSimilarFaces(SimilaritySearchRequest request);
 
     /**
-     * Verifies if two faces match.
+     * Verifies if two face embeddings represent the same person by comparing their distance against a threshold.
      *
-     * @param request the verification request
-     * @return the verification result
+     * @param request The request containing the two embeddings to compare.
+     * @return A {@link VerificationResult} indicating whether the faces match.
      */
     VerificationResult verifyFaces(VerificationRequest request);
 
     /**
-     * Deletes a face embedding by its ID.
+     * Deletes a face embedding from the database using its unique identifier.
      *
-     * @param embeddingId the embedding ID to delete
+     * @param embeddingId The ID of the embedding to delete.
      */
     void deleteFaceEmbedding(String embeddingId);
 
     /**
-     * Gets the health status of the vector service.
+     * Gets the current health status of the vector similarity service.
      *
-     * @return the health status
+     * @return A {@link VectorServiceHealth} object describing the service status.
      */
     VectorServiceHealth getHealth();
 
     /**
-     * Gets the set of supported similarity metrics.
+     * Gets the set of similarity metric names supported by this service (e.g., "COSINE", "EUCLIDEAN").
      *
-     * @return set of supported metric names
+     * @return A set of supported metric names.
      */
     Set<String> getSupportedMetrics();
 
-    // Placeholder records for now – these will be replaced by richer types later
+    /**
+     * Represents the result of a face verification operation.
+     */
     public static final class VerificationResult {
         private final boolean match;
         private final double distance;
@@ -82,6 +84,9 @@ public interface VectorSimilarityService {
         }
     }
 
+    /**
+     * Represents the health status of the vector service.
+     */
     public static final class VectorServiceHealth {
         private final boolean ok;
         private final String message;
@@ -100,6 +105,9 @@ public interface VectorSimilarityService {
         }
     }
 
+    /**
+     * Represents a request to verify two face embeddings.
+     */
     public static final class VerificationRequest {
         private final float[] embeddingA;
         private final float[] embeddingB;

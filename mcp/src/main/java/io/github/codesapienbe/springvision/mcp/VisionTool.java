@@ -17,7 +17,16 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * VisionTool: provides tool methods that can be exposed to MCP clients via Spring AI.
+ * Provides tool methods that can be exposed to MCP clients via Spring AI for performing computer vision tasks.
+ * This class wraps the {@link VisionTemplate} to offer functionalities like object detection, face recognition,
+ * and OCR through simple tool calls.
+ *
+ * <p>The methods in this class are designed to be used as tools in a Spring AI application,
+ * allowing AI models to interact with the vision capabilities of the application. The methods
+ * handle different input formats like byte arrays, base64 strings, and image URLs.</p>
+ *
+ * @see VisionTemplate
+ * @see Tool
  */
 @Component
 public class VisionTool {
@@ -27,12 +36,21 @@ public class VisionTool {
     // Default similarity threshold for face comparison (cosine similarity)
     private static final double DEFAULT_SIMILARITY_THRESHOLD = 0.6;
 
+    /**
+     * Constructs a new VisionTool with the given VisionTemplate.
+     *
+     * @param visionTemplate The VisionTemplate to use for performing vision operations.
+     */
     public VisionTool(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
     }
 
     /**
-     * Helper method to download an image from a URL and return the bytes.
+     * Downloads an image from a URL and returns its content as a byte array.
+     *
+     * @param imageUrl The URL of the image to download.
+     * @return A byte array containing the image data.
+     * @throws IOException if the image cannot be downloaded.
      */
     private byte[] downloadImageFromUrl(String imageUrl) throws IOException {
         try {
@@ -47,8 +65,15 @@ public class VisionTool {
     }
 
     /**
-     * Calculate cosine similarity between two embedding vectors.
-     * Returns a value between -1 and 1, where 1 means identical.
+     * Calculates the cosine similarity between two embedding vectors.
+     * Cosine similarity measures the cosine of the angle between two non-zero vectors,
+     * with a value of 1 meaning the vectors are identical, 0 meaning they are orthogonal,
+     * and -1 meaning they are diametrically opposed.
+     *
+     * @param embedding1 The first embedding vector.
+     * @param embedding2 The second embedding vector.
+     * @return The cosine similarity score between -1 and 1.
+     * @throws IllegalArgumentException if the embeddings have different dimensions.
      */
     private double cosineSimilarity(float[] embedding1, float[] embedding2) {
         if (embedding1.length != embedding2.length) {
@@ -68,6 +93,13 @@ public class VisionTool {
         return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 
+    /**
+     * Detects objects or faces in an image provided as a byte array.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @param detectionType The type of detection to perform, either "FACE" or "OBJECT". Defaults to "FACE".
+     * @return A map containing the detection results, including a list of detections and the total count.
+     */
     @Tool(description = "Detect objects in an image. Accepts raw bytes and optional detectionType (FACE|OBJECT)")
     public Map<String, Object> detect(byte[] imageBytes, String detectionType) {
         Map<String, Object> response = new HashMap<>();
@@ -89,6 +121,13 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Detects objects or faces in a base64 encoded image.
+     *
+     * @param base64Image The base64 encoded string of the image.
+     * @param detectionType The type of detection to perform, either "FACE" or "OBJECT".
+     * @return A map containing the detection results or an error message.
+     */
     @Tool(description = "Detect objects from a base64 encoded image payload")
     public Map<String, Object> detectBase64(String base64Image, String detectionType) {
         if (base64Image == null) {
@@ -102,6 +141,13 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Detects objects or faces in an image from a given URL.
+     *
+     * @param imageUrl The URL of the.
+     * @param detectionType The type of detection to perform, either "FACE" or "OBJECT".
+     * @return A map containing the detection results or an error message.
+     */
     @Tool(description = "Detect objects from an image URL")
     public Map<String, Object> detectUrl(String imageUrl, String detectionType) {
         if (imageUrl == null || imageUrl.trim().isEmpty()) {
@@ -115,6 +161,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Performs Optical Character Recognition (OCR) on an image provided as a byte array.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the recognized text and the raw detection results.
+     */
     @Tool(description = "Run OCR on an image (byte[])")
     public Map<String, Object> ocr(byte[] imageBytes) {
         try {
@@ -138,6 +190,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Performs Optical Character Recognition (OCR) on an image from a given URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the recognized text or an error message.
+     */
     @Tool(description = "Run OCR on an image from a URL")
     public Map<String, Object> ocrUrl(String imageUrl) {
         if (imageUrl == null || imageUrl.trim().isEmpty()) {
@@ -151,6 +209,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Recognizes faces in an image provided as a byte array.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the face detection results and the count of faces found.
+     */
     @Tool(description = "Recognize faces in an image (byte[])")
     public Map<String, Object> faces(byte[] imageBytes) {
         try {
@@ -165,6 +229,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Recognizes faces in an image from a given URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the face detection results or an error message.
+     */
     @Tool(description = "Recognize faces in an image from a URL")
     public Map<String, Object> facesUrl(String imageUrl) {
         if (imageUrl == null || imageUrl.trim().isEmpty()) {
@@ -178,6 +248,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Extracts face embeddings from an image provided as a byte array.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing a list of embedding vectors for each detected face.
+     */
     @Tool(description = "Extract face embeddings from an image (byte[]). Returns a list of embedding vectors for each detected face.")
     public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
         try {
@@ -196,6 +272,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Extracts face embeddings from a base64 encoded image.
+     *
+     * @param base64Image The base64 encoded string of the image.
+     * @return A map containing the list of embedding vectors or an error message.
+     */
     @Tool(description = "Extract face embeddings from a base64 encoded image. Returns a list of embedding vectors for each detected face.")
     public Map<String, Object> extractEmbeddingsBase64(String base64Image) {
         if (base64Image == null) {
@@ -209,6 +291,12 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Extracts face embeddings from an image at a given URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the list of embedding vectors or an error message.
+     */
     @Tool(description = "Extract face embeddings from an image URL. Returns a list of embedding vectors for each detected face.")
     public Map<String, Object> extractEmbeddingsUrl(String imageUrl) {
         if (imageUrl == null || imageUrl.trim().isEmpty()) {
@@ -222,6 +310,13 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Compares faces from multiple image URLs to determine if they belong to the same person.
+     *
+     * @param imageUrls A list of image URLs to compare.
+     * @param threshold The similarity threshold to use for the comparison. Defaults to 0.6.
+     * @return A map containing the similarity scores, a match verdict, and other comparison details.
+     */
     @Tool(description = "Compare faces from multiple image URLs to determine if they show the same person. Returns similarity scores and a match verdict.")
     public Map<String, Object> compareFacesFromUrls(List<String> imageUrls, Double threshold) {
         if (imageUrls == null || imageUrls.size() < 2) {
@@ -260,6 +355,13 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Compares faces from multiple base64-encoded images to determine if they belong to the same person.
+     *
+     * @param base64Images A list of base64 encoded image strings.
+     * @param threshold The similarity threshold to use for the comparison. Defaults to 0.6.
+     * @return A map containing the similarity scores, a match verdict, and other comparison details.
+     */
     @Tool(description = "Compare faces from multiple base64-encoded images to determine if they show the same person. Returns similarity scores and a match verdict.")
     public Map<String, Object> compareFacesFromBase64(List<String> base64Images, Double threshold) {
         if (base64Images == null || base64Images.size() < 2) {
@@ -299,8 +401,13 @@ public class VisionTool {
     }
 
     /**
-     * Performs pairwise face comparison between all images.
-     * Uses the first detected face from each image for comparison.
+     * Performs pairwise face comparison between all images using their embeddings.
+     * It uses the first detected face from each image for the comparison.
+     *
+     * @param allEmbeddings A list where each element is a list of face embeddings for an image.
+     * @param imageLabels A list of labels for the images being compared.
+     * @param threshold The similarity threshold to determine if faces match.
+     * @return A map containing detailed comparison results, including pairwise scores and an overall verdict.
      */
     private Map<String, Object> performFaceComparison(List<List<float[]>> allEmbeddings,
                                                       List<String> imageLabels,
@@ -365,7 +472,10 @@ public class VisionTool {
     }
 
     /**
-     * Get a human-readable confidence level based on similarity score.
+     * Returns a human-readable confidence level based on a similarity score.
+     *
+     * @param similarity The similarity score, typically between 0 and 1.
+     * @return A string representing the confidence level (e.g., "Very High", "Low").
      */
     private String getConfidenceLevel(double similarity) {
         if (similarity >= 0.8) return "Very High";

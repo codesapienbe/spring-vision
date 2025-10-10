@@ -1,63 +1,267 @@
-# spring-vision-health (design-only)
+# Spring Vision Health Module
 
-This module contains design, API interfaces and DTOs for health-related computer vision tasks.
-It intentionally provides no implementations. The goal is to allow contributors to implement
-pluggable backends (ONNX, DJL, OpenCV, DeepFace, DeepLearning4J, etc.) while keeping a
-stable, well-documented API.
+This module provides health-related computer vision capabilities for the Spring Vision framework. It includes APIs for heart rate monitoring, fall detection, stress analysis, and medical image classification.
 
-## IMPORTANT: Image-list based APIs (core integration)
+## Overview
 
-All new health APIs are intentionally based on sequences of images rather than video streams.
-This simplifies the design and aligns with the rest of the project which uses `ImageData` and
-`Detection` as core data shapes. Implementations and client code should use `io.github.codesapienbe.springvision.core.ImageData`
-for inputs and `io.github.codesapienbe.springvision.core.Detection` for outputs.
+The **Spring Vision Health** module is designed around image-based APIs rather than video streams, making it easy to integrate with standard computer vision workflows. All health detectors work with sequences of `ImageData` objects and return `Detection` results compatible with the core framework.
 
-The canonical way to call health detectors is via the core `VisionTemplate` convenience methods or the
-core capability SPI (see `io.github.codesapienbe.springvision.core.capabilities.*`). Example usages:
+## Key Features
 
-- Heart rate (sequence of frames -> aggregated detections):
-    - `visionTemplate.detectHeartRate(List<ImageData> frames)`
-    - or implement `io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability`
+- **Heart Rate Detection**: PPG-based heart rate monitoring from facial video frames
+- **Fall Detection**: Real-time fall event detection from sequential frames
+- **Stress Analysis**: Stress level assessment from facial expressions
+- **Brain Tumor Classification**: MRI image analysis for tumor detection
+- **Extensible Architecture**: Easy to add new health detection backends
 
-- Fall detection (sequence of frames -> event detections):
-    - `visionTemplate.detectFall(List<ImageData> frames)`
-    - or implement `io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability`
+## Getting Started
 
-- Stress analysis (sequence of frames -> aggregated stress detections):
-    - `visionTemplate.detectStress(List<ImageData> frames)`
-    - or implement `io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability`
+### 1. Add Maven Dependency
 
-- Brain tumor classification (MRI images use core health DTOs):
-    - Implement `io.github.codesapienbe.springvision.health.api.BrainTumorClassifier` as an adapter that delegates to
-      `io.github.codesapienbe.springvision.core.health.MRIImage` and returns `io.github.codesapienbe.springvision.core.health.TumorClassificationResult`.
+```xml
 
-## Backwards compatibility / deprecated types
+<dependency>
+    <groupId>io.github.codesapienbe.springvision</groupId>
+    <artifactId>spring-vision-health</artifactId>
+    <version>1.0</version>
+</dependency>
+```
 
-This module previously exposed streaming/video and listener-based APIs (e.g. `VideoSource`, `HeartRateListener`).
-Those types are now deprecated in this module and retained only for backwards compatibility. New code should not use
-these streaming types.
+### 2. Configure via Application Properties
 
-## Design principles / contributor guidance
+```properties
+# Enable the Health module
+spring.vision.health.enabled=true
+# Model path for health models
+spring.vision.health.model-path=~/.spring-vision/models/health
+# Confidence threshold
+spring.vision.health.confidence-threshold=0.7
+# Enable specific features
+spring.vision.health.heart-rate.enabled=true
+spring.vision.health.fall-detection.enabled=true
+spring.vision.health.stress-analysis.enabled=true
+```
 
-- Implementations must depend on `spring-vision-core` and register capability implementations if they provide
-  heart/fall/stress functionality (via `io.github.codesapienbe.springvision.core.capabilities.*`).
+### 3. Use VisionTemplate (Auto-Configured)
 
-- Keep implementations in separate modules (e.g. `spring-vision-health-impl-opencv`, `-impl-onnx`).
+```java
 
-- Prefer pure, stateless functions that accept `List<ImageData>` and return `List<Detection>` so they are easy to test.
+@RestController
+@RequestMapping("/api/health")
+public class HealthMonitoringController {
 
-## Suggested first contributions
+    @Autowired
+    private VisionTemplate visionTemplate;
 
-1. Add a simple OpenCV-based `HeartRateCapability` prototype that computes a naive green-channel PPG and returns
-   min/max/avg BPM as Detection metadata.
-2. Add a fall-detection capability that uses pose estimation outputs (MediaPipe/OpenPose) to heuristically emit falls.
-3. Implement a DJL/ONNX-backed `BrainTumorClassifier` adapter that consumes preprocessed `MRIImage` objects.
+    @PostMapping("/heart-rate")
+    public ResponseEntity<HeartRateResult> detectHeartRate(
+            @RequestParam("frames") MultipartFile[] frames) throws IOException {
 
-## Testing & CI
+        List<ImageData> imageFrames = Arrays.stream(frames)
+                .map(file -> {
+                    try {
+                        return ImageData.fromBytes(file.getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
 
-- Keep this module interface-only. Implementations can add native dependencies and heavier CI tasks in their own modules.
-- Unit-test implementations with synthetic image sequences to avoid shipping large datasets in CI.
+        List<Detection> heartRateDetections = visionTemplate.detectHeartRate(imageFrames);
 
-## Licensing
+        // Aggregate results
+        double avgBpm = heartRateDetections.stream()
+                .mapToDouble(d -> (Double) d.attributes().get("bpm"))
+                .average()
+                .orElse(0.0);
 
-Follow the project-wide Apache 2.0 license.
+        return ResponseEntity.ok(new HeartRateResult(avgBpm, heartRateDetections));
+    }
+
+    @PostMapping("/fall-detection")
+    public ResponseEntity<List<Detection>> detectFalls(
+            @RequestParam("frames") MultipartFile[] frames) throws IOException {
+
+        List<ImageData> imageFrames = Arrays.stream(frames)
+                .map(file -> {
+                    try {
+                        return ImageData.fromBytes(file.getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
+
+        List<Detection> fallEvents = visionTemplate.detectFall(imageFrames);
+
+        return ResponseEntity.ok(fallEvents);
+    }
+
+    @PostMapping("/stress-analysis")
+    public ResponseEntity<StressResult> analyzeStress(
+            @RequestParam("frames") MultipartFile[] frames) throws IOException {
+
+        List<ImageData> imageFrames = Arrays.stream(frames)
+                .map(file -> {
+                    try {
+                        return ImageData.fromBytes(file.getBytes());
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
+
+        List<Detection> stressDetections = visionTemplate.detectStress(imageFrames);
+
+        // Analyze stress level
+        double avgStress = stressDetections.stream()
+                .mapToDouble(d -> (Double) d.attributes().get("stress_level"))
+                .average()
+                .orElse(0.0);
+
+        String level = avgStress < 0.3 ? "LOW" : avgStress < 0.7 ? "MEDIUM" : "HIGH";
+
+        return ResponseEntity.ok(new StressResult(avgStress, level, stressDetections));
+    }
+}
+```
+
+## Capabilities
+
+The module implements the following capability interfaces from `spring-vision-core`:
+
+- **HeartRateCapability** - `detectHeartRate(List<ImageData>)`
+- **FallDetectionCapability** - `detectFall(List<ImageData>)`
+- **StressAnalysisCapability** - `detectStress(List<ImageData>)`
+- **BrainTumorClassifier** - `classifyTumor(MRIImage)`
+
+## Configuration Properties
+
+| Property                                       | Type    | Default                          | Description                 |
+|------------------------------------------------|---------|----------------------------------|-----------------------------|
+| `spring.vision.health.enabled`                 | boolean | false                            | Enable/disable the module   |
+| `spring.vision.health.model-path`              | String  | `~/.spring-vision/models/health` | Model directory path        |
+| `spring.vision.health.confidence-threshold`    | double  | 0.7                              | Detection confidence        |
+| `spring.vision.health.heart-rate.enabled`      | boolean | true                             | Enable heart rate detection |
+| `spring.vision.health.fall-detection.enabled`  | boolean | true                             | Enable fall detection       |
+| `spring.vision.health.stress-analysis.enabled` | boolean | true                             | Enable stress analysis      |
+
+## Use Cases
+
+### Heart Rate Monitoring
+
+Monitor heart rate from facial video using photoplethysmography (PPG):
+
+```java
+List<ImageData> faceFrames = captureVideoFrames(30); // 30 frames
+List<Detection> heartRate = visionTemplate.detectHeartRate(faceFrames);
+```
+
+### Fall Detection
+
+Detect falls in elderly care or workplace safety:
+
+```java
+List<ImageData> activityFrames = captureVideoFrames(60); // 2 seconds @ 30fps
+List<Detection> falls = visionTemplate.detectFall(activityFrames);
+
+if(!falls.
+
+isEmpty()){
+
+alertEmergencyServices();
+}
+```
+
+### Stress Analysis
+
+Assess stress levels from facial expressions:
+
+```java
+List<ImageData> faceFrames = captureVideoFrames(90); // 3 seconds
+List<Detection> stress = visionTemplate.detectStress(faceFrames);
+```
+
+### MRI Tumor Classification
+
+Classify brain tumors from MRI images:
+
+```java
+MRIImage mriScan = MRIImage.fromFile("scan.dcm");
+TumorClassificationResult result = brainTumorClassifier.classify(mriScan);
+
+if(result.
+
+getTumorType() !=TumorType.NO_TUMOR){
+
+notifyPhysician(result);
+}
+```
+
+## Architecture
+
+This module follows a design-first approach:
+
+1. **Core APIs**: Defined in `spring-vision-core.capabilities`
+2. **Implementation**: Pluggable backends (OpenCV, ONNX, DJL, etc.)
+3. **Integration**: Through `VisionTemplate` for consistent usage
+
+## Implementation Guidelines
+
+To create a custom health backend:
+
+1. Implement the relevant capability interface
+2. Register as a Spring component
+3. Configure via properties
+
+```java
+
+@Component
+@ConditionalOnProperty(prefix = "spring.vision.health", name = "enabled")
+public class CustomHeartRateBackend implements HeartRateCapability {
+
+    @Override
+    public List<Detection> detectHeartRate(List<ImageData> frames) {
+        // Your implementation
+        return detections;
+    }
+}
+```
+
+## Requirements
+
+- Java 21+
+- Spring Boot 3.2+
+- OpenCV (optional, for certain backends)
+- ONNX Runtime (optional, for ML models)
+
+## Important Notes
+
+### Deprecated APIs
+
+Previous versions exposed streaming/video APIs (`VideoSource`, `HeartRateListener`). These are now deprecated. New code should use:
+
+- `List<ImageData>` for inputs
+- `List<Detection>` for outputs
+- `VisionTemplate` for convenience methods
+
+### Medical Use Disclaimer
+
+⚠️ **Important**: This module is for research and educational purposes only. It is NOT intended for medical diagnosis or clinical use. Always consult qualified healthcare professionals for medical advice.
+
+## Examples
+
+See the `examples/` directory for complete sample applications demonstrating health monitoring features.
+
+## Contributing
+
+We welcome contributions! Suggested areas:
+
+1. OpenCV-based PPG heart rate detector
+2. ONNX-based fall detection model
+3. Stress analysis using facial landmarks
+4. Medical image preprocessing utilities
+
+## License
+
+See main project LICENSE file.

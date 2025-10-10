@@ -5,14 +5,30 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Utility class for performing Non-Maximum Suppression (NMS).
+ * NMS is used to select one bounding box from a set of overlapping boxes by suppressing all boxes that have a high Intersection over Union (IoU) with a higher-scoring box.
+ */
 public final class Nms {
 
     private Nms() {
     }
 
+    /**
+     * Represents a bounding box with coordinates and a confidence score.
+     */
     public static class Box {
         public final float x1, y1, x2, y2, score;
 
+        /**
+         * Constructs a new Box.
+         *
+         * @param x1    The x-coordinate of the first corner.
+         * @param y1    The y-coordinate of the first corner.
+         * @param x2    The x-coordinate of the second corner.
+         * @param y2    The y-coordinate of the second corner.
+         * @param score The confidence score of the box.
+         */
         public Box(float x1, float y1, float x2, float y2, float score) {
             this.x1 = Math.min(x1, x2);
             this.y1 = Math.min(y1, y2);
@@ -22,6 +38,14 @@ public final class Nms {
         }
     }
 
+    /**
+     * Performs Non-Maximum Suppression on a list of bounding boxes.
+     *
+     * @param boxes        A list of {@link Box} objects to process.
+     * @param iouThreshold The Intersection over Union (IoU) threshold. Boxes with an IoU greater than this value will be suppressed.
+     * @param topK         The maximum number of boxes to keep. If 0, no limit is applied.
+     * @return A list of indices of the boxes to keep, sorted by score.
+     */
     public static List<Integer> nms(List<Box> boxes, double iouThreshold, int topK) {
         if (boxes == null || boxes.isEmpty()) return List.of();
         List<Integer> order = new ArrayList<>();
@@ -43,6 +67,13 @@ public final class Nms {
         return keep;
     }
 
+    /**
+     * Calculates the Intersection over Union (IoU) of two bounding boxes.
+     *
+     * @param a The first box.
+     * @param b The second box.
+     * @return The IoU value, between 0.0 and 1.0.
+     */
     private static double iou(Box a, Box b) {
         float interX1 = Math.max(a.x1, b.x1);
         float interY1 = Math.max(a.y1, b.y1);

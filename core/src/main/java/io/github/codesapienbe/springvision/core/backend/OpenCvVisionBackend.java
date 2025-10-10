@@ -50,6 +50,7 @@ import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -80,6 +81,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConfigurationProperties(prefix = "spring.vision.opencv")
+@ConditionalOnProperty(prefix = "spring.vision.opencv", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OpenCvVisionBackend implements VisionBackend, io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability,
     io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability, io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability {
 

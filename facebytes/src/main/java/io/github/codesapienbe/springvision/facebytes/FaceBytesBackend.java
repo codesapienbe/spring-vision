@@ -12,6 +12,7 @@ import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import io.github.codesapienbe.springvision.facebytes.core.DeepFace;
@@ -25,12 +26,21 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.DetectionQuery;
 
 /**
- * VisionBackend implementation backed by the FaceBytes (Similar to DeepFace for python by serengil) module.
+ * VisionBackend implementation backed by the FaceBytes (Java port of DeepFace) module.
  *
- * <p>This backend provides face detection by delegating to FaceBytes' OpenCV Haar cascade
- * face detector and mapping results into Spring Vision core domain objects.</p>
+ * <p>This backend provides comprehensive face recognition capabilities including:
+ * <ul>
+ *   <li>Face detection using multiple detector backends (OpenCV, RetinaFace, DLIB, MTCNN)</li>
+ *   <li>Face embedding generation using various models (VGG-Face, Facenet, ArcFace, etc.)</li>
+ *   <li>Face verification and recognition</li>
+ *   <li>Barcode detection capabilities</li>
+ * </ul>
+ *
+ * @author Spring Vision Team
+ * @since 1.0.0
  */
 @Component
+@ConditionalOnProperty(prefix = "spring.vision.facebytes", name = "enabled", havingValue = "true")
 public final class FaceBytesBackend implements VisionBackend, io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability, io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability, io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(FaceBytesBackend.class);

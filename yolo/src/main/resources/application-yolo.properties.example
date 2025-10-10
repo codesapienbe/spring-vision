@@ -1,0 +1,28 @@
+# YOLO Module Configuration Example
+# Enable or disable the YOLO backend
+spring.vision.yolo.enabled=true
+
+# Model path for YOLO models
+spring.vision.yolo.model-path=~/.spring-vision/models/yolo
+
+# Model name (yolov8n.onnx, yolov8s.onnx, yolov8m.onnx)
+spring.vision.yolo.model-name=yolov8n.onnx
+
+# Confidence threshold (0.0 - 1.0)
+spring.vision.yolo.confidence-threshold=0.25
+
+# Non-maximum suppression threshold (0.0 - 1.0)
+spring.vision.yolo.nms-threshold=0.45
+
+# Maximum number of detections
+spring.vision.yolo.max-detections=100
+
+# Enable automatic model download
+spring.vision.yolo.enable-auto-download=true
+
+# Download timeout (seconds)
+spring.vision.yolo.download-timeout-seconds=300
+
+# Input size (typically 640)
+spring.vision.yolo.input-size=640
+

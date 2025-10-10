@@ -4,6 +4,10 @@ import io.github.codesapienbe.springvision.facebytes.enums.DetectorBackend;
 import io.github.codesapienbe.springvision.facebytes.enums.DistanceMetric;
 import io.github.codesapienbe.springvision.facebytes.enums.ModelType;
 
+/**
+ * Configuration class for DeepFace/FaceBytes models and settings.
+ * Provides centralized configuration management through environment variables and system properties.
+ */
 public final class DeepFaceConfig {
 
     private static final String COSINE_ENV = "FACEBYTES_THRESHOLD_COSINE";

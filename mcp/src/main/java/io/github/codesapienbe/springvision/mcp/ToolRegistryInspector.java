@@ -11,11 +11,29 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * Inspects the Spring AI {@code ToolRegistry} on application startup and logs the registered tools.
+ * This component is useful for debugging and verifying that the correct tools are registered
+ * with the Spring AI framework.
+ *
+ * <p>It listens for the {@link ContextRefreshedEvent} and then attempts to find a bean of type
+ * {@code ToolRegistry}. Since the class name and package for {@code ToolRegistry} has changed
+ * across different Spring AI versions, this inspector tries a list of known fully-qualified names.</p>
+ *
+ * <p>If a {@code ToolRegistry} bean is found, it uses reflection to call common methods
+ * (e.g., {@code listRegisteredTools}, {@code getTools}) to retrieve and log the names of the
+ * registered tool functions.</p>
+ */
 @Component
 public class ToolRegistryInspector implements ApplicationListener<ContextRefreshedEvent> {
 
     private static final Logger log = LoggerFactory.getLogger(ToolRegistryInspector.class);
 
+    /**
+     * An array of fully-qualified class names for the Spring AI {@code ToolRegistry}.
+     * This is necessary to support different versions of the Spring AI library where the
+     * package structure may have changed.
+     */
     private static final String[] REGISTRY_TYPES = new String[]{
         "org.springframework.ai.tool.ToolRegistry",
         "org.springframework.ai.tools.ToolRegistry",
@@ -23,6 +41,12 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
         "org.springframework.ai.core.tool.ToolRegistry"
     };
 
+    /**
+     * Handles the {@link ContextRefreshedEvent} to trigger the inspection of the tool registry.
+     * This method is called once the Spring application context has been initialized or refreshed.
+     *
+     * @param event The context refreshed event.
+     */
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         ApplicationContext ctx = event.getApplicationContext();
@@ -34,35 +58,35 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
                 try {
                     registryBean = ctx.getBean(registryClass);
                 } catch (Exception ex) {
-                    // ignore
+                    // ignore if bean not found, try next class name
                 }
 
                 if (registryBean != null) {
                     log.info("Found ToolRegistry bean of type {}", registryClassName);
-                    // Try several common inspection methods
+                    // Try several common inspection methods to get the list of tools
                     String[] inspectMethods = new String[]{"listRegistered", "listRegisteredTools", "getRegistered", "getRegisteredTools", "getTools", "registered"};
                     for (String m : inspectMethods) {
                         try {
                             Method mm = registryClass.getMethod(m);
                             Object val = mm.invoke(registryBean);
                             if (val instanceof Collection) {
-                                log.info("ToolRegistry.{} -> {} entries", m, ((Collection<?>) val).size());
+                                log.info("ToolRegistry.{}() -> {} entries", m, ((Collection<?>) val).size());
                                 ((Collection<?>) val).forEach(item -> log.info(" - {}", item));
                             } else if (val instanceof Map) {
-                                log.info("ToolRegistry.{} -> map with {} entries", m, ((Map<?, ?>) val).size());
+                                log.info("ToolRegistry.{}() -> map with {} entries", m, ((Map<?, ?>) val).size());
                                 ((Map<?, ?>) val).forEach((k, v) -> log.info(" - {} -> {}", k, v));
                             } else {
-                                log.info("ToolRegistry.{} -> {}", m, val);
+                                log.info("ToolRegistry.{}() -> {}", m, val);
                             }
-                            break;
+                            return; // Stop after the first successful inspection
                         } catch (NoSuchMethodException nsme) {
-                            // try next
+                            // Method not found, try the next one
                         }
                     }
-                    return;
+                    return; // Stop after inspecting the found registry
                 }
             } catch (ClassNotFoundException cnfe) {
-                // try next
+                // Class not found, try the next one
             } catch (Exception ex) {
                 log.warn("Failed to inspect registry {}: {}", registryClassName, ex.getMessage());
             }
@@ -71,4 +95,3 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
         log.debug("No Spring AI ToolRegistry found in context; skipping registry inspection.");
     }
 }
-

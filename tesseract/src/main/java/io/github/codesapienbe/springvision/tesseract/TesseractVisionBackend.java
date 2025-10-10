@@ -14,6 +14,7 @@ import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
@@ -38,6 +39,7 @@ import javax.imageio.ImageIO;
  * @since 1.0.0
  */
 @Component
+@ConditionalOnProperty(prefix = "spring.vision.tesseract", name = "enabled", havingValue = "true")
 public class TesseractVisionBackend implements VisionBackend, TextOcrCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(TesseractVisionBackend.class);

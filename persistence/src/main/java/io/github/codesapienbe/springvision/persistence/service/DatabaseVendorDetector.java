@@ -7,7 +7,8 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 
 /**
- * Detect the database vendor by connecting and inspecting JDBC URL.
+ * Detects the underlying database vendor by inspecting the JDBC connection URL.
+ * This component is used to dynamically select the appropriate vector similarity service and schema management logic.
  */
 @Component
 public class DatabaseVendorDetector {
@@ -15,9 +16,9 @@ public class DatabaseVendorDetector {
     private final DataSource dataSource;
 
     /**
-     * Constructs a database vendor detector.
+     * Constructs a new DatabaseVendorDetector.
      *
-     * @param dataSource the data source to inspect
+     * @param dataSource The {@link DataSource} to be inspected.
      */
     public DatabaseVendorDetector(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -25,8 +26,9 @@ public class DatabaseVendorDetector {
 
     /**
      * Detects the database vendor from the JDBC connection URL.
+     * It establishes a temporary connection to retrieve the database metadata and URL.
      *
-     * @return the detected database vendor
+     * @return The detected {@link DatabaseVendor}, or {@link DatabaseVendor#UNKNOWN} if detection fails or the vendor is not supported.
      */
     public DatabaseVendor detectVendor() {
         try (Connection connection = dataSource.getConnection()) {

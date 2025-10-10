@@ -16,7 +16,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Auto-configuration for JPA vector similarity services.
+ * Auto-configuration for creating the appropriate {@link VectorSimilarityService} bean.
+ * This configuration detects the underlying database vendor and instantiates a specialized
+ * vector service if available (e.g., for PostgreSQL with pgvector), otherwise it falls back
+ * to a generic JPA-based implementation.
  */
 @Configuration
 @EnableConfigurationProperties(VectorSimilarityProperties.class)
@@ -24,6 +27,22 @@ public class VisionJpaAutoConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(VisionJpaAutoConfiguration.class);
 
+    /**
+     * Creates and configures the primary {@link VectorSimilarityService} bean.
+     * It inspects the detected database vendor and the configured provider to select the most
+     * suitable implementation. If a specific provider bean is available (e.g., for PostgreSQL),
+     * it will be used. Otherwise, it defaults to the generic {@link JpaVectorSimilarityService}.
+     *
+     * @param properties The vector similarity configuration properties.
+     * @param repository The face embedding repository.
+     * @param vendorDetector The database vendor detector.
+     * @param pgProvider A provider for the PostgreSQL-specific service.
+     * @param oracleProvider A provider for the Oracle-specific service.
+     * @param mysqlProvider A provider for the MySQL-specific service.
+     * @param jpaProvider A provider for the generic JPA service.
+     * @param adapterRegistry A registry for native vector adapters.
+     * @return The configured {@link VectorSimilarityService} instance.
+     */
     @Bean
     @ConditionalOnMissingBean
     public VectorSimilarityService vectorSimilarityService(

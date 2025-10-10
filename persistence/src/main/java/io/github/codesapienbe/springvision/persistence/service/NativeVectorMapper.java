@@ -3,8 +3,8 @@ package io.github.codesapienbe.springvision.persistence.service;
 import io.github.codesapienbe.springvision.persistence.util.VectorUtils;
 
 /**
- * Utility to map a portable native byte[] vector into provider-specific formats
- * (Postgres vector string, MySQL JSON array, Oracle byte array) and back.
+ * A utility class for mapping a portable byte array representation of a vector into provider-specific formats
+ * (e.g., PostgreSQL vector string, MySQL JSON array, Oracle byte array) and vice-versa.
  */
 public final class NativeVectorMapper {
 
@@ -12,20 +12,20 @@ public final class NativeVectorMapper {
     }
 
     /**
-     * Converts bytes to a float array.
+     * Deserializes a byte array into a float array.
      *
-     * @param bytes the byte array
-     * @return the float array
+     * @param bytes The byte array to deserialize.
+     * @return The resulting float array.
      */
     public static float[] bytesToFloatArray(byte[] bytes) {
         return VectorUtils.deserializeFloatArray(bytes);
     }
 
     /**
-     * Converts the given float array embedding to a Postgres vector string.
+     * Converts a float array embedding into a string format suitable for PostgreSQL's pgvector extension (e.g., "[1.0,2.0,3.0]").
      *
-     * @param embedding the float array to convert
-     * @return the Postgres vector string representation of the float array
+     * @param embedding The float array to convert.
+     * @return The PostgreSQL vector string representation.
      */
     public static String toPostgresVectorString(float[] embedding) {
         if (embedding == null) return "[]";
@@ -40,10 +40,10 @@ public final class NativeVectorMapper {
     }
 
     /**
-     * Converts the given native byte array to a Postgres vector string.
+     * Converts a native byte array representation of a vector into a PostgreSQL vector string.
      *
-     * @param nativeBytes the native byte array to convert
-     * @return the Postgres vector string representation of the native byte array
+     * @param nativeBytes The native byte array to convert.
+     * @return The PostgreSQL vector string representation.
      */
     public static String toPostgresVectorString(byte[] nativeBytes) {
         return toPostgresVectorString(bytesToFloatArray(nativeBytes));
@@ -52,30 +52,30 @@ public final class NativeVectorMapper {
     // Backwards-compatible aliases
 
     /**
-     * Converts the given float array embedding to a Postgres vector string (alias method).
+     * Alias for {@link #toPostgresVectorString(float[])}.
      *
-     * @param embedding the float array to convert
-     * @return the Postgres vector string representation of the float array
+     * @param embedding The float array to convert.
+     * @return The PostgreSQL vector string representation.
      */
     public static String toPgVectorString(float[] embedding) {
         return toPostgresVectorString(embedding);
     }
 
     /**
-     * Converts the given native byte array to a Postgres vector string (alias method).
+     * Alias for {@link #toPostgresVectorString(byte[])}.
      *
-     * @param nativeBytes the native byte array to convert
-     * @return the Postgres vector string representation of the native byte array
+     * @param nativeBytes The native byte array to convert.
+     * @return The PostgreSQL vector string representation.
      */
     public static String toPgVectorString(byte[] nativeBytes) {
         return toPostgresVectorString(nativeBytes);
     }
 
     /**
-     * Converts the given float array embedding to a MySQL JSON array format.
+     * Converts a float array embedding into a JSON array string format for MySQL.
      *
-     * @param embedding the float array to convert
-     * @return the JSON string representation of the float array
+     * @param embedding The float array to convert.
+     * @return The JSON string representation.
      */
     public static String toMySqlJson(float[] embedding) {
         if (embedding == null) return "[]";
@@ -90,30 +90,31 @@ public final class NativeVectorMapper {
     }
 
     /**
-     * Converts the given native byte array to a MySQL JSON array format.
+     * Converts a native byte array representation of a vector into a MySQL JSON array string.
      *
-     * @param nativeBytes the native vector bytes
-     * @return the JSON string
+     * @param nativeBytes The native vector bytes.
+     * @return The JSON string representation.
      */
     public static String toMySqlJson(byte[] nativeBytes) {
         return toMySqlJson(bytesToFloatArray(nativeBytes));
     }
 
     /**
-     * Converts the given float array embedding to an Oracle byte array.
+     * Converts a float array embedding into a raw byte array for Oracle Database.
      *
-     * @param embedding the float array to convert
-     * @return the byte array representation of the float array
+     * @param embedding The float array to convert.
+     * @return The raw byte array representation.
      */
     public static byte[] toOracleBytes(float[] embedding) {
         return VectorConversionHelpers.serializeFloatArrayToBytes(embedding);
     }
 
     /**
-     * Converts the given native byte array to an Oracle byte array.
+     * Converts a native byte array representation into a format suitable for Oracle.
+     * Currently, this is an identity operation as the native format is already a serialized float array.
      *
-     * @param nativeBytes the native byte array to convert
-     * @return the byte array representation of the native byte array
+     * @param nativeBytes The native byte array.
+     * @return The resulting byte array for Oracle.
      */
     public static byte[] toOracleBytes(byte[] nativeBytes) {
         // currently nativeBytes already in serialized float[] form
