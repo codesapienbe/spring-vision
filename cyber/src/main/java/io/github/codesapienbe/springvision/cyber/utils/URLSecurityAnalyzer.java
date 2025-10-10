@@ -50,6 +50,9 @@ public class URLSecurityAnalyzer {
 
     private double sensitivity = 0.7; // Default sensitivity
 
+    /**
+     * Default constructor.
+     */
     public URLSecurityAnalyzer() {
         logger.debug("Initialized URLSecurityAnalyzer");
     }
@@ -188,6 +191,11 @@ public class URLSecurityAnalyzer {
         private List<String> threats;
         private QRCodeThreat.ThreatSeverity severity;
 
+        /**
+         * Constructor for SecurityScore.
+         *
+         * @param url the URL being analyzed
+         */
         public SecurityScore(String url) {
             this.url = url;
             this.riskScore = 0.0;
@@ -195,10 +203,20 @@ public class URLSecurityAnalyzer {
             this.severity = QRCodeThreat.ThreatSeverity.SAFE;
         }
 
+        /**
+         * Adds risk to the security score.
+         *
+         * @param risk the risk value to add
+         */
         public void addRisk(double risk) {
             this.riskScore += risk;
         }
 
+        /**
+         * Calculates the severity based on the risk score and sensitivity.
+         *
+         * @param sensitivity the sensitivity level
+         */
         public void calculateSeverity(double sensitivity) {
             // Adjust risk score based on sensitivity
             double adjustedRisk = riskScore * sensitivity;
@@ -216,25 +234,49 @@ public class URLSecurityAnalyzer {
             }
         }
 
+        /**
+         * Gets the URL.
+         *
+         * @return the URL
+         */
         public String getUrl() {
             return url;
         }
 
+        /**
+         * Gets the risk score.
+         *
+         * @return the risk score
+         */
         public double getRiskScore() {
             return riskScore;
         }
 
+        /**
+         * Gets the list of threats.
+         *
+         * @return the list of threats
+         */
         public List<String> getThreats() {
             return threats;
         }
 
+        /**
+         * Sets the list of threats.
+         *
+         * @param threats the list of threats to set
+         */
         public void setThreats(List<String> threats) {
             this.threats = threats;
         }
 
+        /**
+         * Gets the severity.
+         *
+         * @return the severity
+         */
         public QRCodeThreat.ThreatSeverity getSeverity() {
             return severity;
         }
     }
 }
-

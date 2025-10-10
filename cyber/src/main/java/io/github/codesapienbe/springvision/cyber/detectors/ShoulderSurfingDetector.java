@@ -55,6 +55,9 @@ public class ShoulderSurfingDetector {
     // Tracking state across frames
     private final Map<String, Integer> suspiciousFaceTracker = new HashMap<>();
 
+    /**
+     * Default constructor.
+     */
     public ShoulderSurfingDetector() {
         // Initialize OpenCV face detector
         String classifierPath = null;

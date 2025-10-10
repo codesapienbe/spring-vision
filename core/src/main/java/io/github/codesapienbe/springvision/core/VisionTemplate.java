@@ -1,15 +1,15 @@
 package io.github.codesapienbe.springvision.core;
 
+import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.capabilities.*;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
+import io.github.codesapienbe.springvision.core.util.EmbeddingSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.ArrayList;
+import java.util.*;
 
 /**
  * Template for computer vision operations providing a unified interface
@@ -43,12 +43,9 @@ import java.util.ArrayList;
  * @see DetectionType
  * @since 1.0.0
  */
-public class VisionTemplate {
+public record VisionTemplate(VisionBackend backend, VectorService vectorService) {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionTemplate.class);
-
-    private final VisionBackend backend;
-    private final VectorService vectorService;
 
     /**
      * Constructs a new VisionTemplate with the specified backend.
@@ -66,7 +63,7 @@ public class VisionTemplate {
      * with their preferred `VisionBackend` implementation.
      */
     public VisionTemplate() {
-        this(new io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend());
+        this(new OpenCvVisionBackend());
     }
 
     /**
@@ -86,7 +83,8 @@ public class VisionTemplate {
      *
      * @return the vision backend
      */
-    public VisionBackend getBackend() {
+    @Override
+    public VisionBackend backend() {
         return backend;
     }
 
@@ -122,7 +120,7 @@ public class VisionTemplate {
      *
      * @return the set of supported detection types
      */
-    public java.util.Set<DetectionType> getSupportedDetectionTypes() {
+    public Set<DetectionType> getSupportedDetectionTypes() {
         return backend.getSupportedDetectionTypes();
     }
 
@@ -176,7 +174,7 @@ public class VisionTemplate {
      * @param metadata   additional metadata
      * @return the stored embedding ID
      */
-    public String storeFaceEmbedding(String personId, float[] embedding, String modelName, String imageHash, Double confidence, java.util.Map<String, Object> metadata) {
+    public String storeFaceEmbedding(String personId, float[] embedding, String modelName, String imageHash, Double confidence, Map<String, Object> metadata) {
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
         return vectorService.storeFaceEmbedding(personId, embedding, modelName, imageHash, confidence, metadata);
     }
@@ -193,7 +191,7 @@ public class VisionTemplate {
      * @param excludePersonIds person IDs to exclude
      * @return a list of similar faces
      */
-    public java.util.List<java.util.Map<String, Object>> lookupFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, java.util.Set<String> includePersonIds, java.util.Set<String> excludePersonIds) {
+    public List<Map<String, Object>> lookupFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, Set<String> includePersonIds, Set<String> excludePersonIds) {
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
         return vectorService.findSimilarFaces(queryEmbedding, modelName, metric, threshold, limit, includePersonIds, excludePersonIds);
     }
@@ -334,75 +332,75 @@ public class VisionTemplate {
 
         switch (detectionType) {
             case FACE -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability cap) {
+                if (b instanceof FaceDetectionCapability cap) {
                     detections = cap.detectFaces(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Face detection is not supported by backend '%s'", getBackendId()),
                         "detectFaces", null);
                 }
             }
             case OBJECT -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability cap) {
+                if (b instanceof ObjectDetectionCapability cap) {
                     detections = cap.detectObjects(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Object detection is not supported by backend '%s'", getBackendId()),
                         "detectObjects", null);
                 }
             }
             case TEXT -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.TextOcrCapability cap) {
+                if (b instanceof TextOcrCapability cap) {
                     detections = cap.detectText(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Text detection is not supported by backend '%s'", getBackendId()),
                         "detectText", null);
                 }
             }
             case BARCODE -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability cap) {
+                if (b instanceof BarcodeCapability cap) {
                     detections = cap.detectBarcodes(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Barcode detection is not supported by backend '%s'", getBackendId()),
                         "detectBarcodes", null);
                 }
             }
             case LANDMARK -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.LandmarkDetectionCapability cap) {
+                if (b instanceof LandmarkDetectionCapability cap) {
                     detections = cap.detectLandmarks(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Landmark detection is not supported by backend '%s'", getBackendId()),
                         "detectLandmarks", null);
                 }
             }
             case POSE -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability cap) {
+                if (b instanceof PoseEstimationCapability cap) {
                     detections = cap.detectPoses(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Pose detection is not supported by backend '%s'", getBackendId()),
                         "detectPoses", null);
                 }
             }
             case HAND -> {
-                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability cap) {
+                if (b instanceof HandDetectionCapability cap) {
                     detections = cap.detectHands(imageData);
                 } else {
-                    throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                    throw new VisionUnsupportedException(
                         String.format("Hand detection is not supported by backend '%s'", getBackendId()),
                         "detectHands", null);
                 }
             }
             case CUSTOM -> {
-                throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                throw new VisionUnsupportedException(
                     String.format("Custom detection is not supported by backend '%s'", getBackendId()),
                     "detectCustom", null);
             }
             default -> {
-                throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                throw new VisionUnsupportedException(
                     "Unsupported detection type: " + detectionType, "detect", detectionType.name());
             }
         }
@@ -420,7 +418,7 @@ public class VisionTemplate {
      * @return a list of vision results
      * @throws BaseVisionException if detection fails
      */
-    public java.util.List<VisionResult> detectMultiple(ImageData imageData, java.util.List<DetectionType> detectionTypes)
+    public List<VisionResult> detectMultiple(ImageData imageData, List<DetectionType> detectionTypes)
         throws BaseVisionException {
         if (imageData == null) {
             throw new IllegalArgumentException("Image data must not be null");
@@ -442,7 +440,7 @@ public class VisionTemplate {
 
         try {
             // Route each detection type individually through capabilities
-            java.util.List<VisionResult> results = new ArrayList<>();
+            List<VisionResult> results = new ArrayList<>();
             for (DetectionType detectionType : detectionTypes) {
                 VisionResult result = routeViaCapabilitiesIfAvailable(imageData, detectionType);
                 results.add(result);
@@ -590,11 +588,11 @@ public class VisionTemplate {
 
         // Route through EmbeddingCapability if available
         List<float[]> embeddings;
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
-            embeddings = cap.extractEmbeddings(imageData, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+        if (backend instanceof EmbeddingCapability cap) {
+            embeddings = cap.extractEmbeddings(imageData, DetectionCategory.FACE);
         } else {
             // Fall back to default support (e.g., FaceBytes)
-            embeddings = io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+            embeddings = EmbeddingSupport.defaultExtractEmbeddings(imageData);
         }
 
         long processingTime = System.currentTimeMillis() - startTime;
@@ -635,11 +633,11 @@ public class VisionTemplate {
 
         // Route through FaceVerificationCapability if available
         boolean result;
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability cap) {
+        if (backend instanceof FaceVerificationCapability cap) {
             result = cap.verify(a, b, metric, threshold);
         } else {
             // Fall back to default support
-            result = io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
+            result = EmbeddingSupport.defaultVerify(a, b, metric, threshold);
         }
 
         long processingTime = System.currentTimeMillis() - startTime;
@@ -671,10 +669,10 @@ public class VisionTemplate {
             "imageFormat", imageData.format(),
             "backendId", getBackendId()
         ));
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability cap) {
-            io.github.codesapienbe.springvision.core.AnnotationRequest req = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
-                .action(io.github.codesapienbe.springvision.core.AnnotationRequest.Action.OBSCURE)
-                .categories(java.util.Set.of(io.github.codesapienbe.springvision.core.DetectionCategory.FACE))
+        if (backend instanceof AnnotationCapability cap) {
+            AnnotationRequest req = new AnnotationRequest.Builder()
+                .action(AnnotationRequest.Action.OBSCURE)
+                .categories(Set.of(DetectionCategory.FACE))
                 .build();
             ImageData result = cap.annotate(imageData, req);
             long processingTime = System.currentTimeMillis() - startTime;
@@ -685,7 +683,7 @@ public class VisionTemplate {
             ));
             return result;
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+        throw new VisionProcessingException(
             "Annotation capability not supported by backend",
             "annotate_not_supported",
             "annotate",
@@ -701,15 +699,15 @@ public class VisionTemplate {
      * @return the modified image data
      * @throws BaseVisionException if annotation fails
      */
-    public ImageData annotate(ImageData imageData, io.github.codesapienbe.springvision.core.AnnotationRequest request) throws BaseVisionException {
+    public ImageData annotate(ImageData imageData, AnnotationRequest request) throws BaseVisionException {
         if (imageData == null) {
             throw new IllegalArgumentException("Image data must not be null");
         }
         if (request == null) {
             throw new IllegalArgumentException("Annotation request must not be null");
         }
-        if (!(backend instanceof io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability cap)) {
-            throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+        if (!(backend instanceof AnnotationCapability cap)) {
+            throw new VisionProcessingException(
                 "Annotation capability not supported by backend",
                 "annotate_not_supported",
                 "annotate",
@@ -728,9 +726,9 @@ public class VisionTemplate {
      * @return the modified image data
      * @throws BaseVisionException if tagging fails
      */
-    public ImageData tag(ImageData imageData, String label, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
-        io.github.codesapienbe.springvision.core.AnnotationRequest req = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
-            .action(io.github.codesapienbe.springvision.core.AnnotationRequest.Action.TAG)
+    public ImageData tag(ImageData imageData, String label, Set<DetectionCategory> categories) throws BaseVisionException {
+        AnnotationRequest req = new AnnotationRequest.Builder()
+            .action(AnnotationRequest.Action.TAG)
             .label(label)
             .categories(categories)
             .build();
@@ -745,9 +743,9 @@ public class VisionTemplate {
      * @return the modified image data
      * @throws BaseVisionException if marking fails
      */
-    public ImageData mark(ImageData imageData, java.util.Set<DetectionCategory> categories) throws BaseVisionException {
-        io.github.codesapienbe.springvision.core.AnnotationRequest req = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
-            .action(io.github.codesapienbe.springvision.core.AnnotationRequest.Action.MARK)
+    public ImageData mark(ImageData imageData, Set<DetectionCategory> categories) throws BaseVisionException {
+        AnnotationRequest req = new AnnotationRequest.Builder()
+            .action(AnnotationRequest.Action.MARK)
             .categories(categories)
             .build();
         return annotate(imageData, req);
@@ -760,11 +758,11 @@ public class VisionTemplate {
      * @return a list of detections
      * @throws BaseVisionException if detection fails
      */
-    public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectHeartRate(java.util.List<ImageData> imageDataList) throws BaseVisionException {
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability cap) {
+    public List<Detection> detectHeartRate(List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof HeartRateCapability cap) {
             return cap.detectHeartRate(imageDataList);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+        throw new VisionProcessingException(
             "Heart rate capability not supported by backend",
             "detectHeartRate",
             "heart-rate"
@@ -778,11 +776,11 @@ public class VisionTemplate {
      * @return a list of detections
      * @throws BaseVisionException if detection fails
      */
-    public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectFall(java.util.List<ImageData> imageDataList) throws BaseVisionException {
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability cap) {
+    public List<Detection> detectFall(List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof FallDetectionCapability cap) {
             return cap.detectFall(imageDataList);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+        throw new VisionProcessingException(
             "Fall detection capability not supported by backend",
             "detectFall",
             "fall"
@@ -796,11 +794,11 @@ public class VisionTemplate {
      * @return a list of detections
      * @throws BaseVisionException if detection fails
      */
-    public java.util.List<io.github.codesapienbe.springvision.core.Detection> detectStress(java.util.List<ImageData> imageDataList) throws BaseVisionException {
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability cap) {
+    public List<Detection> detectStress(List<ImageData> imageDataList) throws BaseVisionException {
+        if (backend instanceof StressAnalysisCapability cap) {
             return cap.detectStress(imageDataList);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+        throw new VisionProcessingException(
             "Stress analysis capability not supported by backend",
             "detectStress",
             "stress"
@@ -823,14 +821,14 @@ public class VisionTemplate {
      *
      * @param imageDataList the list of image data to analyze for threats
      * @return the list of detected threats
-     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     * @throws VisionUnsupportedException if capability not available
      */
     public List<Detection> detectThreat(List<ImageData> imageDataList) {
         Objects.requireNonNull(imageDataList, "imageDataList must not be null");
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability cap) {
+        if (backend instanceof ThreatDetectionCapability cap) {
             return cap.detectThreat(imageDataList);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+        throw new VisionUnsupportedException(
             String.format("Threat detection is not supported by backend '%s'", getBackendId()),
             "detectThreat", "cyber-threat");
     }
@@ -839,14 +837,16 @@ public class VisionTemplate {
      * Detects eavesdropping (shoulder surfing) attempts from a sequence of images
      * if the backend exposes EavesdroppingDetectionCapability.
      *
-     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     * @param imageDataList the list of image data frames to analyze for eavesdropping attempts
+     * @return a list of detections describing potential eavesdropping events
+     * @throws VisionUnsupportedException if capability not available
      */
     public List<Detection> detectEavesdropping(List<ImageData> imageDataList) {
         Objects.requireNonNull(imageDataList, "imageDataList must not be null");
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EavesdroppingDetectionCapability cap) {
+        if (backend instanceof EavesdroppingDetectionCapability cap) {
             return cap.detectEavesdropping(imageDataList);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+        throw new VisionUnsupportedException(
             String.format("Eavesdropping detection is not supported by backend '%s'", getBackendId()),
             "detectEavesdropping", "cyber-eavesdropping");
     }
@@ -854,14 +854,16 @@ public class VisionTemplate {
     /**
      * Authenticates access from a single image if the backend exposes AccessAuthenticationCapability.
      *
-     * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
+     * @param imageData the image containing the subject to authenticate
+     * @return a list of detections describing authentication results
+     * @throws VisionUnsupportedException if capability not available
      */
     public List<Detection> authenticateAccess(ImageData imageData) {
         Objects.requireNonNull(imageData, "imageData must not be null");
-        if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability cap) {
+        if (backend instanceof AccessAuthenticationCapability cap) {
             return cap.authenticateAccess(imageData);
         }
-        throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+        throw new VisionUnsupportedException(
             String.format("Access authentication is not supported by backend '%s'", getBackendId()),
             "authenticateAccess", "cyber-auth");
     }

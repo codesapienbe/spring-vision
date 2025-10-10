@@ -100,7 +100,7 @@ public class VectorJpaAdapterAutoConfiguration {
                                                        ObjectProvider<VectorService> vectorServiceProvider) {
         VectorService vs = vectorServiceProvider.getIfAvailable();
         if (vs != null) {
-            return new VisionTemplate(originalTemplate.getBackend(), vs);
+            return new VisionTemplate(originalTemplate.backend(), vs);
         }
         return originalTemplate;
     }
