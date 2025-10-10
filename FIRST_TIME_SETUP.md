@@ -1,9 +1,39 @@
 # 🚀 First-Time Initialization Guide
 
+## ⚠️ IMPORTANT: Package Name Update Required
+
+**Before proceeding with CI/CD setup**, you must update the package name!
+
+The correct Maven Central groupId for your GitHub account should be:
+
+- ✅ **`io.github.codesapienbe`** (matches github.com/codesapienbe)
+- ❌ ~~`com.springvision`~~ (cannot be used without domain ownership)
+
+### Quick Package Migration
+
+```bash
+# 1. Preview changes (safe, no modifications)
+./scripts/migrate-package-name.sh --dry-run
+
+# 2. Run the migration
+./scripts/migrate-package-name.sh
+
+# 3. Verify and test
+mvn clean install -DskipTests
+
+# 4. If everything works, commit
+git add .
+git commit -m "Migrate package to io.github.codesapienbe"
+```
+
+See **[PACKAGE_MIGRATION.md](PACKAGE_MIGRATION.md)** for detailed instructions.
+
+---
+
 ## Quick Start (TL;DR)
 
 ```bash
-# Run the automated setup script
+# After package migration, run the CI/CD setup
 ./scripts/setup-ci-cd.sh
 
 # Then add GitHub secrets and push
@@ -341,4 +371,3 @@ Create a test project:
 ✅ **Required Per Release**: Just trigger the workflow!
 
 **You're now ready to deploy to Maven Central! 🚀**
-
