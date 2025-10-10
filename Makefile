@@ -4,7 +4,10 @@ deps:
 
 default: build
 
-.PHONY: build run clean deps deploy release version default
+.PHONY: build run clean deps deploy release version default maven-deploy
+
+# Default settings file for Maven (can be overridden with make release SETTINGS=/path/to/settings.xml)
+SETTINGS ?= $(HOME)/.m2/settings.xml
 
 # Build target: Maven package and optional Docker image build
 build:
@@ -30,10 +33,30 @@ deploy:
 	docker tag spring-vision:1.0 docker.io/codesapienbe/spring-vision:latest;
 	docker push docker.io/codesapienbe/spring-vision:latest
 
-# Release: run maven deploy (assumes $(SETTINGS) is configured)
-release:
-	@echo "Releasing Maven artifacts (deploy) using settings $(SETTINGS)...";
-	mvn -B -T 8 -DskipTests -pl "!spring-vision-examples" clean deploy
+# Maven deploy: deploy artifacts to Maven Central
+maven-deploy:
+	@echo "Deploying Maven artifacts to Maven Central...";
+	@if [ -f "$(SETTINGS)" ]; then \
+		echo "Using settings file: $(SETTINGS)"; \
+		mvn -B -T 8 -s "$(SETTINGS)" -Prelease -DskipTests -pl "!spring-vision-examples" clean deploy; \
+	else \
+		echo "WARNING: Settings file $(SETTINGS) not found. Deploying without custom settings..."; \
+		mvn -B -T 8 -Prelease -DskipTests -pl "!spring-vision-examples" clean deploy; \
+	fi
+
+# Release: run maven deploy with release profile (assumes $(SETTINGS) is configured)
+release: maven-deploy
+	@echo "Release complete!"
+
+# Snapshot: deploy snapshot version to Maven Central
+snapshot:
+	@echo "Deploying SNAPSHOT version to Maven Central...";
+	@CURRENT_VERSION=$$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout); \
+	if [[ ! "$$CURRENT_VERSION" == *-SNAPSHOT ]]; then \
+		echo "Converting version to SNAPSHOT..."; \
+		mvn -B versions:set -DnewVersion=$${CURRENT_VERSION}-SNAPSHOT -DgenerateBackupPoms=false; \
+	fi
+	@$(MAKE) maven-deploy
 
 # Get the Spring Vision docker image tag (repository name's last path component starts with 'spring-vision')
 version:

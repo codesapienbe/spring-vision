@@ -1,0 +1,134 @@
+name: Release via Nexus Staging API
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  release-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+
+      - name: Create Maven settings.xml
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml << 'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>ossrh</id>
+                <username>${env.OSSRH_USERNAME}</username>
+                <password>${env.OSSRH_TOKEN}</password>
+              </server>
+            </servers>
+            <profiles>
+              <profile>
+                <id>ossrh</id>
+                <activation>
+                  <activeByDefault>true</activeByDefault>
+                </activation>
+                <properties>
+                  <gpg.executable>gpg</gpg.executable>
+                  <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+                </properties>
+              </profile>
+            </profiles>
+          </settings>
+          EOF
+
+      - name: Set release version
+        run: |
+          mvn -B versions:set -DnewVersion=${{ github.event.inputs.releaseVersion }} -DgenerateBackupPoms=false
+
+      - name: Build and stage to Nexus
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          mvn -B -T 8 clean deploy \
+            -DskipTests \
+            -pl "!spring-vision-examples" \
+            -Dgpg.passphrase=${GPG_PASSPHRASE} \
+            -DautoReleaseAfterClose=false
+
+      - name: Get staging repository ID
+        id: get-repo-id
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          REPO_ID=$(curl -s -u "${OSSRH_USERNAME}:${OSSRH_TOKEN}" \
+            "https://s01.oss.sonatype.org/service/local/staging/profile_repositories" | \
+            grep -oP '(?<=<repositoryId>)[^<]+' | head -1)
+          echo "STAGING_REPO_ID=${REPO_ID}" >> $GITHUB_OUTPUT
+          echo "Staging Repository ID: ${REPO_ID}"
+
+      - name: Close staging repository
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          curl -X POST -u "${OSSRH_USERNAME}:${OSSRH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"data":{"stagedRepositoryIds":["${{ steps.get-repo-id.outputs.STAGING_REPO_ID }}"],"description":"Close staging repository via GitHub Actions"}}' \
+            "https://s01.oss.sonatype.org/service/local/staging/bulk/close"
+
+      - name: Wait for repository to close
+        run: sleep 60
+
+      - name: Release staging repository
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          curl -X POST -u "${OSSRH_USERNAME}:${OSSRH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"data":{"stagedRepositoryIds":["${{ steps.get-repo-id.outputs.STAGING_REPO_ID }}"],"description":"Release staging repository via GitHub Actions","autoDropAfterRelease":true}}' \
+            "https://s01.oss.sonatype.org/service/local/staging/bulk/promote"
+
+      - name: Commit version change
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add pom.xml */pom.xml
+          git commit -m "Release version ${{ github.event.inputs.releaseVersion }}"
+          git tag -a "v${{ github.event.inputs.releaseVersion }}" -m "Release ${{ github.event.inputs.releaseVersion }}"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.releaseVersion }}
+          name: Release ${{ github.event.inputs.releaseVersion }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

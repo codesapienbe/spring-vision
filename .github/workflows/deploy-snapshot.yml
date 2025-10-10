@@ -1,0 +1,53 @@
+name: Deploy Snapshot
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-snapshot:
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, '[maven-release-plugin]')"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Update version to SNAPSHOT
+        run: |
+          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ ! "$CURRENT_VERSION" == *-SNAPSHOT ]]; then
+            mvn -B versions:set -DnewVersion=${CURRENT_VERSION}-SNAPSHOT -DgenerateBackupPoms=false
+          fi
+
+      - name: Build and Deploy Snapshot
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          mvn -B -T 8 clean deploy \
+            -Prelease \
+            -DskipTests \
+            -pl "!spring-vision-examples" \
+            -Dgpg.passphrase=${MAVEN_GPG_PASSPHRASE}
