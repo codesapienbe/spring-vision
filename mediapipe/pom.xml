@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.codesapienbe.springvision</groupId>
+    <artifactId>spring-vision</artifactId>
+    <version>1.0</version>
+  </parent>
+
+  <artifactId>spring-vision-mediapipe</artifactId>
+  <name>Spring Vision -> MediaPipe Backend</name>
+  <description>MediaPipe backend implementation for Spring Vision framework</description>
+
+  <dependencies>
+    <!-- Core Spring Vision API -->
+    <dependency>
+      <groupId>io.github.codesapienbe.springvision</groupId>
+      <artifactId>spring-vision-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Spring Boot -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- MediaPipe dependencies (optional - loaded via reflection) -->
+    <!-- MediaPipe Java bindings are not available in Maven Central -->
+    <!-- This backend uses reflection to dynamically load MediaPipe if available -->
+    <!--
+    <dependency>
+        <groupId>com.google.mediapipe</groupId>
+        <artifactId>mediapipe-java</artifactId>
+        <version>0.10.9</version>
+        <optional>true</optional>
+    </dependency>
+    -->
+
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,3 @@
+# Auto-configuration registrations for FaceBytes
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+io.github.codesapienbe.springvision.facebytes.config.ModelMetricsAutoConfiguration

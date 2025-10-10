@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: gwt-application
+  main:
+    allow-bean-definition-overriding: true
+  docker:
+    compose:
+      enabled: true
+
+# Vision Framework Configuration
+vision:
+  enabled: true
+  backend: opencv
+  fail-fast: false  # Allow fallback to BasicBackend in examples
+  opencv:
+    enabled: true
+    confidence-threshold: ${VISION_CONFIDENCE_THRESHOLD:0.7}
+    min-face-size-ratio: ${VISION_MIN_FACE_SIZE:0.02}
+    max-face-size-ratio: ${VISION_MAX_FACE_SIZE:0.95}
+    gpu-acceleration: ${VISION_GPU_ACCELERATION:false}
+    max-image-size: ${VISION_MAX_IMAGE_SIZE:52428800}
+  health:
+    enabled: true
+    check-interval: ${VISION_HEALTH_CHECK_INTERVAL:30000}
+    max-response-time: ${VISION_HEALTH_MAX_RESPONSE_TIME:5000}
+  metrics:
+    enabled: true
+    collection-interval: ${VISION_METRICS_INTERVAL:60000}
+    detailed: ${VISION_METRICS_DETAILED:false}
+
+# GWT Configuration
+gwt:
+  enabled: true
+  module-name: io.github.codesapienbe.springvision.examples.gwtapplication.GwtApplication
+  compile-on-startup: ${GWT_COMPILE_ON_STARTUP:true}
+  source-path: src/main/java
+  style: ${GWT_STYLE:DETAILED}
+  dev-mode:
+    enabled: ${GWT_DEV_MODE:true}
+    code-server-port: ${GWT_CODE_SERVER_PORT:9876}
+    auto-reload: ${GWT_AUTO_RELOAD:true}
+  production:
+    optimize: ${GWT_OPTIMIZE:true}
+    compress-javascript: ${GWT_COMPRESS_JS:true}
+  rpc:
+    enabled: true
+    endpoint-base-path: /gwt/rpc
+    validation-enabled: true
+  ui:
+    theme: standard
+    locale: en_US
+    default-encoding: UTF-8
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE:50MB}
+      max-request-size: ${MAX_REQUEST_SIZE:50MB}
+      file-size-threshold: 2KB
+
+# Logging Configuration
+logging:
+  level:
+    com.springvision: ${LOG_LEVEL:INFO}
+    io.github.codesapienbe.springvision.examples: ${LOG_LEVEL:INFO}
+    org.springframework.web: ${WEB_LOG_LEVEL:INFO}
+    org.bytedeco: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","component":"%logger{36}","message":"%msg","correlation_id":"%X{correlationId:-}","user_id":"%X{userId:-}","request_id":"%X{requestId:-}"}%n'
+  file:
+    name: application.log
+    max-size: 1000MB
+    max-history: 30
+
+# Management Endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: ${HEALTH_SHOW_DETAILS:when-authorized}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+    tags:
+      application: gwt-application
+      environment: ${ENVIRONMENT:development}

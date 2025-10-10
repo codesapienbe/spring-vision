@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.codesapienbe.springvision</groupId>
+    <artifactId>spring-vision</artifactId>
+    <version>1.0</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>spring-vision-core</artifactId>
+  <name>Spring Vision -> Core</name>
+  <description>Core domain classes and interfaces for Spring Vision</description>
+
+  <dependencies>
+    <!-- JavaCV for OpenCV integration -->
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>javacv</artifactId>
+    </dependency>
+
+    <!-- Embedded OpenCV Platform with all native libraries -->
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>opencv-platform</artifactId>
+    </dependency>
+
+    <!-- Spring Boot Starter -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- Spring Boot Actuator for health indicators -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Spring WebFlux for reactive HTTP client -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+
+    <!-- SLF4J API -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+
+    <!-- Jackson Databind for JSON parsing in REST client -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <!-- JUnit 5 for testing -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit 5 Engine -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Spring Boot Test Starter -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Micrometer for metrics -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <version>1.12.0</version>
+    </dependency>
+
+    <!-- Micrometer registry -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>1.12.0</version>
+    </dependency>
+
+    <!-- Javax annotation API -->
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <version>1.3.2</version>
+    </dependency>
+
+    <!-- Logback JSON encoder for structured logging -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>7.4</version>
+    </dependency>
+
+    <!-- HNSW library via JNA - correct Maven coordinates -->
+    <dependency>
+      <groupId>com.stepstone.search.hnswlib.jna</groupId>
+      <artifactId>hnswlib-jna</artifactId>
+      <version>1.4.2</version>
+    </dependency>
+
+    <!-- Chronicle Map for high-performance key-value storage -->
+    <dependency>
+      <groupId>net.openhft</groupId>
+      <artifactId>chronicle-map</artifactId>
+      <version>3.24ea4</version>
+    </dependency>
+
+    <!-- LZ4 compression for efficient index storage -->
+    <dependency>
+      <groupId>org.lz4</groupId>
+      <artifactId>lz4-java</artifactId>
+      <version>1.8.0</version>
+    </dependency>
+    <!-- ZXing barcode detection -->
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>core</artifactId>
+      <version>3.5.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>javase</artifactId>
+      <version>3.5.1</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>${project.build.directory}/generated-resources</directory>
+        <filtering>false</filtering>
+      </resource>
+    </resources>
+    <plugins>
+      <!-- Maven Compiler Plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>21</release>
+        </configuration>
+      </plugin>
+
+      <!-- Maven JAR Plugin -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+      </plugin>
+
+      <!-- Maven Surefire Plugin for running tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+
+      <!-- Download OpenCV models and cascades at build time -->
+      <plugin>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>download-maven-plugin</artifactId>
+        <version>1.6.8</version>
+        <executions>
+          <!-- YuNet face detector ONNX -->
+          <execution>
+            <id>download-yunet-onnx</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>face_detection_yunet_2023mar.onnx</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <!-- SFace face recognition ONNX (optional; used if opencv_face is available) -->
+          <execution>
+            <id>download-sface-onnx</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>face_recognition_sface_2021dec.onnx</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <!-- Haar cascades and LBP cascades expected at classpath root -->
+          <execution>
+            <id>download-haar-face</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputFileName>haarcascade_frontalface_default.xml</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-haar-eye</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml</url>
+              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputFileName>haarcascade_eye.xml</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-haar-profileface</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputFileName>haarcascade_profileface.xml</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-lbp-frontalface</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputFileName>lbpcascade_frontalface.xml</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

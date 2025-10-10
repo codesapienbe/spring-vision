@@ -1,0 +1,82 @@
+# One Million Challenge Configuration
+spring:
+  application:
+    name: one-million-challenge
+
+  # Vision Recognition Configuration
+  vision:
+    recognition:
+      enabled: true
+      backend: opencv                    # Primary backend (opencv or facebytes)
+      embedding-dimension: 512           # Standard face embedding dimension
+      max-database-size: 2000000        # Support up to 2M faces
+      quality-threshold: 0.3             # Minimum face quality (0.0-1.0)
+      similarity-threshold: 0.6          # Minimum similarity for matches (0.0-1.0)
+      max-results: 100                   # Maximum results per query
+      hnsw:
+        accuracy-mode: balanced          # balanced, high, fast
+
+  # Web Configuration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  # Actuator Configuration
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,metrics,info,prometheus
+    endpoint:
+      health:
+        show-details: always
+        show-components: always
+    metrics:
+      export:
+        prometheus:
+          enabled: true
+
+# Server Configuration
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.springvision: DEBUG
+    io.github.codesapienbe.springvision.core.recognition: DEBUG
+    io.github.codesapienbe.springvision.examples.facerecognitionexample: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n"
+
+# Performance Tuning
+server.tomcat:
+  threads:
+    max: 200
+    min-spare: 10
+  connection-timeout: 20000
+  max-connections: 8192
+
+# Face Recognition Performance Settings
+deepface:
+  cpu:
+    threads: 4                          # CPU threads for face processing
+    batch-size: 8                       # Batch size for embedding extraction
+    cache-models: true                  # Cache models in memory for speed
+
+# One Million Challenge specific settings
+one-million-challenge:
+  demo:
+    auto-create-sample-data: true       # Create sample data if no photos found
+    sample-data-size: 1000             # Number of sample embeddings
+  paths:
+    sample-photos: "./sample-photos"    # Directory for sample photos
+    query-photo: "./query-selfie.jpg"   # Query image for recognition demo
+    database-save-path: "./face-database.bin"  # Path to save/load database
+    index-save-path: "./face-index.bin" # Path to save/load HNSW index

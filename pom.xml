@@ -5,7 +5,7 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.springvision</groupId>
+  <groupId>io.github.codesapienbe.springvision</groupId>
   <artifactId>spring-vision</artifactId>
   <version>1.0</version>
   <packaging>pom</packaging>
@@ -70,19 +70,19 @@
   </repositories>
 
   <modules>
-    <module>spring-vision-core</module>
-    <module>spring-vision-starter</module>
-    <module>spring-vision-tesseract</module>
-    <module>spring-vision-facebytes</module>
-    <module>spring-vision-mediapipe</module>
-    <module>spring-vision-insightface</module>
-    <module>spring-vision-compreface</module>
-    <module>spring-vision-deepface</module>
-    <module>spring-vision-yolo</module>
-    <module>spring-vision-examples</module>
-    <module>spring-vision-jpa</module>
-    <module>spring-vision-mcp</module>
-    <module>spring-vision-health</module>
+    <module>core</module>
+    <module>persistence</module>
+    <module>starter</module>
+    <module>tesseract</module>
+    <module>facebytes</module>
+    <module>mediapipe</module>
+    <module>insightface</module>
+    <module>compreface</module>
+    <module>deepface</module>
+    <module>yolo</module>
+    <module>examples</module>
+    <module>mcp</module>
+    <module>health</module>
   </modules>
 
   <dependencyManagement>
@@ -467,7 +467,8 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
             <configuration>
-              <mainClass>com.springvision.examples.basicfacedetection.BasicFaceDetectionApplication</mainClass>
+              <mainClass>io.github.codesapienbe.springvision.examples.basicfacedetection.BasicFaceDetectionApplication
+              </mainClass>
             </configuration>
             <executions>
               <execution>
@@ -489,7 +490,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
             <configuration>
-              <mainClass>com.springvision.examples.javafxapplication.JavaFXApplication</mainClass>
+              <mainClass>io.github.codesapienbe.springvision.examples.javafxapplication.JavaFXApplication</mainClass>
             </configuration>
             <executions>
               <execution>
@@ -511,7 +512,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
             <configuration>
-              <mainClass>com.springvision.examples.gwtapplication.GwtApplication</mainClass>
+              <mainClass>io.github.codesapienbe.springvision.examples.gwtapplication.GwtApplication</mainClass>
             </configuration>
             <executions>
               <execution>
@@ -533,7 +534,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
             <configuration>
-              <mainClass>com.springvision.examples.vaadinapplication.VaadinApplication</mainClass>
+              <mainClass>io.github.codesapienbe.springvision.examples.vaadinapplication.VaadinApplication</mainClass>
             </configuration>
             <executions>
               <execution>
@@ -555,7 +556,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
             <configuration>
-              <mainClass>com.springvision.examples.picocliapplication.PicoCLIApplication</mainClass>
+              <mainClass>io.github.codesapienbe.springvision.examples.picocliapplication.PicoCLIApplication</mainClass>
             </configuration>
             <executions>
               <execution>
