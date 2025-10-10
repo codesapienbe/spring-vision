@@ -15,7 +15,7 @@ verify:
 # Run the example (unchanged)
 run:
 	@echo "Running basic-face-detection example..."
-	cd spring-vision-examples/basic-face-detection && mvn -o spring-boot:run
+	cd examples/basic-face-detection && mvn -o spring-boot:run
 
 # Clean the project (unchanged)
 clean:

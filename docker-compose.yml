@@ -32,7 +32,7 @@ services:
     networks:
       - spring-vision-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/api/v1/recognition/detect || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:80/api/v1/recognition/detect || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -67,7 +67,7 @@ services:
   # Basic Face Detection Example
   basic-face-detection:
     build:
-      context: ./spring-vision-examples/basic-face-detection
+      context: ./examples/basic-face-detection
     ports:
       - "127.0.0.1:8080:8080"
     environment:
@@ -82,7 +82,7 @@ services:
   # One Million Challenge Example
   one-million-challenge:
     build:
-      context: ./spring-vision-examples/one-million-challenge
+      context: ./examples/one-million-challenge
     ports:
       - "127.0.0.1:8081:8080"
     environment:
@@ -101,7 +101,7 @@ services:
   # Vaadin Application Example
   vaadin-application:
     build:
-      context: ./spring-vision-examples/vaadin-application
+      context: ./examples/vaadin-application
     ports:
       - "127.0.0.1:8082:8080"
     environment:
@@ -116,7 +116,7 @@ services:
   # GWT Application Example
   gwt-application:
     build:
-      context: ./spring-vision-examples/gwt-application
+      context: ./examples/gwt-application
     ports:
       - "127.0.0.1:8083:8080"
     environment:
