@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run clean deploy release default
+.PHONY: build run clean deploy release docs default
 
 # Build target: Maven package and optional Docker image build
 build:
@@ -19,7 +19,7 @@ run:
 	echo "Running MCP server on port $$PORT"; \
 	cd mcp && mvn spring-boot:run -Dserver.port=$$PORT
 
-# Clean the project (unchanged)
+# Clean the project
 clean:
 	mvn clean -q && docker image rm spring-vision:latest;
 
@@ -33,3 +33,10 @@ deploy:
 release:
 	@echo "Releasing artifacts to Maven Central..."
 	mvn clean deploy -P release
+
+# Generate javadocs and create report
+docs:
+	@echo "Generating javadocs and creating report..."
+	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
+	echo "Javadocs report generated successfully in javadocs.txt" || \
+	echo "Javadocs generation completed with warnings/errors - see javadocs.txt for details"

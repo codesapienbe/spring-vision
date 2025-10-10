@@ -30,10 +30,25 @@ public final class BatchProgress {
      * Enumeration of possible batch processing states.
      */
     public enum Status {
+        /**
+         * The batch processing has started.
+         */
         STARTED,
+        /**
+         * The batch processing is currently running.
+         */
         RUNNING,
+        /**
+         * The batch processing has completed successfully.
+         */
         COMPLETED,
+        /**
+         * The batch processing has failed.
+         */
         FAILED,
+        /**
+         * The batch processing has been cancelled.
+         */
         CANCELLED
     }
 

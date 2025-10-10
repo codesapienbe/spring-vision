@@ -322,7 +322,6 @@ Ensure the `-i` flag is present in your MCP client config:
 
 - **CHANGELOG.md** - Version history and feature updates
 - **TROUBLESHOOTING.md** - Detailed troubleshooting guide
-- **IMPLEMENTATION_SUMMARY.md** - Technical implementation details
 
 ---
 

@@ -821,6 +821,8 @@ public class VisionTemplate {
     /**
      * Detects security threats from a list of images if the backend exposes ThreatDetectionCapability.
      *
+     * @param imageDataList the list of image data to analyze for threats
+     * @return the list of detected threats
      * @throws io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException if capability not available
      */
     public List<Detection> detectThreat(List<ImageData> imageDataList) {

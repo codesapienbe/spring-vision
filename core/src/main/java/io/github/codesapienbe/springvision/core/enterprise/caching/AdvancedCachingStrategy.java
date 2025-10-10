@@ -102,8 +102,9 @@ public class AdvancedCachingStrategy {
 
     /**
      * Caches detection results.
-     * @param imageData The image data associated with the detections.
-     * @param query The detection query used.
+     *
+     * @param imageData  The image data associated with the detections.
+     * @param query      The detection query used.
      * @param detections The list of detections to cache.
      */
     public void cacheDetections(ImageData imageData, DetectionQuery query, List<Detection> detections) {
@@ -124,7 +125,8 @@ public class AdvancedCachingStrategy {
 
     /**
      * Invalidates cache entries matching a pattern for a specific tenant.
-     * @param pattern The pattern to match against cache keys.
+     *
+     * @param pattern  The pattern to match against cache keys.
      * @param tenantId The ID of the tenant whose cache entries should be invalidated.
      */
     public void invalidateCache(String pattern, String tenantId) {
@@ -142,8 +144,9 @@ public class AdvancedCachingStrategy {
 
     /**
      * Preloads the cache with frequently accessed data.
+     *
      * @param images The list of images to preload.
-     * @param query The detection query to use for preloading.
+     * @param query  The detection query to use for preloading.
      */
     public void preloadCache(List<ImageData> images, DetectionQuery query) {
         cacheWarmer.preload(images, query);
@@ -151,6 +154,7 @@ public class AdvancedCachingStrategy {
 
     /**
      * Gets cache statistics for a specific tenant.
+     *
      * @param tenantId The ID of the tenant.
      * @return The cache statistics for the tenant.
      */
@@ -160,6 +164,7 @@ public class AdvancedCachingStrategy {
 
     /**
      * Gets all cache statistics for all tenants.
+     *
      * @return A map of tenant IDs to their cache statistics.
      */
     public Map<String, CacheStatistics> getAllCacheStatistics() {
@@ -168,8 +173,9 @@ public class AdvancedCachingStrategy {
 
     /**
      * Sets the cache policy for a given detection type.
+     *
      * @param detectionType The type of detection.
-     * @param policy The cache policy to set.
+     * @param policy        The cache policy to set.
      */
     public void setCachePolicy(DetectionType detectionType, CachePolicy policy) {
         cachePolicies.put(detectionType.name(), policy);
@@ -178,6 +184,7 @@ public class AdvancedCachingStrategy {
 
     /**
      * Gets the cache policy for a given detection type.
+     *
      * @param detectionType The type of detection.
      * @return The corresponding cache policy.
      */
@@ -197,6 +204,7 @@ public class AdvancedCachingStrategy {
 
     /**
      * Gets the current cache configuration.
+     *
      * @return The current cache configuration.
      */
     public CacheConfiguration getConfiguration() {
@@ -205,6 +213,7 @@ public class AdvancedCachingStrategy {
 
     /**
      * Updates the cache configuration.
+     *
      * @param newConfig The new cache configuration.
      */
     public void updateConfiguration(CacheConfiguration newConfig) {
@@ -441,20 +450,23 @@ public class AdvancedCachingStrategy {
     public interface CachePolicy {
         /**
          * Determines whether a detection should be cached.
+         *
          * @param imageData The image data.
-         * @param query The detection query.
+         * @param query     The detection query.
          * @return {@code true} if the detection should be cached, {@code false} otherwise.
          */
         boolean shouldCache(ImageData imageData, DetectionQuery query);
 
         /**
          * Gets the time-to-live (TTL) for cache entries in milliseconds.
+         *
          * @return The TTL in milliseconds.
          */
         long getTtlMs();
 
         /**
          * Gets the maximum size of the cache.
+         *
          * @return The maximum cache size.
          */
         int getMaxSize();
@@ -464,6 +476,13 @@ public class AdvancedCachingStrategy {
      * Default cache policy with moderate caching.
      */
     public static class DefaultCachePolicy implements CachePolicy {
+
+        /**
+         * Default constructor.
+         */
+        public DefaultCachePolicy() {
+        }
+
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
             return true;
@@ -484,6 +503,13 @@ public class AdvancedCachingStrategy {
      * Cache policy for high-frequency access patterns.
      */
     public static class HighFrequencyCachePolicy implements CachePolicy {
+
+        /**
+         * Default constructor.
+         */
+        public HighFrequencyCachePolicy() {
+        }
+
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
             return imageData.data().length < 1024 * 1024; // Cache images < 1MB
@@ -504,6 +530,13 @@ public class AdvancedCachingStrategy {
      * Standard cache policy for typical access patterns.
      */
     public static class StandardCachePolicy implements CachePolicy {
+
+        /**
+         * Default constructor.
+         */
+        public StandardCachePolicy() {
+        }
+
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
             return imageData.data().length < 5 * 1024 * 1024; // Cache images < 5MB
@@ -524,6 +557,13 @@ public class AdvancedCachingStrategy {
      * Cache policy for low-frequency access patterns.
      */
     public static class LowFrequencyCachePolicy implements CachePolicy {
+
+        /**
+         * Default constructor.
+         */
+        public LowFrequencyCachePolicy() {
+        }
+
         @Override
         public boolean shouldCache(ImageData imageData, DetectionQuery query) {
             return imageData.data().length < 10 * 1024 * 1024; // Cache images < 10MB
@@ -682,7 +722,14 @@ public class AdvancedCachingStrategy {
         private final AtomicLong totalDetectionsCached = new AtomicLong(0);
 
         /**
+         * Default constructor.
+         */
+        public CacheStatistics() {
+        }
+
+        /**
          * Records a cache hit.
+         *
          * @param cacheLevel The cache level where the hit occurred (e.g., "L1", "L2").
          */
         public void recordHit(String cacheLevel) {
@@ -699,6 +746,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Records a cache put operation.
+         *
          * @param detectionCount The number of detections added to the cache.
          */
         public void recordPut(int detectionCount) {
@@ -715,6 +763,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the cache hit rate.
+         *
          * @return The hit rate as a value between 0.0 and 1.0.
          */
         public double getHitRate() {
@@ -723,8 +772,10 @@ public class AdvancedCachingStrategy {
         }
 
         // Getters
+
         /**
          * Gets the total number of cache hits.
+         *
          * @return The total hits.
          */
         public long getHits() {
@@ -733,6 +784,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the total number of cache misses.
+         *
          * @return The total misses.
          */
         public long getMisses() {
@@ -741,6 +793,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the total number of cache put operations.
+         *
          * @return The total puts.
          */
         public long getPuts() {
@@ -749,6 +802,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the total number of cache invalidations.
+         *
          * @return The total invalidations.
          */
         public long getInvalidations() {
@@ -757,6 +811,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the number of cache hits by cache level.
+         *
          * @return A map of cache levels to their hit counts.
          */
         public Map<String, Long> getHitsByLevel() {
@@ -767,6 +822,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the total number of detections currently cached.
+         *
          * @return The total number of cached detections.
          */
         public long getTotalDetectionsCached() {
@@ -786,7 +842,14 @@ public class AdvancedCachingStrategy {
         private boolean enableAnalytics = true;
 
         /**
+         * Default constructor.
+         */
+        public CacheConfiguration() {
+        }
+
+        /**
          * Updates the configuration from another configuration object.
+         *
          * @param newConfig The new configuration.
          */
         public void update(CacheConfiguration newConfig) {
@@ -799,8 +862,10 @@ public class AdvancedCachingStrategy {
         }
 
         // Getters
+
         /**
          * Gets the maximum size of the L1 cache.
+         *
          * @return The L1 cache size.
          */
         public int getL1MaxSize() {
@@ -809,6 +874,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the time-to-live (TTL) for L1 cache entries in milliseconds.
+         *
          * @return The L1 TTL in milliseconds.
          */
         public long getL1TtlMs() {
@@ -817,6 +883,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the maximum size of the L2 cache.
+         *
          * @return The L2 cache size.
          */
         public int getL2MaxSize() {
@@ -825,6 +892,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Gets the time-to-live (TTL) for L2 cache entries in milliseconds.
+         *
          * @return The L2 TTL in milliseconds.
          */
         public long getL2TtlMs() {
@@ -833,6 +901,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Checks if cache warming is enabled.
+         *
          * @return {@code true} if cache warming is enabled, {@code false} otherwise.
          */
         public boolean isEnableCacheWarming() {
@@ -841,6 +910,7 @@ public class AdvancedCachingStrategy {
 
         /**
          * Checks if cache analytics is enabled.
+         *
          * @return {@code true} if analytics is enabled, {@code false} otherwise.
          */
         public boolean isEnableAnalytics() {
