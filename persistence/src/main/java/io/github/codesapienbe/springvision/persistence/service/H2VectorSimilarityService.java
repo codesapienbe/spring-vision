@@ -20,6 +20,11 @@ import io.github.codesapienbe.springvision.persistence.repository.FaceEmbeddingR
 @ConditionalOnProperty(value = "spring.vision.vector.provider", havingValue = "h2")
 public class H2VectorSimilarityService extends JpaVectorSimilarityService {
 
+    /**
+     * Constructs an H2 vector similarity service.
+     *
+     * @param embeddingRepository the face embedding repository
+     */
     public H2VectorSimilarityService(FaceEmbeddingRepository embeddingRepository) {
         super(embeddingRepository);
     }

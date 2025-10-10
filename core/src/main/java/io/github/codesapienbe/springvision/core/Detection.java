@@ -22,6 +22,10 @@ import java.util.Objects;
  * Detection objectDetection = new Detection("car", 0.87, objectBox, Map.of("color", "red"));
  * }</pre>
  *
+ * @param label       the label or class name of the detected object
+ * @param confidence  the confidence score of the detection (0.0 to 1.0)
+ * @param boundingBox the bounding box enclosing the detected object
+ * @param attributes  additional attributes or metadata for the detection
  * @author Spring Vision Team
  * @see VisionResult
  * @see BoundingBox

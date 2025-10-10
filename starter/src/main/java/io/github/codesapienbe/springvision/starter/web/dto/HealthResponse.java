@@ -25,7 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * }</pre>
  *
  * @author Spring Vision Team
- * @see VisionController
+ * @see io.github.codesapienbe.springvision.starter.web.VisionController
  * @since 1.0.0
  */
 public class HealthResponse {

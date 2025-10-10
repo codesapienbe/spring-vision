@@ -14,10 +14,20 @@ public class DatabaseVendorDetector {
 
     private final DataSource dataSource;
 
+    /**
+     * Constructs a database vendor detector.
+     *
+     * @param dataSource the data source to inspect
+     */
     public DatabaseVendorDetector(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
+    /**
+     * Detects the database vendor from the JDBC connection URL.
+     *
+     * @return the detected database vendor
+     */
     public DatabaseVendor detectVendor() {
         try (Connection connection = dataSource.getConnection()) {
             String url = connection.getMetaData().getURL().toLowerCase();

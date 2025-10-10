@@ -31,6 +31,13 @@ public class MySQLVectorSimilarityService implements VectorSimilarityService {
     private final JdbcTemplate jdbcTemplate;
     private NativeVectorAdapter nativeVectorAdapter;
 
+    /**
+     * Constructs a MySQL vector similarity service.
+     *
+     * @param repository   the MySQL face embedding repository
+     * @param jdbcTemplate the JDBC template for native queries
+     * @param registry     the native vector adapter registry
+     */
     @Autowired
     public MySQLVectorSimilarityService(io.github.codesapienbe.springvision.persistence.repository.MySQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, io.github.codesapienbe.springvision.persistence.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;

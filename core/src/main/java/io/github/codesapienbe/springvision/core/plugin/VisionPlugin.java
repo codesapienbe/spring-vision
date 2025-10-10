@@ -34,8 +34,6 @@ import java.util.Map;
  * }</pre>
  *
  * @author Spring Vision Team
- * @see VisionPluginManager
- * @see VisionPluginRegistry
  * @see ImageData
  * @see VisionResult
  * @since 1.0.0

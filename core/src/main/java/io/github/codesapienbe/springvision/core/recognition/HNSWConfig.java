@@ -7,6 +7,11 @@ package io.github.codesapienbe.springvision.core.recognition;
  * performance and accuracy trade-offs. Different configurations are optimized
  * for different use cases.</p>
  *
+ * @param maxElements      the maximum number of elements
+ * @param M                the bi-directional links created for every new element during construction
+ * @param efConstruction   the size of the dynamic candidate list during construction
+ * @param efSearch         the size of the dynamic candidate list used during search
+ * @param expectedElements the expected number of elements for initial capacity
  * @author Spring Vision Team
  * @since 1.0.0
  */

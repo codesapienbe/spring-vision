@@ -9,6 +9,19 @@ import java.util.Objects;
  * <p>This record encapsulates metadata about a plugin including its basic
  * information, capabilities, requirements, and configuration details.</p>
  *
+ * @param pluginId                the unique identifier for the plugin
+ * @param displayName             the display name of the plugin
+ * @param version                 the version of the plugin
+ * @param description             the description of the plugin
+ * @param author                  the author of the plugin
+ * @param pluginType              the type of the plugin
+ * @param supportedDetectionTypes the detection types supported by the plugin
+ * @param supportedParameters     the parameters supported by the plugin
+ * @param defaultParameters       the default parameter values
+ * @param priority                the priority of the plugin
+ * @param memoryRequirements      the memory requirements in MB
+ * @param requiresGpuAcceleration whether the plugin requires GPU acceleration
+ * @param dependencies            the plugin dependencies
  * @author Spring Vision Team
  * @see VisionPlugin
  * @since 1.0.0

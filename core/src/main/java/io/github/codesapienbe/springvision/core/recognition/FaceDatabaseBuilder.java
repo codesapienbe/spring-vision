@@ -1,5 +1,11 @@
 package io.github.codesapienbe.springvision.core.recognition;
 
+import io.github.codesapienbe.springvision.core.Detection;
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,14 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionBackend;
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
  * Batch processor for building large-scale face recognition databases.
@@ -348,6 +346,12 @@ public class FaceDatabaseBuilder {
 
     /**
      * Configuration for database builder.
+     *
+     * @param parallelThreads        the number of parallel processing threads
+     * @param batchSize              the number of images per batch
+     * @param minQualityThreshold    the minimum face quality threshold
+     * @param progressReportInterval the progress report interval
+     * @param stopOnError            whether to stop on error
      */
     public record DatabaseBuilderConfig(
         int parallelThreads,        // Number of parallel processing threads
@@ -389,6 +393,13 @@ public class FaceDatabaseBuilder {
 
     /**
      * Processing result with statistics.
+     *
+     * @param filesProcessed   the number of files processed
+     * @param facesExtracted   the number of faces extracted
+     * @param errors           the number of errors encountered
+     * @param processingTimeMs the processing time in milliseconds
+     * @param finalIndexSize   the final size of the index
+     * @param success          whether the processing was successful
      */
     public record ProcessingResult(
         long filesProcessed,
@@ -418,6 +429,11 @@ public class FaceDatabaseBuilder {
 
     /**
      * Current processing statistics.
+     *
+     * @param processedFiles the number of files processed so far
+     * @param totalFiles     the total number of files to process
+     * @param facesExtracted the number of faces extracted so far
+     * @param errors         the number of errors encountered
      */
     public record ProcessingStats(
         long processedFiles,
@@ -432,6 +448,12 @@ public class FaceDatabaseBuilder {
 
     /**
      * Progress update information.
+     *
+     * @param processedFiles     the number of files processed so far
+     * @param totalFiles         the total number of files to process
+     * @param facesExtracted     the number of faces extracted so far
+     * @param errors             the number of errors encountered
+     * @param progressPercentage the progress percentage (0.0 to 100.0)
      */
     public record ProgressUpdate(
         long processedFiles,

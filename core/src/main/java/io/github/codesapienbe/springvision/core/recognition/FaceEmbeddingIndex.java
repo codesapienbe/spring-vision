@@ -50,7 +50,7 @@ public interface FaceEmbeddingIndex {
      * @param queryEmbedding normalized query embedding vector
      * @param topK           number of top similar results to return
      * @return list of search results ordered by similarity (best first)
-     * @throws IllegalArgumentException if queryEmbedding is null/invalid or topK <= 0
+     * @throws IllegalArgumentException if queryEmbedding is null/invalid or {@code topK <= 0}
      * @throws IllegalStateException    if index is not ready
      */
     List<SearchResult> search(float[] queryEmbedding, int topK);
@@ -131,6 +131,9 @@ public interface FaceEmbeddingIndex {
 
     /**
      * Represents a single embedding entry for batch operations.
+     *
+     * @param photoId   the unique identifier for the photo containing the face
+     * @param embedding the normalized face embedding vector
      */
     record EmbeddingEntry(String photoId, float[] embedding) {
         public EmbeddingEntry {
@@ -145,6 +148,10 @@ public interface FaceEmbeddingIndex {
 
     /**
      * Represents a search result with similarity information.
+     *
+     * @param photoId    the identifier of the matched photo
+     * @param similarity the similarity score (0.0 to 1.0)
+     * @param distance   the distance score
      */
     record SearchResult(String photoId, double similarity, double distance) implements Comparable<SearchResult> {
 
@@ -196,6 +203,14 @@ public interface FaceEmbeddingIndex {
 
     /**
      * Index performance and usage statistics.
+     *
+     * @param totalEmbeddings        the total number of embeddings in the index
+     * @param embeddingDimension     the dimension of the embedding vectors
+     * @param memoryUsageBytes       the memory usage in bytes
+     * @param averageQueryTimeMillis the average query time in milliseconds
+     * @param totalQueries           the total number of queries performed
+     * @param built                  whether the index has been built
+     * @param ready                  whether the index is ready for queries
      */
     record IndexStatistics(
         long totalEmbeddings,

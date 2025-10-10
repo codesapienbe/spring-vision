@@ -62,6 +62,10 @@ public class AdvancedCachingStrategy {
 
     /**
      * Gets cached detection results.
+     *
+     * @param imageData the image data to get cached detections for
+     * @param query     the detection query
+     * @return an Optional containing the cached detections if available, empty otherwise
      */
     public Optional<List<Detection>> getCachedDetections(ImageData imageData, DetectionQuery query) {
         String cacheKey = generateCacheKey(imageData, query);

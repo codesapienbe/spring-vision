@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class MySqlNativeVectorAdapter implements NativeVectorAdapter {
 
+    /**
+     * Default constructor.
+     */
+    public MySqlNativeVectorAdapter() {
+    }
+
     @Override
     public String provider() {
         return "mysql";

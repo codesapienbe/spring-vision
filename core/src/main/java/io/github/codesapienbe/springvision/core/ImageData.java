@@ -28,6 +28,10 @@ import java.util.Objects;
  * }
  * }</pre>
  *
+ * @param data     the raw image data as a byte array
+ * @param mimeType the MIME type of the image (e.g., "image/jpeg")
+ * @param size     the size of the image data in bytes
+ * @param format   the image format (e.g., "JPEG", "PNG")
  * @author Spring Vision Team
  * @see VisionTemplate
  * @see VisionBackend

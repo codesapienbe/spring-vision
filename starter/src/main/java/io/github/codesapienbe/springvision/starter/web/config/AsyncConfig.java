@@ -9,10 +9,27 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+/**
+ * Configuration for asynchronous processing in the Spring Vision application.
+ *
+ * <p>This configuration enables async processing and provides a custom executor
+ * for vision-related tasks with MDC propagation for logging correlation.</p>
+ *
+ * @author Spring Vision Team
+ * @since 1.0.0
+ */
 @Configuration
 @EnableAsync
 public class AsyncConfig {
 
+    /**
+     * Creates a custom executor for asynchronous vision processing tasks.
+     *
+     * <p>This executor is configured with appropriate thread pool settings and
+     * MDC propagation to maintain logging context across async operations.</p>
+     *
+     * @return the configured executor
+     */
     @Bean(name = "visionAsyncExecutor")
     public Executor visionAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

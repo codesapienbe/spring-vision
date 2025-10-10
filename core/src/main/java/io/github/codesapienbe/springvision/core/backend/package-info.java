@@ -29,7 +29,8 @@
  * </ul>
  *
  * <h3>Testing</h3>
- * <p>Integration tests are provided to verify OpenCV backend functionality and performance.</p>
+ * <p>Integration tests are provided to verify backend functionality.
+ * Tests are conditionally enabled based on backend availability.</p>
  *
  * <h2>Usage Examples</h2>
  *
@@ -112,8 +113,8 @@
  *
  * <h2>Testing</h2>
  *
- * <p>Integration tests are provided in {@link io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackendIntegrationTest}
- * to verify backend functionality. Tests are conditionally enabled based on OpenCV availability.</p>
+ * <p>Integration tests are provided to verify backend functionality.
+ * Tests are conditionally enabled based on backend availability.</p>
  *
  * <h2>Future Backends</h2>
  *

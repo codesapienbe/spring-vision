@@ -24,6 +24,13 @@ import java.util.Objects;
  * }
  * }</pre>
  *
+ * @param backendId      the unique identifier of the backend
+ * @param status         the current health status
+ * @param statusMessage  a human-readable status message
+ * @param errorMessage   detailed error message if unhealthy
+ * @param lastCheckTime  the timestamp of the last health check
+ * @param responseTimeMs the response time of the last health check in milliseconds
+ * @param metrics        additional health metrics
  * @author Spring Vision Team
  * @see VisionBackend
  * @since 1.0.0

@@ -16,6 +16,15 @@ import java.util.UUID;
 @Repository
 public interface MySQLFaceEmbeddingRepository extends JpaRepository<FaceEmbedding, UUID> {
 
+    /**
+     * Finds similar embeddings using cosine similarity on MySQL vector columns.
+     *
+     * @param queryVectorJson the query vector as JSON string
+     * @param modelName       the model name to filter by
+     * @param threshold       the maximum distance threshold
+     * @param limit           the maximum number of results
+     * @return list of result arrays containing embedding data and distance
+     */
     @Query(value = """
         SELECT e.id, e.person_id, e.model_name, e.created_at, e.confidence,
                VECTOR_DISTANCE(e.native_vector, CAST(?1 AS JSON), COSINE) as distance
@@ -27,5 +36,11 @@ public interface MySQLFaceEmbeddingRepository extends JpaRepository<FaceEmbeddin
         """, nativeQuery = true)
     List<Object[]> findSimilarByCosineSimilarity(String queryVectorJson, String modelName, Double threshold, Integer limit);
 
+    /**
+     * Finds the first embedding with a specific image hash.
+     *
+     * @param imageHash the image hash
+     * @return optional face embedding
+     */
     java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 }

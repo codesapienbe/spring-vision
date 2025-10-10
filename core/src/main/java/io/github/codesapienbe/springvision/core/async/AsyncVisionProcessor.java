@@ -49,7 +49,6 @@ import java.util.Objects;
  * @author Spring Vision Team
  * @see VisionTask
  * @see TaskProgress
- * @see TaskResult
  * @since 1.0.0
  */
 public class AsyncVisionProcessor {
@@ -64,6 +63,10 @@ public class AsyncVisionProcessor {
 
     /**
      * Handle that exposes a generated taskId and the future representing the execution.
+     *
+     * @param <T>    the type of the result
+     * @param taskId the unique task identifier
+     * @param future the CompletableFuture representing the asynchronous computation
      */
     public static record TaskHandle<T>(String taskId, CompletableFuture<T> future) {
     }

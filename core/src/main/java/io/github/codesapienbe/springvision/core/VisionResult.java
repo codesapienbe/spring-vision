@@ -31,6 +31,12 @@ import java.util.Objects;
  * boolean hasDetections = result.hasDetections();
  * }</pre>
  *
+ * @param detectionType     the type of detection performed
+ * @param detections        the list of detected objects
+ * @param averageConfidence the average confidence score across all detections
+ * @param processingTimeMs  the time taken to process the image in milliseconds
+ * @param timestamp         the timestamp when the result was created
+ * @param metadata          additional metadata about the operation
  * @author Spring Vision Team
  * @see VisionTemplate
  * @see Detection

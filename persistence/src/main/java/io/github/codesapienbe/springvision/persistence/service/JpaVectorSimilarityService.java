@@ -22,6 +22,11 @@ public class JpaVectorSimilarityService implements VectorSimilarityService {
 
     private final FaceEmbeddingRepository embeddingRepository;
 
+    /**
+     * Constructs a JPA vector similarity service.
+     *
+     * @param embeddingRepository the face embedding repository
+     */
     public JpaVectorSimilarityService(FaceEmbeddingRepository embeddingRepository) {
         this.embeddingRepository = embeddingRepository;
     }

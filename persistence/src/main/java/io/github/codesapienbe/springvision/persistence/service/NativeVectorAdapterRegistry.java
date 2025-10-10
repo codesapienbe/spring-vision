@@ -15,6 +15,11 @@ public class NativeVectorAdapterRegistry {
 
     private final Map<String, NativeVectorAdapter> byProvider;
 
+    /**
+     * Constructs a native vector adapter registry.
+     *
+     * @param adapters the list of available adapters
+     */
     public NativeVectorAdapterRegistry(List<NativeVectorAdapter> adapters) {
         if (adapters == null || adapters.isEmpty()) {
             this.byProvider = Collections.emptyMap();
@@ -27,6 +32,12 @@ public class NativeVectorAdapterRegistry {
         }
     }
 
+    /**
+     * Gets the adapter for a specific provider.
+     *
+     * @param provider the provider ID
+     * @return the native vector adapter, or null if not found
+     */
     public NativeVectorAdapter getAdapter(String provider) {
         if (provider == null) return null;
         return byProvider.get(provider.toLowerCase());

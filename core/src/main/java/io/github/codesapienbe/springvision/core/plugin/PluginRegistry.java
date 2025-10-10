@@ -14,7 +14,6 @@ import java.util.Map;
  *
  * @author Spring Vision Team
  * @see VisionPlugin
- * @see PluginManager
  * @since 1.0.0
  */
 public interface PluginRegistry {

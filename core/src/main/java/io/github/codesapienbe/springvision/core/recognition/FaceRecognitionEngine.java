@@ -1,18 +1,17 @@
 package io.github.codesapienbe.springvision.core.recognition;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * High-performance face recognition engine for large-scale face lookup.
@@ -411,6 +410,10 @@ public class FaceRecognitionEngine {
 
     /**
      * Configuration for the face recognition engine.
+     *
+     * @param minQualityThreshold    the minimum face quality threshold for recognition (0.0-1.0)
+     * @param minSimilarityThreshold the minimum similarity threshold for match results (0.0-1.0)
+     * @param maxResultsPerQuery     the maximum number of results to return per query
      */
     public record RecognitionConfig(
         double minQualityThreshold,    // Minimum face quality for recognition (0.0-1.0)
@@ -432,6 +435,12 @@ public class FaceRecognitionEngine {
 
     /**
      * Face match result with similarity and confidence information.
+     *
+     * @param photoId    the identifier of the matched photo
+     * @param similarity the similarity score (0.0 to 1.0)
+     * @param distance   the distance score
+     * @param confidence the overall confidence score
+     * @param metadata   additional metadata about the match
      */
     public record FaceMatch(
         String photoId,
@@ -449,6 +458,12 @@ public class FaceRecognitionEngine {
 
     /**
      * Recognition engine performance statistics.
+     *
+     * @param totalIndexedFaces   the total number of faces indexed
+     * @param averageQueryTimeMs  the average query time in milliseconds
+     * @param totalQueries        the total number of queries performed
+     * @param qualityThreshold    the quality threshold used
+     * @param similarityThreshold the similarity threshold used
      */
     public record RecognitionEngineStats(
         long totalIndexedFaces,

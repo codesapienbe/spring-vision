@@ -104,7 +104,8 @@ public class VisionController {
      * <p>This endpoint accepts a multipart file upload and performs face detection
      * on the image. It validates the file size and content type before processing.</p>
      *
-     * @param file the uploaded image file
+     * @param file          the uploaded image file
+     * @param minConfidence the minimum confidence threshold for detections (optional)
      * @return face detection results
      */
     @PostMapping(value = "/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -178,7 +179,8 @@ public class VisionController {
      * <p>This endpoint accepts image data as a JSON payload and performs face detection.
      * The image data should be base64 encoded.</p>
      *
-     * @param request the detection request containing image data
+     * @param request       the detection request containing image data
+     * @param minConfidence the minimum confidence threshold for detections (optional)
      * @return face detection results
      */
     @PostMapping(value = "/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -1468,14 +1470,14 @@ public class VisionController {
 
     // Annotation endpoint
     @PostMapping(value = "/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> annotateImageEndpoint(
+    public ResponseEntity<TaskSubmissionResponse> annotateImageEndpoint(
         @RequestParam("file") MultipartFile file,
         @RequestParam("action") String action,
         @RequestParam(value = "label", required = false) String label,
         @RequestParam(value = "categories", defaultValue = "FACE") String categoriesCsv) {
 
         String correlationId = generateCorrelationId();
-        logger.info("Annotate request received", Map.of(
+        logger.info("Submit annotate task", Map.of(
             "correlationId", correlationId,
             "fileName", file.getOriginalFilename(),
             "action", action,
@@ -1484,6 +1486,8 @@ public class VisionController {
         ));
 
         try {
+            validateFile(file);
+
             io.github.codesapienbe.springvision.core.AnnotationRequest.Action annotationAction = io.github.codesapienbe.springvision.core.AnnotationRequest.Action.valueOf(action.toUpperCase());
             java.util.Set<io.github.codesapienbe.springvision.core.DetectionCategory> cats = java.util.Arrays.stream(categoriesCsv.split(","))
                 .map(String::trim)
@@ -1497,21 +1501,23 @@ public class VisionController {
                 .label(label)
                 .build();
 
-            ImageData imageData = ImageData.fromBytes(file.getBytes());
-            visionTemplate.annotate(imageData, req);
+            ImageData imageData = convertToImageData(file);
 
-            return ResponseEntity.ok(Map.of(
-                "action", action,
-                "categories", cats.stream().map(Enum::name).toList(),
-                "label", label,
-                "annotated", true
-            ));
+            var handle = asyncVisionProcessor.processAsyncWithHandle(
+                imageData,
+                DetectionType.CUSTOM,
+                Map.of("correlationId", correlationId, "annotationRequest", req),
+                null
+            );
+
+            return ResponseEntity.accepted().body(new TaskSubmissionResponse(correlationId, handle.taskId(), "accepted"));
         } catch (Exception e) {
-            logger.error("Annotate failed", Map.of(
+            logger.error("Submit annotate task failed", Map.of(
                 "correlationId", correlationId,
                 "error", e.getClass().getSimpleName()
             ), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new TaskSubmissionResponse(correlationId, null, e.getMessage()));
         }
     }
 

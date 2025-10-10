@@ -7,6 +7,8 @@ package io.github.codesapienbe.springvision.core.recognition;
  * of a detected face, including the overall quality score and a
  * human-readable reason for the assessment.</p>
  *
+ * @param qualityScore the overall quality score (0.0-1.0)
+ * @param reason       the human-readable reason for the score
  * @author Spring Vision Team
  * @since 1.0.0
  */

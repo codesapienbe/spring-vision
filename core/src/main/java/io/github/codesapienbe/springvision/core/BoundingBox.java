@@ -24,6 +24,10 @@ package io.github.codesapienbe.springvision.core;
  * double area = faceBox.area();
  * }</pre>
  *
+ * @param x      the x-coordinate of the top-left corner
+ * @param y      the y-coordinate of the top-left corner
+ * @param width  the width of the bounding box
+ * @param height the height of the bounding box
  * @author Spring Vision Team
  * @see VisionResult
  * @see DetectionType
