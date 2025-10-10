@@ -270,15 +270,6 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
      * {@inheritDoc}
      */
     @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        // DeepFace can detect faces as objects, so reuse face detection
-        return detectFaces(imageData);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public List<float[]> extractEmbeddings(ImageData imageData, DetectionCategory subject) {
         // TODO: Implement embedding extraction from DeepFace
         // This would call the DeepFace API to get face embeddings

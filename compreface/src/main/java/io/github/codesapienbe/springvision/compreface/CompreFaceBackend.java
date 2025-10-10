@@ -266,15 +266,6 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        // CompreFace primarily supports face detection
-        logger.debug("Object detection not supported by CompreFace backend");
-        return Collections.emptyList();
-    }
 
     /**
      * {@inheritDoc}
