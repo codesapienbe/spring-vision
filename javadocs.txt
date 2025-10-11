@@ -1,0 +1,286 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper (file:/usr/share/maven/lib/guava.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[[1;34mINFO[m] Scanning for projects...
+[[1;34mINFO[m] Inspecting build with total of 14 modules
+[[1;34mINFO[m] Installing Central Publishing features
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1mReactor Build Order:[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] Spring Vision                                                      [pom]
+[[1;34mINFO[m] Spring Vision -> Core                                              [jar]
+[[1;34mINFO[m] Spring Vision -> JPA                                               [jar]
+[[1;34mINFO[m] Spring Vision -> Starter                                           [jar]
+[[1;34mINFO[m] Spring Vision -> Tesseract Backend                                 [jar]
+[[1;34mINFO[m] Spring Vision -> FaceBytes Backend                                 [jar]
+[[1;34mINFO[m] Spring Vision -> MediaPipe Backend                                 [jar]
+[[1;34mINFO[m] Spring Vision -> InsightFace Backend                               [jar]
+[[1;34mINFO[m] Spring Vision -> CompreFace Backend                                [jar]
+[[1;34mINFO[m] Spring Vision -> DeepFace Backend                                  [jar]
+[[1;34mINFO[m] Spring Vision -> YOLO Backend                                      [jar]
+[[1;34mINFO[m] Spring Vision -> MCP Server                                        [jar]
+[[1;34mINFO[m] Spring Vision -> Health Monitoring Backend                         [jar]
+[[1;34mINFO[m] Spring Vision -> Cyber Security Backend                            [jar]
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m---------< [0;36mio.github.codesapienbe.springvision:spring-vision[0;1m >----------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision 1.0                                        [1/14][m
+[[1;34mINFO[m] [1m--------------------------------[ pom ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mspring-vision[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mspring-vision[0;1m ---[m
+[[1;34mINFO[m] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mspring-vision[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mspring-vision[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mspring-vision[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:core[0;1m >--------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Core 1.0                                [2/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcore[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mcore[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mcore[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/core/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mcore[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcore[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m----------< [0;36mio.github.codesapienbe.springvision:persistence[0;1m >-----------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> JPA 1.0                                 [3/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mpersistence[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mpersistence[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mpersistence[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/persistence/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mpersistence[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mpersistence[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m------------< [0;36mio.github.codesapienbe.springvision:starter[0;1m >-------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Starter 1.0                             [4/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mstarter[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mstarter[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mstarter[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/starter/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mstarter[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mstarter[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:tesseract[0;1m >------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Tesseract Backend 1.0                   [5/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mtesseract[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mtesseract[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mtesseract[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/tesseract/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mtesseract[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mtesseract[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:facebytes[0;1m >------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> FaceBytes Backend 1.0                   [6/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mfacebytes[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mfacebytes[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mfacebytes[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/facebytes/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mfacebytes[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mfacebytes[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:mediapipe[0;1m >------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> MediaPipe Backend 1.0                   [7/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mmediapipe[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mmediapipe[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mmediapipe[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/mediapipe/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mmediapipe[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mmediapipe[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m----------< [0;36mio.github.codesapienbe.springvision:insightface[0;1m >-----------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> InsightFace Backend 1.0                 [8/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36minsightface[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36minsightface[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36minsightface[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/insightface/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36minsightface[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36minsightface[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:compreface[0;1m >-----------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> CompreFace Backend 1.0                  [9/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcompreface[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mcompreface[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mcompreface[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/compreface/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mcompreface[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcompreface[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m------------< [0;36mio.github.codesapienbe.springvision:deepface[0;1m >------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> DeepFace Backend 1.0                   [10/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mdeepface[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mdeepface[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mdeepface[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/deepface/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mdeepface[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mdeepface[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:yolo[0;1m >--------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> YOLO Backend 1.0                       [11/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36myolo[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36myolo[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36myolo[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/yolo/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36myolo[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36myolo[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:mcp[0;1m >---------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> MCP Server 1.0                         [12/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mmcp[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mmcp[0;1m ---[m
+[[1;34mINFO[m] Rule 0: org.apache.maven.enforcer.rules.version.RequireJavaVersion passed
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mmcp[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/mcp/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mmcp[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mmcp[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-------------< [0;36mio.github.codesapienbe.springvision:health[0;1m >-------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Health Monitoring Backend 1.0          [13/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mhealth[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mhealth[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mhealth[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/health/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mhealth[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mhealth[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-------------< [0;36mio.github.codesapienbe.springvision:cyber[0;1m >--------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Cyber Security Backend 1.0             [14/14][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcyber[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mcyber[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mcyber[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/cyber/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mcyber[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcyber[0;1m ---[m
+[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1mReactor Summary for Spring Vision 1.0:[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] Spring Vision ...................................... [1;32mSUCCESS[m [  0.945 s]
+[[1;34mINFO[m] Spring Vision -> Core .............................. [1;32mSUCCESS[m [  1.138 s]
+[[1;34mINFO[m] Spring Vision -> JPA ............................... [1;32mSUCCESS[m [  0.371 s]
+[[1;34mINFO[m] Spring Vision -> Starter ........................... [1;32mSUCCESS[m [  0.213 s]
+[[1;34mINFO[m] Spring Vision -> Tesseract Backend ................. [1;32mSUCCESS[m [  0.142 s]
+[[1;34mINFO[m] Spring Vision -> FaceBytes Backend ................. [1;32mSUCCESS[m [  0.201 s]
+[[1;34mINFO[m] Spring Vision -> MediaPipe Backend ................. [1;32mSUCCESS[m [  0.128 s]
+[[1;34mINFO[m] Spring Vision -> InsightFace Backend ............... [1;32mSUCCESS[m [  0.102 s]
+[[1;34mINFO[m] Spring Vision -> CompreFace Backend ................ [1;32mSUCCESS[m [  0.113 s]
+[[1;34mINFO[m] Spring Vision -> DeepFace Backend .................. [1;32mSUCCESS[m [  0.112 s]
+[[1;34mINFO[m] Spring Vision -> YOLO Backend ...................... [1;32mSUCCESS[m [  0.135 s]
+[[1;34mINFO[m] Spring Vision -> MCP Server ........................ [1;32mSUCCESS[m [  0.579 s]
+[[1;34mINFO[m] Spring Vision -> Health Monitoring Backend ......... [1;32mSUCCESS[m [  0.123 s]
+[[1;34mINFO[m] Spring Vision -> Cyber Security Backend ............ [1;32mSUCCESS[m [  0.134 s]
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1;32mBUILD SUCCESS[m
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] Total time:  5.138 s
+[[1;34mINFO[m] Finished at: 2025-10-11T01:36:29+02:00
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m

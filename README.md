@@ -27,6 +27,10 @@
 
 **Spring Vision** is a production-ready computer vision framework that brings powerful AI capabilities to your Spring Boot applications. Detect faces, recognize objects, analyze emotions, and build intelligent applications with just a few lines of code.
 
+## 📖 Documentation
+
+For comprehensive documentation, including API references, architecture diagrams, and guides, please visit our [**documentation portal**](docs/index.md).
+
 ## ✨ Why Spring Vision?
 
 - **🚀 Zero-Configuration Setup**: Get started in minutes with auto-configuration and sensible defaults.
