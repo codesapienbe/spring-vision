@@ -31,6 +31,14 @@ public final class EmbeddingSupport {
     private EmbeddingSupport() {
     }
 
+    /**
+     * Extracts embeddings from the provided image data using FaceBytes if available,
+     * otherwise returns a placeholder embedding.
+     *
+     * @param imageData the image data to process
+     * @return a list of embedding vectors
+     * @throws BaseVisionException if embedding extraction fails
+     */
     public static List<float[]> defaultExtractEmbeddings(ImageData imageData) throws BaseVisionException {
         if (imageData == null || imageData.isEmpty()) {
             throw new IllegalArgumentException("ImageData must not be null or empty");
@@ -106,6 +114,16 @@ public final class EmbeddingSupport {
         return embeddings;
     }
 
+    /**
+     * Verifies if two images contain the same person using embeddings.
+     *
+     * @param a         the first image data
+     * @param b         the second image data
+     * @param metric    the distance metric to use ("euclidean" or "cosine")
+     * @param threshold the similarity threshold
+     * @return true if the images match, false otherwise
+     * @throws BaseVisionException if verification fails
+     */
     public static boolean defaultVerify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
         try {
             List<float[]> ea = defaultExtractEmbeddings(a);
@@ -167,6 +185,14 @@ public final class EmbeddingSupport {
     /**
      * Find the nearest gallery embeddings given either a probe ImageData or a probe embedding.
      * Returns the indices of the topK nearest gallery vectors sorted by increasing distance.
+     *
+     * @param probeImage        the probe image data (optional if probeEmbedding is provided)
+     * @param probeEmbedding    the probe embedding vector (optional if probeImage is provided)
+     * @param galleryEmbeddings the list of gallery embedding vectors to compare against
+     * @param metric            the distance metric to use ("euclidean" or "cosine")
+     * @param topK              the maximum number of nearest neighbors to return
+     * @return a list of indices of the topK nearest gallery embeddings, sorted by increasing distance
+     * @throws BaseVisionException if the operation fails
      */
     public static List<Integer> findNearest(ImageData probeImage, float[] probeEmbedding, List<float[]> galleryEmbeddings, String metric, int topK) throws BaseVisionException {
         if (galleryEmbeddings == null || galleryEmbeddings.isEmpty()) {

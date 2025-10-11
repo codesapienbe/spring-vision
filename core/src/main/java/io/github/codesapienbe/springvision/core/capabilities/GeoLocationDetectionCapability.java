@@ -16,7 +16,6 @@ import java.util.List;
  *   <li>Reverse geocoding</li>
  *   <li>Image-based location inference</li>
  * </ul>
- * </p>
  *
  * <p>This capability is useful for applications that need to determine where
  * a photo was taken, organize photos by location, or provide location-based services.</p>
@@ -37,7 +36,6 @@ public interface GeoLocationDetectionCapability {
      *   <li>Timestamp</li>
      *   <li>Address information</li>
      * </ul>
-     * </p>
      *
      * @param imageData The image data to process.
      * @return A list of detections representing geographic locations found in or associated with the image.
@@ -45,4 +43,3 @@ public interface GeoLocationDetectionCapability {
      */
     List<Detection> detectGeoLocation(ImageData imageData);
 }
-

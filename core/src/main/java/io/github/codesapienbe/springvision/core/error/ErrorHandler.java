@@ -50,6 +50,13 @@ public class ErrorHandler {
 
     /**
      * Executes an operation with retry logic and error handling.
+     *
+     * @param <T>               the return type of the operation
+     * @param component         the component name for logging and metrics
+     * @param operation         the operation name for logging and metrics
+     * @param operationSupplier the supplier function that executes the operation
+     * @return the result of the operation
+     * @throws BaseVisionException if the operation fails after all retries
      */
     public <T> T executeWithRetry(String component, String operation, Supplier<T> operationSupplier)
         throws BaseVisionException {
@@ -58,6 +65,15 @@ public class ErrorHandler {
 
     /**
      * Executes an operation with custom retry configuration.
+     *
+     * @param <T>               the return type of the operation
+     * @param component         the component name for logging and metrics
+     * @param operation         the operation name for logging and metrics
+     * @param operationSupplier the supplier function that executes the operation
+     * @param maxRetries        the maximum number of retry attempts
+     * @param initialDelayMs    the initial delay in milliseconds before the first retry
+     * @return the result of the operation
+     * @throws BaseVisionException if the operation fails after all retries
      */
     public <T> T executeWithRetry(String component, String operation, Supplier<T> operationSupplier,
                                   int maxRetries, long initialDelayMs) throws BaseVisionException {
@@ -122,6 +138,13 @@ public class ErrorHandler {
 
     /**
      * Executes an operation with circuit breaker pattern.
+     *
+     * @param <T>               the return type of the operation
+     * @param component         the component name for logging and metrics
+     * @param operation         the operation name for logging and metrics
+     * @param operationSupplier the supplier function that executes the operation
+     * @return the result of the operation
+     * @throws BaseVisionException if the circuit breaker is open or the operation fails
      */
     public <T> T executeWithCircuitBreaker(String component, String operation, Supplier<T> operationSupplier)
         throws BaseVisionException {
@@ -148,6 +171,13 @@ public class ErrorHandler {
 
     /**
      * Executes an operation with graceful degradation.
+     *
+     * @param <T>               the return type of the operation
+     * @param component         the component name for logging and metrics
+     * @param operation         the operation name for logging and metrics
+     * @param primaryOperation  the primary operation to execute
+     * @param fallbackOperation the fallback operation to execute if primary fails
+     * @return the result of the operation (either primary or fallback)
      */
     public <T> T executeWithGracefulDegradation(String component, String operation,
                                                 Supplier<T> primaryOperation,
@@ -173,6 +203,11 @@ public class ErrorHandler {
 
     /**
      * Handles errors with custom error handler.
+     *
+     * @param component the component name
+     * @param operation the operation name
+     * @param error     the exception that occurred
+     * @param callback  the error handler callback to invoke
      */
     public void handleError(String component, String operation, Exception error, ErrorHandlerCallback callback) {
         totalErrors.incrementAndGet();
@@ -188,6 +223,8 @@ public class ErrorHandler {
 
     /**
      * Gets error statistics.
+     *
+     * @return the error statistics
      */
     public ErrorStatistics getErrorStatistics() {
         return ErrorStatistics.builder()

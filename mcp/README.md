@@ -267,36 +267,6 @@ Extracts comprehensive metadata embedded in images including:
 }
 ```
 
-### Pose Estimation
-
-Detects human body poses with skeletal keypoints including:
-
-- Head, neck, shoulders
-- Elbows, wrists, hands
-- Hips, knees, ankles, feet
-
-**Use Cases:**
-
-- Fitness and sports analysis
-- Ergonomics assessment
-- Action recognition
-- Motion capture
-
-### Hand Detection
-
-Detects hands with 21 landmark points per hand:
-
-- Thumb, index, middle, ring, pinky finger joints
-- Palm keypoints
-- Wrist position
-
-**Use Cases:**
-
-- Gesture recognition
-- Sign language interpretation
-- Virtual reality interactions
-- Touchless interfaces
-
 ### Barcode Detection
 
 Supports multiple barcode formats:
@@ -313,22 +283,6 @@ Supports multiple barcode formats:
 - Inventory management
 - Ticket validation
 - Document tracking
-
-### Landmark Detection
-
-Identifies famous landmarks and places:
-
-- Buildings and monuments
-- Natural landmarks
-- Historical sites
-- Tourist attractions
-
-**Use Cases:**
-
-- Travel applications
-- Photo organization
-- Location-based services
-- Educational apps
 
 ### Image Annotation
 

@@ -57,6 +57,11 @@ public class DistributedVisionProcessor {
     // Health monitoring
     private final HealthMonitor healthMonitor;
 
+    /**
+     * Default constructor for DistributedVisionProcessor.
+     * Initializes configuration, load balancer, fault tolerance manager,
+     * metrics, and health monitor, then starts background processes.
+     */
     public DistributedVisionProcessor() {
         this.configuration = new DistributedConfiguration();
         this.loadBalancer = new LoadBalancer();
@@ -70,6 +75,10 @@ public class DistributedVisionProcessor {
 
     /**
      * Processes a vision task using distributed processing.
+     *
+     * @param imageData the image data to process
+     * @param query     the detection query
+     * @return a CompletableFuture containing the distributed result
      */
     public CompletableFuture<DistributedResult> processDistributed(ImageData imageData, DetectionQuery query) {
         String taskId = generateTaskId();

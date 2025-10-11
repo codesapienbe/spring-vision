@@ -15,7 +15,9 @@ public interface EavesdroppingDetectionCapability {
 
     /**
      * Detects potential eavesdropping attempts from a sequence of images.
+     *
+     * @param imageDataList the list of image frames to analyze
+     * @return a list of detections describing potential eavesdropping events
      */
     List<Detection> detectEavesdropping(List<ImageData> imageDataList);
 }
-

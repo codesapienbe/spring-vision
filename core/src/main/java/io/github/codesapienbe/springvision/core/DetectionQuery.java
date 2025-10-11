@@ -134,6 +134,12 @@ public final class DetectionQuery {
         private Map<String, Object> options = Map.of();
 
         /**
+         * Constructs a new Builder instance.
+         */
+        public Builder() {
+        }
+
+        /**
          * Sets the detection type.
          *
          * @param type the detection type

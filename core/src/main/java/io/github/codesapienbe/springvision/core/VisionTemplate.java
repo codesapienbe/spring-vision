@@ -36,6 +36,8 @@ import java.util.*;
  * }
  * }</pre>
  *
+ * @param backend       the vision backend to use for processing operations
+ * @param vectorService the vector service for similarity search operations
  * @author Spring Vision Team
  * @see VisionBackend
  * @see VisionResult
