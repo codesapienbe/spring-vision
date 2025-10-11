@@ -9,7 +9,6 @@
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision</artifactId>
     <version>1.0</version>
-    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>core</artifactId>
@@ -139,6 +138,12 @@
       <groupId>com.google.zxing</groupId>
       <artifactId>javase</artifactId>
       <version>3.5.1</version>
+    </dependency>
+    <!-- Metadata Extractor for EXIF data -->
+    <dependency>
+      <groupId>com.drewnoakes</groupId>
+      <artifactId>metadata-extractor</artifactId>
+      <version>2.19.0</version>
     </dependency>
   </dependencies>
 

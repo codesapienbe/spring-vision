@@ -96,7 +96,7 @@ public class VisionTool {
     /**
      * Detects objects or faces in an image provided as a byte array.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageBytes    The image data as a byte array.
      * @param detectionType The type of detection to perform, either "FACE" or "OBJECT". Defaults to "FACE".
      * @return A map containing the detection results, including a list of detections and the total count.
      */
@@ -124,7 +124,7 @@ public class VisionTool {
     /**
      * Detects objects or faces in a base64 encoded image.
      *
-     * @param base64Image The base64 encoded string of the image.
+     * @param base64Image   The base64 encoded string of the image.
      * @param detectionType The type of detection to perform, either "FACE" or "OBJECT".
      * @return A map containing the detection results or an error message.
      */
@@ -144,7 +144,7 @@ public class VisionTool {
     /**
      * Detects objects or faces in an image from a given URL.
      *
-     * @param imageUrl The URL of the.
+     * @param imageUrl      The URL of the.
      * @param detectionType The type of detection to perform, either "FACE" or "OBJECT".
      * @return A map containing the detection results or an error message.
      */
@@ -359,7 +359,7 @@ public class VisionTool {
      * Compares faces from multiple base64-encoded images to determine if they belong to the same person.
      *
      * @param base64Images A list of base64 encoded image strings.
-     * @param threshold The similarity threshold to use for the comparison. Defaults to 0.6.
+     * @param threshold    The similarity threshold to use for the comparison. Defaults to 0.6.
      * @return A map containing the similarity scores, a match verdict, and other comparison details.
      */
     @Tool(description = "Compare faces from multiple base64-encoded images to determine if they show the same person. Returns similarity scores and a match verdict.")
@@ -405,8 +405,8 @@ public class VisionTool {
      * It uses the first detected face from each image for the comparison.
      *
      * @param allEmbeddings A list where each element is a list of face embeddings for an image.
-     * @param imageLabels A list of labels for the images being compared.
-     * @param threshold The similarity threshold to determine if faces match.
+     * @param imageLabels   A list of labels for the images being compared.
+     * @param threshold     The similarity threshold to determine if faces match.
      * @return A map containing detailed comparison results, including pairwise scores and an overall verdict.
      */
     private Map<String, Object> performFaceComparison(List<List<float[]>> allEmbeddings,
@@ -483,5 +483,312 @@ public class VisionTool {
         if (similarity >= 0.6) return "Medium";
         if (similarity >= 0.5) return "Low";
         return "Very Low";
+    }
+
+    // ========== NEW CAPABILITIES ==========
+
+    /**
+     * Detects human body poses and keypoints in an image provided as a byte array.
+     * Returns detected poses with skeletal keypoints (shoulders, elbows, knees, etc.).
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the pose detection results, keypoints, and the count of poses found.
+     */
+    @Tool(description = "Detect human body poses and skeletal keypoints in an image. Returns pose estimations with joint positions.")
+    public Map<String, Object> detectPoses(byte[] imageBytes) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            var poseDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.POSE);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("poses", poseDetections.detections());
+            response.put("count", poseDetections.detections().size());
+            response.put("averageConfidence", poseDetections.averageConfidence());
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Pose detection failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects human body poses and keypoints from an image URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the pose detection results or an error message.
+     */
+    @Tool(description = "Detect human body poses and skeletal keypoints from an image URL. Returns pose estimations with joint positions.")
+    public Map<String, Object> detectPosesUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return detectPoses(imageBytes);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects hands and hand gestures in an image provided as a byte array.
+     * Returns detected hands with landmark keypoints for fingers and palm.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the hand detection results, landmarks, and the count of hands found.
+     */
+    @Tool(description = "Detect hands and hand gestures in an image. Returns hand landmarks including finger positions and palm keypoints.")
+    public Map<String, Object> detectHands(byte[] imageBytes) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            var handDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.HAND);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("hands", handDetections.detections());
+            response.put("count", handDetections.detections().size());
+            response.put("averageConfidence", handDetections.averageConfidence());
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Hand detection failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects hands and hand gestures from an image URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the hand detection results or an error message.
+     */
+    @Tool(description = "Detect hands and hand gestures from an image URL. Returns hand landmarks including finger positions and palm keypoints.")
+    public Map<String, Object> detectHandsUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return detectHands(imageBytes);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects and decodes barcodes and QR codes in an image provided as a byte array.
+     * Returns the decoded data along with barcode type and location.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the barcode detection results, decoded values, and the count of barcodes found.
+     */
+    @Tool(description = "Detect and decode barcodes and QR codes in an image. Returns decoded values, barcode types (QR, EAN, UPC, etc.), and locations.")
+    public Map<String, Object> detectBarcodes(byte[] imageBytes) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            var barcodeDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
+
+            Map<String, Object> response = new HashMap<>();
+            List<Map<String, Object>> barcodes = new ArrayList<>();
+
+            for (var detection : barcodeDetections.detections()) {
+                Map<String, Object> barcode = new HashMap<>();
+                barcode.put("type", detection.label());
+                barcode.put("value", detection.getAttribute("value"));
+                barcode.put("confidence", detection.confidence());
+                barcode.put("boundingBox", detection.boundingBox());
+                barcodes.add(barcode);
+            }
+
+            response.put("barcodes", barcodes);
+            response.put("count", barcodeDetections.detections().size());
+            response.put("rawDetections", barcodeDetections);
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Barcode detection failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects and decodes barcodes and QR codes from an image URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the barcode detection results or an error message.
+     */
+    @Tool(description = "Detect and decode barcodes and QR codes from an image URL. Returns decoded values, barcode types (QR, EAN, UPC, etc.), and locations.")
+    public Map<String, Object> detectBarcodesUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return detectBarcodes(imageBytes);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects geographic landmarks and famous places in an image provided as a byte array.
+     * Returns identified landmarks with confidence scores and location information.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing the landmark detection results and the count of landmarks found.
+     */
+    @Tool(description = "Detect geographic landmarks and famous places in an image. Returns identified landmarks with names, confidence scores, and locations.")
+    public Map<String, Object> detectLandmarks(byte[] imageBytes) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            var landmarkDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.LANDMARK);
+
+            Map<String, Object> response = new HashMap<>();
+            List<Map<String, Object>> landmarks = new ArrayList<>();
+
+            for (var detection : landmarkDetections.detections()) {
+                Map<String, Object> landmark = new HashMap<>();
+                landmark.put("name", detection.label());
+                landmark.put("confidence", detection.confidence());
+                landmark.put("boundingBox", detection.boundingBox());
+                landmark.put("location", detection.getAttribute("location"));
+                landmark.put("description", detection.getAttribute("description"));
+                landmarks.add(landmark);
+            }
+
+            response.put("landmarks", landmarks);
+            response.put("count", landmarkDetections.detections().size());
+            response.put("rawDetections", landmarkDetections);
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Landmark detection failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Detects geographic landmarks and famous places from an image URL.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing the landmark detection results or an error message.
+     */
+    @Tool(description = "Detect geographic landmarks and famous places from an image URL. Returns identified landmarks with names, confidence scores, and locations.")
+    public Map<String, Object> detectLandmarksUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return detectLandmarks(imageBytes);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Annotates an image with detected objects by drawing bounding boxes and labels.
+     * Supports multiple detection types and custom annotation styles.
+     *
+     * @param imageBytes    The image data as a byte array.
+     * @param detectionType The type of objects to detect and annotate (FACE, OBJECT, TEXT, etc.). Defaults to "OBJECT".
+     * @param drawBoxes     Whether to draw bounding boxes around detections. Defaults to true.
+     * @param drawLabels    Whether to draw labels on detections. Defaults to true.
+     * @return A map containing the annotated image (as base64) and detection information.
+     */
+    @Tool(description = "Annotate an image by detecting objects and drawing bounding boxes with labels. Returns the annotated image as base64 along with detection details.")
+    public Map<String, Object> annotateImage(byte[] imageBytes, String detectionType, Boolean drawBoxes, Boolean drawLabels) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Determine detection type
+            io.github.codesapienbe.springvision.core.DetectionType type;
+            io.github.codesapienbe.springvision.core.DetectionCategory category;
+
+            if (detectionType == null || detectionType.isEmpty()) {
+                type = io.github.codesapienbe.springvision.core.DetectionType.OBJECT;
+                category = io.github.codesapienbe.springvision.core.DetectionCategory.OBJECT;
+            } else {
+                type = switch (detectionType.toUpperCase()) {
+                    case "FACE" -> io.github.codesapienbe.springvision.core.DetectionType.FACE;
+                    case "OBJECT" -> io.github.codesapienbe.springvision.core.DetectionType.OBJECT;
+                    case "TEXT" -> io.github.codesapienbe.springvision.core.DetectionType.TEXT;
+                    case "POSE" -> io.github.codesapienbe.springvision.core.DetectionType.POSE;
+                    case "HAND" -> io.github.codesapienbe.springvision.core.DetectionType.HAND;
+                    case "BARCODE" -> io.github.codesapienbe.springvision.core.DetectionType.BARCODE;
+                    default -> io.github.codesapienbe.springvision.core.DetectionType.OBJECT;
+                };
+
+                category = switch (detectionType.toUpperCase()) {
+                    case "FACE" -> io.github.codesapienbe.springvision.core.DetectionCategory.FACE;
+                    case "HAND" -> io.github.codesapienbe.springvision.core.DetectionCategory.HAND;
+                    case "POSE" -> io.github.codesapienbe.springvision.core.DetectionCategory.BODY;
+                    default -> io.github.codesapienbe.springvision.core.DetectionCategory.OBJECT;
+                };
+            }
+
+            // Perform detection
+            var detections = visionTemplate.detect(imgData, type);
+
+            // Try to annotate the image if backend supports it
+            ImageData annotatedImage = imgData;
+            boolean annotationSupported = false;
+
+            if (visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability annotationCap) {
+                try {
+                    // Determine annotation action based on parameters
+                    boolean shouldDrawBoxes = drawBoxes == null || drawBoxes;
+                    boolean shouldDrawLabels = drawLabels == null || drawLabels;
+
+                    if (shouldDrawBoxes) {
+                        // Create an annotation request to mark (draw boxes)
+                        var annotationRequest = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
+                            .action(io.github.codesapienbe.springvision.core.AnnotationRequest.Action.MARK)
+                            .categories(java.util.Set.of(category))
+                            .build();
+
+                        annotatedImage = annotationCap.annotate(imgData, annotationRequest);
+                        annotationSupported = true;
+                    }
+                } catch (Exception e) {
+                    // Annotation failed, continue with the original image
+                    annotationSupported = false;
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("annotatedImage", Base64.getEncoder().encodeToString(annotatedImage.data()));
+            response.put("detections", detections.detections());
+            response.put("detectionCount", detections.detectionCount());
+            response.put("detectionType", type.getDisplayName());
+            response.put("averageConfidence", detections.averageConfidence());
+            response.put("annotationApplied", annotationSupported);
+
+            if (!annotationSupported) {
+                response.put("note", "Backend does not support annotation or annotation failed. Returning original image with detection metadata.");
+            }
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Image annotation failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Annotates an image from a URL with detected objects by drawing bounding boxes and labels.
+     *
+     * @param imageUrl      The URL of the image.
+     * @param detectionType The type of objects to detect and annotate (FACE, OBJECT, TEXT, etc.).
+     * @param drawBoxes     Whether to draw bounding boxes around detections.
+     * @param drawLabels    Whether to draw labels on detections.
+     * @return A map containing the annotated image (as base64) and detection information.
+     */
+    @Tool(description = "Annotate an image from URL by detecting objects and drawing bounding boxes with labels. Returns the annotated image as base64 along with detection details.")
+    public Map<String, Object> annotateImageUrl(String imageUrl, String detectionType, Boolean drawBoxes, Boolean drawLabels) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return annotateImage(imageBytes, detectionType, drawBoxes, drawLabels);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
     }
 }

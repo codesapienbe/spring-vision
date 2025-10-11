@@ -154,7 +154,7 @@ public enum DetectionType {
      * Defect detection - identifies defects in manufactured products.
      *
      * <p>This detection type analyzes images from production lines to identify
-     * defects such as scratches, dents, cracks, misalignments, and other quality issues
+     * defects such as scratches, dents, cracks, misalignment, and other quality issues
      * in manufactured products.</p>
      */
     DEFECT("defect", "Defect Detection", false, "Detects defects in manufactured products"),
@@ -175,7 +175,15 @@ public enum DetectionType {
      * are being used in assembly processes, checking component type, part numbers,
      * orientation, and placement.</p>
      */
-    COMPONENT_VERIFICATION("component-verification", "Component Verification", false, "Verifies correct component usage in assembly");
+    COMPONENT_VERIFICATION("component-verification", "Component Verification", false, "Verifies correct component usage in assembly"),
+
+    /**
+     * Metadata extraction - extracts metadata from images including EXIF, GPS, and camera information.
+     *
+     * <p>This detection type extracts various types of metadata embedded in images including
+     * GPS coordinates, camera settings, timestamps, author information, and other EXIF/IPTC/XMP data.</p>
+     */
+    METADATA_EXTRACTION("metadata-extraction", "Metadata Extraction", true, "Extracts metadata from images including GPS and EXIF data");
 
     private final String code;
     private final String displayName;

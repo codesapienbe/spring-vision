@@ -88,7 +88,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "spring.vision.opencv")
 @ConditionalOnProperty(prefix = "spring.vision.opencv", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability,
-    AnnotationCapability, FaceVerificationCapability, FaceLookupCapability {
+    AnnotationCapability, FaceVerificationCapability, FaceLookupCapability,
+    io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
 
@@ -312,7 +313,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
 
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
-        return Set.of(DetectionType.FACE, DetectionType.OBJECT, DetectionType.BARCODE);
+        return Set.of(DetectionType.FACE, DetectionType.OBJECT, DetectionType.BARCODE, DetectionType.METADATA_EXTRACTION);
     }
 
     @Override
@@ -3035,5 +3036,153 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         } catch (Exception e) {
             logger.warn("Error during OpenCV backend cleanup: {}", e.getMessage());
         }
+    }
+
+    @Override
+    public List<Detection> extractMetaData(ImageData imageData) {
+        if (imageData == null || imageData.isEmpty()) {
+            logger.warn("Image data is null or empty for metadata extraction");
+            return Collections.emptyList();
+        }
+
+        List<Detection> metadataDetections = new ArrayList<>();
+
+        try {
+            // Extract metadata using metadata-extractor library
+            java.io.ByteArrayInputStream inputStream = new java.io.ByteArrayInputStream(imageData.data());
+            com.drew.metadata.Metadata metadata = com.drew.imaging.ImageMetadataReader.readMetadata(inputStream);
+
+            // Create a full-image bounding box (entire image)
+            BoundingBox fullImageBox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+
+            // Extract GPS metadata if available
+            com.drew.metadata.exif.GpsDirectory gpsDirectory = metadata.getFirstDirectoryOfType(com.drew.metadata.exif.GpsDirectory.class);
+            if (gpsDirectory != null && !gpsDirectory.isEmpty()) {
+                Map<String, Object> gpsAttributes = new HashMap<>();
+
+                // Extract GPS coordinates
+                com.drew.lang.GeoLocation geoLocation = gpsDirectory.getGeoLocation();
+                if (geoLocation != null) {
+                    gpsAttributes.put("latitude", geoLocation.getLatitude());
+                    gpsAttributes.put("longitude", geoLocation.getLongitude());
+                }
+
+                // Extract altitude
+                if (gpsDirectory.containsTag(com.drew.metadata.exif.GpsDirectory.TAG_ALTITUDE)) {
+                    gpsAttributes.put("altitude", gpsDirectory.getString(com.drew.metadata.exif.GpsDirectory.TAG_ALTITUDE));
+                }
+
+                // Extract GPS timestamp
+                if (gpsDirectory.containsTag(com.drew.metadata.exif.GpsDirectory.TAG_TIME_STAMP)) {
+                    gpsAttributes.put("gps_timestamp", gpsDirectory.getString(com.drew.metadata.exif.GpsDirectory.TAG_TIME_STAMP));
+                }
+
+                if (!gpsAttributes.isEmpty()) {
+                    gpsAttributes.put("metadata_type", "gps");
+                    metadataDetections.add(new Detection("gps", 1.0, fullImageBox, gpsAttributes));
+                    logger.debug("Extracted GPS metadata: {}", gpsAttributes);
+                }
+            }
+
+            // Extract EXIF metadata (camera info, settings, timestamps)
+            com.drew.metadata.exif.ExifIFD0Directory exifDirectory = metadata.getFirstDirectoryOfType(com.drew.metadata.exif.ExifIFD0Directory.class);
+            if (exifDirectory != null && !exifDirectory.isEmpty()) {
+                Map<String, Object> exifAttributes = new HashMap<>();
+
+                // Camera make and model
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_MAKE)) {
+                    exifAttributes.put("camera_make", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_MAKE));
+                }
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_MODEL)) {
+                    exifAttributes.put("camera_model", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_MODEL));
+                }
+
+                // Image dimensions
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_IMAGE_WIDTH)) {
+                    exifAttributes.put("image_width", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_IMAGE_WIDTH));
+                }
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_IMAGE_HEIGHT)) {
+                    exifAttributes.put("image_height", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_IMAGE_HEIGHT));
+                }
+
+                // Orientation
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_ORIENTATION)) {
+                    exifAttributes.put("orientation", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_ORIENTATION));
+                }
+
+                // Timestamp
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_DATETIME)) {
+                    exifAttributes.put("datetime", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_DATETIME));
+                }
+
+                // Software
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_SOFTWARE)) {
+                    exifAttributes.put("software", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_SOFTWARE));
+                }
+
+                // Copyright
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_COPYRIGHT)) {
+                    exifAttributes.put("copyright", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_COPYRIGHT));
+                }
+
+                // Artist/Author
+                if (exifDirectory.containsTag(com.drew.metadata.exif.ExifIFD0Directory.TAG_ARTIST)) {
+                    exifAttributes.put("artist", exifDirectory.getString(com.drew.metadata.exif.ExifIFD0Directory.TAG_ARTIST));
+                }
+
+                if (!exifAttributes.isEmpty()) {
+                    exifAttributes.put("metadata_type", "exif");
+                    metadataDetections.add(new Detection("exif", 1.0, fullImageBox, exifAttributes));
+                    logger.debug("Extracted EXIF metadata: {}", exifAttributes);
+                }
+            }
+
+            // Extract SubIFD (camera settings)
+            com.drew.metadata.exif.ExifSubIFDDirectory subIfdDirectory = metadata.getFirstDirectoryOfType(com.drew.metadata.exif.ExifSubIFDDirectory.class);
+            if (subIfdDirectory != null && !subIfdDirectory.isEmpty()) {
+                Map<String, Object> cameraAttributes = new HashMap<>();
+
+                // Exposure settings
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_EXPOSURE_TIME)) {
+                    cameraAttributes.put("exposure_time", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_EXPOSURE_TIME));
+                }
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FNUMBER)) {
+                    cameraAttributes.put("f_number", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FNUMBER));
+                }
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_ISO_EQUIVALENT)) {
+                    cameraAttributes.put("iso", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_ISO_EQUIVALENT));
+                }
+
+                // Flash
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FLASH)) {
+                    cameraAttributes.put("flash", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FLASH));
+                }
+
+                // Focal length
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FOCAL_LENGTH)) {
+                    cameraAttributes.put("focal_length", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_FOCAL_LENGTH));
+                }
+
+                // White balance
+                if (subIfdDirectory.containsTag(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_WHITE_BALANCE)) {
+                    cameraAttributes.put("white_balance", subIfdDirectory.getString(com.drew.metadata.exif.ExifSubIFDDirectory.TAG_WHITE_BALANCE));
+                }
+
+                if (!cameraAttributes.isEmpty()) {
+                    cameraAttributes.put("metadata_type", "camera_settings");
+                    metadataDetections.add(new Detection("camera_settings", 1.0, fullImageBox, cameraAttributes));
+                    logger.debug("Extracted camera settings metadata: {}", cameraAttributes);
+                }
+            }
+
+            logger.info("Extracted {} metadata groups from image", metadataDetections.size());
+
+        } catch (com.drew.imaging.ImageProcessingException e) {
+            logger.debug("Failed to extract metadata from image: {}", e.getMessage());
+        } catch (Exception e) {
+            logger.warn("Error during metadata extraction: {}", e.getMessage());
+        }
+
+        return metadataDetections;
     }
 }

@@ -1,5 +1,80 @@
 # Spring Vision MCP Server - Changelog
 
+## Version 1.0.2 (October 11, 2025)
+
+### 🎉 NEW: 5 Advanced Computer Vision Capabilities
+
+Added 10 new MCP tools (22 total) covering the most demanding computer vision features:
+
+#### 1. Pose Estimation 🧘
+
+- **detectPoses** - Detect human body poses from raw bytes
+- **detectPosesUrl** - Detect poses from image URL
+
+Returns skeletal keypoints including shoulders, elbows, wrists, hips, knees, ankles, and more.
+Use cases: Fitness analysis, sports coaching, ergonomics assessment, motion capture.
+
+#### 2. Hand Detection & Gesture Recognition 👋
+
+- **detectHands** - Detect hands and landmarks from raw bytes
+- **detectHandsUrl** - Detect hands from image URL
+
+Returns 21 landmark points per hand including finger joints, palm keypoints, and wrist position.
+Use cases: Gesture recognition, sign language interpretation, VR interactions, touchless interfaces.
+
+#### 3. Barcode & QR Code Detection 📱
+
+- **detectBarcodes** - Detect and decode barcodes/QR codes from raw bytes
+- **detectBarcodesUrl** - Detect barcodes from image URL
+
+Supports QR, EAN-13, EAN-8, UPC-A, UPC-E, Code 128, Code 39, PDF417, DataMatrix, and more.
+Returns decoded values, barcode types, and locations.
+Use cases: Inventory management, product scanning, ticket validation, document tracking.
+
+#### 4. Landmark Detection 🗼
+
+- **detectLandmarks** - Detect geographic landmarks from raw bytes
+- **detectLandmarksUrl** - Detect landmarks from image URL
+
+Identifies famous buildings, monuments, historical sites, and natural landmarks.
+Returns landmark names, confidence scores, and location information.
+Use cases: Travel apps, photo organization, location-based services, educational applications.
+
+#### 5. Image Annotation 🎨
+
+- **annotateImage** - Annotate images with bounding boxes and labels from raw bytes
+- **annotateImageUrl** - Annotate images from URL
+
+Visualizes detection results by drawing bounding boxes, labels, and confidence scores.
+Supports all detection types: FACE, OBJECT, TEXT, POSE, HAND, BARCODE.
+Returns annotated image as base64 along with detection metadata.
+Use cases: Visualization, debugging, creating training data, quality assurance.
+
+### 📊 Updated Statistics
+
+- **Total MCP Tools**: 22 (was 12)
+- **New Capabilities**: 5
+- **New API Endpoints**: 10
+- **Supported Detection Types**: 8 (FACE, OBJECT, TEXT, POSE, HAND, BARCODE, LANDMARK, CUSTOM)
+
+### 🔧 Technical Improvements
+
+- All new tools follow consistent patterns with both byte array and URL variants
+- Comprehensive error handling with descriptive error messages
+- Integration with VisionTemplate's capability routing system
+- Support for backend-specific implementations via capability interfaces
+- Graceful fallback when backends don't support specific capabilities
+
+### 📖 Documentation Updates
+
+- Updated README.md with all 22 tools
+- Added feature details for each new capability
+- Included use cases and example usage
+- Added backend support matrix showing which backends support which capabilities
+- Updated example prompts for AI assistants
+
+---
+
 ## Version 1.0.1 (October 10, 2025)
 
 ### 🎉 New Features
@@ -176,7 +251,7 @@ Recommended improvements for future versions:
 
 ---
 
-## Total Tools Available: 12
+## Total Tools Available: 22
 
 1. detect
 2. detectBase64
@@ -190,3 +265,13 @@ Recommended improvements for future versions:
 10. extractEmbeddingsUrl
 11. compareFacesFromUrls ✨ NEW
 12. compareFacesFromBase64 ✨ NEW
+13. detectPoses ✨ NEW
+14. detectPosesUrl ✨ NEW
+15. detectHands ✨ NEW
+16. detectHandsUrl ✨ NEW
+17. detectBarcodes ✨ NEW
+18. detectBarcodesUrl ✨ NEW
+19. detectLandmarks ✨ NEW
+20. detectLandmarksUrl ✨ NEW
+21. annotateImage ✨ NEW
+22. annotateImageUrl ✨ NEW

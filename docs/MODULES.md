@@ -25,7 +25,7 @@ Every module in the Spring Vision ecosystem follows this exact pattern:
 **Rules:**
 
 - GroupId MUST be `io.github.codesapienbe.springvision`
-- ArtifactId MUST follow pattern `spring-vision-{module}`
+- ArtifactId MUST follow pattern `{module}`
 - Version MUST be specified (no version ranges)
 
 ### Step 2: Configure via Properties

@@ -75,7 +75,7 @@ public class DistributedVisionProcessor {
         String taskId = generateTaskId();
         String tenantId = TenantContext.getCurrentTenantId();
 
-        // Create distributed task
+        // Create a distributed task
         DistributedTask task = new DistributedTask(
             taskId,
             tenantId,
@@ -88,12 +88,12 @@ public class DistributedVisionProcessor {
         // Record task creation
         distributedMetrics.recordTaskCreated(taskId, tenantId);
 
-        // Submit task for processing
+        // Submit a task for processing
         CompletableFuture<DistributedResult> resultFuture = new CompletableFuture<>();
         pendingTasks.put(taskId, resultFuture);
 
         try {
-            // Add task to queue
+            // Add a task to queue
             if (!taskQueue.offer(task, configuration.getQueueTimeoutMs(), TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException("Task queue is full");
             }

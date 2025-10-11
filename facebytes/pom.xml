@@ -8,7 +8,6 @@
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision</artifactId>
     <version>1.0</version>
-    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>facebytes</artifactId>

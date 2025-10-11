@@ -81,7 +81,7 @@ Add this to your MCP client configuration file:
 
 ## 🔧 Available Vision Tools
 
-Spring Vision MCP exposes **12 tools** for computer vision tasks:
+Spring Vision MCP now exposes **22 tools** for advanced computer vision tasks:
 
 ### Face Detection & Recognition
 
@@ -102,28 +102,64 @@ Spring Vision MCP exposes **12 tools** for computer vision tasks:
 9. **extractEmbeddingsBase64** - Extract embeddings (base64)
 10. **extractEmbeddingsUrl** - Extract embeddings from URL
 
-### Face Comparison ✨ NEW
+### Face Comparison
 
 11. **compareFacesFromUrls** - Compare faces from multiple image URLs
-    - Determines if multiple photos show the same person
-    - Returns similarity scores and confidence levels
-    - Example: "Compare these two photos and tell me if they're the same person: [url1], [url2]"
-
 12. **compareFacesFromBase64** - Compare faces from base64 images
-    - Same functionality for uploaded/base64-encoded images
+
+### 🆕 Pose Estimation (NEW)
+
+13. **detectPoses** - Detect human body poses and skeletal keypoints (raw bytes)
+14. **detectPosesUrl** - Detect poses from URL
+    - Returns skeletal keypoints (shoulders, elbows, knees, hips, etc.)
+    - Useful for fitness apps, sports analysis, ergonomics
+
+### 🆕 Hand Detection & Gesture Recognition (NEW)
+
+15. **detectHands** - Detect hands and hand landmarks (raw bytes)
+16. **detectHandsUrl** - Detect hands from URL
+    - Returns hand landmarks including finger positions and palm keypoints
+    - Useful for gesture recognition, sign language, HCI applications
+
+### 🆕 Barcode & QR Code Detection (NEW)
+
+17. **detectBarcodes** - Detect and decode barcodes/QR codes (raw bytes)
+18. **detectBarcodesUrl** - Detect barcodes from URL
+    - Supports QR codes, EAN, UPC, Code 128, and more
+    - Returns decoded values, barcode types, and locations
+    - Useful for inventory management, product scanning, ticketing
+
+### 🆕 Landmark Detection (NEW)
+
+19. **detectLandmarks** - Detect geographic landmarks and famous places (raw bytes)
+20. **detectLandmarksUrl** - Detect landmarks from URL
+    - Identifies famous buildings, monuments, and geographic features
+    - Returns landmark names, confidence scores, and location information
+    - Useful for travel apps, photo organization, location tagging
+
+### 🆕 Image Annotation (NEW)
+
+21. **annotateImage** - Annotate images with bounding boxes and labels (raw bytes)
+22. **annotateImageUrl** - Annotate images from URL
+    - Supports multiple detection types (FACE, OBJECT, TEXT, POSE, HAND, BARCODE)
+    - Draws bounding boxes and labels on detected objects
+    - Returns annotated image as base64 along with detection details
+    - Useful for visualization, debugging, creating training data
 
 ---
 
-## 🎯 Face Comparison Feature
+## 🎯 Feature Details
 
-The new face comparison tools use **cosine similarity** on face embeddings to verify if multiple images show the same person.
+### Face Comparison
 
-### Parameters
+The face comparison tools use **cosine similarity** on face embeddings to verify if multiple images show the same person.
+
+**Parameters:**
 
 - **imageUrls** / **base64Images**: List of images (minimum 2)
 - **threshold** (optional): Similarity threshold (0.0 to 1.0, default: 0.6)
 
-### Similarity Thresholds
+**Similarity Thresholds:**
 
 - **0.8+** = Very High confidence match
 - **0.7-0.8** = High confidence match
@@ -131,7 +167,7 @@ The new face comparison tools use **cosine similarity** on face embeddings to ve
 - **0.5-0.6** = Low confidence
 - **<0.5** = Different people / Very Low confidence
 
-### Response Format
+**Example Response:**
 
 ```json
 {
@@ -155,211 +191,161 @@ The new face comparison tools use **cosine similarity** on face embeddings to ve
 }
 ```
 
-### Example Usage
+### Pose Estimation
 
-**With AI Assistant:**
-> "Compare these two photos and tell me if they're the same person:"
-> - Photo 1: https://example.com/id_photo.jpg
-> - Photo 2: https://example.com/selfie.jpg
+Detects human body poses with skeletal keypoints including:
 
-**Multi-image comparison:**
-> "Are all these photos of the same person?" (provide 3+ URLs)
+- Head, neck, shoulders
+- Elbows, wrists, hands
+- Hips, knees, ankles, feet
 
-The tool performs pairwise comparisons and provides an overall verdict.
+**Use Cases:**
 
----
+- Fitness and sports analysis
+- Ergonomics assessment
+- Action recognition
+- Motion capture
 
-## ⚙️ Backend Configuration
+### Hand Detection
 
-### Default Configuration
+Detects hands with 21 landmark points per hand:
 
-By default, Spring Vision uses the **OpenCV backend**, which works out-of-the-box for:
+- Thumb, index, middle, ring, pinky finger joints
+- Palm keypoints
+- Wrist position
 
-- ✅ Face detection
-- ✅ Object detection
-- ✅ OCR (text extraction)
-- ✅ Face embedding extraction (basic quality)
+**Use Cases:**
 
-No additional configuration needed!
+- Gesture recognition
+- Sign language interpretation
+- Virtual reality interactions
+- Touchless interfaces
 
-### Production Backends (Optional)
+### Barcode Detection
 
-For **higher quality face embeddings** and better comparison accuracy, consider specialized backends:
+Supports multiple barcode formats:
 
-#### 1. InsightFace (Recommended)
+- QR Code
+- EAN-13, EAN-8
+- UPC-A, UPC-E
+- Code 128, Code 39
+- PDF417, DataMatrix
 
-```yaml
-# application.yml
-spring:
-  vision:
-    backend: insightface
-    insightface:
-      url: http://insightface-service:5001
-```
+**Use Cases:**
 
-**Docker Compose Example:**
+- Product scanning
+- Inventory management
+- Ticket validation
+- Document tracking
 
-```yaml
-services:
-  insightface:
-    image: deepinsight/insightface-rest
-    ports:
-      - "5001:5000"
+### Landmark Detection
 
-  spring-vision:
-    image: codesapienbe/spring-vision:latest
-    environment:
-      - SPRING_VISION_BACKEND=insightface
-      - SPRING_VISION_INSIGHTFACE_URL=http://insightface:5000
-```
+Identifies famous landmarks and places:
 
-#### 2. DeepFace
+- Buildings and monuments
+- Natural landmarks
+- Historical sites
+- Tourist attractions
 
-```yaml
-spring:
-  vision:
-    backend: deepface
-    deepface:
-      url: http://deepface-service:5002
-```
+**Use Cases:**
 
-#### 3. CompreFace
+- Travel applications
+- Photo organization
+- Location-based services
+- Educational apps
 
-```yaml
-spring:
-  vision:
-    backend: compreface
-    compreface:
-      url: http://compreface:8000
-      apiKey: your-api-key
-```
+### Image Annotation
 
-### Backend Comparison
+Visualizes detection results by drawing:
 
-| Backend     | Quality   | Speed  | Setup Complexity |
-|-------------|-----------|--------|------------------|
-| OpenCV      | Good      | Fast   | ✅ None           |
-| InsightFace | Excellent | Fast   | Docker service   |
-| DeepFace    | Excellent | Medium | Docker service   |
-| CompreFace  | Excellent | Medium | Docker Compose   |
-| FaceBytes   | Good      | Fast   | Additional deps  |
+- Bounding boxes around detected objects
+- Labels with object names
+- Confidence scores
+
+**Supported Detection Types:**
+
+- FACE - Annotate detected faces
+- OBJECT - Annotate detected objects
+- TEXT - Annotate detected text regions
+- POSE - Annotate body poses
+- HAND - Annotate hands
+- BARCODE - Annotate barcodes/QR codes
+
+**Parameters:**
+
+- **imageBytes** / **imageUrl**: Input image
+- **detectionType**: Type of detection (default: "OBJECT")
+- **drawBoxes**: Draw bounding boxes (default: true)
+- **drawLabels**: Draw labels (default: true)
 
 ---
 
-## 🔨 Development
+## 📊 Example Usage
 
-### Building Locally
-
-```bash
-# Build with Maven
-mvn clean install -DskipTests
-
-# Or use Makefile
-make build
-```
-
-### Running Tests
-
-```bash
-mvn test
-
-# Or use Makefile
-make verify
-```
-
-### Releasing to Maven Central
-
-```bash
-make release
-```
-
----
-
-## 📊 Tool Registration
-
-When the MCP server starts, you should see:
+### Pose Estimation
 
 ```
-INFO --- Registered tools: 12
+"Analyze the yoga pose in this image: https://example.com/yoga.jpg"
 ```
 
-This confirms all vision tools are available to your AI assistant.
+### Hand Gesture Recognition
 
----
-
-## 🐛 Troubleshooting
-
-### Container Exits Immediately
-
-Ensure the `-i` flag is present in your MCP client config:
-
-```json
-"args": ["run", "-i", "--rm", "codesapienbe/spring-vision:latest"]
+```
+"What hand gesture is shown in this image?"
 ```
 
-### Face Comparison Returns "No face detected"
+### Barcode Scanning
 
-- Ensure images are at least 640x480 pixels
-- Face should be clearly visible and front-facing
-- Supported formats: JPG, PNG, BMP, TIFF
-- For better accuracy, use specialized backends (InsightFace recommended)
+```
+"Scan the QR code in this image and tell me what it says"
+```
 
-### Low Similarity Scores for Same Person
+### Landmark Identification
 
-- Try lowering the threshold (default 0.6 → 0.5)
-- Use specialized backend for better embeddings
-- Ensure consistent lighting and angles in photos
+```
+"What landmark is shown in this photo?"
+```
 
-### Image Download Fails
+### Image Annotation
 
-- Check URL is publicly accessible
-- Verify image format is supported
-- Check firewall/network settings
-
----
-
-## 📚 Additional Documentation
-
-- **CHANGELOG.md** - Version history and feature updates
-- **TROUBLESHOOTING.md** - Detailed troubleshooting guide
+```
+"Annotate all the people in this image with bounding boxes"
+```
 
 ---
 
-## 🎯 Use Cases
+## 🔍 Backend Support
 
-- **Identity Verification**: Compare ID photos with selfies
-- **Duplicate Detection**: Find duplicate faces across image sets
-- **Face Clustering**: Group photos by person
-- **Access Control**: Verify authorized personnel
-- **Content Moderation**: Detect specific individuals
-- **Photo Organization**: Auto-tag photos by person
+Different vision backends support different capabilities:
 
----
-
-## 🔒 Features
-
-✅ **12 Computer Vision Tools** - Face detection, OCR, embeddings, comparison
-✅ **Face Comparison** - Verify if photos show the same person
-✅ **Docker Deployment** - Simple, consistent deployment
-✅ **MCP Protocol** - Works with Claude, Cline, and other MCP clients
-✅ **Multiple Backends** - OpenCV, InsightFace, DeepFace, CompreFace
-✅ **Production Ready** - Stable stdio communication, proper logging
-✅ **Zero Configuration** - Works out-of-the-box with OpenCV
+| Capability        | MediaPipe | OpenCV | YOLO | Tesseract |
+|-------------------|-----------|--------|------|-----------|
+| Face Detection    | ✅         | ✅      | ✅    | ❌         |
+| Object Detection  | ✅         | ✅      | ✅    | ❌         |
+| Text/OCR          | ❌         | ❌      | ❌    | ✅         |
+| Pose Estimation   | ✅         | ❌      | ✅    | ❌         |
+| Hand Detection    | ✅         | ❌      | ❌    | ❌         |
+| Barcode Detection | ❌         | ✅      | ❌    | ❌         |
+| Face Embeddings   | ✅         | ✅      | ❌    | ❌         |
+| Annotation        | ✅         | ✅      | ✅    | ❌         |
 
 ---
 
-## 📝 License
-
-See LICENSE file for details.
-
----
-
-## 🌟 Quick Start
+## 🚀 Getting Started
 
 1. Build the project: `make build`
 2. (Optional) Push to Docker Hub: `make deploy`
 3. Add to your MCP client config (see above)
 4. Restart your AI assistant
-5. Ask: "Compare these two photos: [url1], [url2]"
+5. Explore new capabilities:
+    - "Detect faces in this image: [image_url]"
+    - "Recognize this face: [image_url]"
+    - "Extract text from this image: [image_url]"
+    - "Compare these two faces: [image_url1], [image_url2]"
+    - "Analyze the pose in this image: [image_url]"
+    - "What gesture is shown in this image: [image_url]?"
+    - "Scan the barcode in this image: [image_url]"
+    - "What landmark is this: [image_url]?"
+    - "Annotate objects in this image: [image_url]"
 
-**That's it!** Your AI now has computer vision superpowers! 🦸‍♂️
+**That's it!** Your AI now has advanced computer vision superpowers! 🦸‍♂️
