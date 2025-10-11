@@ -81,7 +81,7 @@ Add this to your MCP client configuration file:
 
 ## 🔧 Available Vision Tools
 
-Spring Vision MCP now exposes **22 tools** for advanced computer vision tasks:
+Spring Vision MCP now exposes **24 tools** for advanced computer vision tasks:
 
 ### Face Detection & Recognition
 
@@ -107,40 +107,51 @@ Spring Vision MCP now exposes **22 tools** for advanced computer vision tasks:
 11. **compareFacesFromUrls** - Compare faces from multiple image URLs
 12. **compareFacesFromBase64** - Compare faces from base64 images
 
-### 🆕 Pose Estimation (NEW)
+### 🆕 Metadata Extraction (NEW)
 
-13. **detectPoses** - Detect human body poses and skeletal keypoints (raw bytes)
-14. **detectPosesUrl** - Detect poses from URL
+13. **extractMetaData** - Extract EXIF, GPS, and camera metadata (raw bytes)
+14. **extractMetaDataUrl** - Extract metadata from URL
+    - Extracts GPS coordinates (latitude, longitude, altitude)
+    - Camera information (make, model, settings)
+    - Timestamps and capture information
+    - Copyright and author information
+    - Image properties (dimensions, orientation)
+    - Useful for photo organization, forensics, location tracking
+
+### 🆕 Pose Estimation
+
+15. **detectPoses** - Detect human body poses and skeletal keypoints (raw bytes)
+16. **detectPosesUrl** - Detect poses from URL
     - Returns skeletal keypoints (shoulders, elbows, knees, hips, etc.)
     - Useful for fitness apps, sports analysis, ergonomics
 
-### 🆕 Hand Detection & Gesture Recognition (NEW)
+### 🆕 Hand Detection & Gesture Recognition
 
-15. **detectHands** - Detect hands and hand landmarks (raw bytes)
-16. **detectHandsUrl** - Detect hands from URL
+17. **detectHands** - Detect hands and hand landmarks (raw bytes)
+18. **detectHandsUrl** - Detect hands from URL
     - Returns hand landmarks including finger positions and palm keypoints
     - Useful for gesture recognition, sign language, HCI applications
 
-### 🆕 Barcode & QR Code Detection (NEW)
+### 🆕 Barcode & QR Code Detection
 
-17. **detectBarcodes** - Detect and decode barcodes/QR codes (raw bytes)
-18. **detectBarcodesUrl** - Detect barcodes from URL
+19. **detectBarcodes** - Detect and decode barcodes/QR codes (raw bytes)
+20. **detectBarcodesUrl** - Detect barcodes from URL
     - Supports QR codes, EAN, UPC, Code 128, and more
     - Returns decoded values, barcode types, and locations
     - Useful for inventory management, product scanning, ticketing
 
-### 🆕 Landmark Detection (NEW)
+### 🆕 Landmark Detection
 
-19. **detectLandmarks** - Detect geographic landmarks and famous places (raw bytes)
-20. **detectLandmarksUrl** - Detect landmarks from URL
+21. **detectLandmarks** - Detect geographic landmarks and famous places (raw bytes)
+22. **detectLandmarksUrl** - Detect landmarks from URL
     - Identifies famous buildings, monuments, and geographic features
     - Returns landmark names, confidence scores, and location information
     - Useful for travel apps, photo organization, location tagging
 
-### 🆕 Image Annotation (NEW)
+### 🆕 Image Annotation
 
-21. **annotateImage** - Annotate images with bounding boxes and labels (raw bytes)
-22. **annotateImageUrl** - Annotate images from URL
+23. **annotateImage** - Annotate images with bounding boxes and labels (raw bytes)
+24. **annotateImageUrl** - Annotate images from URL
     - Supports multiple detection types (FACE, OBJECT, TEXT, POSE, HAND, BARCODE)
     - Draws bounding boxes and labels on detected objects
     - Returns annotated image as base64 along with detection details
@@ -188,6 +199,71 @@ The face comparison tools use **cosine similarity** on face embeddings to verify
     "imagesCompared": 2
   },
   "verdict": "All images appear to show the same person"
+}
+```
+
+### Metadata Extraction
+
+Extracts comprehensive metadata embedded in images including:
+
+**GPS Metadata:**
+
+- Latitude and longitude coordinates
+- Altitude information
+- GPS timestamp
+
+**EXIF Metadata:**
+
+- Camera make and model
+- Image dimensions and orientation
+- Capture datetime
+- Software used
+- Copyright and artist information
+
+**Camera Settings:**
+
+- Exposure time and ISO
+- F-number (aperture)
+- Flash status
+- Focal length
+- White balance
+
+**Use Cases:**
+
+- Photo organization by location and date
+- Copyright and forensic analysis
+- Travel photography cataloging
+- Image authentication
+- Location-based services
+
+**Example Response:**
+
+```json
+{
+  "metadata": [
+    {
+      "label": "gps",
+      "type": "gps",
+      "latitude": 37.7749,
+      "longitude": -122.4194,
+      "altitude": "15m"
+    },
+    {
+      "label": "exif",
+      "type": "exif",
+      "camera_make": "Canon",
+      "camera_model": "EOS 5D Mark IV",
+      "datetime": "2025:10:11 14:30:00"
+    },
+    {
+      "label": "camera_settings",
+      "type": "camera_settings",
+      "iso": "400",
+      "exposure_time": "1/250s",
+      "f_number": "f/2.8"
+    }
+  ],
+  "count": 3
 }
 ```
 

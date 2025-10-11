@@ -488,92 +488,6 @@ public class VisionTool {
     // ========== NEW CAPABILITIES ==========
 
     /**
-     * Detects human body poses and keypoints in an image provided as a byte array.
-     * Returns detected poses with skeletal keypoints (shoulders, elbows, knees, etc.).
-     *
-     * @param imageBytes The image data as a byte array.
-     * @return A map containing the pose detection results, keypoints, and the count of poses found.
-     */
-    @Tool(description = "Detect human body poses and skeletal keypoints in an image. Returns pose estimations with joint positions.")
-    public Map<String, Object> detectPoses(byte[] imageBytes) {
-        try {
-            ImageData imgData = ImageData.fromBytes(imageBytes);
-            var poseDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.POSE);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("poses", poseDetections.detections());
-            response.put("count", poseDetections.detections().size());
-            response.put("averageConfidence", poseDetections.averageConfidence());
-
-            return response;
-        } catch (Exception e) {
-            return Map.of("error", "Pose detection failed: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Detects human body poses and keypoints from an image URL.
-     *
-     * @param imageUrl The URL of the image.
-     * @return A map containing the pose detection results or an error message.
-     */
-    @Tool(description = "Detect human body poses and skeletal keypoints from an image URL. Returns pose estimations with joint positions.")
-    public Map<String, Object> detectPosesUrl(String imageUrl) {
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
-            return Map.of("error", "Missing or empty 'imageUrl' argument");
-        }
-        try {
-            byte[] imageBytes = downloadImageFromUrl(imageUrl);
-            return detectPoses(imageBytes);
-        } catch (IOException e) {
-            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Detects hands and hand gestures in an image provided as a byte array.
-     * Returns detected hands with landmark keypoints for fingers and palm.
-     *
-     * @param imageBytes The image data as a byte array.
-     * @return A map containing the hand detection results, landmarks, and the count of hands found.
-     */
-    @Tool(description = "Detect hands and hand gestures in an image. Returns hand landmarks including finger positions and palm keypoints.")
-    public Map<String, Object> detectHands(byte[] imageBytes) {
-        try {
-            ImageData imgData = ImageData.fromBytes(imageBytes);
-            var handDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.HAND);
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("hands", handDetections.detections());
-            response.put("count", handDetections.detections().size());
-            response.put("averageConfidence", handDetections.averageConfidence());
-
-            return response;
-        } catch (Exception e) {
-            return Map.of("error", "Hand detection failed: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Detects hands and hand gestures from an image URL.
-     *
-     * @param imageUrl The URL of the image.
-     * @return A map containing the hand detection results or an error message.
-     */
-    @Tool(description = "Detect hands and hand gestures from an image URL. Returns hand landmarks including finger positions and palm keypoints.")
-    public Map<String, Object> detectHandsUrl(String imageUrl) {
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
-            return Map.of("error", "Missing or empty 'imageUrl' argument");
-        }
-        try {
-            byte[] imageBytes = downloadImageFromUrl(imageUrl);
-            return detectHands(imageBytes);
-        } catch (IOException e) {
-            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
-        }
-    }
-
-    /**
      * Detects and decodes barcodes and QR codes in an image provided as a byte array.
      * Returns the decoded data along with barcode type and location.
      *
@@ -628,61 +542,6 @@ public class VisionTool {
     }
 
     /**
-     * Detects geographic landmarks and famous places in an image provided as a byte array.
-     * Returns identified landmarks with confidence scores and location information.
-     *
-     * @param imageBytes The image data as a byte array.
-     * @return A map containing the landmark detection results and the count of landmarks found.
-     */
-    @Tool(description = "Detect geographic landmarks and famous places in an image. Returns identified landmarks with names, confidence scores, and locations.")
-    public Map<String, Object> detectLandmarks(byte[] imageBytes) {
-        try {
-            ImageData imgData = ImageData.fromBytes(imageBytes);
-            var landmarkDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.LANDMARK);
-
-            Map<String, Object> response = new HashMap<>();
-            List<Map<String, Object>> landmarks = new ArrayList<>();
-
-            for (var detection : landmarkDetections.detections()) {
-                Map<String, Object> landmark = new HashMap<>();
-                landmark.put("name", detection.label());
-                landmark.put("confidence", detection.confidence());
-                landmark.put("boundingBox", detection.boundingBox());
-                landmark.put("location", detection.getAttribute("location"));
-                landmark.put("description", detection.getAttribute("description"));
-                landmarks.add(landmark);
-            }
-
-            response.put("landmarks", landmarks);
-            response.put("count", landmarkDetections.detections().size());
-            response.put("rawDetections", landmarkDetections);
-
-            return response;
-        } catch (Exception e) {
-            return Map.of("error", "Landmark detection failed: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Detects geographic landmarks and famous places from an image URL.
-     *
-     * @param imageUrl The URL of the image.
-     * @return A map containing the landmark detection results or an error message.
-     */
-    @Tool(description = "Detect geographic landmarks and famous places from an image URL. Returns identified landmarks with names, confidence scores, and locations.")
-    public Map<String, Object> detectLandmarksUrl(String imageUrl) {
-        if (imageUrl == null || imageUrl.trim().isEmpty()) {
-            return Map.of("error", "Missing or empty 'imageUrl' argument");
-        }
-        try {
-            byte[] imageBytes = downloadImageFromUrl(imageUrl);
-            return detectLandmarks(imageBytes);
-        } catch (IOException e) {
-            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
-        }
-    }
-
-    /**
      * Annotates an image with detected objects by drawing bounding boxes and labels.
      * Supports multiple detection types and custom annotation styles.
      *
@@ -709,16 +568,12 @@ public class VisionTool {
                     case "FACE" -> io.github.codesapienbe.springvision.core.DetectionType.FACE;
                     case "OBJECT" -> io.github.codesapienbe.springvision.core.DetectionType.OBJECT;
                     case "TEXT" -> io.github.codesapienbe.springvision.core.DetectionType.TEXT;
-                    case "POSE" -> io.github.codesapienbe.springvision.core.DetectionType.POSE;
-                    case "HAND" -> io.github.codesapienbe.springvision.core.DetectionType.HAND;
                     case "BARCODE" -> io.github.codesapienbe.springvision.core.DetectionType.BARCODE;
                     default -> io.github.codesapienbe.springvision.core.DetectionType.OBJECT;
                 };
 
                 category = switch (detectionType.toUpperCase()) {
                     case "FACE" -> io.github.codesapienbe.springvision.core.DetectionCategory.FACE;
-                    case "HAND" -> io.github.codesapienbe.springvision.core.DetectionCategory.HAND;
-                    case "POSE" -> io.github.codesapienbe.springvision.core.DetectionCategory.BODY;
                     default -> io.github.codesapienbe.springvision.core.DetectionCategory.OBJECT;
                 };
             }
@@ -787,6 +642,80 @@ public class VisionTool {
         try {
             byte[] imageBytes = downloadImageFromUrl(imageUrl);
             return annotateImage(imageBytes, detectionType, drawBoxes, drawLabels);
+        } catch (IOException e) {
+            return Map.of("error", "Failed to download image from URL: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Extracts metadata from an image including EXIF, GPS, and camera information.
+     * Returns comprehensive metadata such as GPS coordinates, camera settings, timestamps, and more.
+     *
+     * @param imageBytes The image data as a byte array.
+     * @return A map containing extracted metadata grouped by type (GPS, EXIF, camera settings).
+     */
+    @Tool(description = "Extract EXIF, GPS, and camera metadata from an image. Returns GPS coordinates, camera information, timestamps, copyright, and image properties.")
+    public Map<String, Object> extractMetaData(byte[] imageBytes) {
+        try {
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            var metadataDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.METADATA_EXTRACTION);
+
+            Map<String, Object> response = new HashMap<>();
+            List<Map<String, Object>> metadataList = new ArrayList<>();
+
+            for (var detection : metadataDetections.detections()) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("label", detection.label());
+                metadata.put("type", detection.getAttribute("metadata_type"));
+
+                // Add all attributes except the metadata_type (already added as 'type')
+                detection.attributes().forEach((key, value) -> {
+                    if (!"metadata_type".equals(key)) {
+                        metadata.put(key, value);
+                    }
+                });
+
+                metadataList.add(metadata);
+            }
+
+            response.put("metadata", metadataList);
+            response.put("count", metadataDetections.detections().size());
+
+            // Provide a helpful summary
+            boolean hasGPS = metadataList.stream().anyMatch(m -> "gps".equals(m.get("type")));
+            boolean hasEXIF = metadataList.stream().anyMatch(m -> "exif".equals(m.get("type")));
+            boolean hasCameraSettings = metadataList.stream().anyMatch(m -> "camera_settings".equals(m.get("type")));
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("hasGPS", hasGPS);
+            summary.put("hasEXIF", hasEXIF);
+            summary.put("hasCameraSettings", hasCameraSettings);
+            response.put("summary", summary);
+
+            if (metadataDetections.detections().isEmpty()) {
+                response.put("note", "No metadata found in this image. The image may not contain EXIF data.");
+            }
+
+            return response;
+        } catch (Exception e) {
+            return Map.of("error", "Metadata extraction failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Extracts metadata from an image URL including EXIF, GPS, and camera information.
+     *
+     * @param imageUrl The URL of the image.
+     * @return A map containing extracted metadata or an error message.
+     */
+    @Tool(description = "Extract EXIF, GPS, and camera metadata from an image URL. Returns GPS coordinates, camera information, timestamps, copyright, and image properties.")
+    public Map<String, Object> extractMetaDataUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return Map.of("error", "Missing or empty 'imageUrl' argument");
+        }
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            return extractMetaData(imageBytes);
         } catch (IOException e) {
             return Map.of("error", "Failed to download image from URL: " + e.getMessage());
         }
