@@ -102,6 +102,7 @@
     <module>mcp</module>
     <module>health</module>
     <module>cyber</module>
+    <module>robotics</module>
   </modules>
 
   <dependencyManagement>

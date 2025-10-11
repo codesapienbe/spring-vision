@@ -11,9 +11,9 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <artifactId>cyber</artifactId>
-  <name>Spring Vision -> Cybersecurity Backend</name>
-  <description>Cybersecurity-focused computer vision module for Spring Vision</description>
+  <artifactId>robotics</artifactId>
+  <name>Spring Vision -> Robotics Backend</name>
+  <description>Industrial automation and robotics-focused computer vision module for Spring Vision</description>
 
   <dependencies>
     <!-- Core Spring Vision API -->
@@ -39,22 +39,16 @@
       <artifactId>opencv-platform</artifactId>
     </dependency>
 
-    <!-- ZXing for QR Code detection and analysis -->
+    <!-- Deep Java Library for ML models -->
     <dependency>
-      <groupId>com.google.zxing</groupId>
-      <artifactId>core</artifactId>
-      <version>3.5.3</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.zxing</groupId>
-      <artifactId>javase</artifactId>
-      <version>3.5.3</version>
+      <groupId>ai.djl</groupId>
+      <artifactId>api</artifactId>
     </dependency>
 
-    <!-- OkHttp for URL validation and analysis -->
+    <!-- Apache Commons Math for geometric calculations -->
     <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp</artifactId>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
     </dependency>
 
     <!-- SLF4J API -->
@@ -75,7 +69,7 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>

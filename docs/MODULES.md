@@ -62,7 +62,7 @@ List<Detection> results = visionTemplate.detectFaces(imageData);
 
 - NO direct backend autowiring in examples
 - ALL examples MUST use VisionTemplate
-- Show auto-configuration in action
+- Show autoconfiguration in action
 - Demonstrate the unified API
 
 ## Module Categories

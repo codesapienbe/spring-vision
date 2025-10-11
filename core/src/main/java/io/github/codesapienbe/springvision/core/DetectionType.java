@@ -148,7 +148,34 @@ public enum DetectionType {
      * unauthorized access attempts, security breaches, and suspicious activities
      * requiring immediate attention.</p>
      */
-    SECURITY_INCIDENT("security-incident", "Security Incident Detection", false, "Detects security incidents and breaches");
+    SECURITY_INCIDENT("security-incident", "Security Incident Detection", false, "Detects security incidents and breaches"),
+
+    /**
+     * Defect detection - identifies defects in manufactured products.
+     *
+     * <p>This detection type analyzes images from production lines to identify
+     * defects such as scratches, dents, cracks, misalignments, and other quality issues
+     * in manufactured products.</p>
+     */
+    DEFECT("defect", "Defect Detection", false, "Detects defects in manufactured products"),
+
+    /**
+     * Robotic guidance - provides visual guidance for robotic arm operations.
+     *
+     * <p>This detection type analyzes images to provide position, orientation, and
+     * grasp point information for guiding robotic arms in pick-and-place operations
+     * and automated manipulation tasks.</p>
+     */
+    ROBOTIC_GUIDANCE("robotic-guidance", "Robotic Guidance", false, "Provides visual guidance for robotic operations"),
+
+    /**
+     * Component verification - verifies correct component usage during assembly.
+     *
+     * <p>This detection type analyzes images to verify that the correct components
+     * are being used in assembly processes, checking component type, part numbers,
+     * orientation, and placement.</p>
+     */
+    COMPONENT_VERIFICATION("component-verification", "Component Verification", false, "Verifies correct component usage in assembly");
 
     private final String code;
     private final String displayName;
