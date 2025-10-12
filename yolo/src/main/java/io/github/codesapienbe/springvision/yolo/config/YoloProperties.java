@@ -19,7 +19,7 @@ public class YoloProperties {
     /**
      * Model path for YOLO models.
      */
-    private String modelPath = "~/.spring-vision/models/yolo";
+    private String modelPath = "classpath:/models";
 
     /**
      * Model name (yolov8n.onnx, yolov8s.onnx, yolov8m.onnx).
@@ -130,4 +130,3 @@ public class YoloProperties {
         this.inputSize = inputSize;
     }
 }
-

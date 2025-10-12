@@ -24,6 +24,19 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 public class VectorJpaAdapterAutoConfiguration {
 
+    /**
+     * Default constructor for the auto-configuration.
+     */
+    public VectorJpaAdapterAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
+     * Creates a VectorService adapter for a generic JpaVectorSimilarityService.
+     * @param services A list of available JpaVectorSimilarityService beans.
+     * @param properties The vector similarity properties.
+     * @return A VectorService adapter.
+     */
     @Bean
     @ConditionalOnBean(JpaVectorSimilarityService.class)
     @ConditionalOnMissingBean(VectorService.class)
@@ -52,6 +65,11 @@ public class VectorJpaAdapterAutoConfiguration {
         return new VectorServiceAdapter(services.get(0));
     }
 
+    /**
+     * Creates a VectorService adapter for the PostgreSQLVectorSimilarityService.
+     * @param svc The PostgreSQLVectorSimilarityService bean.
+     * @return A VectorService adapter.
+     */
     @Bean
     @ConditionalOnBean(PostgreSQLVectorSimilarityService.class)
     @ConditionalOnMissingBean(VectorService.class)
@@ -59,6 +77,11 @@ public class VectorJpaAdapterAutoConfiguration {
         return new VectorServiceAdapter(svc);
     }
 
+    /**
+     * Creates a VectorService adapter for the OracleVectorSimilarityService.
+     * @param svc The OracleVectorSimilarityService bean.
+     * @return A VectorService adapter.
+     */
     @Bean
     @ConditionalOnBean(OracleVectorSimilarityService.class)
     @ConditionalOnMissingBean(VectorService.class)
@@ -66,6 +89,11 @@ public class VectorJpaAdapterAutoConfiguration {
         return new VectorServiceAdapter(svc);
     }
 
+    /**
+     * Creates a VectorService adapter for the MySQLVectorSimilarityService.
+     * @param svc The MySQLVectorSimilarityService bean.
+     * @return A VectorService adapter.
+     */
     @Bean
     @ConditionalOnBean(MySQLVectorSimilarityService.class)
     @ConditionalOnMissingBean(VectorService.class)
@@ -75,6 +103,8 @@ public class VectorJpaAdapterAutoConfiguration {
 
     /**
      * Adapter bean for H2-backed vector similarity service used in tests/dev.
+     * @param svc The H2VectorSimilarityService bean.
+     * @return A VectorService adapter.
      */
     @Bean
     @ConditionalOnBean(H2VectorSimilarityService.class)
@@ -83,6 +113,11 @@ public class VectorJpaAdapterAutoConfiguration {
         return new VectorServiceAdapter(svc);
     }
 
+    /**
+     * Creates the original VisionTemplate bean.
+     * @param backendProvider The provider for the VisionBackend.
+     * @return The original VisionTemplate.
+     */
     @Bean("originalVisionTemplate")
     @ConditionalOnMissingBean(name = "originalVisionTemplate")
     public VisionTemplate originalVisionTemplate(ObjectProvider<VisionBackend> backendProvider) {
@@ -93,6 +128,12 @@ public class VectorJpaAdapterAutoConfiguration {
         return new VisionTemplate(backend);
     }
 
+    /**
+     * Creates an enhanced VisionTemplate that is aware of the VectorService.
+     * @param originalTemplate The original VisionTemplate bean.
+     * @param vectorServiceProvider The provider for the VectorService.
+     * @return An enhanced VisionTemplate.
+     */
     @Bean
     @Primary
     @ConditionalOnProperty(value = "spring.vision.jpa.enhanced-template", havingValue = "true", matchIfMissing = true)

@@ -32,6 +32,12 @@ public class PostgreSQLVectorSimilarityService implements VectorSimilarityServic
     private final JdbcTemplate jdbcTemplate;
     private NativeVectorAdapter nativeVectorAdapter;
 
+    /**
+     * Constructs a new PostgreSQLVectorSimilarityService.
+     * @param repository The repository for face embeddings.
+     * @param jdbcTemplate The JDBC template.
+     * @param registry The registry for native vector adapters.
+     */
     @Autowired
     public PostgreSQLVectorSimilarityService(PostgreSQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, io.github.codesapienbe.springvision.persistence.service.NativeVectorAdapterRegistry registry) {
         this.repository = repository;

@@ -14,5 +14,11 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaAuditing
 @ConditionalOnProperty(value = "spring.vision.jpa.enabled", havingValue = "true", matchIfMissing = true)
 public class VisionJpaConfiguration {
-    // Basic configuration only; beans will be provided by Spring Boot and module auto-configuration.
+
+    /**
+     * Default constructor for VisionJpaConfiguration.
+     */
+    public VisionJpaConfiguration() {
+        // Basic configuration only; beans will be provided by Spring Boot and module auto-configuration.
+    }
 }

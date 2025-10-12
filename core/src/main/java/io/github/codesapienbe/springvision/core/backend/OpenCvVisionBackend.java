@@ -111,7 +111,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     /**
      * Default face detection model path.
      */
-    private static final String DEFAULT_FACE_CASCADE_PATH = "/haarcascade_frontalface_default.xml";
+    private static final String DEFAULT_FACE_CASCADE_PATH = "/models/haarcascade_frontalface_default.xml";
     /**
      * Remote URL used as a secure fallback location for the Haar cascade file. The
      * download is performed only when the classifier cannot be found locally to
@@ -147,21 +147,21 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     /**
      * Eye cascade to validate candidate faces (reduces rectangular false positives).
      */
-    private static final String DEFAULT_EYE_CASCADE_PATH = "/haarcascade_eye.xml";
+    private static final String DEFAULT_EYE_CASCADE_PATH = "/models/haarcascade_eye.xml";
     private static final String EYE_CASCADE_DOWNLOAD_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml";
 
     /**
      * Profile-face cascade to detect side-view faces.
      */
-    private static final String DEFAULT_PROFILE_FACE_CASCADE_PATH = "/haarcascade_profileface.xml";
+    private static final String DEFAULT_PROFILE_FACE_CASCADE_PATH = "/models/haarcascade_profileface.xml";
     private static final String PROFILE_FACE_CASCADE_DOWNLOAD_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml";
 
     /**
      * LBP cascade often performs better across diverse skin tones.
      */
-    private static final String DEFAULT_LBP_CASCADE_PATH = "/lbpcascade_frontalface.xml";
+    private static final String DEFAULT_LBP_CASCADE_PATH = "/models/lbpcascade_frontalface.xml";
     private static final String LBP_CASCADE_DOWNLOAD_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml";
 
@@ -199,7 +199,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     private int maxDetections = 10;
     private boolean enableAutoDownload = true;
     private int downloadTimeoutSeconds = 30;
-    private String modelPath = "~/.spring-vision/models/opencv";
+    private String modelPath = "classpath:/models";
     private int maxPoolSize = 5;
     private int poolTimeoutSeconds = 60;
 

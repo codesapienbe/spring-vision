@@ -15,6 +15,13 @@ import java.lang.reflect.Method;
 public class PgNativeVectorAdapter implements NativeVectorAdapter {
 
     /**
+     * Default constructor for PgNativeVectorAdapter.
+     */
+    public PgNativeVectorAdapter() {
+        // Default constructor
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

@@ -28,6 +28,13 @@ public class VisionJpaAutoConfiguration {
     private static final Logger log = LoggerFactory.getLogger(VisionJpaAutoConfiguration.class);
 
     /**
+     * Default constructor for VisionJpaAutoConfiguration.
+     */
+    public VisionJpaAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates and configures the primary {@link VectorSimilarityService} bean.
      * It inspects the detected database vendor and the configured provider to select the most
      * suitable implementation. If a specific provider bean is available (e.g., for PostgreSQL),

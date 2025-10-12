@@ -71,6 +71,12 @@ public class DetectionRequest {
         private byte[] imageData;
 
         /**
+         * Default constructor for the builder.
+         */
+        public Builder() {
+        }
+
+        /**
          * Sets the image data.
          *
          * @param imageData the image data

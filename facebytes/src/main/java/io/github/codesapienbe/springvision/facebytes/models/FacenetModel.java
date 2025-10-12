@@ -7,13 +7,38 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Method;
 
+/**
+ * Facenet face recognition model implementation.
+ * Provides face embedding generation using the Facenet architecture.
+ */
 public final class FacenetModel {
+    /**
+     * Default input size for the Facenet model.
+     */
     public static final int DEFAULT_INPUT_SIZE = 160;
 
+    /**
+     * Default constructor for FacenetModel.
+     */
+    public FacenetModel() {
+        // Default constructor
+    }
+
+    /**
+     * Generates a face embedding using the default input size.
+     * @param face The face image.
+     * @return The face embedding vector.
+     */
     public float[] generateEmbedding(BufferedImage face) {
         return generateEmbedding(face, DEFAULT_INPUT_SIZE);
     }
 
+    /**
+     * Generates a face embedding with a specified input size.
+     * @param face The face image.
+     * @param targetSize The target input size for the model.
+     * @return The face embedding vector.
+     */
     public float[] generateEmbedding(BufferedImage face, int targetSize) {
         if (face == null) {
             throw new IllegalArgumentException("Face image cannot be null");

@@ -165,6 +165,9 @@ public final class DeepFaceConfig {
         this.margin = Math.max(0, margin);
     }
 
+    /**
+     * @return The current configuration.
+     */
     public static DeepFaceConfig current() {
         double cos = readDouble(COSINE_ENV, COSINE_SYS, 0.68);
         double euc = readDouble(EUCLIDEAN_ENV, EUCLIDEAN_SYS, 0.60);
@@ -176,6 +179,10 @@ public final class DeepFaceConfig {
         return new DeepFaceConfig(cos, euc, eucL2, size, align, backend, margin);
     }
 
+    /**
+     * @param metric The distance metric.
+     * @return The threshold for the given distance metric.
+     */
     public double threshold(DistanceMetric metric) {
         return switch (metric) {
             case COSINE -> cosineThreshold;
@@ -184,6 +191,11 @@ public final class DeepFaceConfig {
         };
     }
 
+    /**
+     * @param model The model type.
+     * @param metric The distance metric.
+     * @return The threshold for the given model and distance metric.
+     */
     public double threshold(ModelType model, DistanceMetric metric) {
         if (model == null) return threshold(metric);
         switch (model) {
@@ -204,26 +216,44 @@ public final class DeepFaceConfig {
         }
     }
 
+    /**
+     * @return The input size for the model.
+     */
     public int inputSize() {
         return inputSize;
     }
 
+    /**
+     * @return Whether to align faces before processing.
+     */
     public boolean align() {
         return align;
     }
 
+    /**
+     * @return Whether to enforce face detection.
+     */
     public boolean enforceDetection() {
         return enforceDetection;
     }
 
+    /**
+     * @return The detector backend to use.
+     */
     public DetectorBackend detectorBackend() {
         return detectorBackend;
     }
 
+    /**
+     * @return The margin for face detection.
+     */
     public int margin() {
         return margin;
     }
 
+    /**
+     * @return The default distance metric.
+     */
     public DistanceMetric defaultDistanceMetric() {
         String v = System.getProperty(DISTANCE_SYS);
         if (v == null) v = System.getenv(DISTANCE_ENV);
@@ -235,44 +265,72 @@ public final class DeepFaceConfig {
         }
     }
 
+    /**
+     * @return The path to the emotion detection model.
+     */
     public String emotionOnnxPath() {
         return readString(EMOTION_ENV, EMOTION_SYS, null);
     }
 
+    /**
+     * @return The input size for the emotion detection model.
+     */
     public int emotionInputSize() {
         return (int) readDouble(EMOTION_SIZE_ENV, EMOTION_SIZE_SYS, 224);
     }
 
+    /**
+     * @return The path to the gender detection model.
+     */
     public String genderOnnxPath() {
         return readString(GENDER_ENV, GENDER_SYS, null);
     }
 
+    /**
+     * @return The input size for the gender detection model.
+     */
     public int genderInputSize() {
         return (int) readDouble(GENDER_SIZE_ENV, GENDER_SIZE_SYS, 224);
     }
 
+    /**
+     * @return The path to the age detection model.
+     */
     public String ageOnnxPath() {
         return readString(AGE_ENV, AGE_SYS, null);
     }
 
+    /**
+     * @return The input size for the age detection model.
+     */
     public int ageInputSize() {
         return (int) readDouble(AGE_SIZE_ENV, AGE_SIZE_SYS, 224);
     }
 
+    /**
+     * @return The path to the race detection model.
+     */
     public String raceOnnxPath() {
         return readString(RACE_ENV, RACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the race detection model.
+     */
     public int raceInputSize() {
         return (int) readDouble(RACE_SIZE_ENV, RACE_SIZE_SYS, 224);
     }
 
+    /**
+     * @return The path to the VGG-Face model.
+     */
     public String vggOnnxPath() {
         return readString(VGG_ENV, VGG_SYS, null);
     }
 
     /**
      * Whether the framework may auto-download remote model artifacts. Defaults to true.
+     * @return whether auto-download is enabled.
      */
     public boolean autoDownloadEnabled() {
         return readBoolean(AUTO_DOWNLOAD_ENV, AUTO_DOWNLOAD_SYS, true);
@@ -280,6 +338,7 @@ public final class DeepFaceConfig {
 
     /**
      * Connect timeout in milliseconds for model downloads. Default 10000.
+     * @return the connect timeout in milliseconds.
      */
     public int modelDownloadConnectTimeoutMs() {
         return (int) readDouble(DOWNLOAD_CONNECT_TIMEOUT_ENV, DOWNLOAD_CONNECT_TIMEOUT_SYS, 10000);
@@ -287,6 +346,7 @@ public final class DeepFaceConfig {
 
     /**
      * Read timeout in milliseconds for model downloads. Default 20000.
+     * @return the read timeout in milliseconds.
      */
     public int modelDownloadReadTimeoutMs() {
         return (int) readDouble(DOWNLOAD_READ_TIMEOUT_ENV, DOWNLOAD_READ_TIMEOUT_SYS, 20000);
@@ -294,77 +354,127 @@ public final class DeepFaceConfig {
 
     /**
      * Allow non-HTTPS downloads (not recommended). Defaults to false.
+     * @return whether insecure downloads are allowed.
      */
     public boolean allowInsecureDownloads() {
         return readBoolean(DOWNLOAD_ALLOW_INSECURE_ENV, DOWNLOAD_ALLOW_INSECURE_SYS, false);
     }
 
+    /**
+     * @return The path to the ArcFace model.
+     */
     public String arcFaceOnnxPath() {
         return readString(ARCFACE_ENV, ARCFACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the ArcFace model.
+     */
     public int arcFaceInputSize() {
         return (int) readDouble(ARCFACE_SIZE_ENV, ARCFACE_SIZE_SYS, 112);
     }
 
+    /**
+     * @return The path to the FaceNet model.
+     */
     public String facenetOnnxPath() {
         return readString(FACENET_ENV, FACENET_SYS, null);
     }
 
+    /**
+     * @return The input size for the FaceNet model.
+     */
     public int facenetInputSize() {
         return (int) readDouble(FACENET_SIZE_ENV, FACENET_SIZE_SYS, 160);
     }
 
+    /**
+     * @return The path to the FaceNet512 model.
+     */
     public String facenet512OnnxPath() {
         return readString(FACENET512_ENV, FACENET512_SYS, null);
     }
 
+    /**
+     * @return The input size for the FaceNet512 model.
+     */
     public int facenet512InputSize() {
         return (int) readDouble(FACENET512_SIZE_ENV, FACENET512_SIZE_SYS, 160);
     }
 
+    /**
+     * @return The path to the OpenFace model.
+     */
     public String openfaceOnnxPath() {
         return readString(OPENFACE_ENV, OPENFACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the OpenFace model.
+     */
     public int openfaceInputSize() {
         return (int) readDouble(OPENFACE_SIZE_ENV, OPENFACE_SIZE_SYS, 96);
     }
 
+    /**
+     * @return The path to the SFace model.
+     */
     public String sfaceOnnxPath() {
         return readString(SFACE_ENV, SFACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the SFace model.
+     */
     public int sfaceInputSize() {
         return (int) readDouble(SFACE_SIZE_ENV, SFACE_SIZE_SYS, 112);
     }
 
+    /**
+     * @return The path to the DeepFace model.
+     */
     public String deepfaceOnnxPath() {
         return readString(DEEPFACE_ENV, DEEPFACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the DeepFace model.
+     */
     public int deepfaceInputSize() {
         return (int) readDouble(DEEPFACE_SIZE_ENV, DEEPFACE_SIZE_SYS, 152);
     }
 
+    /**
+     * @return The path to the RetinaFace model.
+     */
     public String retinaFaceOnnxPath() {
         return readString(RETINAFACE_ENV, RETINAFACE_SYS, null);
     }
 
+    /**
+     * @return The input size for the RetinaFace model.
+     */
     public int retinaFaceInputSize() {
         return (int) readDouble(RETINAFACE_SIZE_ENV, RETINAFACE_SIZE_SYS, 640);
     }
 
+    /**
+     * @return The score threshold for the RetinaFace model.
+     */
     public double retinaFaceScoreThreshold() {
         return readDouble(RETINAFACE_SCORE_ENV, RETINAFACE_SCORE_SYS, 0.7);
     }
 
+    /**
+     * @return The NMS threshold for the RetinaFace model.
+     */
     public double retinaFaceNmsThreshold() {
         return readDouble(RETINAFACE_NMS_ENV, RETINAFACE_NMS_SYS, 0.4);
     }
 
     /**
      * Returns whether ONNX model loading/inference is enabled. Defaults to true.
+     * @return whether ONNX is enabled.
      */
     public boolean onnxEnabled() {
         return readBoolean(ONNX_ENABLED_ENV, ONNX_ENABLED_SYS, true);
@@ -372,6 +482,7 @@ public final class DeepFaceConfig {
 
     /**
      * Normalization mean per channel as three comma-separated values (R,G,B) in 0..1 range. Default 0,0,0.
+     * @return the normalization mean.
      */
     public double[] normalizationMean() {
         return readDoubles(NORM_MEAN_ENV, NORM_MEAN_SYS, new double[]{0.0, 0.0, 0.0});
@@ -379,6 +490,7 @@ public final class DeepFaceConfig {
 
     /**
      * Normalization std per channel as three comma-separated values (R,G,B). Default 1,1,1.
+     * @return the normalization standard deviation.
      */
     public double[] normalizationStd() {
         return readDoubles(NORM_STD_ENV, NORM_STD_SYS, new double[]{1.0, 1.0, 1.0});
@@ -386,6 +498,7 @@ public final class DeepFaceConfig {
 
     /**
      * Color space for model input: "RGB" or "BGR". Defaults to RGB.
+     * @return the color space.
      */
     public String colorSpace() {
         return readString(COLORSPACE_ENV, COLORSPACE_SYS, "RGB");
@@ -395,6 +508,8 @@ public final class DeepFaceConfig {
      * Returns model-specific landmark template points for a 112px reference crop as
      * an array {leftEyeX,leftEyeY,rightEyeX,rightEyeY,noseX,noseY}.
      * Values can be overridden via environment/system properties as comma-separated list.
+     * @param model The model type.
+     * @return the template points.
      */
     public double[] templatePoints(io.github.codesapienbe.springvision.facebytes.enums.ModelType model) {
         if (model == null) model = io.github.codesapienbe.springvision.facebytes.enums.ModelType.ARCFACE;

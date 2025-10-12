@@ -53,70 +53,124 @@ public class TesseractProperties {
      */
     private String additionalLanguages = "";
 
+    /**
+     * Default constructor for TesseractProperties.
+     */
+    public TesseractProperties() {
+        // Default constructor
+    }
+
     // Getters and Setters
 
+    /**
+     * @return whether the Tesseract backend is enabled.
+     */
     public boolean isEnabled() {
         return enabled;
     }
 
+    /**
+     * @param enabled whether to enable the Tesseract backend.
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
+    /**
+     * @return the path to the tessdata directory.
+     */
     public String getTessdataPath() {
         return tessdataPath;
     }
 
+    /**
+     * @param tessdataPath the path to the tessdata directory.
+     */
     public void setTessdataPath(String tessdataPath) {
         this.tessdataPath = tessdataPath;
     }
 
+    /**
+     * @return the default language for OCR.
+     */
     public String getLanguage() {
         return language;
     }
 
+    /**
+     * @param language the default language for OCR.
+     */
     public void setLanguage(String language) {
         this.language = language;
     }
 
+    /**
+     * @return the page segmentation mode.
+     */
     public int getPageSegMode() {
         return pageSegMode;
     }
 
+    /**
+     * @param pageSegMode the page segmentation mode.
+     */
     public void setPageSegMode(int pageSegMode) {
         this.pageSegMode = pageSegMode;
     }
 
+    /**
+     * @return the OCR engine mode.
+     */
     public int getOcrEngineMode() {
         return ocrEngineMode;
     }
 
+    /**
+     * @param ocrEngineMode the OCR engine mode.
+     */
     public void setOcrEngineMode(int ocrEngineMode) {
         this.ocrEngineMode = ocrEngineMode;
     }
 
+    /**
+     * @return the minimum confidence threshold.
+     */
     public int getMinConfidence() {
         return minConfidence;
     }
 
+    /**
+     * @param minConfidence the minimum confidence threshold.
+     */
     public void setMinConfidence(int minConfidence) {
         this.minConfidence = minConfidence;
     }
 
+    /**
+     * @return whether automatic language download is enabled.
+     */
     public boolean isEnableAutoDownload() {
         return enableAutoDownload;
     }
 
+    /**
+     * @param enableAutoDownload whether to enable automatic language download.
+     */
     public void setEnableAutoDownload(boolean enableAutoDownload) {
         this.enableAutoDownload = enableAutoDownload;
     }
 
+    /**
+     * @return the additional languages to load.
+     */
     public String getAdditionalLanguages() {
         return additionalLanguages;
     }
 
+    /**
+     * @param additionalLanguages the additional languages to load.
+     */
     public void setAdditionalLanguages(String additionalLanguages) {
         this.additionalLanguages = additionalLanguages;
     }
 }
-

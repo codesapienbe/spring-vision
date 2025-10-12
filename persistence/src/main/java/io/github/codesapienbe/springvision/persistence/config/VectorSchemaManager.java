@@ -25,6 +25,12 @@ public class VectorSchemaManager {
     private final JdbcTemplate jdbcTemplate;
     private final VectorSimilarityProperties properties;
 
+    /**
+     * Constructs a new VectorSchemaManager.
+     * @param vendorDetector The database vendor detector.
+     * @param jdbcTemplate The JDBC template.
+     * @param properties The vector similarity properties.
+     */
     @Autowired
     public VectorSchemaManager(DatabaseVendorDetector vendorDetector, JdbcTemplate jdbcTemplate, VectorSimilarityProperties properties) {
         this.vendorDetector = vendorDetector;
@@ -32,6 +38,10 @@ public class VectorSchemaManager {
         this.properties = properties;
     }
 
+    /**
+     * Creates the vector schema when the application is ready.
+     * @param event The application ready event.
+     */
     @EventListener
     public void onApplicationReady(ApplicationReadyEvent event) {
         DatabaseVendor vendor = vendorDetector.detectVendor();

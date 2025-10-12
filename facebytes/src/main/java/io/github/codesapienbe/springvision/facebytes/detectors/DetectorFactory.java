@@ -19,6 +19,7 @@ public final class DetectorFactory {
 
     /**
      * Returns the default detector backend instance (RetinaFace if available; falls back internally when missing).
+     * @return the default face detector instance
      */
     public static FaceDetector createDefault() {
         try {
@@ -32,6 +33,8 @@ public final class DetectorFactory {
 
     /**
      * Returns a detector instance for the requested backend, reusing cached instances when available.
+     * @param backend the requested detector backend
+     * @return a face detector instance for the specified backend
      */
     public static FaceDetector create(DetectorBackend backend) {
         if (backend == null) return createDefault();

@@ -54,6 +54,13 @@ public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapab
     private static final String DISPLAY_NAME = "FaceBytes Backend";
     private static final String VERSION = "1.0.0";
 
+    /**
+     * Default constructor for FaceBytesBackend.
+     */
+    public FaceBytesBackend() {
+        // Default constructor
+    }
+
     @Override
     public String getBackendId() {
         return BACKEND_ID;

@@ -3,7 +3,7 @@ WARNING: sun.misc.Unsafe::objectFieldOffset has been called by com.google.common
 WARNING: Please consider reporting this to the maintainers of class com.google.common.util.concurrent.AbstractFuture$UnsafeAtomicHelper
 WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] Scanning for projects...
-[[1;34mINFO[m] Inspecting build with total of 14 modules
+[[1;34mINFO[m] Inspecting build with total of 15 modules
 [[1;34mINFO[m] Installing Central Publishing features
 [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
 [[1;34mINFO[m] [1mReactor Build Order:[m
@@ -21,10 +21,11 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] Spring Vision -> YOLO Backend                                      [jar]
 [[1;34mINFO[m] Spring Vision -> MCP Server                                        [jar]
 [[1;34mINFO[m] Spring Vision -> Health Monitoring Backend                         [jar]
-[[1;34mINFO[m] Spring Vision -> Cyber Security Backend                            [jar]
+[[1;34mINFO[m] Spring Vision -> Cybersecurity Backend                             [jar]
+[[1;34mINFO[m] Spring Vision -> Robotics Backend                                  [jar]
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m---------< [0;36mio.github.codesapienbe.springvision:spring-vision[0;1m >----------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision 1.0                                        [1/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision 1.0                                        [1/15][m
 [[1;34mINFO[m] [1m--------------------------------[ pom ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mspring-vision[0;1m >>>[m
@@ -41,7 +42,7 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mspring-vision[0;1m ---[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:core[0;1m >--------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> Core 1.0                                [2/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Core 1.0                                [2/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcore[0;1m >>>[m
@@ -55,10 +56,312 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcore[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] No previous run data found, generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:127: warning: no @param for images
+[[1;33mWARNING[m] public CompletableFuture<List<DistributedResult>> processBatchDistributed(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:127: warning: no @param for query
+[[1;33mWARNING[m] public CompletableFuture<List<DistributedResult>> processBatchDistributed(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:127: warning: no @return
+[[1;33mWARNING[m] public CompletableFuture<List<DistributedResult>> processBatchDistributed(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:154: warning: no @param for nodeId
+[[1;33mWARNING[m] public void registerNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:154: warning: no @param for nodeUrl
+[[1;33mWARNING[m] public void registerNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:154: warning: no @param for capabilities
+[[1;33mWARNING[m] public void registerNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:170: warning: no @param for nodeId
+[[1;33mWARNING[m] public void unregisterNode(String nodeId) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:186: warning: no @param for nodeId
+[[1;33mWARNING[m] public NodeStatus getNodeStatus(String nodeId) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:186: warning: no @return
+[[1;33mWARNING[m] public NodeStatus getNodeStatus(String nodeId) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:194: warning: no @return
+[[1;33mWARNING[m] public Map<String, ProcessingNode> getAllNodes() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:201: warning: no @return
+[[1;33mWARNING[m] public DistributedMetrics getMetrics() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:208: warning: no @return
+[[1;33mWARNING[m] public Map<String, HealthStatus> getAllNodeHealth() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:215: warning: no @param for detectionType
+[[1;33mWARNING[m] public void setProcessingStrategy(DetectionType detectionType, ProcessingStrategy strategy) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:215: warning: no @param for strategy
+[[1;33mWARNING[m] public void setProcessingStrategy(DetectionType detectionType, ProcessingStrategy strategy) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:223: warning: no @return
+[[1;33mWARNING[m] public DistributedConfiguration getConfiguration() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:230: warning: no @param for newConfig
+[[1;33mWARNING[m] public void updateConfiguration(DistributedConfiguration newConfig) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:894: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class DistributedConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:924: warning: no comment
+[[1;33mWARNING[m] public int getMaxConcurrentTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:920: warning: no comment
+[[1;33mWARNING[m] public int getMaxQueueSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:916: warning: no comment
+[[1;33mWARNING[m] public long getQueueTimeoutMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:912: warning: no comment
+[[1;33mWARNING[m] public long getTaskTimeoutMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:928: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableFaultTolerance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:932: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableLoadBalancing() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:902: warning: no comment
+[[1;33mWARNING[m] public void update(DistributedConfiguration newConfig) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:497: warning: no comment
+[[1;33mWARNING[m] public DistributedResult(String taskId, String nodeId, List<Detection> detections,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:507: warning: no comment
+[[1;33mWARNING[m] public static DistributedResult createErrorResult(String errorMessage) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:520: warning: no comment
+[[1;33mWARNING[m] public List<Detection> getDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:532: warning: no comment
+[[1;33mWARNING[m] public String getErrorMessage() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:516: warning: no comment
+[[1;33mWARNING[m] public String getNodeId() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:524: warning: no comment
+[[1;33mWARNING[m] public long getProcessingTimeMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:512: warning: no comment
+[[1;33mWARNING[m] public String getTaskId() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:528: warning: no comment
+[[1;33mWARNING[m] public boolean isSuccess() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:450: warning: no comment
+[[1;33mWARNING[m] public DistributedTask(String taskId, String tenantId, ImageData imageData,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:477: warning: no comment
+[[1;33mWARNING[m] public long getCreatedAt() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:469: warning: no comment
+[[1;33mWARNING[m] public ImageData getImageData() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:473: warning: no comment
+[[1;33mWARNING[m] public DetectionQuery getQuery() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:461: warning: no comment
+[[1;33mWARNING[m] public String getTaskId() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:465: warning: no comment
+[[1;33mWARNING[m] public String getTenantId() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:481: warning: no comment
+[[1;33mWARNING[m] public long getTimeoutMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:676: warning: no comment
+[[1;33mWARNING[m] public HealthStatus(NodeStatus status, long lastCheckTime, String details) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:691: warning: no comment
+[[1;33mWARNING[m] public String getDetails() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:687: warning: no comment
+[[1;33mWARNING[m] public long getLastCheckTime() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:683: warning: no comment
+[[1;33mWARNING[m] public NodeStatus getStatus() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:723: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class LoadBasedStrategy implements ProcessingStrategy {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:700: warning: no comment
+[[1;33mWARNING[m] ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:631: warning: no comment
+[[1;33mWARNING[m] public NodeCapabilities(Set<DetectionType> supportedTypes, int maxConcurrentTasks,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:648: warning: no comment
+[[1;33mWARNING[m] public int getMaxConcurrentTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:652: warning: no comment
+[[1;33mWARNING[m] public long getMaxMemoryUsage() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:644: warning: no comment
+[[1;33mWARNING[m] public Set<DetectionType> getSupportedTypes() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:656: warning: no comment
+[[1;33mWARNING[m] public boolean isGpuAcceleration() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:639: warning: no comment
+[[1;33mWARNING[m] public boolean supportsDetectionType(DetectionType type) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:665: warning: no comment
+[[1;33mWARNING[m] HEALTHY, DEGRADED, UNHEALTHY, OFFLINE
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:665: warning: no comment
+[[1;33mWARNING[m] HEALTHY, DEGRADED, UNHEALTHY, OFFLINE
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:665: warning: no comment
+[[1;33mWARNING[m] HEALTHY, DEGRADED, UNHEALTHY, OFFLINE
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:665: warning: no comment
+[[1;33mWARNING[m] HEALTHY, DEGRADED, UNHEALTHY, OFFLINE
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:736: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class PriorityBasedStrategy implements ProcessingStrategy {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:550: warning: no comment
+[[1;33mWARNING[m] public ProcessingNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:561: warning: no comment
+[[1;33mWARNING[m] public void decrementActiveTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:605: warning: no comment
+[[1;33mWARNING[m] public long getActiveTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:587: warning: no comment
+[[1;33mWARNING[m] public double getAverageProcessingTime() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:601: warning: no comment
+[[1;33mWARNING[m] public NodeCapabilities getCapabilities() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:617: warning: no comment
+[[1;33mWARNING[m] public long getFailedTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:582: warning: no comment
+[[1;33mWARNING[m] public double getFailureRate() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:577: warning: no comment
+[[1;33mWARNING[m] public double getLoadFactor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:593: warning: no comment
+[[1;33mWARNING[m] public String getNodeId() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:597: warning: no comment
+[[1;33mWARNING[m] public String getNodeUrl() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:609: warning: no comment
+[[1;33mWARNING[m] public NodeStatus getStatus() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:613: warning: no comment
+[[1;33mWARNING[m] public long getTotalTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:556: warning: no comment
+[[1;33mWARNING[m] public void incrementActiveTasks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:569: warning: no comment
+[[1;33mWARNING[m] public void recordProcessingTime(long processingTimeMs) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:565: warning: no comment
+[[1;33mWARNING[m] public void recordTaskFailure() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:573: warning: no comment
+[[1;33mWARNING[m] public void setStatus(NodeStatus status) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/enterprise/distributed/DistributedVisionProcessor.java:706: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class RoundRobinStrategy implements ProcessingStrategy {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:29: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class ErrorHandler {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:408: warning: no comment
+[[1;33mWARNING[m] void onError(String component, String operation, Exception error);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:466: warning: no comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:462: warning: no comment
+[[1;33mWARNING[m] public static Builder builder() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:458: warning: no comment
+[[1;33mWARNING[m] public Map<String, String> getCircuitBreakerStates() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:446: warning: no comment
+[[1;33mWARNING[m] public long getCircuitBreakerTrips() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:454: warning: no comment
+[[1;33mWARNING[m] public Map<String, AtomicLong> getErrorCountsByComponent() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:450: warning: no comment
+[[1;33mWARNING[m] public Map<String, AtomicLong> getErrorCountsByType() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:442: warning: no comment
+[[1;33mWARNING[m] public long getNonRetryableErrors() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:438: warning: no comment
+[[1;33mWARNING[m] public long getRetryableErrors() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:434: warning: no comment
+[[1;33mWARNING[m] public long getTotalErrors() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:466: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:510: warning: no comment
+[[1;33mWARNING[m] public ErrorStatistics build() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:505: warning: no comment
+[[1;33mWARNING[m] public Builder circuitBreakerStates(Map<String, String> circuitBreakerStates) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:490: warning: no comment
+[[1;33mWARNING[m] public Builder circuitBreakerTrips(long circuitBreakerTrips) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:500: warning: no comment
+[[1;33mWARNING[m] public Builder errorCountsByComponent(Map<String, AtomicLong> errorCountsByComponent) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:495: warning: no comment
+[[1;33mWARNING[m] public Builder errorCountsByType(Map<String, AtomicLong> errorCountsByType) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:485: warning: no comment
+[[1;33mWARNING[m] public Builder nonRetryableErrors(long nonRetryableErrors) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:480: warning: no comment
+[[1;33mWARNING[m] public Builder retryableErrors(long retryableErrors) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/error/ErrorHandler.java:475: warning: no comment
+[[1;33mWARNING[m] public Builder totalErrors(long totalErrors) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:342: warning: no @return
+[[1;33mWARNING[m] public ProcessingStats getCurrentStats() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:375: warning: no comment
+[[1;33mWARNING[m] public static DatabaseBuilderConfig defaultConfig() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:385: warning: no comment
+[[1;33mWARNING[m] public static DatabaseBuilderConfig fastConfig() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:395: warning: no comment
+[[1;33mWARNING[m] public static DatabaseBuilderConfig qualityConfig() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:424: warning: no comment
+[[1;33mWARNING[m] public double getProcessingRate() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:428: warning: no comment
+[[1;33mWARNING[m] public double getFacesPerFile() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/core/src/main/java/io/github/codesapienbe/springvision/core/recognition/FaceDatabaseBuilder.java:456: warning: no comment
+[[1;33mWARNING[m] public double getProgress() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 100 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m----------< [0;36mio.github.codesapienbe.springvision:persistence[0;1m >-----------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> JPA 1.0                                 [3/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> JPA 1.0                                 [3/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mpersistence[0;1m >>>[m
@@ -72,10 +375,192 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mpersistence[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/repository/OracleFaceEmbeddingRepository.java:33: warning: no comment
+[[1;33mWARNING[m] java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/repository/OracleFaceEmbeddingRepository.java:28: warning: no comment
+[[1;33mWARNING[m] List<Object[]> findSimilarByCosineSimilarity(@Param("queryVector") byte[] queryVector,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/oracle/OracleNativeVectorAdapter.java:14: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class OracleNativeVectorAdapter implements NativeVectorAdapter {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/pg/PgNativeVectorAdapter.java:15: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class PgNativeVectorAdapter implements NativeVectorAdapter {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/repository/PostgreSQLFaceEmbeddingRepository.java:29: warning: no comment
+[[1;33mWARNING[m] java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/repository/PostgreSQLFaceEmbeddingRepository.java:27: warning: no comment
+[[1;33mWARNING[m] List<Object[]> findSimilarByCosineSimilarity(String queryVector, String modelName, Double threshold, Integer limit);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/PostgreSQLVectorSimilarityService.java:36: warning: no comment
+[[1;33mWARNING[m] public PostgreSQLVectorSimilarityService(PostgreSQLFaceEmbeddingRepository repository, JdbcTemplate jdbcTemplate, io.github.codesapienbe.springvision.persistence.service.NativeVectorAdapterRegistry registry) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:82: warning: no @param for svc
+[[1;33mWARNING[m] public VectorService h2VectorServiceAdapter(H2VectorSimilarityService svc) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:82: warning: no @return
+[[1;33mWARNING[m] public VectorService h2VectorServiceAdapter(H2VectorSimilarityService svc) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:25: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class VectorJpaAdapterAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:99: warning: no comment
+[[1;33mWARNING[m] public VisionTemplate createEnhancedVisionTemplate(@Qualifier("originalVisionTemplate") VisionTemplate originalTemplate,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:30: warning: no comment
+[[1;33mWARNING[m] public VectorService jpaVectorServiceAdapter(java.util.List<JpaVectorSimilarityService> services,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:72: warning: no comment
+[[1;33mWARNING[m] public VectorService mysqlVectorServiceAdapter(MySQLVectorSimilarityService svc) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:65: warning: no comment
+[[1;33mWARNING[m] public VectorService oracleVectorServiceAdapter(OracleVectorSimilarityService svc) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:88: warning: no comment
+[[1;33mWARNING[m] public VisionTemplate originalVisionTemplate(ObjectProvider<VisionBackend> backendProvider) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorJpaAdapterAutoConfiguration.java:58: warning: no comment
+[[1;33mWARNING[m] public VectorService postgresServiceAdapter(PostgreSQLVectorSimilarityService svc) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSchemaManager.java:29: warning: no comment
+[[1;33mWARNING[m] public VectorSchemaManager(DatabaseVendorDetector vendorDetector, JdbcTemplate jdbcTemplate, VectorSimilarityProperties properties) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSchemaManager.java:36: warning: no comment
+[[1;33mWARNING[m] public void onApplicationReady(ApplicationReadyEvent event) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:10: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class VectorSimilarityProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:45: warning: no comment
+[[1;33mWARNING[m] public MySQL getMysql() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:37: warning: no comment
+[[1;33mWARNING[m] public Oracle getOracle() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:29: warning: no comment
+[[1;33mWARNING[m] public PostgreSQL getPostgresql() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:21: warning: no comment
+[[1;33mWARNING[m] public VectorProvider getProvider() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:49: warning: no comment
+[[1;33mWARNING[m] public void setMysql(MySQL mysql) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:41: warning: no comment
+[[1;33mWARNING[m] public void setOracle(Oracle oracle) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:33: warning: no comment
+[[1;33mWARNING[m] public void setPostgresql(PostgreSQL postgresql) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:25: warning: no comment
+[[1;33mWARNING[m] public void setProvider(VectorProvider provider) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:131: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class MySQL {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:143: warning: no comment
+[[1;33mWARNING[m] public String getIndexType() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:135: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:139: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:147: warning: no comment
+[[1;33mWARNING[m] public void setIndexType(String indexType) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:98: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Oracle {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:111: warning: no comment
+[[1;33mWARNING[m] public String getIndexType() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:119: warning: no comment
+[[1;33mWARNING[m] public int getTargetAccuracy() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:103: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:107: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:115: warning: no comment
+[[1;33mWARNING[m] public void setIndexType(String indexType) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:123: warning: no comment
+[[1;33mWARNING[m] public void setTargetAccuracy(int targetAccuracy) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:56: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class PostgreSQL {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:86: warning: no comment
+[[1;33mWARNING[m] public int getHnswEfConstruction() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:78: warning: no comment
+[[1;33mWARNING[m] public int getHnswM() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:70: warning: no comment
+[[1;33mWARNING[m] public String getIndexType() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:62: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:66: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:90: warning: no comment
+[[1;33mWARNING[m] public void setHnswEfConstruction(int hnswEfConstruction) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:82: warning: no comment
+[[1;33mWARNING[m] public void setHnswM(int hnswM) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VectorSimilarityProperties.java:74: warning: no comment
+[[1;33mWARNING[m] public void setIndexType(String indexType) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:94: warning: no comment
+[[1;33mWARNING[m] public VectorServiceHealth(boolean ok, String message) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:103: warning: no comment
+[[1;33mWARNING[m] public String getMessage() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:99: warning: no comment
+[[1;33mWARNING[m] public boolean isOk() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:115: warning: no comment
+[[1;33mWARNING[m] public VerificationRequest(float[] embeddingA, float[] embeddingB) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:120: warning: no comment
+[[1;33mWARNING[m] public float[] getEmbeddingA() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:124: warning: no comment
+[[1;33mWARNING[m] public float[] getEmbeddingB() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:68: warning: no comment
+[[1;33mWARNING[m] public VerificationResult(boolean match, double distance, double similarity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:78: warning: no comment
+[[1;33mWARNING[m] public double getDistance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:82: warning: no comment
+[[1;33mWARNING[m] public double getSimilarity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/service/VectorSimilarityService.java:74: warning: no comment
+[[1;33mWARNING[m] public boolean isMatch() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VisionJpaAutoConfiguration.java:26: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class VisionJpaAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/persistence/src/main/java/io/github/codesapienbe/springvision/persistence/config/VisionJpaConfiguration.java:16: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class VisionJpaConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 60 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m------------< [0;36mio.github.codesapienbe.springvision:starter[0;1m >-------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> Starter 1.0                             [4/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Starter 1.0                             [4/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mstarter[0;1m >>>[m
@@ -89,10 +574,100 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mstarter[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/dto/DetectionRequest.java:70: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/dto/DetectionResponse.java:256: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/dto/HealthResponse.java:303: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/dto/MultipleDetectionRequest.java:105: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/dto/MultipleDetectionResponse.java:228: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1753: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<Map<String, Object>>> annotateImageAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1473: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> annotateImageEndpoint(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1337: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<DetectionResponse> detectBarcodesFromData(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1624: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromDataAsync(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1290: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<DetectionResponse> detectBarcodesFromFile(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1579: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromFileAsync(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:304: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromDataAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:248: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromFileAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:794: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromDataAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:735: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromFileAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:537: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromDataAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:484: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromFileAsync(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1428: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<DetectionResponse> detectTextFromData(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1711: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromDataAsync(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1381: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<DetectionResponse> detectTextFromFile(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1666: warning: no comment
+[[1;33mWARNING[m] public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromFileAsync(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1526: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<DetectionResponse> detectWithQueryEndpoint(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1035: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitAnnotateTask(
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:913: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTask(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:945: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTaskJson(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:850: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTask(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:883: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTaskJson(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:974: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTask(@RequestParam("file") MultipartFile file) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/starter/src/main/java/io/github/codesapienbe/springvision/starter/web/VisionController.java:1006: warning: no comment
+[[1;33mWARNING[m] public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTaskJson(@RequestBody DetectionRequest request) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] The generated documentation contains diagnostic markers for invalid input.
+[[1;33mWARNING[m] 29 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:tesseract[0;1m >------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> Tesseract Backend 1.0                   [5/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Tesseract Backend 1.0                   [5/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mtesseract[0;1m >>>[m
@@ -106,10 +681,69 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mtesseract[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class TesseractAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class TesseractProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:114: warning: no comment
+[[1;33mWARNING[m] public String getAdditionalLanguages() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:74: warning: no comment
+[[1;33mWARNING[m] public String getLanguage() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:98: warning: no comment
+[[1;33mWARNING[m] public int getMinConfidence() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:90: warning: no comment
+[[1;33mWARNING[m] public int getOcrEngineMode() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:82: warning: no comment
+[[1;33mWARNING[m] public int getPageSegMode() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:66: warning: no comment
+[[1;33mWARNING[m] public String getTessdataPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:106: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableAutoDownload() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:58: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:118: warning: no comment
+[[1;33mWARNING[m] public void setAdditionalLanguages(String additionalLanguages) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:110: warning: no comment
+[[1;33mWARNING[m] public void setEnableAutoDownload(boolean enableAutoDownload) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:62: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:78: warning: no comment
+[[1;33mWARNING[m] public void setLanguage(String language) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:102: warning: no comment
+[[1;33mWARNING[m] public void setMinConfidence(int minConfidence) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:94: warning: no comment
+[[1;33mWARNING[m] public void setOcrEngineMode(int ocrEngineMode) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:86: warning: no comment
+[[1;33mWARNING[m] public void setPageSegMode(int pageSegMode) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/config/TesseractProperties.java:70: warning: no comment
+[[1;33mWARNING[m] public void setTessdataPath(String tessdataPath) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/tesseract/src/main/java/io/github/codesapienbe/springvision/tesseract/TesseractVisionBackend.java:53: warning: no comment
+[[1;33mWARNING[m] public TesseractVisionBackend() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 19 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:facebytes[0;1m >------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> FaceBytes Backend 1.0                   [6/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> FaceBytes Backend 1.0                   [6/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mfacebytes[0;1m >>>[m
@@ -123,10 +757,312 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mfacebytes[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:277: warning: no @return
+[[1;33mWARNING[m] public boolean autoDownloadEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:284: warning: no @return
+[[1;33mWARNING[m] public int modelDownloadConnectTimeoutMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:291: warning: no @return
+[[1;33mWARNING[m] public int modelDownloadReadTimeoutMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:298: warning: no @return
+[[1;33mWARNING[m] public boolean allowInsecureDownloads() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:369: warning: no @return
+[[1;33mWARNING[m] public boolean onnxEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:376: warning: no @return
+[[1;33mWARNING[m] public double[] normalizationMean() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:383: warning: no @return
+[[1;33mWARNING[m] public double[] normalizationStd() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:390: warning: no @return
+[[1;33mWARNING[m] public String colorSpace() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:399: warning: no @param for model
+[[1;33mWARNING[m] public double[] templatePoints(io.github.codesapienbe.springvision.facebytes.enums.ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:399: warning: no @return
+[[1;33mWARNING[m] public double[] templatePoints(io.github.codesapienbe.springvision.facebytes.enums.ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:258: warning: no comment
+[[1;33mWARNING[m] public int ageInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:254: warning: no comment
+[[1;33mWARNING[m] public String ageOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:211: warning: no comment
+[[1;33mWARNING[m] public boolean align() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:306: warning: no comment
+[[1;33mWARNING[m] public int arcFaceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:302: warning: no comment
+[[1;33mWARNING[m] public String arcFaceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:168: warning: no comment
+[[1;33mWARNING[m] public static DeepFaceConfig current() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:346: warning: no comment
+[[1;33mWARNING[m] public int deepfaceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:342: warning: no comment
+[[1;33mWARNING[m] public String deepfaceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:227: warning: no comment
+[[1;33mWARNING[m] public DistanceMetric defaultDistanceMetric() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:219: warning: no comment
+[[1;33mWARNING[m] public DetectorBackend detectorBackend() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:242: warning: no comment
+[[1;33mWARNING[m] public int emotionInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:238: warning: no comment
+[[1;33mWARNING[m] public String emotionOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:215: warning: no comment
+[[1;33mWARNING[m] public boolean enforceDetection() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:322: warning: no comment
+[[1;33mWARNING[m] public int facenet512InputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:318: warning: no comment
+[[1;33mWARNING[m] public String facenet512OnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:314: warning: no comment
+[[1;33mWARNING[m] public int facenetInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:310: warning: no comment
+[[1;33mWARNING[m] public String facenetOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:250: warning: no comment
+[[1;33mWARNING[m] public int genderInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:246: warning: no comment
+[[1;33mWARNING[m] public String genderOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:207: warning: no comment
+[[1;33mWARNING[m] public int inputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:223: warning: no comment
+[[1;33mWARNING[m] public int margin() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:330: warning: no comment
+[[1;33mWARNING[m] public int openfaceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:326: warning: no comment
+[[1;33mWARNING[m] public String openfaceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:266: warning: no comment
+[[1;33mWARNING[m] public int raceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:262: warning: no comment
+[[1;33mWARNING[m] public String raceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:354: warning: no comment
+[[1;33mWARNING[m] public int retinaFaceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:362: warning: no comment
+[[1;33mWARNING[m] public double retinaFaceNmsThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:350: warning: no comment
+[[1;33mWARNING[m] public String retinaFaceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:358: warning: no comment
+[[1;33mWARNING[m] public double retinaFaceScoreThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:338: warning: no comment
+[[1;33mWARNING[m] public int sfaceInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:334: warning: no comment
+[[1;33mWARNING[m] public String sfaceOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:179: warning: no comment
+[[1;33mWARNING[m] public double threshold(DistanceMetric metric) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:187: warning: no comment
+[[1;33mWARNING[m] public double threshold(ModelType model, DistanceMetric metric) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/DeepFaceConfig.java:270: warning: no comment
+[[1;33mWARNING[m] public String vggOnnxPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/DeepFaceModel.java:13: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class DeepFaceModel {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/DeepIdModel.java:10: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class DeepIdModel {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/detectors/DetectorFactory.java:23: warning: no @return
+[[1;33mWARNING[m] public static FaceDetector createDefault() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/detectors/DetectorFactory.java:36: warning: no @param for backend
+[[1;33mWARNING[m] public static FaceDetector create(DetectorBackend backend) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/detectors/DetectorFactory.java:36: warning: no @return
+[[1;33mWARNING[m] public static FaceDetector create(DetectorBackend backend) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/DlibModel.java:10: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class DlibModel {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/EmotionPredictor.java:59: warning: no comment
+[[1;33mWARNING[m] public EmotionPredictor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/EmotionPredictor.java:64: warning: no comment
+[[1;33mWARNING[m] public EmotionPredictor(DeepFaceConfig config) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/EmotionPredictor.java:264: warning: no comment
+[[1;33mWARNING[m] public EmotionResult(Emotion emotion, double confidence) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/EmotionPredictor.java:273: warning: no comment
+[[1;33mWARNING[m] public double confidence() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/EmotionPredictor.java:269: warning: no comment
+[[1;33mWARNING[m] public Emotion emotion() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/FaceBytesAutoConfiguration.java:29: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class FaceBytesAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/FaceBytesBackend.java:48: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/config/FaceBytesProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class FaceBytesProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/Facenet512Model.java:8: warning: no comment
+[[1;33mWARNING[m] public final class Facenet512Model {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/Facenet512Model.java:8: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class Facenet512Model {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/Facenet512Model.java:11: warning: no comment
+[[1;33mWARNING[m] public float[] generateEmbedding(BufferedImage face) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/Facenet512Model.java:15: warning: no comment
+[[1;33mWARNING[m] public float[] generateEmbedding(BufferedImage face, int targetSize) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacenetModel.java:10: warning: no comment
+[[1;33mWARNING[m] public final class FacenetModel {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacenetModel.java:11: warning: no comment
+[[1;33mWARNING[m] public static final int DEFAULT_INPUT_SIZE = 160;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacenetModel.java:10: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public final class FacenetModel {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacenetModel.java:13: warning: no comment
+[[1;33mWARNING[m] public float[] generateEmbedding(BufferedImage face) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacenetModel.java:17: warning: no comment
+[[1;33mWARNING[m] public float[] generateEmbedding(BufferedImage face, int targetSize) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:47: warning: no @param for face
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:47: warning: no @param for width
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:47: warning: no @param for height
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:47: warning: no @return
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:62: warning: no @param for face
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:62: warning: no @param for landmarks5
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:62: warning: no @param for width
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:62: warning: no @param for height
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:62: warning: no @return
+[[1;33mWARNING[m] public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:73: warning: no @param for face
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:73: warning: no @param for landmarks5
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:73: warning: no @param for targetW
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:73: warning: no @param for targetH
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:73: warning: no @return
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @param for face
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @param for landmarks5
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @param for targetW
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @param for targetH
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @param for model
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:83: warning: no @return
+[[1;33mWARNING[m] public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:28: warning: no comment
+[[1;33mWARNING[m] public final class FacePreprocessor {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/utils/FacePreprocessor.java:38: warning: no comment
+[[1;33mWARNING[m] public FacePreprocessor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:32: warning: no comment
+[[1;33mWARNING[m] public FacialAnalysisEngine() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:41: warning: no comment
+[[1;33mWARNING[m] public FacialAnalysisEngine(DeepFaceConfig config) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:277: warning: no comment
+[[1;33mWARNING[m] public FacialAnalysisResult(int age, GenderPredictor.GenderResult gender,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:288: warning: no comment
+[[1;33mWARNING[m] public int age() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:296: warning: no comment
+[[1;33mWARNING[m] public EmotionPredictor.EmotionResult emotion() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:292: warning: no comment
+[[1;33mWARNING[m] public GenderPredictor.GenderResult gender() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:308: warning: no comment
+[[1;33mWARNING[m] public long processingTimeMs() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:300: warning: no comment
+[[1;33mWARNING[m] public RacePredictor.RaceResult race() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/FacialAnalysisEngine.java:304: warning: no comment
+[[1;33mWARNING[m] public FaceRegion region() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/GenderPredictor.java:19: warning: no comment
+[[1;33mWARNING[m] public enum Gender {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/facebytes/src/main/java/io/github/codesapienbe/springvision/facebytes/models/GenderPredictor.java:29: warning: no comment
+[[1;33mWARNING[m] public GenderPredictor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 100 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:mediapipe[0;1m >------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> MediaPipe Backend 1.0                   [7/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> MediaPipe Backend 1.0                   [7/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mmediapipe[0;1m >>>[m
@@ -140,10 +1076,75 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mmediapipe[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/config/MediaPipeAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class MediaPipeAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:54: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:172: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detect(ImageData imageData, DetectionType type) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:168: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detectLandmarks(ImageData imageData) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:936: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:960: warning: no comment
+[[1;33mWARNING[m] public int getDownloadTimeoutSeconds() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:944: warning: no comment
+[[1;33mWARNING[m] public int getMaxDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:968: warning: no comment
+[[1;33mWARNING[m] public int getMaxPoolSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:928: warning: no comment
+[[1;33mWARNING[m] public String getModelPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:976: warning: no comment
+[[1;33mWARNING[m] public int getPoolTimeoutSeconds() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:952: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableAutoDownload() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:920: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:940: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:964: warning: no comment
+[[1;33mWARNING[m] public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:956: warning: no comment
+[[1;33mWARNING[m] public void setEnableAutoDownload(boolean enableAutoDownload) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:924: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:948: warning: no comment
+[[1;33mWARNING[m] public void setMaxDetections(int maxDetections) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:972: warning: no comment
+[[1;33mWARNING[m] public void setMaxPoolSize(int maxPoolSize) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:932: warning: no comment
+[[1;33mWARNING[m] public void setModelPath(String modelPath) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/MediaPipeBackend.java:980: warning: no comment
+[[1;33mWARNING[m] public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mediapipe/src/main/java/io/github/codesapienbe/springvision/mediapipe/config/MediaPipeProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class MediaPipeProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 21 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m----------< [0;36mio.github.codesapienbe.springvision:insightface[0;1m >-----------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> InsightFace Backend 1.0                 [8/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> InsightFace Backend 1.0                 [8/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36minsightface[0;1m >>>[m
@@ -157,10 +1158,246 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36minsightface[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class InsightFaceAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:210: warning: no @param for imageData
+[[1;33mWARNING[m] public List<double[]> extractEmbeddings(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:210: warning: no @param for correlationId
+[[1;33mWARNING[m] public List<double[]> extractEmbeddings(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:210: warning: no @return
+[[1;33mWARNING[m] public List<double[]> extractEmbeddings(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:210: warning: no @throws for java.lang.Exception
+[[1;33mWARNING[m] public List<double[]> extractEmbeddings(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:232: warning: no @param for image1
+[[1;33mWARNING[m] public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:232: warning: no @param for image2
+[[1;33mWARNING[m] public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:232: warning: no @param for correlationId
+[[1;33mWARNING[m] public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:232: warning: no @return
+[[1;33mWARNING[m] public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:232: warning: no @throws for java.lang.Exception
+[[1;33mWARNING[m] public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:253: warning: no @param for imageData
+[[1;33mWARNING[m] public List<RecognitionResult> recognizeFaces(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:253: warning: no @param for correlationId
+[[1;33mWARNING[m] public List<RecognitionResult> recognizeFaces(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:253: warning: no @return
+[[1;33mWARNING[m] public List<RecognitionResult> recognizeFaces(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:253: warning: no @throws for java.lang.Exception
+[[1;33mWARNING[m] public List<RecognitionResult> recognizeFaces(byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:313: warning: no @param for identity
+[[1;33mWARNING[m] public void addFace(String identity, byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:313: warning: no @param for imageData
+[[1;33mWARNING[m] public void addFace(String identity, byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:313: warning: no @param for correlationId
+[[1;33mWARNING[m] public void addFace(String identity, byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:313: warning: no @throws for java.lang.Exception
+[[1;33mWARNING[m] public void addFace(String identity, byte[] imageData, String correlationId) throws Exception {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:333: warning: no @param for identity
+[[1;33mWARNING[m] public void removeFace(String identity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:39: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class InsightFaceBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:149: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detect(ImageData imageData, DetectionType type) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:722: warning: no comment
+[[1;33mWARNING[m] public String getApiKey() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:714: warning: no comment
+[[1;33mWARNING[m] public String getApiUrl() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:738: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:754: warning: no comment
+[[1;33mWARNING[m] public int getMaxDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:794: warning: no comment
+[[1;33mWARNING[m] public int getMaxRetries() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:730: warning: no comment
+[[1;33mWARNING[m] public String getModelName() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:786: warning: no comment
+[[1;33mWARNING[m] public int getTimeoutSeconds() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:746: warning: no comment
+[[1;33mWARNING[m] public double getVerificationThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:762: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableAgeGender() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:706: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:770: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableEmotion() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:778: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableLandmarks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:726: warning: no comment
+[[1;33mWARNING[m] public void setApiKey(String apiKey) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:718: warning: no comment
+[[1;33mWARNING[m] public void setApiUrl(String apiUrl) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:742: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:766: warning: no comment
+[[1;33mWARNING[m] public void setEnableAgeGender(boolean enableAgeGender) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:710: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:774: warning: no comment
+[[1;33mWARNING[m] public void setEnableEmotion(boolean enableEmotion) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:782: warning: no comment
+[[1;33mWARNING[m] public void setEnableLandmarks(boolean enableLandmarks) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:758: warning: no comment
+[[1;33mWARNING[m] public void setMaxDetections(int maxDetections) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:798: warning: no comment
+[[1;33mWARNING[m] public void setMaxRetries(int maxRetries) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:734: warning: no comment
+[[1;33mWARNING[m] public void setModelName(String modelName) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:790: warning: no comment
+[[1;33mWARNING[m] public void setTimeoutSeconds(int timeoutSeconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:750: warning: no comment
+[[1;33mWARNING[m] public void setVerificationThreshold(double verificationThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:685: warning: no comment
+[[1;33mWARNING[m] public RecognitionResult(String identity, double confidence, double distance) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:695: warning: no comment
+[[1;33mWARNING[m] public double getConfidence() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:699: warning: no comment
+[[1;33mWARNING[m] public double getDistance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:691: warning: no comment
+[[1;33mWARNING[m] public String getIdentity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:658: warning: no comment
+[[1;33mWARNING[m] public VerificationResult(double distance, boolean isMatch, double similarity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:664: warning: no comment
+[[1;33mWARNING[m] public double getDistance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:672: warning: no comment
+[[1;33mWARNING[m] public double getSimilarity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/InsightFaceBackend.java:668: warning: no comment
+[[1;33mWARNING[m] public boolean isMatch() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class InsightFaceProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:92: warning: no comment
+[[1;33mWARNING[m] public String getApiKey() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:84: warning: no comment
+[[1;33mWARNING[m] public String getApiUrl() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:108: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:124: warning: no comment
+[[1;33mWARNING[m] public int getMaxDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:164: warning: no comment
+[[1;33mWARNING[m] public int getMaxRetries() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:100: warning: no comment
+[[1;33mWARNING[m] public String getModelName() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:156: warning: no comment
+[[1;33mWARNING[m] public int getTimeoutSeconds() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:116: warning: no comment
+[[1;33mWARNING[m] public double getVerificationThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:132: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableAgeGender() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:76: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:140: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableEmotion() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:148: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableLandmarks() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:96: warning: no comment
+[[1;33mWARNING[m] public void setApiKey(String apiKey) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:88: warning: no comment
+[[1;33mWARNING[m] public void setApiUrl(String apiUrl) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:112: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:136: warning: no comment
+[[1;33mWARNING[m] public void setEnableAgeGender(boolean enableAgeGender) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:80: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:144: warning: no comment
+[[1;33mWARNING[m] public void setEnableEmotion(boolean enableEmotion) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:152: warning: no comment
+[[1;33mWARNING[m] public void setEnableLandmarks(boolean enableLandmarks) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:128: warning: no comment
+[[1;33mWARNING[m] public void setMaxDetections(int maxDetections) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:168: warning: no comment
+[[1;33mWARNING[m] public void setMaxRetries(int maxRetries) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:104: warning: no comment
+[[1;33mWARNING[m] public void setModelName(String modelName) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:160: warning: no comment
+[[1;33mWARNING[m] public void setTimeoutSeconds(int timeoutSeconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/insightface/src/main/java/io/github/codesapienbe/springvision/insightface/config/InsightFaceProperties.java:120: warning: no comment
+[[1;33mWARNING[m] public void setVerificationThreshold(double verificationThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 78 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-----------< [0;36mio.github.codesapienbe.springvision:compreface[0;1m >-----------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> CompreFace Backend 1.0                  [9/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> CompreFace Backend 1.0                  [9/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcompreface[0;1m >>>[m
@@ -174,10 +1411,18 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcompreface[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/compreface/src/main/java/io/github/codesapienbe/springvision/compreface/config/CompreFaceAutoConfiguration.java:30: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class CompreFaceAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/compreface/src/main/java/io/github/codesapienbe/springvision/compreface/config/CompreFaceProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class CompreFaceProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 2 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m------------< [0;36mio.github.codesapienbe.springvision:deepface[0;1m >------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> DeepFace Backend 1.0                   [10/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> DeepFace Backend 1.0                   [10/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mdeepface[0;1m >>>[m
@@ -191,10 +1436,84 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mdeepface[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class DeepFaceAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/DeepFaceBackend.java:552: warning: no @param for apiUrl
+[[1;33mWARNING[m] public void setApiUrl(String apiUrl) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/DeepFaceBackend.java:568: warning: no @param for seconds
+[[1;33mWARNING[m] public void setTimeoutSeconds(int seconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:14: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class DeepFaceProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:76: warning: no comment
+[[1;33mWARNING[m] public String getBaseUrl() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:92: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:108: warning: no comment
+[[1;33mWARNING[m] public String getDetectorBackend() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:124: warning: no comment
+[[1;33mWARNING[m] public String getDistanceMetric() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:100: warning: no comment
+[[1;33mWARNING[m] public int getMaxDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:116: warning: no comment
+[[1;33mWARNING[m] public String getModel() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:84: warning: no comment
+[[1;33mWARNING[m] public Duration getTimeout() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:132: warning: no comment
+[[1;33mWARNING[m] public boolean isAlign() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:68: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:140: warning: no comment
+[[1;33mWARNING[m] public boolean isNormalization() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:136: warning: no comment
+[[1;33mWARNING[m] public void setAlign(boolean align) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:80: warning: no comment
+[[1;33mWARNING[m] public void setBaseUrl(String baseUrl) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:96: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:112: warning: no comment
+[[1;33mWARNING[m] public void setDetectorBackend(String detectorBackend) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:128: warning: no comment
+[[1;33mWARNING[m] public void setDistanceMetric(String distanceMetric) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:72: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:104: warning: no comment
+[[1;33mWARNING[m] public void setMaxDetections(int maxDetections) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:120: warning: no comment
+[[1;33mWARNING[m] public void setModel(String model) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:144: warning: no comment
+[[1;33mWARNING[m] public void setNormalization(boolean normalization) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/deepface/src/main/java/io/github/codesapienbe/springvision/deepface/config/DeepFaceProperties.java:88: warning: no comment
+[[1;33mWARNING[m] public void setTimeout(Duration timeout) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 24 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:yolo[0;1m >--------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> YOLO Backend 1.0                       [11/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> YOLO Backend 1.0                       [11/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36myolo[0;1m >>>[m
@@ -208,10 +1527,78 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36myolo[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class YoloAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/YoloBackend.java:49: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class YoloBackend implements VisionBackend, ObjectDetectionCapability, FaceDetectionCapability {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/YoloBackend.java:171: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detect(ImageData imageData, DetectionType type) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class YoloProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:85: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:117: warning: no comment
+[[1;33mWARNING[m] public int getDownloadTimeoutSeconds() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:125: warning: no comment
+[[1;33mWARNING[m] public int getInputSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:101: warning: no comment
+[[1;33mWARNING[m] public int getMaxDetections() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:77: warning: no comment
+[[1;33mWARNING[m] public String getModelName() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:69: warning: no comment
+[[1;33mWARNING[m] public String getModelPath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:93: warning: no comment
+[[1;33mWARNING[m] public double getNmsThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:109: warning: no comment
+[[1;33mWARNING[m] public boolean isEnableAutoDownload() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:61: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:89: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:121: warning: no comment
+[[1;33mWARNING[m] public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:113: warning: no comment
+[[1;33mWARNING[m] public void setEnableAutoDownload(boolean enableAutoDownload) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:65: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:129: warning: no comment
+[[1;33mWARNING[m] public void setInputSize(int inputSize) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:105: warning: no comment
+[[1;33mWARNING[m] public void setMaxDetections(int maxDetections) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:81: warning: no comment
+[[1;33mWARNING[m] public void setModelName(String modelName) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:73: warning: no comment
+[[1;33mWARNING[m] public void setModelPath(String modelPath) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/yolo/src/main/java/io/github/codesapienbe/springvision/yolo/config/YoloProperties.java:97: warning: no comment
+[[1;33mWARNING[m] public void setNmsThreshold(double nmsThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 22 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--------------< [0;36mio.github.codesapienbe.springvision:mcp[0;1m >---------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> MCP Server 1.0                         [12/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> MCP Server 1.0                         [12/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mmcp[0;1m >>>[m
@@ -226,10 +1613,41 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mmcp[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] warning: unknown enum constant When.MAYBE
+[[1;33mWARNING[m] reason: class file for javax.annotation.meta.When not found
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/SpringVisionMcpServerApplication.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class SpringVisionMcpServerApplication {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/SpringVisionMcpServerApplication.java:14: warning: no comment
+[[1;33mWARNING[m] public static void main(String[] args) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/ToolCallbackConfiguration.java:20: warning: no @param for visionTool
+[[1;33mWARNING[m] public ToolCallbackProvider tools(@Nullable VisionTool visionTool) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/ToolCallbackConfiguration.java:20: warning: no @return
+[[1;33mWARNING[m] public ToolCallbackProvider tools(@Nullable VisionTool visionTool) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/ToolCallbackConfiguration.java:12: warning: no comment
+[[1;33mWARNING[m] public class ToolCallbackConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/ToolCallbackConfiguration.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class ToolCallbackConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/ToolRegistryInspector.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class ToolRegistryInspector implements ApplicationListener<ContextRefreshedEvent> {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/VisionTemplateConfiguration.java:27: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class VisionTemplateConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/VisionTemplateConfiguration.java:36: warning: no comment
+[[1;33mWARNING[m] public VisionTemplate visionTemplate() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 10 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-------------< [0;36mio.github.codesapienbe.springvision:health[0;1m >-------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> Health Monitoring Backend 1.0          [13/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Health Monitoring Backend 1.0          [13/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mhealth[0;1m >>>[m
@@ -243,10 +1661,72 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mhealth[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:21: warning: no @return
+[[1;33mWARNING[m] String getModelId();
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:26: warning: no @param for image
+[[1;33mWARNING[m] TumorClassificationResult classify(MRIImage image) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:26: warning: no @return
+[[1;33mWARNING[m] TumorClassificationResult classify(MRIImage image) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:31: warning: no @param for images
+[[1;33mWARNING[m] List<TumorClassificationResult> classifyBatch(List<MRIImage> images) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:31: warning: no @return
+[[1;33mWARNING[m] List<TumorClassificationResult> classifyBatch(List<MRIImage> images) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/BrainTumorClassifier.java:36: warning: no @return
+[[1;33mWARNING[m] Map<String, String> getModelMetadata();
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/FallDetector.java:18: warning: no @param for imageDataList
+[[1;33mWARNING[m] List<Detection> detectFall(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/FallDetector.java:18: warning: no @return
+[[1;33mWARNING[m] List<Detection> detectFall(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/HeartRateMonitor.java:20: warning: no @param for imageDataList
+[[1;33mWARNING[m] List<Detection> detectHeartRate(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/HeartRateMonitor.java:20: warning: no @return
+[[1;33mWARNING[m] List<Detection> detectHeartRate(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/StressAnalyzer.java:19: warning: no @param for imageDataList
+[[1;33mWARNING[m] List<Detection> detectStress(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/StressAnalyzer.java:19: warning: no @return
+[[1;33mWARNING[m] List<Detection> detectStress(List<ImageData> imageDataList) throws BaseVisionException;
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/StressAnalyzer.java:24: warning: no @return
+[[1;33mWARNING[m] Optional<java.time.Duration> preferredWindow();
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/StressListener.java:13: warning: no @param for sample
+[[1;33mWARNING[m] void onSample(StressSample sample);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/StressListener.java:23: warning: no @param for t
+[[1;33mWARNING[m] void onError(Throwable t);
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/TumorType.java:7: warning: no comment
+[[1;33mWARNING[m] GLIOMA,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/TumorType.java:8: warning: no comment
+[[1;33mWARNING[m] MENINGIOMA,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/TumorType.java:10: warning: no comment
+[[1;33mWARNING[m] NO_TUMOR,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/TumorType.java:9: warning: no comment
+[[1;33mWARNING[m] PITUITARY,
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/health/src/main/java/io/github/codesapienbe/springvision/health/api/TumorType.java:11: warning: no comment
+[[1;33mWARNING[m] UNKNOWN
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 20 warnings
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m-------------< [0;36mio.github.codesapienbe.springvision:cyber[0;1m >--------------[m
-[[1;34mINFO[m] [1mBuilding Spring Vision -> Cyber Security Backend 1.0             [14/14][m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Cybersecurity Backend 1.0              [14/15][m
 [[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mcyber[0;1m >>>[m
@@ -260,27 +1740,292 @@ WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
 [[1;34mINFO[m] 
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mcyber[0;1m ---[m
-[[1;34mINFO[m] Skipping javadoc generation, everything is up to date.
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/models/AccessEvent.java:114: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class Builder {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityAutoConfiguration.java:28: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class CyberSecurityAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:135: warning: no comment
+[[1;33mWARNING[m] public static class AccessMonitorSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:66: warning: no comment
+[[1;33mWARNING[m] public static class QRCodeSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:94: warning: no comment
+[[1;33mWARNING[m] public static class ShoulderSurfingSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class CyberSecurityProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:58: warning: no comment
+[[1;33mWARNING[m] public AccessMonitorSettings getAccessMonitor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:42: warning: no comment
+[[1;33mWARNING[m] public QRCodeSettings getQrCode() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:50: warning: no comment
+[[1;33mWARNING[m] public ShoulderSurfingSettings getShoulderSurfing() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:34: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:62: warning: no comment
+[[1;33mWARNING[m] public void setAccessMonitor(AccessMonitorSettings accessMonitor) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:38: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:46: warning: no comment
+[[1;33mWARNING[m] public void setQrCode(QRCodeSettings qrCode) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:54: warning: no comment
+[[1;33mWARNING[m] public void setShoulderSurfing(ShoulderSurfingSettings shoulderSurfing) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:135: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class AccessMonitorSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:159: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:151: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:167: warning: no comment
+[[1;33mWARNING[m] public boolean isLogEvents() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:163: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:155: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:171: warning: no comment
+[[1;33mWARNING[m] public void setLogEvents(boolean logEvents) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:66: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class QRCodeSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:77: warning: no comment
+[[1;33mWARNING[m] public double getSensitivity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:85: warning: no comment
+[[1;33mWARNING[m] public boolean isValidateUrls() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:81: warning: no comment
+[[1;33mWARNING[m] public void setSensitivity(double sensitivity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:89: warning: no comment
+[[1;33mWARNING[m] public void setValidateUrls(boolean validateUrls) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:94: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class ShoulderSurfingSettings {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:126: warning: no comment
+[[1;33mWARNING[m] public int getPersistenceFrames() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:118: warning: no comment
+[[1;33mWARNING[m] public double getSensitivity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:110: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:114: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:130: warning: no comment
+[[1;33mWARNING[m] public void setPersistenceFrames(int persistenceFrames) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/config/CyberSecurityProperties.java:122: warning: no comment
+[[1;33mWARNING[m] public void setSensitivity(double sensitivity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/detectors/PhysicalAccessMonitor.java:65: warning: no comment
+[[1;33mWARNING[m] public PhysicalAccessMonitor() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/detectors/QRCodeSecurityDetector.java:47: warning: no comment
+[[1;33mWARNING[m] public QRCodeSecurityDetector() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/models/QRCodeThreat.java:68: warning: no comment
+[[1;33mWARNING[m] public QRCodeThreat(String content) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/cyber/src/main/java/io/github/codesapienbe/springvision/cyber/models/QRCodeThreat.java:75: warning: no comment
+[[1;33mWARNING[m] public String getContent() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 37 warnings
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m------------< [0;36mio.github.codesapienbe.springvision:robotics[0;1m >------------[m
+[[1;34mINFO[m] [1mBuilding Spring Vision -> Robotics Backend 1.0                   [15/15][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m > [0;1mgenerate-sources[m @ [36mrobotics[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-enforcer-plugin:3.4.1:enforce[m [1m(enforce-java)[m @ [36mrobotics[0;1m ---[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjacoco-maven-plugin:0.8.10:prepare-agent[m [1m(prepare-agent)[m @ [36mrobotics[0;1m ---[m
+[[1;34mINFO[m] argLine set to -javaagent:/home/codesapienbe/.m2/repository/org/jacoco/org.jacoco.agent/0.8.10/org.jacoco.agent-0.8.10-runtime.jar=destfile=/home/codesapienbe/Projects/spring-vision/robotics/target/jacoco.exec
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[0;1m < [0;1mgenerate-sources[m @ [36mrobotics[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-javadoc-plugin:3.6.3:javadoc[m [1m(default-cli)[m @ [36mrobotics[0;1m ---[m
+[[1;34mINFO[m] Configuration changed, re-generating javadoc.
+[[1;33mWARNING[m] Javadoc Warnings
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/detectors/ComponentVerifier.java:23: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class ComponentVerifier {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/detectors/ComponentVerifier.java:35: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detect(ImageData imageData) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/detectors/DefectDetector.java:24: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class DefectDetector {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/detectors/DefectDetector.java:31: warning: no comment
+[[1;33mWARNING[m] public List<Detection> detect(ImageData imageData) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/detectors/RoboticArmGuidance.java:26: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class RoboticArmGuidance {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsAutoConfiguration.java:22: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class RoboticsAutoConfiguration {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/RoboticsBackend.java:245: warning: no comment
+[[1;33mWARNING[m] public ComponentVerifier getComponentVerifier() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/RoboticsBackend.java:237: warning: no comment
+[[1;33mWARNING[m] public DefectDetector getDefectDetector() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/RoboticsBackend.java:241: warning: no comment
+[[1;33mWARNING[m] public RoboticArmGuidance getRoboticArmGuidance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:120: warning: no comment
+[[1;33mWARNING[m] public static class ComponentVerification {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:51: warning: no comment
+[[1;33mWARNING[m] public static class DefectDetection {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:81: warning: no comment
+[[1;33mWARNING[m] public static class RoboticGuidance {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:12: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public class RoboticsProperties {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:43: warning: no comment
+[[1;33mWARNING[m] public ComponentVerification getComponentVerification() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:27: warning: no comment
+[[1;33mWARNING[m] public DefectDetection getDefectDetection() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:35: warning: no comment
+[[1;33mWARNING[m] public RoboticGuidance getRoboticGuidance() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:19: warning: no comment
+[[1;33mWARNING[m] public boolean isEnabled() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:47: warning: no comment
+[[1;33mWARNING[m] public void setComponentVerification(ComponentVerification componentVerification) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:31: warning: no comment
+[[1;33mWARNING[m] public void setDefectDetection(DefectDetection defectDetection) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:23: warning: no comment
+[[1;33mWARNING[m] public void setEnabled(boolean enabled) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:39: warning: no comment
+[[1;33mWARNING[m] public void setRoboticGuidance(RoboticGuidance roboticGuidance) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:120: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class ComponentVerification {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:141: warning: no comment
+[[1;33mWARNING[m] public String getComponentDatabasePath() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:133: warning: no comment
+[[1;33mWARNING[m] public double getIdentificationThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:125: warning: no comment
+[[1;33mWARNING[m] public boolean isStrictMode() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:145: warning: no comment
+[[1;33mWARNING[m] public void setComponentDatabasePath(String componentDatabasePath) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:137: warning: no comment
+[[1;33mWARNING[m] public void setIdentificationThreshold(double identificationThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:129: warning: no comment
+[[1;33mWARNING[m] public void setStrictMode(boolean strictMode) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:51: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class DefectDetection {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:72: warning: no comment
+[[1;33mWARNING[m] public int getMaxDefectsPerImage() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:64: warning: no comment
+[[1;33mWARNING[m] public int getMinDefectSize() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:56: warning: no comment
+[[1;33mWARNING[m] public double getSensitivity() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:76: warning: no comment
+[[1;33mWARNING[m] public void setMaxDefectsPerImage(int maxDefectsPerImage) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:68: warning: no comment
+[[1;33mWARNING[m] public void setMinDefectSize(int minDefectSize) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:60: warning: no comment
+[[1;33mWARNING[m] public void setSensitivity(double sensitivity) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:81: warning: use of default constructor, which does not provide a comment
+[[1;33mWARNING[m] public static class RoboticGuidance {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:111: warning: no comment
+[[1;33mWARNING[m] public double getConfidenceThreshold() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:87: warning: no comment
+[[1;33mWARNING[m] public double getFocalLength() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:95: warning: no comment
+[[1;33mWARNING[m] public double getSensorWidth() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:103: warning: no comment
+[[1;33mWARNING[m] public boolean isUseStereoVision() {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:115: warning: no comment
+[[1;33mWARNING[m] public void setConfidenceThreshold(double confidenceThreshold) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:91: warning: no comment
+[[1;33mWARNING[m] public void setFocalLength(double focalLength) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:99: warning: no comment
+[[1;33mWARNING[m] public void setSensorWidth(double sensorWidth) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] /home/codesapienbe/Projects/spring-vision/robotics/src/main/java/io/github/codesapienbe/springvision/robotics/config/RoboticsProperties.java:107: warning: no comment
+[[1;33mWARNING[m] public void setUseStereoVision(boolean useStereoVision) {
+[[1;33mWARNING[m] ^
+[[1;33mWARNING[m] 44 warnings
 [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
 [[1;34mINFO[m] [1mReactor Summary for Spring Vision 1.0:[m
 [[1;34mINFO[m] 
-[[1;34mINFO[m] Spring Vision ...................................... [1;32mSUCCESS[m [  0.945 s]
-[[1;34mINFO[m] Spring Vision -> Core .............................. [1;32mSUCCESS[m [  1.138 s]
-[[1;34mINFO[m] Spring Vision -> JPA ............................... [1;32mSUCCESS[m [  0.371 s]
-[[1;34mINFO[m] Spring Vision -> Starter ........................... [1;32mSUCCESS[m [  0.213 s]
-[[1;34mINFO[m] Spring Vision -> Tesseract Backend ................. [1;32mSUCCESS[m [  0.142 s]
-[[1;34mINFO[m] Spring Vision -> FaceBytes Backend ................. [1;32mSUCCESS[m [  0.201 s]
-[[1;34mINFO[m] Spring Vision -> MediaPipe Backend ................. [1;32mSUCCESS[m [  0.128 s]
-[[1;34mINFO[m] Spring Vision -> InsightFace Backend ............... [1;32mSUCCESS[m [  0.102 s]
-[[1;34mINFO[m] Spring Vision -> CompreFace Backend ................ [1;32mSUCCESS[m [  0.113 s]
-[[1;34mINFO[m] Spring Vision -> DeepFace Backend .................. [1;32mSUCCESS[m [  0.112 s]
-[[1;34mINFO[m] Spring Vision -> YOLO Backend ...................... [1;32mSUCCESS[m [  0.135 s]
-[[1;34mINFO[m] Spring Vision -> MCP Server ........................ [1;32mSUCCESS[m [  0.579 s]
-[[1;34mINFO[m] Spring Vision -> Health Monitoring Backend ......... [1;32mSUCCESS[m [  0.123 s]
-[[1;34mINFO[m] Spring Vision -> Cyber Security Backend ............ [1;32mSUCCESS[m [  0.134 s]
+[[1;34mINFO[m] Spring Vision ...................................... [1;32mSUCCESS[m [  0.863 s]
+[[1;34mINFO[m] Spring Vision -> Core .............................. [1;32mSUCCESS[m [  4.845 s]
+[[1;34mINFO[m] Spring Vision -> JPA ............................... [1;32mSUCCESS[m [  2.947 s]
+[[1;34mINFO[m] Spring Vision -> Starter ........................... [1;32mSUCCESS[m [  3.113 s]
+[[1;34mINFO[m] Spring Vision -> Tesseract Backend ................. [1;32mSUCCESS[m [  2.931 s]
+[[1;34mINFO[m] Spring Vision -> FaceBytes Backend ................. [1;32mSUCCESS[m [  3.526 s]
+[[1;34mINFO[m] Spring Vision -> MediaPipe Backend ................. [1;32mSUCCESS[m [  2.153 s]
+[[1;34mINFO[m] Spring Vision -> InsightFace Backend ............... [1;32mSUCCESS[m [  2.253 s]
+[[1;34mINFO[m] Spring Vision -> CompreFace Backend ................ [1;32mSUCCESS[m [  2.079 s]
+[[1;34mINFO[m] Spring Vision -> DeepFace Backend .................. [1;32mSUCCESS[m [  2.189 s]
+[[1;34mINFO[m] Spring Vision -> YOLO Backend ...................... [1;32mSUCCESS[m [  2.181 s]
+[[1;34mINFO[m] Spring Vision -> MCP Server ........................ [1;32mSUCCESS[m [  3.062 s]
+[[1;34mINFO[m] Spring Vision -> Health Monitoring Backend ......... [1;32mSUCCESS[m [  1.869 s]
+[[1;34mINFO[m] Spring Vision -> Cybersecurity Backend ............. [1;32mSUCCESS[m [  2.634 s]
+[[1;34mINFO[m] Spring Vision -> Robotics Backend .................. [1;32mSUCCESS[m [  2.550 s]
 [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
 [[1;34mINFO[m] [1;32mBUILD SUCCESS[m
 [[1;34mINFO[m] [1m------------------------------------------------------------------------[m
-[[1;34mINFO[m] Total time:  5.138 s
-[[1;34mINFO[m] Finished at: 2025-10-11T01:36:29+02:00
+[[1;34mINFO[m] Total time:  40.064 s
+[[1;34mINFO[m] Finished at: 2025-10-13T00:11:12+02:00
 [[1;34mINFO[m] [1m------------------------------------------------------------------------[m

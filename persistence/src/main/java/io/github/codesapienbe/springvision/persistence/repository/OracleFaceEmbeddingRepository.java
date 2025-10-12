@@ -16,6 +16,14 @@ import io.github.codesapienbe.springvision.persistence.entity.FaceEmbedding;
 @Repository
 public interface OracleFaceEmbeddingRepository extends JpaRepository<FaceEmbedding, UUID> {
 
+    /**
+     * Finds similar face embeddings using cosine similarity.
+     * @param queryVector The query vector.
+     * @param modelName The name of the model.
+     * @param threshold The similarity threshold.
+     * @param limit The maximum number of results to return.
+     * @return A list of similar face embeddings.
+     */
     @Query(value = """
         SELECT e.id, e.person_id, e.model_name, e.created_at, e.confidence,
                VECTOR_DISTANCE(e.native_vector, :queryVector, COSINE) as distance
@@ -30,5 +38,10 @@ public interface OracleFaceEmbeddingRepository extends JpaRepository<FaceEmbeddi
                                                  @Param("threshold") Double threshold,
                                                  @Param("limit") Integer limit);
 
+    /**
+     * Finds the first face embedding by image hash.
+     * @param imageHash The hash of the image.
+     * @return An optional containing the face embedding if found.
+     */
     java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 }

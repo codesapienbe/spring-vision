@@ -17,6 +17,13 @@ public final class DeepFaceModel {
     public static final int DEFAULT_INPUT_SIZE = 152;
 
     /**
+     * Default constructor for DeepFaceModel.
+     */
+    public DeepFaceModel() {
+        // Default constructor
+    }
+
+    /**
      * Generates face embedding using default input size.
      *
      * @param face the face image

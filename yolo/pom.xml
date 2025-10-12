@@ -68,6 +68,34 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
+
+      <!-- Download YOLO models before packaging (optional - graceful failure) -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>download-yolo-models</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>${project.basedir}/download-models.sh</argument>
+              </arguments>
+              <!-- Allow build to continue even if model download fails -->
+              <successCodes>
+                <successCode>0</successCode>
+              </successCodes>
+              <!-- Skip if property is set -->
+              <skip>${skipModelDownload}</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

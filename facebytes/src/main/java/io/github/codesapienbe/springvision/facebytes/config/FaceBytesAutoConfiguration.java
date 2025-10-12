@@ -29,6 +29,13 @@ import org.springframework.context.annotation.Bean;
 public class FaceBytesAutoConfiguration {
 
     /**
+     * Default constructor for FaceBytesAutoConfiguration.
+     */
+    public FaceBytesAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates FaceBytesBackend bean if not already defined.
      *
      * @param properties the FaceBytes configuration properties

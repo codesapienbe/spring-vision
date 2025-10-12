@@ -50,6 +50,9 @@ public class TesseractVisionBackend implements VisionBackend, TextOcrCapability 
 
     private final ITesseract tesseract;
 
+    /**
+     * Default constructor for TesseractVisionBackend.
+     */
     public TesseractVisionBackend() {
         this.tesseract = new Tesseract();
         // Set default language to English

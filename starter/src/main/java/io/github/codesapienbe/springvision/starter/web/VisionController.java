@@ -243,6 +243,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects faces in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A CompletableFuture containing the face detection results.
+     */
     @PostMapping(value = "/async/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromFileAsync(
@@ -299,6 +304,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects faces in image data provided in the request body.
+     * @param request The detection request containing image data.
+     * @return A CompletableFuture containing the face detection results.
+     */
     @PostMapping(value = "/async/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectFacesFromDataAsync(
@@ -479,6 +489,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects objects in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A CompletableFuture containing the object detection results.
+     */
     @PostMapping(value = "/async/detect/objects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromFileAsync(
@@ -532,6 +547,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects objects in image data provided in the request body.
+     * @param request The detection request containing image data.
+     * @return A CompletableFuture containing the object detection results.
+     */
     @PostMapping(value = "/async/detect/objects", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectObjectsFromDataAsync(
@@ -730,6 +750,12 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously performs multiple detection types on an uploaded image file.
+     * @param file The uploaded image file.
+     * @param detectionTypes The comma-separated list of detection types.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/multiple", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromFileAsync(
@@ -789,6 +815,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously performs multiple detection types from a JSON request.
+     * @param request The multiple detection request.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/multiple", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<MultipleDetectionResponse>> detectMultipleFromDataAsync(
@@ -846,6 +877,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a face detection task.
+     * @param file The uploaded image file.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTask(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
@@ -879,6 +915,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a face detection task from a JSON request.
+     * @param request The detection request.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitFaceDetectionTaskJson(@RequestBody DetectionRequest request) {
         String correlationId = generateCorrelationId();
@@ -909,6 +950,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a barcode detection task.
+     * @param file The uploaded image file.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTask(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
@@ -941,6 +987,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a barcode detection task from a JSON request.
+     * @param request The detection request.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitBarcodeDetectionTaskJson(@RequestBody DetectionRequest request) {
         String correlationId = generateCorrelationId();
@@ -970,6 +1021,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a text detection task.
+     * @param file The uploaded image file.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTask(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
@@ -1002,6 +1058,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits a text detection task from a JSON request.
+     * @param request The detection request.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitTextDetectionTaskJson(@RequestBody DetectionRequest request) {
         String correlationId = generateCorrelationId();
@@ -1031,6 +1092,14 @@ public class VisionController {
         }
     }
 
+    /**
+     * Submits an annotation task.
+     * @param file The uploaded image file.
+     * @param action The annotation action.
+     * @param label The label for the annotation.
+     * @param categoriesCsv The comma-separated list of categories.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/tasks/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskSubmissionResponse> submitAnnotateTask(
         @RequestParam("file") MultipartFile file,
@@ -1286,6 +1355,11 @@ public class VisionController {
 
     // --- Advanced detection types: barcodes and text ---
 
+    /**
+     * Detects barcodes in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A response entity with the detection response.
+     */
     @PostMapping(value = "/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetectionResponse> detectBarcodesFromFile(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
@@ -1333,6 +1407,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Detects barcodes in image data provided in the request body.
+     * @param request The detection request.
+     * @return A response entity with the detection response.
+     */
     @PostMapping(value = "/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DetectionResponse> detectBarcodesFromData(@RequestBody DetectionRequest request) {
         String correlationId = generateCorrelationId();
@@ -1377,6 +1456,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Detects text in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A response entity with the detection response.
+     */
     @PostMapping(value = "/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetectionResponse> detectTextFromFile(@RequestParam("file") MultipartFile file) {
         String correlationId = generateCorrelationId();
@@ -1424,6 +1508,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Detects text in image data provided in the request body.
+     * @param request The detection request.
+     * @return A response entity with the detection response.
+     */
     @PostMapping(value = "/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<DetectionResponse> detectTextFromData(@RequestBody DetectionRequest request) {
         String correlationId = generateCorrelationId();
@@ -1468,7 +1557,14 @@ public class VisionController {
         }
     }
 
-    // Annotation endpoint
+    /**
+     * Annotates an image.
+     * @param file The uploaded image file.
+     * @param action The annotation action.
+     * @param label The label for the annotation.
+     * @param categoriesCsv The comma-separated list of categories.
+     * @return A response entity with the task submission response.
+     */
     @PostMapping(value = "/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TaskSubmissionResponse> annotateImageEndpoint(
         @RequestParam("file") MultipartFile file,
@@ -1521,7 +1617,14 @@ public class VisionController {
         }
     }
 
-    // Detection query endpoint
+    /**
+     * Detects objects in an image using a query.
+     * @param file The uploaded image file.
+     * @param detectionType The type of detection to perform.
+     * @param minConfidence The minimum confidence threshold.
+     * @param maxDetections The maximum number of detections.
+     * @return A response entity with the detection response.
+     */
     @PostMapping(value = "/detect/query", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DetectionResponse> detectWithQueryEndpoint(
         @RequestParam("file") MultipartFile file,
@@ -1574,6 +1677,11 @@ public class VisionController {
 
     // --- Async variants for advanced detection types and annotate ---
 
+    /**
+     * Asynchronously detects barcodes in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromFileAsync(@RequestParam("file") MultipartFile file) {
@@ -1619,6 +1727,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects barcodes in image data provided in the request body.
+     * @param request The detection request.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectBarcodesFromDataAsync(@RequestBody DetectionRequest request) {
@@ -1661,6 +1774,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects text in an uploaded image file.
+     * @param file The uploaded image file.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromFileAsync(@RequestParam("file") MultipartFile file) {
@@ -1706,6 +1824,11 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously detects text in image data provided in the request body.
+     * @param request The detection request.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<DetectionResponse>> detectTextFromDataAsync(@RequestBody DetectionRequest request) {
@@ -1748,6 +1871,14 @@ public class VisionController {
         }
     }
 
+    /**
+     * Asynchronously annotates an image.
+     * @param file The uploaded image file.
+     * @param action The annotation action.
+     * @param label The label for the annotation.
+     * @param categoriesCsv The comma-separated list of categories.
+     * @return A CompletableFuture with the response.
+     */
     @PostMapping(value = "/async/annotate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Async("visionAsyncExecutor")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> annotateImageAsync(

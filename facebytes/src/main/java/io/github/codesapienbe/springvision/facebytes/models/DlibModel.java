@@ -14,6 +14,13 @@ public final class DlibModel {
     public static final int DEFAULT_INPUT_SIZE = 150;
 
     /**
+     * Default constructor for DlibModel.
+     */
+    public DlibModel() {
+        // Default constructor
+    }
+
+    /**
      * Generates face embedding using default input size.
      *
      * @param face the face image

@@ -123,6 +123,10 @@ public class DistributedVisionProcessor {
 
     /**
      * Processes a batch of tasks using distributed processing.
+     *
+     * @param images The list of images to process.
+     * @param query  The detection query to apply to all images.
+     * @return A completable future containing a list of distributed results.
      */
     public CompletableFuture<List<DistributedResult>> processBatchDistributed(
         List<ImageData> images, DetectionQuery query) {
@@ -150,6 +154,10 @@ public class DistributedVisionProcessor {
 
     /**
      * Registers a processing node.
+     *
+     * @param nodeId       The unique identifier for the node.
+     * @param nodeUrl      The URL of the node.
+     * @param capabilities The capabilities of the node.
      */
     public void registerNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
         ProcessingNode node = new ProcessingNode(nodeId, nodeUrl, capabilities);
@@ -166,6 +174,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Unregisters a processing node.
+     *
+     * @param nodeId The unique identifier for the node.
      */
     public void unregisterNode(String nodeId) {
         ProcessingNode node = processingNodes.remove(nodeId);
@@ -182,6 +192,9 @@ public class DistributedVisionProcessor {
 
     /**
      * Gets processing node status.
+     *
+     * @param nodeId The unique identifier for the node.
+     * @return The status of the node.
      */
     public NodeStatus getNodeStatus(String nodeId) {
         ProcessingNode node = processingNodes.get(nodeId);
@@ -190,6 +203,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Gets all processing nodes.
+     *
+     * @return A map of all processing nodes.
      */
     public Map<String, ProcessingNode> getAllNodes() {
         return new ConcurrentHashMap<>(processingNodes);
@@ -197,6 +212,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Gets distributed processing metrics.
+     *
+     * @return The distributed metrics.
      */
     public DistributedMetrics getMetrics() {
         return distributedMetrics;
@@ -204,6 +221,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Gets health status of all nodes.
+     *
+     * @return A map of node health statuses.
      */
     public Map<String, HealthStatus> getAllNodeHealth() {
         return healthMonitor.getAllNodeHealth();
@@ -211,6 +230,9 @@ public class DistributedVisionProcessor {
 
     /**
      * Sets processing strategy for a detection type.
+     *
+     * @param detectionType The detection type.
+     * @param strategy      The processing strategy.
      */
     public void setProcessingStrategy(DetectionType detectionType, ProcessingStrategy strategy) {
         processingStrategies.put(detectionType.name(), strategy);
@@ -219,6 +241,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Gets current configuration.
+     *
+     * @return The current distributed configuration.
      */
     public DistributedConfiguration getConfiguration() {
         return configuration;
@@ -226,6 +250,8 @@ public class DistributedVisionProcessor {
 
     /**
      * Updates configuration.
+     *
+     * @param newConfig The new distributed configuration.
      */
     public void updateConfiguration(DistributedConfiguration newConfig) {
         this.configuration.update(newConfig);
@@ -447,6 +473,16 @@ public class DistributedVisionProcessor {
         private final long createdAt;
         private final long timeoutMs;
 
+        /**
+         * Constructs a new DistributedTask.
+         *
+         * @param taskId    The unique identifier for the task.
+         * @param tenantId  The identifier of the tenant submitting the task.
+         * @param imageData The image data to process.
+         * @param query     The detection query.
+         * @param createdAt The timestamp of when the task was created.
+         * @param timeoutMs The timeout for the task in milliseconds.
+         */
         public DistributedTask(String taskId, String tenantId, ImageData imageData,
                                DetectionQuery query, long createdAt, long timeoutMs) {
             this.taskId = taskId;
@@ -458,26 +494,45 @@ public class DistributedVisionProcessor {
         }
 
         // Getters
+
+        /**
+         * @return The unique identifier for the task.
+         */
         public String getTaskId() {
             return taskId;
         }
 
+        /**
+         * @return The identifier of the tenant submitting the task.
+         */
         public String getTenantId() {
             return tenantId;
         }
 
+        /**
+         * @return The image data to process.
+         */
         public ImageData getImageData() {
             return imageData;
         }
 
+        /**
+         * @return The detection query.
+         */
         public DetectionQuery getQuery() {
             return query;
         }
 
+        /**
+         * @return The timestamp of when the task was created.
+         */
         public long getCreatedAt() {
             return createdAt;
         }
 
+        /**
+         * @return The timeout for the task in milliseconds.
+         */
         public long getTimeoutMs() {
             return timeoutMs;
         }
@@ -494,6 +549,16 @@ public class DistributedVisionProcessor {
         private final boolean success;
         private final String errorMessage;
 
+        /**
+         * Constructs a new DistributedResult.
+         *
+         * @param taskId           The unique identifier for the task.
+         * @param nodeId           The identifier of the node that processed the task.
+         * @param detections       The list of detections.
+         * @param processingTimeMs The processing time in milliseconds.
+         * @param success          Whether the task was successful.
+         * @param errorMessage     The error message if the task failed.
+         */
         public DistributedResult(String taskId, String nodeId, List<Detection> detections,
                                  long processingTimeMs, boolean success, String errorMessage) {
             this.taskId = taskId;
@@ -504,31 +569,56 @@ public class DistributedVisionProcessor {
             this.errorMessage = errorMessage;
         }
 
+        /**
+         * Creates an error result.
+         *
+         * @param errorMessage The error message.
+         * @return A new DistributedResult representing an error.
+         */
         public static DistributedResult createErrorResult(String errorMessage) {
             return new DistributedResult(null, null, new ArrayList<>(), 0, false, errorMessage);
         }
 
         // Getters
+
+        /**
+         * @return The unique identifier for the task.
+         */
         public String getTaskId() {
             return taskId;
         }
 
+        /**
+         * @return The identifier of the node that processed the task.
+         */
         public String getNodeId() {
             return nodeId;
         }
 
+        /**
+         * @return The list of detections.
+         */
         public List<Detection> getDetections() {
             return detections;
         }
 
+        /**
+         * @return The processing time in milliseconds.
+         */
         public long getProcessingTimeMs() {
             return processingTimeMs;
         }
 
+        /**
+         * @return Whether the task was successful.
+         */
         public boolean isSuccess() {
             return success;
         }
 
+        /**
+         * @return The error message if the task failed.
+         */
         public String getErrorMessage() {
             return errorMessage;
         }
@@ -547,73 +637,130 @@ public class DistributedVisionProcessor {
         private final AtomicLong failedTasks = new AtomicLong(0);
         private final AtomicLong totalProcessingTime = new AtomicLong(0);
 
+        /**
+         * Constructs a new ProcessingNode.
+         *
+         * @param nodeId       The unique identifier for the node.
+         * @param nodeUrl      The URL of the node.
+         * @param capabilities The capabilities of the node.
+         */
         public ProcessingNode(String nodeId, String nodeUrl, NodeCapabilities capabilities) {
             this.nodeId = nodeId;
             this.nodeUrl = nodeUrl;
             this.capabilities = capabilities;
         }
 
+        /**
+         * Increments the number of active tasks.
+         */
         public void incrementActiveTasks() {
             activeTasks.incrementAndGet();
             totalTasks.incrementAndGet();
         }
 
+        /**
+         * Decrements the number of active tasks.
+         */
         public void decrementActiveTasks() {
             activeTasks.decrementAndGet();
         }
 
+        /**
+         * Records a task failure.
+         */
         public void recordTaskFailure() {
             failedTasks.incrementAndGet();
         }
 
+        /**
+         * Records the processing time of a task.
+         *
+         * @param processingTimeMs The processing time in milliseconds.
+         */
         public void recordProcessingTime(long processingTimeMs) {
             totalProcessingTime.addAndGet(processingTimeMs);
         }
 
+        /**
+         * Sets the status of the node.
+         *
+         * @param status The new status.
+         */
         public void setStatus(NodeStatus status) {
             this.status.set(status);
         }
 
+        /**
+         * @return The load factor of the node.
+         */
         public double getLoadFactor() {
             long total = totalTasks.get();
             return total > 0 ? (double) activeTasks.get() / total : 0.0;
         }
 
+        /**
+         * @return The failure rate of the node.
+         */
         public double getFailureRate() {
             long total = totalTasks.get();
             return total > 0 ? (double) failedTasks.get() / total : 0.0;
         }
 
+        /**
+         * @return The average processing time of the node.
+         */
         public double getAverageProcessingTime() {
             long total = totalTasks.get();
             return total > 0 ? (double) totalProcessingTime.get() / total : 0.0;
         }
 
         // Getters
+
+        /**
+         * @return The unique identifier for the node.
+         */
         public String getNodeId() {
             return nodeId;
         }
 
+        /**
+         * @return The URL of the node.
+         */
         public String getNodeUrl() {
             return nodeUrl;
         }
 
+        /**
+         * @return The capabilities of the node.
+         */
         public NodeCapabilities getCapabilities() {
             return capabilities;
         }
 
+        /**
+         * @return The number of active tasks.
+         */
         public long getActiveTasks() {
             return activeTasks.get();
         }
 
+        /**
+         * @return The status of the node.
+         */
         public NodeStatus getStatus() {
             return status.get();
         }
 
+        /**
+         * @return The total number of tasks processed by the node.
+         */
         public long getTotalTasks() {
             return totalTasks.get();
         }
 
+        /**
+         * @return The number of failed tasks on the node.
+         */
         public long getFailedTasks() {
             return failedTasks.get();
         }
@@ -628,6 +775,14 @@ public class DistributedVisionProcessor {
         private final long maxMemoryUsage;
         private final boolean gpuAcceleration;
 
+        /**
+         * Constructs a new NodeCapabilities.
+         *
+         * @param supportedTypes     The set of supported detection types.
+         * @param maxConcurrentTasks The maximum number of concurrent tasks.
+         * @param maxMemoryUsage     The maximum memory usage.
+         * @param gpuAcceleration    Whether GPU acceleration is enabled.
+         */
         public NodeCapabilities(Set<DetectionType> supportedTypes, int maxConcurrentTasks,
                                 long maxMemoryUsage, boolean gpuAcceleration) {
             this.supportedTypes = supportedTypes;
@@ -636,23 +791,42 @@ public class DistributedVisionProcessor {
             this.gpuAcceleration = gpuAcceleration;
         }
 
+        /**
+         * Checks if the node supports a detection type.
+         *
+         * @param type The detection type.
+         * @return True if the node supports the detection type, false otherwise.
+         */
         public boolean supportsDetectionType(DetectionType type) {
             return supportedTypes.contains(type);
         }
 
         // Getters
+
+        /**
+         * @return The set of supported detection types.
+         */
         public Set<DetectionType> getSupportedTypes() {
             return supportedTypes;
         }
 
+        /**
+         * @return The maximum number of concurrent tasks.
+         */
         public int getMaxConcurrentTasks() {
             return maxConcurrentTasks;
         }
 
+        /**
+         * @return The maximum memory usage.
+         */
         public long getMaxMemoryUsage() {
             return maxMemoryUsage;
         }
 
+        /**
+         * @return Whether GPU acceleration is enabled.
+         */
         public boolean isGpuAcceleration() {
             return gpuAcceleration;
         }
@@ -662,7 +836,22 @@ public class DistributedVisionProcessor {
      * Node status enum.
      */
     public enum NodeStatus {
-        HEALTHY, DEGRADED, UNHEALTHY, OFFLINE
+        /**
+         * The node is healthy.
+         */
+        HEALTHY,
+        /**
+         * The node is degraded.
+         */
+        DEGRADED,
+        /**
+         * The node is unhealthy.
+         */
+        UNHEALTHY,
+        /**
+         * The node is offline.
+         */
+        OFFLINE
     }
 
     /**
@@ -673,6 +862,13 @@ public class DistributedVisionProcessor {
         private final long lastCheckTime;
         private final String details;
 
+        /**
+         * Constructs a new HealthStatus.
+         *
+         * @param status        The status of the node.
+         * @param lastCheckTime The timestamp of the last health check.
+         * @param details       The details of the health check.
+         */
         public HealthStatus(NodeStatus status, long lastCheckTime, String details) {
             this.status = status;
             this.lastCheckTime = lastCheckTime;
@@ -680,14 +876,24 @@ public class DistributedVisionProcessor {
         }
 
         // Getters
+
+        /**
+         * @return The status of the node.
+         */
         public NodeStatus getStatus() {
             return status;
         }
 
+        /**
+         * @return The timestamp of the last health check.
+         */
         public long getLastCheckTime() {
             return lastCheckTime;
         }
 
+        /**
+         * @return The details of the health check.
+         */
         public String getDetails() {
             return details;
         }
@@ -697,6 +903,13 @@ public class DistributedVisionProcessor {
      * Processing strategy interface.
      */
     public interface ProcessingStrategy {
+        /**
+         * Selects a node for a task.
+         *
+         * @param availableNodes The list of available nodes.
+         * @param task           The task to be processed.
+         * @return The selected node.
+         */
         ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task);
     }
 
@@ -899,6 +1112,11 @@ public class DistributedVisionProcessor {
         private boolean enableFaultTolerance = true;
         private boolean enableLoadBalancing = true;
 
+        /**
+         * Updates the configuration.
+         *
+         * @param newConfig The new configuration.
+         */
         public void update(DistributedConfiguration newConfig) {
             this.taskTimeoutMs = newConfig.taskTimeoutMs;
             this.queueTimeoutMs = newConfig.queueTimeoutMs;
@@ -909,26 +1127,45 @@ public class DistributedVisionProcessor {
         }
 
         // Getters
+
+        /**
+         * @return The task timeout in milliseconds.
+         */
         public long getTaskTimeoutMs() {
             return taskTimeoutMs;
         }
 
+        /**
+         * @return The queue timeout in milliseconds.
+         */
         public long getQueueTimeoutMs() {
             return queueTimeoutMs;
         }
 
+        /**
+         * @return The maximum queue size.
+         */
         public int getMaxQueueSize() {
             return maxQueueSize;
         }
 
+        /**
+         * @return The maximum number of concurrent tasks.
+         */
         public int getMaxConcurrentTasks() {
             return maxConcurrentTasks;
         }
 
+        /**
+         * @return Whether fault tolerance is enabled.
+         */
         public boolean isEnableFaultTolerance() {
             return enableFaultTolerance;
         }
 
+        /**
+         * @return Whether load balancing is enabled.
+         */
         public boolean isEnableLoadBalancing() {
             return enableLoadBalancing;
         }

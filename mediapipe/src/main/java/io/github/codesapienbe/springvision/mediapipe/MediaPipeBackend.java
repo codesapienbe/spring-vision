@@ -11,6 +11,7 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.core.util.ModelResourceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,12 +19,8 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -77,7 +74,7 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
 
     // Configuration properties
     private boolean enabled = false;
-    private String modelPath = "~/.spring-vision/models/mediapipe";
+    private String modelPath = "classpath:/models";
     private double confidenceThreshold = 0.7;
     private int maxDetections = 10;
     private boolean enableAutoDownload = true;
@@ -612,7 +609,7 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
     }
 
     /**
-     * Downloads model if not already present with checksum verification.
+     * Downloads the MediaPipe model if needed, or loads from classpath.
      */
     private String downloadModelIfNeeded(String modelName) throws Exception {
         ModelInfo modelInfo = MODEL_INFO.get(modelName);
@@ -620,58 +617,35 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
             throw new IllegalArgumentException("Unknown model: " + modelName);
         }
 
-        // Expand model path
-        String expandedPath = modelPath.replace("~", System.getProperty("user.home"));
-        Path modelDir = Paths.get(expandedPath);
-        Path modelFile = modelDir.resolve(modelName);
+        // Build classpath resource path
+        String classpathResource = "/models/" + modelName;
 
-        // Check if model already exists and verify checksum
-        if (Files.exists(modelFile)) {
-            if (verifyChecksum(modelFile, modelInfo.checksum)) {
-                logger.debug("Model already exists and checksum verified: model={}, backend=mediapipe", modelName);
-                return modelFile.toAbsolutePath().toString();
-            } else {
-                logger.warn("Model checksum verification failed, re-downloading: model={}, backend=mediapipe", modelName);
-                Files.delete(modelFile);
+        // Use ModelResourceLoader for unified resource loading with classpath priority
+        String resolvedPath = ModelResourceLoader.resolveModelPath(
+            modelPath.startsWith("classpath:") ? null : modelPath,  // configured external path
+            classpathResource,                                        // classpath resource
+            modelName,                                                // model filename
+            "mediapipe",                                              // module subdirectory
+            modelInfo.url,                                            // download URL
+            enableAutoDownload                                        // auto-download flag
+        );
+
+        if (resolvedPath == null) {
+            throw new VisionBackendException("Model not found and auto-download is disabled: " + modelName);
+        }
+
+        // Verify checksum if model was downloaded
+        Path modelFile = Paths.get(resolvedPath);
+        if (!resolvedPath.contains("classpath_") && Files.exists(modelFile)) {
+            if (!ModelResourceLoader.verifyChecksum(modelFile, modelInfo.checksum)) {
+                logger.warn("Model checksum verification failed, deleting: model={}", modelName);
+                Files.deleteIfExists(modelFile);
+                throw new VisionBackendException("Model checksum verification failed: " + modelName);
             }
         }
 
-        // Create directory if it doesn't exist
-        Files.createDirectories(modelDir);
-
-        // Download model with timeout
-        logger.info("Downloading MediaPipe model: model={}, url={}, backend=mediapipe", modelName, modelInfo.url);
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(modelInfo.url))
-            .timeout(Duration.ofSeconds(downloadTimeoutSeconds))
-            .GET()
-            .build();
-
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-        if (response.statusCode() != 200) {
-            throw new IOException("Failed to download model: HTTP " + response.statusCode());
-        }
-
-        byte[] modelData = response.body();
-        if (modelData.length == 0) {
-            throw new IOException("Downloaded model is empty");
-        }
-
-        // Verify checksum before saving
-        if (!verifyChecksum(modelData, modelInfo.checksum)) {
-            throw new IOException("Model checksum verification failed");
-        }
-
-        // Save model to file
-        Files.write(modelFile, modelData);
         modelDownloadCount.incrementAndGet();
-
-        logger.info("Model downloaded successfully: model={}, size={} bytes, backend=mediapipe",
-            modelName, modelData.length);
-
-        return modelFile.toAbsolutePath().toString();
+        return resolvedPath;
     }
 
     /**

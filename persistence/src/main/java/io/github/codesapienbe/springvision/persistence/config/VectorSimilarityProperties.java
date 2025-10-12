@@ -18,34 +18,65 @@ public class VectorSimilarityProperties {
     /** MySQL-specific vector settings. */
     private MySQL mysql = new MySQL();
 
+    /**
+     * Default constructor for VectorSimilarityProperties.
+     */
+    public VectorSimilarityProperties() {
+        // Default constructor
+    }
+
+    /**
+     * @return The desired vector provider.
+     */
     public VectorProvider getProvider() {
         return provider;
     }
 
+    /**
+     * @param provider The desired vector provider.
+     */
     public void setProvider(VectorProvider provider) {
         this.provider = provider;
     }
 
+    /**
+     * @return The PostgreSQL-specific vector settings.
+     */
     public PostgreSQL getPostgresql() {
         return postgresql;
     }
 
+    /**
+     * @param postgresql The PostgreSQL-specific vector settings.
+     */
     public void setPostgresql(PostgreSQL postgresql) {
         this.postgresql = postgresql;
     }
 
+    /**
+     * @return The Oracle-specific vector settings.
+     */
     public Oracle getOracle() {
         return oracle;
     }
 
+    /**
+     * @param oracle The Oracle-specific vector settings.
+     */
     public void setOracle(Oracle oracle) {
         this.oracle = oracle;
     }
 
+    /**
+     * @return The MySQL-specific vector settings.
+     */
     public MySQL getMysql() {
         return mysql;
     }
 
+    /**
+     * @param mysql The MySQL-specific vector settings.
+     */
     public void setMysql(MySQL mysql) {
         this.mysql = mysql;
     }
@@ -59,34 +90,65 @@ public class VectorSimilarityProperties {
         private int hnswM = 16;
         private int hnswEfConstruction = 64;
 
+        /**
+         * Default constructor for PostgreSQL settings.
+         */
+        public PostgreSQL() {
+            // Default constructor
+        }
+
+        /**
+         * @return Whether PostgreSQL vector features are enabled.
+         */
         public boolean isEnabled() {
             return enabled;
         }
 
+        /**
+         * @param enabled Whether PostgreSQL vector features are enabled.
+         */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
 
+        /**
+         * @return The type of index to use for vectors.
+         */
         public String getIndexType() {
             return indexType;
         }
 
+        /**
+         * @param indexType The type of index to use for vectors.
+         */
         public void setIndexType(String indexType) {
             this.indexType = indexType;
         }
 
+        /**
+         * @return The M value for HNSW indexes.
+         */
         public int getHnswM() {
             return hnswM;
         }
 
+        /**
+         * @param hnswM The M value for HNSW indexes.
+         */
         public void setHnswM(int hnswM) {
             this.hnswM = hnswM;
         }
 
+        /**
+         * @return The ef_construction value for HNSW indexes.
+         */
         public int getHnswEfConstruction() {
             return hnswEfConstruction;
         }
 
+        /**
+         * @param hnswEfConstruction The ef_construction value for HNSW indexes.
+         */
         public void setHnswEfConstruction(int hnswEfConstruction) {
             this.hnswEfConstruction = hnswEfConstruction;
         }
@@ -100,26 +162,51 @@ public class VectorSimilarityProperties {
         private String indexType = "hnsw";
         private int targetAccuracy = 95;
 
+        /**
+         * Default constructor for Oracle settings.
+         */
+        public Oracle() {
+            // Default constructor
+        }
+
+        /**
+         * @return Whether Oracle vector features are enabled.
+         */
         public boolean isEnabled() {
             return enabled;
         }
 
+        /**
+         * @param enabled Whether Oracle vector features are enabled.
+         */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
 
+        /**
+         * @return The type of index to use for vectors.
+         */
         public String getIndexType() {
             return indexType;
         }
 
+        /**
+         * @param indexType The type of index to use for vectors.
+         */
         public void setIndexType(String indexType) {
             this.indexType = indexType;
         }
 
+        /**
+         * @return The target accuracy for vector searches.
+         */
         public int getTargetAccuracy() {
             return targetAccuracy;
         }
 
+        /**
+         * @param targetAccuracy The target accuracy for vector searches.
+         */
         public void setTargetAccuracy(int targetAccuracy) {
             this.targetAccuracy = targetAccuracy;
         }
@@ -132,18 +219,37 @@ public class VectorSimilarityProperties {
         private boolean enabled = true;
         private String indexType = "hnsw";
 
+        /**
+         * Default constructor for MySQL settings.
+         */
+        public MySQL() {
+            // Default constructor
+        }
+
+        /**
+         * @return Whether MySQL vector features are enabled.
+         */
         public boolean isEnabled() {
             return enabled;
         }
 
+        /**
+         * @param enabled Whether MySQL vector features are enabled.
+         */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
 
+        /**
+         * @return The type of index to use for vectors.
+         */
         public String getIndexType() {
             return indexType;
         }
 
+        /**
+         * @param indexType The type of index to use for vectors.
+         */
         public void setIndexType(String indexType) {
             this.indexType = indexType;
         }

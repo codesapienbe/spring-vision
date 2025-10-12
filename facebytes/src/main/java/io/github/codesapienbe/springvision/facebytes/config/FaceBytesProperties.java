@@ -19,7 +19,7 @@ public class FaceBytesProperties {
     /**
      * Model path for FaceBytes models.
      */
-    private String modelPath = "~/.spring-vision/models/facebytes";
+    private String modelPath = "classpath:/models";
 
     /**
      * Face detection backend (opencv, dlib, retinaface, etc.).
@@ -65,6 +65,13 @@ public class FaceBytesProperties {
      * Minimum face size for detection (pixels).
      */
     private int minFaceSize = 20;
+
+    /**
+     * Default constructor for FaceBytesProperties.
+     */
+    public FaceBytesProperties() {
+        // Default constructor
+    }
 
     // Getters and Setters
 
@@ -266,4 +273,3 @@ public class FaceBytesProperties {
         this.minFaceSize = minFaceSize;
     }
 }
-

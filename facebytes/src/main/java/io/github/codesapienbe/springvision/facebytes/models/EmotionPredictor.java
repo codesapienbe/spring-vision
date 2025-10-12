@@ -56,11 +56,18 @@ public final class EmotionPredictor {
     private final DeepFaceConfig config;
     private final int inputSize;
 
+    /**
+     * Default constructor for EmotionPredictor.
+     */
     public EmotionPredictor() {
         this.config = DeepFaceConfig.current();
         this.inputSize = config.emotionInputSize();
     }
 
+    /**
+     * Constructs an EmotionPredictor with the given configuration.
+     * @param config The configuration to use.
+     */
     public EmotionPredictor(DeepFaceConfig config) {
         this.config = config;
         this.inputSize = config.emotionInputSize();
@@ -261,15 +268,26 @@ public final class EmotionPredictor {
         private final Emotion emotion;
         private final double confidence;
 
+        /**
+         * Constructs a new EmotionResult.
+         * @param emotion The predicted emotion.
+         * @param confidence The confidence of the prediction.
+         */
         public EmotionResult(Emotion emotion, double confidence) {
             this.emotion = emotion;
             this.confidence = Math.max(0.0, Math.min(1.0, confidence));
         }
 
+        /**
+         * @return The predicted emotion.
+         */
         public Emotion emotion() {
             return emotion;
         }
 
+        /**
+         * @return The confidence of the prediction.
+         */
         public double confidence() {
             return confidence;
         }

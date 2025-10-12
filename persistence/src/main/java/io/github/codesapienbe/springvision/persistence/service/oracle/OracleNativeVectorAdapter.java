@@ -14,6 +14,13 @@ import org.springframework.stereotype.Component;
 public class OracleNativeVectorAdapter implements NativeVectorAdapter {
 
     /**
+     * Default constructor for OracleNativeVectorAdapter.
+     */
+    public OracleNativeVectorAdapter() {
+        // Default constructor
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

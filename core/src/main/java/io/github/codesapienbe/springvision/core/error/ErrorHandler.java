@@ -49,6 +49,13 @@ public class ErrorHandler {
     private static final double DEFAULT_RETRY_MULTIPLIER = 2.0;
 
     /**
+     * Default constructor for the error handler.
+     */
+    public ErrorHandler() {
+        // Default constructor
+    }
+
+    /**
      * Executes an operation with retry logic and error handling.
      *
      * @param <T>               the return type of the operation
@@ -405,6 +412,12 @@ public class ErrorHandler {
      */
     @FunctionalInterface
     public interface ErrorHandlerCallback {
+        /**
+         * Called when an error occurs.
+         * @param component The component where the error occurred.
+         * @param operation The operation that failed.
+         * @param error The exception that was thrown.
+         */
         void onError(String component, String operation, Exception error);
     }
 
@@ -431,38 +444,65 @@ public class ErrorHandler {
         }
 
         // Getters
+        /**
+         * @return The total number of errors.
+         */
         public long getTotalErrors() {
             return totalErrors;
         }
 
+        /**
+         * @return The number of retryable errors.
+         */
         public long getRetryableErrors() {
             return retryableErrors;
         }
 
+        /**
+         * @return The number of non-retryable errors.
+         */
         public long getNonRetryableErrors() {
             return nonRetryableErrors;
         }
 
+        /**
+         * @return The number of times the circuit breaker has tripped.
+         */
         public long getCircuitBreakerTrips() {
             return circuitBreakerTrips;
         }
 
+        /**
+         * @return A map of error counts by type.
+         */
         public Map<String, AtomicLong> getErrorCountsByType() {
             return errorCountsByType;
         }
 
+        /**
+         * @return A map of error counts by component.
+         */
         public Map<String, AtomicLong> getErrorCountsByComponent() {
             return errorCountsByComponent;
         }
 
+        /**
+         * @return A map of circuit breaker states.
+         */
         public Map<String, String> getCircuitBreakerStates() {
             return circuitBreakerStates;
         }
 
+        /**
+         * @return A new builder for ErrorStatistics.
+         */
         public static Builder builder() {
             return new Builder();
         }
 
+        /**
+         * Builder for ErrorStatistics.
+         */
         public static class Builder {
             private long totalErrors;
             private long retryableErrors;
@@ -472,41 +512,79 @@ public class ErrorHandler {
             private Map<String, AtomicLong> errorCountsByComponent;
             private Map<String, String> circuitBreakerStates;
 
+            /**
+             * Default constructor for the builder.
+             */
+            public Builder() {
+                // Default constructor
+            }
+
+            /**
+             * @param totalErrors The total number of errors.
+             * @return The builder.
+             */
             public Builder totalErrors(long totalErrors) {
                 this.totalErrors = totalErrors;
                 return this;
             }
 
+            /**
+             * @param retryableErrors The number of retryable errors.
+             * @return The builder.
+             */
             public Builder retryableErrors(long retryableErrors) {
                 this.retryableErrors = retryableErrors;
                 return this;
             }
 
+            /**
+             * @param nonRetryableErrors The number of non-retryable errors.
+             * @return The builder.
+             */
             public Builder nonRetryableErrors(long nonRetryableErrors) {
                 this.nonRetryableErrors = nonRetryableErrors;
                 return this;
             }
 
+            /**
+             * @param circuitBreakerTrips The number of times the circuit breaker has tripped.
+             * @return The builder.
+             */
             public Builder circuitBreakerTrips(long circuitBreakerTrips) {
                 this.circuitBreakerTrips = circuitBreakerTrips;
                 return this;
             }
 
+            /**
+             * @param errorCountsByType A map of error counts by type.
+             * @return The builder.
+             */
             public Builder errorCountsByType(Map<String, AtomicLong> errorCountsByType) {
                 this.errorCountsByType = errorCountsByType;
                 return this;
             }
 
+            /**
+             * @param errorCountsByComponent A map of error counts by component.
+             * @return The builder.
+             */
             public Builder errorCountsByComponent(Map<String, AtomicLong> errorCountsByComponent) {
                 this.errorCountsByComponent = errorCountsByComponent;
                 return this;
             }
 
+            /**
+             * @param circuitBreakerStates A map of circuit breaker states.
+             * @return The builder.
+             */
             public Builder circuitBreakerStates(Map<String, String> circuitBreakerStates) {
                 this.circuitBreakerStates = circuitBreakerStates;
                 return this;
             }
 
+            /**
+             * @return A new ErrorStatistics instance.
+             */
             public ErrorStatistics build() {
                 return new ErrorStatistics(this);
             }

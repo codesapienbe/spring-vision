@@ -65,20 +65,35 @@ public interface VectorSimilarityService {
         private final double distance;
         private final double similarity;
 
+        /**
+         * Constructs a new VerificationResult.
+         * @param match Whether the faces match.
+         * @param distance The distance between the embeddings.
+         * @param similarity The similarity between the embeddings.
+         */
         public VerificationResult(boolean match, double distance, double similarity) {
             this.match = match;
             this.distance = distance;
             this.similarity = similarity;
         }
 
+        /**
+         * @return Whether the faces match.
+         */
         public boolean isMatch() {
             return match;
         }
 
+        /**
+         * @return The distance between the embeddings.
+         */
         public double getDistance() {
             return distance;
         }
 
+        /**
+         * @return The similarity between the embeddings.
+         */
         public double getSimilarity() {
             return similarity;
         }
@@ -91,15 +106,26 @@ public interface VectorSimilarityService {
         private final boolean ok;
         private final String message;
 
+        /**
+         * Constructs a new VectorServiceHealth.
+         * @param ok Whether the service is healthy.
+         * @param message A message describing the health status.
+         */
         public VectorServiceHealth(boolean ok, String message) {
             this.ok = ok;
             this.message = message;
         }
 
+        /**
+         * @return Whether the service is healthy.
+         */
         public boolean isOk() {
             return ok;
         }
 
+        /**
+         * @return A message describing the health status.
+         */
         public String getMessage() {
             return message;
         }
@@ -112,15 +138,26 @@ public interface VectorSimilarityService {
         private final float[] embeddingA;
         private final float[] embeddingB;
 
+        /**
+         * Constructs a new VerificationRequest.
+         * @param embeddingA The first embedding.
+         * @param embeddingB The second embedding.
+         */
         public VerificationRequest(float[] embeddingA, float[] embeddingB) {
             this.embeddingA = embeddingA;
             this.embeddingB = embeddingB;
         }
 
+        /**
+         * @return The first embedding.
+         */
         public float[] getEmbeddingA() {
             return embeddingA;
         }
 
+        /**
+         * @return The second embedding.
+         */
         public float[] getEmbeddingB() {
             return embeddingB;
         }

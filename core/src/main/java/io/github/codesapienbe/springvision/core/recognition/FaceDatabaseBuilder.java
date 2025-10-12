@@ -338,6 +338,7 @@ public class FaceDatabaseBuilder {
 
     /**
      * Get current processing statistics.
+     * @return the current processing statistics
      */
     public ProcessingStats getCurrentStats() {
         return new ProcessingStats(
@@ -372,6 +373,10 @@ public class FaceDatabaseBuilder {
         int progressReportInterval, // Report progress every N files
         boolean stopOnError        // Stop processing on first error
     ) {
+        /**
+         * Returns the default configuration for the database builder.
+         * @return The default configuration.
+         */
         public static DatabaseBuilderConfig defaultConfig() {
             return new DatabaseBuilderConfig(
                 Math.max(2, Runtime.getRuntime().availableProcessors() / 2), // Half available cores
@@ -382,6 +387,10 @@ public class FaceDatabaseBuilder {
             );
         }
 
+        /**
+         * Returns a configuration optimized for fast processing.
+         * @return A configuration for fast processing.
+         */
         public static DatabaseBuilderConfig fastConfig() {
             return new DatabaseBuilderConfig(
                 Runtime.getRuntime().availableProcessors(), // Use all cores
@@ -392,6 +401,10 @@ public class FaceDatabaseBuilder {
             );
         }
 
+        /**
+         * Returns a configuration optimized for high-quality results.
+         * @return A configuration for high-quality results.
+         */
         public static DatabaseBuilderConfig qualityConfig() {
             return new DatabaseBuilderConfig(
                 Math.max(2, Runtime.getRuntime().availableProcessors() / 3), // Conservative threading
@@ -421,10 +434,18 @@ public class FaceDatabaseBuilder {
         long finalIndexSize,
         boolean success
     ) {
+        /**
+         * Returns the processing rate in files per second.
+         * @return the processing rate
+         */
         public double getProcessingRate() {
             return processingTimeMs > 0 ? (double) filesProcessed / (processingTimeMs / 1000.0) : 0.0;
         }
 
+        /**
+         * Returns the average number of faces per file.
+         * @return the average number of faces per file
+         */
         public double getFacesPerFile() {
             return filesProcessed > 0 ? (double) facesExtracted / filesProcessed : 0.0;
         }
@@ -453,6 +474,10 @@ public class FaceDatabaseBuilder {
         long facesExtracted,
         long errors
     ) {
+        /**
+         * Returns the progress of the processing as a value between 0.0 and 1.0.
+         * @return the progress percentage
+         */
         public double getProgress() {
             return totalFiles > 0 ? (double) processedFiles / totalFiles : 0.0;
         }

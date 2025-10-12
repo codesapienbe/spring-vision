@@ -71,7 +71,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
 
     // Configuration properties
     private boolean enabled = false;
-    private String modelPath = "~/.spring-vision/models/yolo";
+    private String modelPath = "classpath:/models";
     private String modelName = "yolov8n.onnx";
     private double confidenceThreshold = 0.25;
     private double nmsThreshold = 0.45;

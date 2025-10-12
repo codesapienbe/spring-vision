@@ -28,6 +28,13 @@ import org.springframework.context.annotation.Bean;
 public class TesseractAutoConfiguration {
 
     /**
+     * Default constructor for TesseractAutoConfiguration.
+     */
+    public TesseractAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates TesseractVisionBackend bean if not already defined.
      *
      * @param properties the Tesseract configuration properties

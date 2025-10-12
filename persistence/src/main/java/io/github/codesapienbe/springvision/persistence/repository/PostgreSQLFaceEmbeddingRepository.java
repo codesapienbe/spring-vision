@@ -15,6 +15,14 @@ import java.util.UUID;
 @Repository
 public interface PostgreSQLFaceEmbeddingRepository extends JpaRepository<FaceEmbedding, UUID> {
 
+    /**
+     * Finds similar face embeddings using cosine similarity.
+     * @param queryVector The query vector.
+     * @param modelName The name of the model.
+     * @param threshold The similarity threshold.
+     * @param limit The maximum number of results to return.
+     * @return A list of similar face embeddings.
+     */
     @Query(value = """
         SELECT e.id, e.person_id, e.model_name, e.created_at, e.confidence,
                ( (CAST(?1 AS vector) <=> e.native_vector) ) as distance
@@ -26,5 +34,10 @@ public interface PostgreSQLFaceEmbeddingRepository extends JpaRepository<FaceEmb
         """, nativeQuery = true)
     List<Object[]> findSimilarByCosineSimilarity(String queryVector, String modelName, Double threshold, Integer limit);
 
+    /**
+     * Finds the first face embedding by image hash.
+     * @param imageHash The hash of the image.
+     * @return An optional containing the face embedding if found.
+     */
     java.util.Optional<FaceEmbedding> findFirstByImageHash(String imageHash);
 }

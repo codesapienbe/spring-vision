@@ -312,6 +312,12 @@ public class HealthResponse {
         private String error;
 
         /**
+         * Default constructor for the builder.
+         */
+        public Builder() {
+        }
+
+        /**
          * Sets the correlation ID.
          *
          * @param correlationId the correlation ID
