@@ -3,6 +3,9 @@ default: build
 
 .PHONY: build run dev clean deploy release docs default
 
+# Which modules to release by default (comma-separated list for Maven -pl)
+RELEASE_MODULES := core,starter
+
 build:
 	@echo "Building project: Maven install (will also build the docker image)"
 	mvn clean install -DskipTests
@@ -19,22 +22,20 @@ dev:
 	@echo "Running MCP server on dev..."
 	java -jar /home/codesapienbe/Projects/spring-vision/mcp/target/mcp-1.0.jar
 
-# Clean the project
 clean:
 	mvn clean -q && docker image rm spring-vision:latest;
 
-# Deploy: push Docker image to registry (assumes docker is logged in and IMAGE is set to the full repo:tag)
 deploy:
 	@echo "Pushing Docker image spring-vision:latest to registry...";
 	docker tag spring-vision:1.0 docker.io/codesapienbe/spring-vision:latest &&\
 	docker push docker.io/codesapienbe/spring-vision:latest
 
-# Release: deploy to Maven Central via Sonatype
 release:
-	@echo "Releasing artifacts to Maven Central via deploy-to-central.sh..."
-	@./deploy-to-central.sh
+	@echo "Releasing only '$(RELEASE_MODULES)' modules to Maven Central..."
+	# If you have a release profile, append -Prelease or similar as needed.
+	@mvn -B -pl $(RELEASE_MODULES) -am clean deploy -DskipTests || \
+		( echo "Maven deploy failed; you can re-run './deploy-to-central.sh' to release all modules" && exit 1 )
 
-# Generate javadocs and create report
 docs:
 	@echo "Generating javadocs and creating report..."
 	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
