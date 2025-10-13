@@ -208,24 +208,36 @@ embeddings.forEach(embedding -> {
 
 ### Running InsightFace Server
 
-Deploy your own InsightFace API server or use a cloud service. Example using Python:
+You need a running InsightFace API server. Use Docker:
 
-```python
-from insightface.app import FaceAnalysis
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
-face_app = FaceAnalysis(name='buffalo_l')
-face_app.prepare(ctx_id=0)
-
-@app.route('/detect', methods=['POST'])
-def detect():
-    # Your implementation
-    pass
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000)
+```bash
+docker run -d -p 18081:18081 sthphoenix/insightface-rest:latest
 ```
+
+Or use Docker Compose (recommended for development):
+
+```bash
+cd insightface
+docker compose up -d
+```
+
+For integration tests, Spring Boot automatically manages docker-compose. Just add the dependency and run tests:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-docker-compose</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+Then run:
+
+```bash
+mvn verify  # Automatically starts/stops InsightFace service
+```
+
+See [Testing with Docker Compose](../docs/testing-with-docker-compose.md) for more details.
 
 ## Requirements
 
@@ -298,4 +310,3 @@ class FaceRecognitionService {
 ## License
 
 See main project LICENSE file.
-

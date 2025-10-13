@@ -19,6 +19,11 @@ import org.slf4j.LoggerFactory;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,23 +72,31 @@ public class PhysicalAccessMonitor {
      */
     public PhysicalAccessMonitor() {
         // Initialize OpenCV face detector
-        String classifierPath = null;
+        CascadeClassifier detector = null;
         try {
-            var resource = getClass().getClassLoader().getResource("haarcascade_frontalface_default.xml");
-            if (resource != null) {
-                classifierPath = resource.getPath();
+            // Try to load from core module first (standard location)
+            String cascadePath = extractCascadeFromClasspath("/models/haarcascade_frontalface_default.xml");
+            if (cascadePath == null) {
+                // Fallback to root location
+                cascadePath = extractCascadeFromClasspath("/haarcascade_frontalface_default.xml");
+            }
+
+            if (cascadePath != null) {
+                detector = new CascadeClassifier(cascadePath);
+                if (detector.empty()) {
+                    logger.warn("Loaded cascade classifier is empty, using default");
+                    detector = new CascadeClassifier();
+                }
+            } else {
+                detector = new CascadeClassifier();
+                logger.warn("Could not load cascade classifier, using system default");
             }
         } catch (Exception e) {
-            logger.warn("Could not load classifier resource", e);
+            logger.warn("Error initializing face detector: {}", e.getMessage());
+            detector = new CascadeClassifier();
         }
 
-        if (classifierPath != null) {
-            this.faceDetector = new CascadeClassifier(classifierPath);
-        } else {
-            this.faceDetector = new CascadeClassifier();
-            logger.warn("Using system OpenCV classifier path");
-        }
-
+        this.faceDetector = detector;
         this.converter = new OpenCVFrameConverter.ToMat();
         this.imageConverter = new Java2DFrameConverter();
 
@@ -96,7 +109,7 @@ public class PhysicalAccessMonitor {
      *
      * @param imageData The {@link ImageData} captured from the access control camera.
      * @return A list of {@link Detection} objects, each indicating whether an access
-     *         attempt was authorized or unauthorized, along with relevant metadata.
+     * attempt was authorized or unauthorized, along with relevant metadata.
      */
     public List<Detection> monitorAccess(ImageData imageData) {
         List<Detection> detections = new ArrayList<>();
@@ -139,7 +152,8 @@ public class PhysicalAccessMonitor {
 
     /**
      * Processes a detected face to determine access authorization.
-     * @param face The detected face rectangle.
+     *
+     * @param face  The detected face rectangle.
      * @param image The image in which the face was detected.
      * @return A detection object with the result of the access attempt.
      */
@@ -287,6 +301,7 @@ public class PhysicalAccessMonitor {
 
     /**
      * Logs an access event.
+     *
      * @param event The event to log.
      */
     private void logAccessEvent(AccessEvent event) {
@@ -338,5 +353,24 @@ public class PhysicalAccessMonitor {
             throw new IllegalArgumentException("Threshold must be between 0.0 and 1.0");
         }
         logger.info("Recognition confidence threshold set to: {}", threshold);
+    }
+
+    /**
+     * Extracts cascade classifier from classpath to temp file.
+     */
+    private String extractCascadeFromClasspath(String resourcePath) {
+        try (InputStream is = getClass().getResourceAsStream(resourcePath)) {
+            if (is == null) {
+                return null;
+            }
+
+            Path tempFile = Files.createTempFile("haarcascade", ".xml");
+            tempFile.toFile().deleteOnExit();
+            Files.copy(is, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            return tempFile.toAbsolutePath().toString();
+        } catch (IOException e) {
+            logger.debug("Could not extract cascade from {}: {}", resourcePath, e.getMessage());
+            return null;
+        }
     }
 }

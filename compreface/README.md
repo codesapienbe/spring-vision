@@ -136,22 +136,33 @@ public class FaceRecognitionController {
 You need a running CompreFace server. Use Docker:
 
 ```bash
-docker run -d -p 8000:8000 exadel/compreface:latest
+docker run -d -p 8000:80 exadel/compreface:latest
 ```
 
-Or use Docker Compose:
+Or use Docker Compose (recommended for development):
 
-```yaml
-services:
-  compreface:
-    image: exadel/compreface:latest
-    ports:
-      - "8000:8000"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=compreface
+```bash
+cd compreface
+docker compose up -d
 ```
+
+For integration tests, Spring Boot automatically manages docker-compose. Just add the dependency and run tests:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-docker-compose</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+Then run:
+
+```bash
+mvn verify  # Automatically starts/stops CompreFace service
+```
+
+See [Testing with Docker Compose](../docs/testing-with-docker-compose.md) for more details.
 
 ## Usage Examples
 
@@ -271,4 +282,3 @@ spring.vision.compreface.recognition-threshold=0.7
 ## License
 
 See main project LICENSE file.
-

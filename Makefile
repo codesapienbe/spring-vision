@@ -31,8 +31,8 @@ deploy:
 
 # Release: deploy to Maven Central via Sonatype
 release:
-	@echo "Releasing artifacts to Maven Central..."
-	mvn clean deploy -q -P release
+	@echo "Releasing artifacts to Maven Central via deploy-to-central.sh..."
+	@./deploy-to-central.sh
 
 # Generate javadocs and create report
 docs:

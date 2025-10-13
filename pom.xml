@@ -357,6 +357,10 @@
           <configuration>
             <publishingServerId>central</publishingServerId>
             <autoPublish>true</autoPublish>
+            <!-- Add timeout and retry configuration to handle network issues -->
+            <waitUntil>uploaded</waitUntil>
+            <waitMaxTime>600</waitMaxTime>
+            <retryAttempts>3</retryAttempts>
           </configuration>
         </plugin>
 

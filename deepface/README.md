@@ -174,23 +174,31 @@ You need a running DeepFace API server. Use Docker:
 docker run -d -p 5000:5000 serengil/deepface:latest
 ```
 
-Or use Docker Compose:
+Or use Docker Compose (recommended for development):
 
-```yaml
-services:
-  deepface:
-    image: serengil/deepface:latest
-    ports:
-      - "5000:5000"
-    environment:
-      - DEEPFACE_HOME=/root/.deepface
-    volumes:
-      - deepface-models:/root/.deepface
-    restart: unless-stopped
-
-volumes:
-  deepface-models:
+```bash
+cd deepface
+docker compose up -d
 ```
+
+For integration tests, Spring Boot automatically manages docker-compose. Just add the dependency and run tests:
+
+```xml
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-docker-compose</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+Then run:
+
+```bash
+mvn verify  # Automatically starts/stops DeepFace service
+```
+
+See [Testing with Docker Compose](../docs/testing-with-docker-compose.md) for more details.
 
 ## Usage Examples
 
@@ -386,4 +394,3 @@ println("Detected "+allFaces.size() +" faces");
 ## License
 
 See main project LICENSE file.
-
