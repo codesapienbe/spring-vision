@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.cyber.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision Cyber Security module.
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 1.1.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.cyber")
 public record CyberSecurityProperties(
     boolean enabled,

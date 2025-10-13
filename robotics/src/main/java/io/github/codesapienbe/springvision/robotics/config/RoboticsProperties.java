@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.robotics.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for the Spring Vision Robotics module.
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 2.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.robotics")
 public record RoboticsProperties(
     boolean enabled,

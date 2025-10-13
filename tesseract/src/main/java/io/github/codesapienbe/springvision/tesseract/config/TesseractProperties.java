@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.tesseract.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision Tesseract module.
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.tesseract")
 public record TesseractProperties(
     boolean enabled,

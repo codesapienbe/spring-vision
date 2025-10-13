@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.facebytes.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision FaceBytes module.
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.facebytes")
 public record FaceBytesProperties(
     boolean enabled,

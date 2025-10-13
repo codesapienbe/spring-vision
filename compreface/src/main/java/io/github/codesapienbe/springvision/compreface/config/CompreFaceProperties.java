@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.compreface.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision CompreFace module.
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 1.1.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.compreface")
 public record CompreFaceProperties(
     boolean enabled,

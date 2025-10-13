@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.deepface.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
@@ -21,7 +20,6 @@ import java.time.Duration;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.deepface")
 public record DeepFaceProperties(
     boolean enabled,

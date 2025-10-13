@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.core.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision framework.
@@ -33,7 +32,6 @@ import org.springframework.stereotype.Component;
  * @see VisionAutoConfiguration
  * @since 1.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "vision")
 public class VisionProperties {
 
@@ -43,7 +41,7 @@ public class VisionProperties {
     private boolean enabled = true;
 
     /**
-     * The vision backend to use.
+     * The vision backend to use.cs
      * Supported backends: opencv (default), mediapipe, yolo, deepface.
      * If not specified, defaults to 'opencv'.
      */

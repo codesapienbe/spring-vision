@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.core.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for OpenCV Vision Backend.
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
  * @author Spring Vision Team
  * @since 1.0.0
  */
-@Component
 @ConfigurationProperties(prefix = "spring.vision.opencv")
 public record OpenCvProperties(
     boolean enabled,
