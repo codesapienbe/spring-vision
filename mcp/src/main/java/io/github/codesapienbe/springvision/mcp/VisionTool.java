@@ -126,19 +126,40 @@ public class VisionTool {
             byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             VisionResult detections;
+            String typeUsed;
+
             if (detectionType == null || "FACE".equalsIgnoreCase(detectionType)) {
                 detections = visionTemplate.detectFaces(imgData);
+                typeUsed = "face";
             } else if ("OBJECT".equalsIgnoreCase(detectionType)) {
                 detections = visionTemplate.detectObjects(imgData);
+                typeUsed = "object";
             } else {
                 detections = visionTemplate.detectFaces(imgData);
+                typeUsed = "face";
             }
-            response.put("detections", detections);
-            response.put("count", detections.detections().size());
+
+            int count = detections.detections().size();
+
+            // Human-readable summary
+            String summary = count == 0
+                ? String.format("No %ss detected in the image.", typeUsed)
+                : String.format("Found %d %s%s in the image with average confidence of %.1f%%.",
+                count, typeUsed, count > 1 ? "s" : "", detections.averageConfidence() * 100);
+
+            response.put("summary", summary);
+            response.put("count", count);
+            response.put("detectionType", typeUsed);
+            response.put("averageConfidence", Math.round(detections.averageConfidence() * 10000.0) / 10000.0);
+            response.put("detections", detections.detections());
+
             return response;
         } catch (Exception e) {
             log.error("detect failed", e);
-            return Map.of("error", "Detection failed: " + e.getMessage());
+            return Map.of(
+                "error", "Detection failed: " + e.getMessage(),
+                "summary", "Detection operation failed."
+            );
         }
     }
 
@@ -197,20 +218,34 @@ public class VisionTool {
             var textDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
 
             StringBuilder text = new StringBuilder();
+            int wordCount = 0;
             for (var detection : textDetections.detections()) {
                 String detectedText = (String) detection.getAttribute("text");
-                if (detectedText != null) {
+                if (detectedText != null && !detectedText.trim().isEmpty()) {
                     text.append(detectedText).append(" ");
+                    wordCount++;
                 }
             }
 
+            String extractedText = text.toString().trim();
+            String summary = extractedText.isEmpty()
+                ? "No text detected in the image."
+                : String.format("Successfully extracted text from image. Found %d text region%s.",
+                wordCount, wordCount != 1 ? "s" : "");
+
             Map<String, Object> response = new HashMap<>();
-            response.put("text", text.toString().trim());
-            response.put("detections", textDetections);
+            response.put("summary", summary);
+            response.put("text", extractedText);
+            response.put("textRegionsCount", wordCount);
+            response.put("detections", textDetections.detections());
+
             return response;
         } catch (Exception e) {
             log.error("ocr failed", e);
-            return Map.of("error", "OCR failed: " + e.getMessage());
+            return Map.of(
+                "error", "OCR failed: " + e.getMessage(),
+                "summary", "Text extraction failed."
+            );
         }
     }
 
@@ -246,13 +281,26 @@ public class VisionTool {
             byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var faceDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.FACE);
+
+            int count = faceDetections.detections().size();
+            String summary = count == 0
+                ? "No faces detected in the image."
+                : String.format("Found %d face%s in the image with average confidence of %.1f%%.",
+                count, count != 1 ? "s" : "", faceDetections.averageConfidence() * 100);
+
             Map<String, Object> response = new HashMap<>();
-            response.put("faces", faceDetections);
-            response.put("count", faceDetections.detections().size());
+            response.put("summary", summary);
+            response.put("count", count);
+            response.put("averageConfidence", Math.round(faceDetections.averageConfidence() * 10000.0) / 10000.0);
+            response.put("faces", faceDetections.detections());
+
             return response;
         } catch (Exception e) {
             log.error("faces failed", e);
-            return Map.of("error", "Face recognition failed: " + e.getMessage());
+            return Map.of(
+                "error", "Face recognition failed: " + e.getMessage(),
+                "summary", "Face detection operation failed."
+            );
         }
     }
 
@@ -289,16 +337,27 @@ public class VisionTool {
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var embeddings = visionTemplate.extractEmbeddings(imgData);
 
+            int count = embeddings != null ? embeddings.size() : 0;
+            String summary = count == 0
+                ? "No faces detected in the image. Cannot extract embeddings."
+                : String.format("Successfully extracted embeddings from %d face%s. Each embedding has %d dimensions.",
+                count, count != 1 ? "s" : "", embeddings.get(0).length);
+
             Map<String, Object> response = new HashMap<>();
+            response.put("summary", summary);
+            response.put("count", count);
             response.put("embeddings", embeddings);
-            response.put("count", embeddings != null ? embeddings.size() : 0);
             if (embeddings != null && !embeddings.isEmpty()) {
                 response.put("embeddingDimension", embeddings.get(0).length);
             }
+
             return response;
         } catch (Exception e) {
             log.error("extractEmbeddings failed", e);
-            return Map.of("error", "Embedding extraction failed: " + e.getMessage());
+            return Map.of(
+                "error", "Embedding extraction failed: " + e.getMessage(),
+                "summary", "Failed to extract face embeddings."
+            );
         }
     }
 
@@ -534,24 +593,41 @@ public class VisionTool {
 
             Map<String, Object> response = new HashMap<>();
             List<Map<String, Object>> barcodes = new ArrayList<>();
+            StringBuilder valuesSummary = new StringBuilder();
 
             for (var detection : barcodeDetections.detections()) {
                 Map<String, Object> barcode = new HashMap<>();
-                barcode.put("type", detection.label());
-                barcode.put("value", detection.getAttribute("value"));
-                barcode.put("confidence", detection.confidence());
+                String type = detection.label();
+                String value = (String) detection.getAttribute("value");
+
+                barcode.put("type", type);
+                barcode.put("value", value);
+                barcode.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
                 barcode.put("boundingBox", detection.boundingBox());
                 barcodes.add(barcode);
+
+                if (value != null && !value.isEmpty()) {
+                    valuesSummary.append("\n  - ").append(type).append(": ").append(value);
+                }
             }
 
+            int count = barcodeDetections.detections().size();
+            String summary = count == 0
+                ? "No barcodes or QR codes detected in the image."
+                : String.format("Found %d barcode%s/QR code%s in the image:%s",
+                count, count != 1 ? "s" : "", count != 1 ? "s" : "", valuesSummary.toString());
+
+            response.put("summary", summary);
+            response.put("count", count);
             response.put("barcodes", barcodes);
-            response.put("count", barcodeDetections.detections().size());
-            response.put("rawDetections", barcodeDetections);
 
             return response;
         } catch (Exception e) {
             log.error("detectBarcodes failed", e);
-            return Map.of("error", "Barcode detection failed: " + e.getMessage());
+            return Map.of(
+                "error", "Barcode detection failed: " + e.getMessage(),
+                "summary", "Failed to detect barcodes/QR codes."
+            );
         }
     }
 
@@ -616,7 +692,7 @@ public class VisionTool {
             // Perform detection
             var detections = visionTemplate.detect(imgData, type);
 
-            // Try to annotate the image if backend supports it
+            // Try to annotate the image if the backend supports it
             ImageData annotatedImage = imgData;
             boolean annotationSupported = false;
 
@@ -642,13 +718,21 @@ public class VisionTool {
                 }
             }
 
+            int count = detections.detectionCount();
+            String summary = annotationSupported
+                ? String.format("Successfully annotated image with %d detected %s%s (average confidence: %.1f%%). The annotated image is provided as base64.",
+                count, type.getDisplayName().toLowerCase(), count != 1 ? "s" : "", detections.averageConfidence() * 100)
+                : String.format("Detected %d %s%s but annotation is not supported by the backend. Returning original image with detection metadata.",
+                count, type.getDisplayName().toLowerCase(), count != 1 ? "s" : "");
+
             Map<String, Object> response = new HashMap<>();
+            response.put("summary", summary);
             response.put("annotatedImage", Base64.getEncoder().encodeToString(annotatedImage.data()));
-            response.put("detections", detections.detections());
-            response.put("detectionCount", detections.detectionCount());
+            response.put("detectionCount", count);
             response.put("detectionType", type.getDisplayName());
-            response.put("averageConfidence", detections.averageConfidence());
+            response.put("averageConfidence", Math.round(detections.averageConfidence() * 10000.0) / 10000.0);
             response.put("annotationApplied", annotationSupported);
+            response.put("detections", detections.detections());
 
             if (!annotationSupported) {
                 response.put("note", "Backend does not support annotation or annotation failed. Returning original image with detection metadata.");
@@ -657,7 +741,10 @@ public class VisionTool {
             return response;
         } catch (Exception e) {
             log.error("annotateImage failed", e);
-            return Map.of("error", "Image annotation failed: " + e.getMessage());
+            return Map.of(
+                "error", "Image annotation failed: " + e.getMessage(),
+                "summary", "Failed to annotate image."
+            );
         }
     }
 

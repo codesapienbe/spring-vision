@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run clean deploy release docs default
+.PHONY: build run dev clean deploy release docs default
 
 # Build target: Maven package and optional Docker image build
 build:
@@ -14,7 +14,14 @@ verify:
 
 # Run the MCP server
 run:
-	@echo "Running MCP server..."
+	@echo "Finding an available port..."
+	@PORT=$$(python3 -c "import socket; s=socket.socket(); s.bind((\'\',0)); print(s.getsockname()[1]); s.close()"); \
+	echo "Running MCP server on port $$PORT"; \
+	cd mcp && mvn spring-boot:run -Dserver.port=$$PORT
+
+
+dev:
+	@echo "Running MCP server on dev..."
 	java -jar /home/codesapienbe/Projects/spring-vision/mcp/target/mcp-1.0.jar
 
 # Clean the project
