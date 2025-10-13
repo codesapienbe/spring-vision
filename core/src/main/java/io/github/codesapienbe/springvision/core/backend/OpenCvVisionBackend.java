@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.core.backend;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1561,13 +1562,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     private Path getModelsBaseDir() {
-        String userHome = System.getProperty("user.home", ".");
-        Path dir = Path.of(userHome, ".spring-vision/models");
-        try {
-            Files.createDirectories(dir);
-        } catch (Exception ignore) {
-        }
-        return dir;
+        // Use ModelResourceLoader cache directory for consistency
+        return Paths.get(System.getProperty("user.home", "."), ".spring-vision", "models", "opencv");
     }
 
     /**

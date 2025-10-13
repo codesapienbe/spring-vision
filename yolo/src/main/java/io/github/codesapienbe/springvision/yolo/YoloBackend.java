@@ -4,6 +4,7 @@ import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.core.util.ModelResourceLoader;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import io.github.codesapienbe.springvision.core.util.OnnxRuntimeGuard;
@@ -17,15 +18,10 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.FloatBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -87,15 +83,11 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     private Class<?> ortEnvironmentClass;
     private Class<?> onnxTensorClass;
 
-    // HTTP client for model downloads
-    private final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(10))
-        .build();
-
     // Metrics
     private final AtomicLong detectionCount = new AtomicLong(0);
     private final AtomicLong errorCount = new AtomicLong(0);
     private final AtomicLong modelDownloadCount = new AtomicLong(0);
+    private final AtomicLong correlationIdCounter = new AtomicLong(0);
 
     // Shutdown flag
     private volatile boolean shutdown = false;
@@ -512,44 +504,46 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Gets the full path to the model file.
+     * Gets the model file path, prioritizing classpath resources.
      */
     private String getModelFilePath() {
-        Path modelDir = Paths.get(modelPath.replace("~", System.getProperty("user.home")));
-        return modelDir.resolve(modelName).toString();
+        ModelInfo modelInfo = MODEL_INFO.get(modelName);
+        if (modelInfo == null) {
+            throw new VisionBackendException("Unknown model: " + modelName);
+        }
+
+        // Build classpath resource path
+        String classpathResource = "/models/" + modelName;
+
+        // Use ModelResourceLoader for unified resource loading with classpath priority
+        String resolvedPath = ModelResourceLoader.resolveModelPath(
+            modelPath.startsWith("classpath:") ? null : modelPath,  // configured external path
+            classpathResource,                                        // classpath resource
+            modelName,                                                // model filename
+            "yolo",                                                   // module subdirectory
+            modelInfo.url(),                                          // download URL
+            enableAutoDownload                                        // auto-download flag
+        );
+
+        if (resolvedPath == null) {
+            // Fallback to old behavior for backwards compatibility
+            Path modelDir = Paths.get(modelPath.replace("~", System.getProperty("user.home")));
+            return modelDir.resolve(modelName).toString();
+        }
+
+        return resolvedPath;
     }
 
     /**
      * Downloads the YOLO model if not present locally.
      */
     private void downloadModel(String modelName) throws Exception {
-        ModelInfo modelInfo = MODEL_INFO.get(modelName);
-        if (modelInfo == null) {
-            throw new VisionBackendException("Unknown model: " + modelName);
-        }
-
+        // This method is now handled by ModelResourceLoader in getModelFilePath()
+        // Keeping for backwards compatibility if called directly
         String modelFilePath = getModelFilePath();
-        Path modelDir = Paths.get(modelFilePath).getParent();
-
-        // Create model directory if it doesn't exist
-        Files.createDirectories(modelDir);
-
-        logger.info("Downloading YOLO model: {} from {}", modelName, modelInfo.url());
-
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(modelInfo.url()))
-            .timeout(Duration.ofSeconds(downloadTimeoutSeconds))
-            .build();
-
-        HttpResponse<Path> response = httpClient.send(request,
-            HttpResponse.BodyHandlers.ofFile(Paths.get(modelFilePath)));
-
-        if (response.statusCode() != 200) {
-            throw new VisionBackendException("Failed to download model: " + response.statusCode());
+        if (!Files.exists(Paths.get(modelFilePath))) {
+            throw new VisionBackendException("Model not found: " + modelName);
         }
-
-        modelDownloadCount.incrementAndGet();
-        logger.info("YOLO model downloaded successfully: path={}, backend=yolo", modelFilePath);
     }
 
     /**
@@ -559,7 +553,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(query, "DetectionQuery cannot be null");
 
-        if (imageData.data().length == 0) {
+        if (imageData.data() == null || imageData.data().length == 0) {
             throw new IllegalArgumentException("Image data cannot be empty");
         }
 
@@ -576,13 +570,14 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
      * Generates correlation ID for request tracking.
      */
     private String generateCorrelationId() {
-        return "yolo-" + System.currentTimeMillis() % 100000;
+        return "yolo-" + correlationIdCounter.incrementAndGet();
     }
 
     /**
-     * Checks if ONNX Runtime is available.
+     * Checks if YOLO backend / ONNX runtime is available.
      */
     private boolean isAvailable() {
+        // Consider available if ONNX runtime classes are present. Session may be null until initialized.
         return OnnxRuntimeGuard.isAvailable();
     }
 
@@ -595,193 +590,52 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         shutdown = true;
 
         try {
-            OnnxRuntimeGuard.closeSessionQuietly(ortSession);
-            ortSession = null;
-            OnnxRuntimeGuard.closeEnvironmentQuietly(ortEnvironment);
-            ortEnvironment = null;
+            // Close ONNX session and environment if present
+            if (ortSession != null) {
+                OnnxRuntimeGuard.closeSessionQuietly(ortSession);
+                ortSession = null;
+            }
         } catch (Exception e) {
-            logger.warn("Error during YOLO backend shutdown: {}", e.getMessage());
+            logger.warn("Error closing ONNX session: {}", e.getMessage());
+        }
+
+        try {
+            if (ortEnvironment != null) {
+                OnnxRuntimeGuard.closeEnvironmentQuietly(ortEnvironment);
+                ortEnvironment = null;
+            }
+        } catch (Exception e) {
+            logger.warn("Error closing ONNX environment: {}", e.getMessage());
         }
 
         logger.info("YOLO backend shutdown completed: backend=yolo");
     }
 
-    //<editor-fold desc="Configuration Getters and Setters">
-
     /**
-     * Checks if the YOLO backend is enabled.
-     *
-     * @return true if enabled, false otherwise.
+     * Simple holder for model metadata used by this backend.
      */
-    public boolean isEnabled() {
-        return enabled;
+    private static class ModelInfo {
+        private final String url;
+        private final String checksum;
+        private final String name;
+
+        ModelInfo(String url, String checksum, String name) {
+            this.url = url;
+            this.checksum = checksum;
+            this.name = name;
+        }
+
+        String url() {
+            return url;
+        }
+
+        String checksum() {
+            return checksum;
+        }
+
+        String name() {
+            return name;
+        }
     }
 
-    /**
-     * Enables or disables the YOLO backend.
-     *
-     * @param enabled true to enable, false to disable.
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    /**
-     * Gets the local file system path where models are stored.
-     *
-     * @return The model path.
-     */
-    public String getModelPath() {
-        return modelPath;
-    }
-
-    /**
-     * Sets the local file system path for storing models.
-     *
-     * @param modelPath The path to the model directory.
-     */
-    public void setModelPath(String modelPath) {
-        this.modelPath = modelPath;
-    }
-
-    /**
-     * Gets the name of the YOLO model file to use.
-     *
-     * @return The model name.
-     */
-    public String getModelName() {
-        return modelName;
-    }
-
-    /**
-     * Sets the name of the YOLO model file to use.
-     *
-     * @param modelName The name of the model file (e.g., "yolov8n.onnx").
-     */
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    /**
-     * Gets the confidence threshold for filtering detections.
-     *
-     * @return The confidence threshold.
-     */
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    /**
-     * Sets the confidence threshold for filtering detections.
-     * Detections with a score below this value will be discarded.
-     *
-     * @param confidenceThreshold The threshold value (0.0 to 1.0).
-     */
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
-    /**
-     * Gets the Non-Maximum Suppression (NMS) threshold.
-     *
-     * @return The NMS threshold.
-     */
-    public double getNmsThreshold() {
-        return nmsThreshold;
-    }
-
-    /**
-     * Sets the Non-Maximum Suppression (NMS) threshold.
-     * Higher values result in fewer suppressed boxes.
-     *
-     * @param nmsThreshold The NMS threshold value (0.0 to 1.0).
-     */
-    public void setNmsThreshold(double nmsThreshold) {
-        this.nmsThreshold = nmsThreshold;
-    }
-
-    /**
-     * Gets the maximum number of detections to return.
-     *
-     * @return The maximum number of detections.
-     */
-    public int getMaxDetections() {
-        return maxDetections;
-    }
-
-    /**
-     * Sets the maximum number of detections to return after NMS.
-     *
-     * @param maxDetections The maximum number of detections.
-     */
-    public void setMaxDetections(int maxDetections) {
-        this.maxDetections = maxDetections;
-    }
-
-    /**
-     * Checks if automatic model downloading is enabled.
-     *
-     * @return true if auto-download is enabled, false otherwise.
-     */
-    public boolean isEnableAutoDownload() {
-        return enableAutoDownload;
-    }
-
-    /**
-     * Enables or disables automatic downloading of models.
-     *
-     * @param enableAutoDownload true to enable, false to disable.
-     */
-    public void setEnableAutoDownload(boolean enableAutoDownload) {
-        this.enableAutoDownload = enableAutoDownload;
-    }
-
-    /**
-     * Gets the timeout for model downloads in seconds.
-     *
-     * @return The download timeout in seconds.
-     */
-    public int getDownloadTimeoutSeconds() {
-        return downloadTimeoutSeconds;
-    }
-
-    /**
-     * Sets the timeout for model downloads.
-     *
-     * @param downloadTimeoutSeconds The timeout in seconds.
-     */
-    public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
-        this.downloadTimeoutSeconds = downloadTimeoutSeconds;
-    }
-
-    /**
-     * Gets the input size (width and height) for the YOLO model.
-     *
-     * @return The input size.
-     */
-    public int getInputSize() {
-        return inputSize;
-    }
-
-    /**
-     * Sets the input size for the YOLO model.
-     * Images will be resized to this dimension before inference.
-     *
-     * @param inputSize The input size (e.g., 640).
-     */
-    public void setInputSize(int inputSize) {
-        this.inputSize = inputSize;
-    }
-
-    //</editor-fold>
-
-    /**
-     * Holds information about a downloadable YOLO model.
-     *
-     * @param url      The download URL for the model.
-     * @param checksum The SHA256 checksum for verifying the downloaded file's integrity.
-     * @param name     The name of the model.
-     */
-    private static record ModelInfo(String url, String checksum, String name) {
-    }
 }
