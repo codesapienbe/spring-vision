@@ -56,41 +56,72 @@ public final class ModelManager {
     private ModelManager() {
     }
 
+    /**
+     * Checks if the VGGFace model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isVggFaceAvailable() {
         ensureInitialized();
         return vggSession != null;
     }
 
+    /**
+     * Checks if the ArcFace model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isArcFaceAvailable() {
         ensureInitialized();
         return arcfaceSession != null;
     }
 
+    /**
+     * Checks if the Facenet model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isFacenetAvailable() {
         ensureInitialized();
         return facenetSession != null;
     }
 
+    /**
+     * Checks if the Facenet512 model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isFacenet512Available() {
         ensureInitialized();
         return facenet512Session != null;
     }
 
+    /**
+     * Checks if the OpenFace model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isOpenFaceAvailable() {
         ensureInitialized();
         return openfaceSession != null;
     }
 
+    /**
+     * Checks if the SFace model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isSFaceAvailable() {
         ensureInitialized();
         return sfaceSession != null;
     }
 
+    /**
+     * Checks if the DeepFace model is available.
+     * @return {@code true} if the model is available, {@code false} otherwise.
+     */
     public static boolean isDeepFaceAvailable() {
         ensureInitialized();
         return deepfaceSession != null;
     }
 
+    /**
+     * Warms up the available models.
+     */
     public static void warmupIfAvailable() {
         try {
             ensureInitialized();
@@ -108,19 +139,34 @@ public final class ModelManager {
 
     /**
      * Replace the internal MeterRegistry (for integration with application metrics/Prometheus).
+     * @param registry The MeterRegistry to use.
      */
     public static void setMeterRegistry(MeterRegistry registry) {
         if (registry != null) meterRegistry = registry;
     }
 
+    /**
+     * Gets the MeterRegistry used by the ModelManager.
+     * @return The MeterRegistry.
+     */
     public static MeterRegistry getMeterRegistry() {
         return meterRegistry;
     }
 
+    /**
+     * Shuts down the ModelManager and releases all resources.
+     */
     public static void shutdown() {
         safeClose();
     }
 
+    /**
+     * Runs the VGGFace model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runVggFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (vggSession == null) throw new OrtException("VGGFace ONNX session is not available");
@@ -142,6 +188,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the ArcFace model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runArcFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (arcfaceSession == null) throw new OrtException("ArcFace ONNX session is not available");
@@ -163,6 +216,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the Facenet model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runFacenetEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (facenetSession == null) throw new OrtException("Facenet ONNX session is not available");
@@ -184,6 +244,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the Facenet512 model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runFacenet512Embedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (facenet512Session == null) throw new OrtException("Facenet512 ONNX session is not available");
@@ -205,6 +272,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the OpenFace model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runOpenFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (openfaceSession == null) throw new OrtException("OpenFace ONNX session is not available");
@@ -226,6 +300,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the SFace model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runSFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (sfaceSession == null) throw new OrtException("SFace ONNX session is not available");
@@ -247,6 +328,13 @@ public final class ModelManager {
         }
     }
 
+    /**
+     * Runs the DeepFace model to get an embedding.
+     * @param nchw The input tensor in NCHW format.
+     * @param shape The shape of the input tensor.
+     * @return The embedding as a float array.
+     * @throws OrtException if the inference fails.
+     */
     public static float[] runDeepFaceEmbedding(float[] nchw, long[] shape) throws OrtException {
         ensureInitialized();
         if (deepfaceSession == null) throw new OrtException("DeepFace ONNX session is not available");

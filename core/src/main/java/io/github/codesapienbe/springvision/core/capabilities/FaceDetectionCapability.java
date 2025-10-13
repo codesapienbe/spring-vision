@@ -15,6 +15,9 @@ public interface FaceDetectionCapability {
 
     /**
      * Detects faces in the provided image.
+     *
+     * @param imageData The image to process.
+     * @return A list of detected faces.
      */
     List<Detection> detectFaces(ImageData imageData);
 }

@@ -28,6 +28,13 @@ import org.springframework.context.annotation.Bean;
 public class MediaPipeAutoConfiguration {
 
     /**
+     * Default constructor for {@link MediaPipeAutoConfiguration}.
+     */
+    public MediaPipeAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates MediaPipeBackend bean if not already defined.
      *
      * @param properties the MediaPipe configuration properties
@@ -51,4 +58,3 @@ public class MediaPipeAutoConfiguration {
         return new VisionTemplate(backend);
     }
 }
-

@@ -28,6 +28,13 @@ import org.springframework.context.annotation.Bean;
 public class DeepFaceAutoConfiguration {
 
     /**
+     * Default constructor for {@link DeepFaceAutoConfiguration}.
+     */
+    public DeepFaceAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates DeepFaceBackend bean if not already defined.
      *
      * @param properties the DeepFace configuration properties
@@ -51,4 +58,3 @@ public class DeepFaceAutoConfiguration {
         return new VisionTemplate(backend);
     }
 }
-

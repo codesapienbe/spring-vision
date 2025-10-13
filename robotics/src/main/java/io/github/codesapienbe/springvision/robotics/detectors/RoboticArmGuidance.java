@@ -15,9 +15,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides visual guidance for robotic arm operations.
+ * Robotic arm guidance system for pick-and-place operations.
  *
- * <p>This detector analyzes images to determine position, orientation, and grasp points
+ * <p>Provides visual guidance information including 3D position coordinates and orientation
  * for robotic arms in pick-and-place operations.</p>
  *
  * @author Spring Vision Team
@@ -30,6 +30,12 @@ public class RoboticArmGuidance {
     // Camera calibration parameters (would be configured per installation)
     private static final double FOCAL_LENGTH = 800.0;
     private static final double SENSOR_WIDTH = 6.0; // mm
+
+    /**
+     * Default constructor.
+     */
+    public RoboticArmGuidance() {
+    }
 
     /**
      * Detects objects and provides guidance information for robotic arm.

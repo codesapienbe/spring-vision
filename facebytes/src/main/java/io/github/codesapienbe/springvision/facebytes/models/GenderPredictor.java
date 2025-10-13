@@ -16,8 +16,16 @@ import java.util.Map;
  */
 public final class GenderPredictor {
 
+    /**
+     * Represents the possible gender classifications.
+     */
     public enum Gender {
-        MALE, FEMALE, UNKNOWN
+        /** Male gender. */
+        MALE,
+        /** Female gender. */
+        FEMALE,
+        /** Unknown or indeterminate gender. */
+        UNKNOWN
     }
 
     private static final int DEFAULT_INPUT_SIZE = 224;
@@ -26,11 +34,18 @@ public final class GenderPredictor {
     private final DeepFaceConfig config;
     private final int inputSize;
 
+    /**
+     * Default constructor for GenderPredictor.
+     */
     public GenderPredictor() {
         this.config = DeepFaceConfig.current();
         this.inputSize = config.genderInputSize();
     }
 
+    /**
+     * Constructs a GenderPredictor with the given configuration.
+     * @param config The configuration to use.
+     */
     public GenderPredictor(DeepFaceConfig config) {
         this.config = config;
         this.inputSize = config.genderInputSize();
@@ -202,15 +217,28 @@ public final class GenderPredictor {
         private final Gender gender;
         private final double confidence;
 
+        /**
+         * Constructs a new GenderResult.
+         * @param gender The predicted gender.
+         * @param confidence The confidence of the prediction.
+         */
         public GenderResult(Gender gender, double confidence) {
             this.gender = gender;
             this.confidence = Math.max(0.0, Math.min(1.0, confidence));
         }
 
+        /**
+         * Gets the predicted gender.
+         * @return The predicted gender.
+         */
         public Gender gender() {
             return gender;
         }
 
+        /**
+         * Gets the confidence of the prediction.
+         * @return The confidence of the prediction.
+         */
         public double confidence() {
             return confidence;
         }

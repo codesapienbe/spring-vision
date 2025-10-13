@@ -59,6 +59,7 @@ public class TesseractVisionBackend implements VisionBackend, TextOcrCapability 
 
     /**
      * Constructor that accepts TesseractProperties.
+     * @param properties The Tesseract configuration properties.
      */
     public TesseractVisionBackend(io.github.codesapienbe.springvision.tesseract.config.TesseractProperties properties) {
         this.tesseract = new Tesseract();

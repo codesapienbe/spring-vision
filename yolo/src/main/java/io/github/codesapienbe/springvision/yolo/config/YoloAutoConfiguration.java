@@ -28,6 +28,13 @@ import org.springframework.context.annotation.Bean;
 public class YoloAutoConfiguration {
 
     /**
+     * Default constructor for {@link YoloAutoConfiguration}.
+     */
+    public YoloAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates YoloBackend bean if not already defined.
      *
      * @param properties the YOLO configuration properties

@@ -30,6 +30,13 @@ import java.time.Duration;
 public class CompreFaceAutoConfiguration {
 
     /**
+     * Default constructor for {@link CompreFaceAutoConfiguration}.
+     */
+    public CompreFaceAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates CompreFaceBackend bean if not already defined.
      *
      * @param properties the CompreFace configuration properties

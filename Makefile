@@ -14,10 +14,8 @@ verify:
 
 # Run the MCP server
 run:
-	@echo "Finding an available port..."
-	@PORT=$$(python3 -c "import socket; s=socket.socket(); s.bind((\'\',0)); print(s.getsockname()[1]); s.close()"); \
-	echo "Running MCP server on port $$PORT"; \
-	cd mcp && mvn spring-boot:run -Dserver.port=$$PORT
+	@echo "Running MCP server..."
+	java -jar /home/codesapienbe/Projects/spring-vision/mcp/target/mcp-1.0.jar
 
 # Clean the project
 clean:

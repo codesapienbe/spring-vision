@@ -29,6 +29,9 @@ public final class FacialAnalysisEngine {
     private final DeepFaceConfig config;
     private final ExecutorService executor;
 
+    /**
+     * Default constructor for FacialAnalysisEngine.
+     */
     public FacialAnalysisEngine() {
         this.config = DeepFaceConfig.current();
         this.agePredictor = new AgePredictor(config);
@@ -38,6 +41,10 @@ public final class FacialAnalysisEngine {
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
+    /**
+     * Constructs a FacialAnalysisEngine with the given configuration.
+     * @param config The configuration to use.
+     */
     public FacialAnalysisEngine(DeepFaceConfig config) {
         this.config = config;
         this.agePredictor = new AgePredictor(config);
@@ -274,6 +281,15 @@ public final class FacialAnalysisEngine {
         private final FaceRegion region;
         private final long processingTimeMs;
 
+        /**
+         * Constructs a new FacialAnalysisResult.
+         * @param age The predicted age.
+         * @param gender The predicted gender.
+         * @param emotion The predicted emotion.
+         * @param race The predicted race.
+         * @param region The face region.
+         * @param processingTimeMs The processing time in milliseconds.
+         */
         public FacialAnalysisResult(int age, GenderPredictor.GenderResult gender,
                                     EmotionPredictor.EmotionResult emotion, RacePredictor.RaceResult race,
                                     FaceRegion region, long processingTimeMs) {
@@ -285,26 +301,50 @@ public final class FacialAnalysisEngine {
             this.processingTimeMs = processingTimeMs;
         }
 
+        /**
+         * Gets the predicted age.
+         * @return The predicted age.
+         */
         public int age() {
             return age;
         }
 
+        /**
+         * Gets the predicted gender.
+         * @return The predicted gender.
+         */
         public GenderPredictor.GenderResult gender() {
             return gender;
         }
 
+        /**
+         * Gets the predicted emotion.
+         * @return The predicted emotion.
+         */
         public EmotionPredictor.EmotionResult emotion() {
             return emotion;
         }
 
+        /**
+         * Gets the predicted race.
+         * @return The predicted race.
+         */
         public RacePredictor.RaceResult race() {
             return race;
         }
 
+        /**
+         * Gets the face region.
+         * @return The face region.
+         */
         public FaceRegion region() {
             return region;
         }
 
+        /**
+         * Gets the processing time in milliseconds.
+         * @return The processing time in milliseconds.
+         */
         public long processingTimeMs() {
             return processingTimeMs;
         }

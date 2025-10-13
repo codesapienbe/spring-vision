@@ -44,6 +44,10 @@ public class QRCodeSecurityDetector {
     private final MultiFormatReader qrReader;
     private final URLSecurityAnalyzer urlAnalyzer;
 
+    /**
+     * Default constructor.
+     * Initializes QR code reader and URL security analyzer.
+     */
     public QRCodeSecurityDetector() {
         this.qrReader = new MultiFormatReader();
         this.urlAnalyzer = new URLSecurityAnalyzer();

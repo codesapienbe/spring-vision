@@ -95,6 +95,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     /**
      * Constructor that loads configuration from YoloProperties.
      * Properties object is used only for initialization, not stored.
+     * @param properties The YOLO configuration properties.
      */
     public YoloBackend(YoloProperties properties) {
         Objects.requireNonNull(properties, "YoloProperties must not be null");
@@ -115,6 +116,13 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     /**
      * Constructor that reads configuration directly from application.properties via @Value.
      * Used when Properties bean is not available.
+     * @param modelPath The path to the model files.
+     * @param modelName The name of the model to use.
+     * @param confidenceThreshold The minimum confidence threshold for detections.
+     * @param nmsThreshold The non-maximum suppression threshold.
+     * @param maxDetections The maximum number of detections to return.
+     * @param enableAutoDownload Whether to automatically download models.
+     * @param inputSize The input size of the model.
      */
     public YoloBackend(
         @Value("${spring.vision.yolo.model-path:classpath:/models}") String modelPath,

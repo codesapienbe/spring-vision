@@ -16,7 +16,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Detector for identifying defects in manufactured products.
+ * Defect detector for quality control in manufacturing.
+ *
+ * <p>Identifies defects in manufactured products including surface defects,
+ * dimensional issues, and other quality problems.</p>
  *
  * @author Spring Vision Team
  * @since 2.0.0
@@ -28,6 +31,18 @@ public class DefectDetector {
     private static final double MAJOR_DEFECT_THRESHOLD = 0.6;
     private static final double CRITICAL_DEFECT_THRESHOLD = 0.8;
 
+    /**
+     * Default constructor.
+     */
+    public DefectDetector() {
+    }
+
+    /**
+     * Detects defects in the given image.
+     *
+     * @param imageData the image data to analyze
+     * @return list of detections representing identified defects
+     */
     public List<Detection> detect(ImageData imageData) {
         logger.debug("Starting defect detection on image");
         List<Detection> defects = new ArrayList<>();

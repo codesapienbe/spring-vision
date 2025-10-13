@@ -445,6 +445,7 @@ public class ErrorHandler {
 
         // Getters
         /**
+         * Gets the total number of errors.
          * @return The total number of errors.
          */
         public long getTotalErrors() {
@@ -452,6 +453,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets the number of retryable errors.
          * @return The number of retryable errors.
          */
         public long getRetryableErrors() {
@@ -459,6 +461,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets the number of non-retryable errors.
          * @return The number of non-retryable errors.
          */
         public long getNonRetryableErrors() {
@@ -466,6 +469,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets the number of times the circuit breaker has tripped.
          * @return The number of times the circuit breaker has tripped.
          */
         public long getCircuitBreakerTrips() {
@@ -473,6 +477,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets a map of error counts by type.
          * @return A map of error counts by type.
          */
         public Map<String, AtomicLong> getErrorCountsByType() {
@@ -480,6 +485,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets a map of error counts by component.
          * @return A map of error counts by component.
          */
         public Map<String, AtomicLong> getErrorCountsByComponent() {
@@ -487,6 +493,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Gets a map of circuit breaker states.
          * @return A map of circuit breaker states.
          */
         public Map<String, String> getCircuitBreakerStates() {
@@ -494,6 +501,7 @@ public class ErrorHandler {
         }
 
         /**
+         * Creates a new builder for ErrorStatistics.
          * @return A new builder for ErrorStatistics.
          */
         public static Builder builder() {
@@ -520,6 +528,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the total number of errors.
              * @param totalErrors The total number of errors.
              * @return The builder.
              */
@@ -529,6 +538,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the number of retryable errors.
              * @param retryableErrors The number of retryable errors.
              * @return The builder.
              */
@@ -538,6 +548,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the number of non-retryable errors.
              * @param nonRetryableErrors The number of non-retryable errors.
              * @return The builder.
              */
@@ -547,6 +558,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the number of times the circuit breaker has tripped.
              * @param circuitBreakerTrips The number of times the circuit breaker has tripped.
              * @return The builder.
              */
@@ -556,6 +568,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the map of error counts by type.
              * @param errorCountsByType A map of error counts by type.
              * @return The builder.
              */
@@ -565,6 +578,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the map of error counts by component.
              * @param errorCountsByComponent A map of error counts by component.
              * @return The builder.
              */
@@ -574,6 +588,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Sets the map of circuit breaker states.
              * @param circuitBreakerStates A map of circuit breaker states.
              * @return The builder.
              */
@@ -583,6 +598,7 @@ public class ErrorHandler {
             }
 
             /**
+             * Builds a new ErrorStatistics instance.
              * @return A new ErrorStatistics instance.
              */
             public ErrorStatistics build() {

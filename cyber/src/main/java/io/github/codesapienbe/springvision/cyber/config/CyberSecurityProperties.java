@@ -43,6 +43,9 @@ public record CyberSecurityProperties(
         double sensitivity,
         boolean validateUrls
     ) {
+        /**
+         * Default constructor for {@link QRCodeSettings}.
+         */
         public QRCodeSettings() {
             this(0.7, true);
         }
@@ -60,6 +63,9 @@ public record CyberSecurityProperties(
         double sensitivity,
         int alertThreshold
     ) {
+        /**
+         * Default constructor for {@link ShoulderSurfingSettings}.
+         */
         public ShoulderSurfingSettings() {
             this(true, 0.7, 3);
         }
@@ -77,6 +83,9 @@ public record CyberSecurityProperties(
         double confidenceThreshold,
         boolean logUnauthorizedAccess
     ) {
+        /**
+         * Default constructor for {@link AccessMonitorSettings}.
+         */
         public AccessMonitorSettings() {
             this(true, 0.8, true);
         }

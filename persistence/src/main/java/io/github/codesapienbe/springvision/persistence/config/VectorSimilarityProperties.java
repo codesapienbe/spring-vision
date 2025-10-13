@@ -36,6 +36,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Gets the desired vector provider.
      * @return The desired vector provider.
      */
     public VectorProvider getProvider() {
@@ -43,6 +44,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Sets the desired vector provider.
      * @param provider The desired vector provider.
      */
     public void setProvider(VectorProvider provider) {
@@ -50,6 +52,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Gets the PostgreSQL-specific vector settings.
      * @return The PostgreSQL-specific vector settings.
      */
     public PostgreSQL getPostgresql() {
@@ -57,6 +60,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Sets the PostgreSQL-specific vector settings.
      * @param postgresql The PostgreSQL-specific vector settings.
      */
     public void setPostgresql(PostgreSQL postgresql) {
@@ -64,6 +68,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Gets the Oracle-specific vector settings.
      * @return The Oracle-specific vector settings.
      */
     public Oracle getOracle() {
@@ -71,6 +76,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Sets the Oracle-specific vector settings.
      * @param oracle The Oracle-specific vector settings.
      */
     public void setOracle(Oracle oracle) {
@@ -78,6 +84,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Gets the MySQL-specific vector settings.
      * @return The MySQL-specific vector settings.
      */
     public MySQL getMysql() {
@@ -85,6 +92,7 @@ public class VectorSimilarityProperties {
     }
 
     /**
+     * Sets the MySQL-specific vector settings.
      * @param mysql The MySQL-specific vector settings.
      */
     public void setMysql(MySQL mysql) {
@@ -108,6 +116,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Checks if PostgreSQL vector features are enabled.
          * @return Whether PostgreSQL vector features are enabled.
          */
         public boolean isEnabled() {
@@ -115,6 +124,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets whether PostgreSQL vector features are enabled.
          * @param enabled Whether PostgreSQL vector features are enabled.
          */
         public void setEnabled(boolean enabled) {
@@ -122,6 +132,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the type of index to use for vectors.
          * @return The type of index to use for vectors.
          */
         public String getIndexType() {
@@ -129,6 +140,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the type of index to use for vectors.
          * @param indexType The type of index to use for vectors.
          */
         public void setIndexType(String indexType) {
@@ -136,6 +148,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the M value for HNSW indexes.
          * @return The M value for HNSW indexes.
          */
         public int getHnswM() {
@@ -143,6 +156,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the M value for HNSW indexes.
          * @param hnswM The M value for HNSW indexes.
          */
         public void setHnswM(int hnswM) {
@@ -150,6 +164,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the ef_construction value for HNSW indexes.
          * @return The ef_construction value for HNSW indexes.
          */
         public int getHnswEfConstruction() {
@@ -157,6 +172,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the ef_construction value for HNSW indexes.
          * @param hnswEfConstruction The ef_construction value for HNSW indexes.
          */
         public void setHnswEfConstruction(int hnswEfConstruction) {
@@ -180,6 +196,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Checks if Oracle vector features are enabled.
          * @return Whether Oracle vector features are enabled.
          */
         public boolean isEnabled() {
@@ -187,6 +204,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets whether Oracle vector features are enabled.
          * @param enabled Whether Oracle vector features are enabled.
          */
         public void setEnabled(boolean enabled) {
@@ -194,6 +212,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the type of index to use for vectors.
          * @return The type of index to use for vectors.
          */
         public String getIndexType() {
@@ -201,6 +220,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the type of index to use for vectors.
          * @param indexType The type of index to use for vectors.
          */
         public void setIndexType(String indexType) {
@@ -208,6 +228,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the target accuracy for vector searches.
          * @return The target accuracy for vector searches.
          */
         public int getTargetAccuracy() {
@@ -215,6 +236,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the target accuracy for vector searches.
          * @param targetAccuracy The target accuracy for vector searches.
          */
         public void setTargetAccuracy(int targetAccuracy) {
@@ -237,6 +259,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Checks if MySQL vector features are enabled.
          * @return Whether MySQL vector features are enabled.
          */
         public boolean isEnabled() {
@@ -244,6 +267,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets whether MySQL vector features are enabled.
          * @param enabled Whether MySQL vector features are enabled.
          */
         public void setEnabled(boolean enabled) {
@@ -251,6 +275,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Gets the type of index to use for vectors.
          * @return The type of index to use for vectors.
          */
         public String getIndexType() {
@@ -258,6 +283,7 @@ public class VectorSimilarityProperties {
         }
 
         /**
+         * Sets the type of index to use for vectors.
          * @param indexType The type of index to use for vectors.
          */
         public void setIndexType(String indexType) {

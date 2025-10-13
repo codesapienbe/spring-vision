@@ -83,6 +83,7 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Constructor that loads configuration from InsightFaceProperties.
+     * @param properties The InsightFace configuration properties.
      */
     public InsightFaceBackend(InsightFaceProperties properties) {
         Objects.requireNonNull(properties, "InsightFaceProperties must not be null");
@@ -105,6 +106,17 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Constructor that reads configuration directly from application.properties via @Value.
+     * @param apiUrl The API URL of the InsightFace service.
+     * @param apiKey The API key for the InsightFace service.
+     * @param modelName The name of the model to use.
+     * @param confidenceThreshold The confidence threshold for detections.
+     * @param verificationThreshold The verification threshold for face matching.
+     * @param maxDetections The maximum number of detections to return.
+     * @param enableAgeGender Whether to enable age and gender detection.
+     * @param enableEmotion Whether to enable emotion detection.
+     * @param enableLandmarks Whether to enable landmark detection.
+     * @param timeoutSeconds The timeout for API calls.
+     * @param maxRetries The maximum number of retries for API calls.
      */
     public InsightFaceBackend(
         @Value("${spring.vision.insightface.api-url:http://localhost:8000}") String apiUrl,
@@ -213,6 +225,12 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
         return detect(imageData, DetectionType.OBJECT);
     }
 
+    /**
+     * Detects objects of a specific type in the given image.
+     * @param imageData The image to process.
+     * @param type The type of detection to perform.
+     * @return A list of detections.
+     */
     public List<Detection> detect(ImageData imageData, DetectionType type) {
         validateInput(imageData, new DetectionQuery.Builder().type(type).build());
 
@@ -273,6 +291,10 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Extracts face embeddings for recognition.
+     * @param imageData The image data.
+     * @param correlationId The correlation ID for tracking.
+     * @return A list of face embeddings.
+     * @throws Exception if the extraction fails.
      */
     public List<double[]> extractEmbeddings(byte[] imageData, String correlationId) throws Exception {
         Map<String, Object> requestPayload = new HashMap<>();
@@ -295,6 +317,11 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Verifies if two face images belong to the same person.
+     * @param image1 The first image data.
+     * @param image2 The second image data.
+     * @param correlationId The correlation ID for tracking.
+     * @return The verification result.
+     * @throws Exception if the verification fails.
      */
     public VerificationResult verifyFaces(byte[] image1, byte[] image2, String correlationId) throws Exception {
         Map<String, Object> requestPayload = new HashMap<>();
@@ -316,6 +343,10 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Recognizes faces against the face database.
+     * @param imageData The image data.
+     * @param correlationId The correlation ID for tracking.
+     * @return A list of recognition results.
+     * @throws Exception if the recognition fails.
      */
     public List<RecognitionResult> recognizeFaces(byte[] imageData, String correlationId) throws Exception {
         Map<String, Object> requestPayload = new HashMap<>();
@@ -376,6 +407,10 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Adds a face to the recognition database.
+     * @param identity The identity of the face.
+     * @param imageData The image data of the face.
+     * @param correlationId The correlation ID for tracking.
+     * @throws Exception if adding the face fails.
      */
     public void addFace(String identity, byte[] imageData, String correlationId) throws Exception {
         List<double[]> embeddings = extractEmbeddings(imageData, correlationId);
@@ -396,6 +431,7 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Removes a face from the recognition database.
+     * @param identity The identity of the face to remove.
      */
     public void removeFace(String identity) {
         FaceRecord removed = faceDatabase.remove(identity);
@@ -680,12 +716,18 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     /**
      * Result of face verification.
+     * @param distance The distance between the two faces.
+     * @param isMatch Whether the two faces are a match.
+     * @param similarity The similarity score between the two faces.
      */
     public record VerificationResult(double distance, boolean isMatch, double similarity) {
     }
 
     /**
      * Result of face recognition.
+     * @param identity The identity of the recognized face.
+     * @param confidence The confidence of the recognition.
+     * @param distance The distance to the recognized face.
      */
     public record RecognitionResult(String identity, double confidence, double distance) {
     }

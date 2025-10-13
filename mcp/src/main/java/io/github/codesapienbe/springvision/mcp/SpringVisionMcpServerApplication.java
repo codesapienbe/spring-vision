@@ -11,6 +11,17 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class SpringVisionMcpServerApplication {
 
+    /**
+     * Default constructor for {@link SpringVisionMcpServerApplication}.
+     */
+    public SpringVisionMcpServerApplication() {
+        // Default constructor
+    }
+
+    /**
+     * Main entry point for the Spring Vision MCP Server application.
+     * @param args Command-line arguments.
+     */
     public static void main(String[] args) {
         SpringApplication.run(SpringVisionMcpServerApplication.class, args);
     }

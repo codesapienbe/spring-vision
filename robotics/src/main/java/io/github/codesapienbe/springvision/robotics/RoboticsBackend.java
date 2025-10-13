@@ -56,6 +56,8 @@ public class RoboticsBackend implements VisionBackend,
 
     /**
      * Constructs a new RoboticsBackend with all industrial automation detectors initialized.
+     *
+     * @param properties the robotics configuration properties
      */
     public RoboticsBackend(io.github.codesapienbe.springvision.robotics.config.RoboticsProperties properties) {
         this.defectDetector = new DefectDetector();
@@ -241,14 +243,29 @@ public class RoboticsBackend implements VisionBackend,
 
     // ==================== Detector Getters (for direct access if needed) ====================
 
+    /**
+     * Gets the defect detector instance.
+     *
+     * @return the defect detector
+     */
     public DefectDetector getDefectDetector() {
         return defectDetector;
     }
 
+    /**
+     * Gets the robotic arm guidance instance.
+     *
+     * @return the robotic arm guidance
+     */
     public RoboticArmGuidance getRoboticArmGuidance() {
         return roboticArmGuidance;
     }
 
+    /**
+     * Gets the component verifier instance.
+     *
+     * @return the component verifier
+     */
     public ComponentVerifier getComponentVerifier() {
         return componentVerifier;
     }

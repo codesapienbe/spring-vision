@@ -99,6 +99,7 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
 
     /**
      * Constructor that loads configuration from MediaPipeProperties.
+     * @param properties The MediaPipe configuration properties.
      */
     public MediaPipeBackend(MediaPipeProperties properties) {
         Objects.requireNonNull(properties, "MediaPipeProperties must not be null");
@@ -117,6 +118,13 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
 
     /**
      * Constructor that reads configuration directly from application.properties via @Value.
+     * @param modelPath The path to the model files.
+     * @param confidenceThreshold The minimum confidence threshold for detections.
+     * @param maxDetections The maximum number of detections to return.
+     * @param enableAutoDownload Whether to automatically download models.
+     * @param downloadTimeoutSeconds The timeout for model downloads.
+     * @param maxPoolSize The maximum size of the task pool.
+     * @param poolTimeoutSeconds The timeout for borrowing from the task pool.
      */
     public MediaPipeBackend(
         @Value("${spring.vision.mediapipe.model-path:classpath:/models}") String modelPath,
@@ -217,10 +225,21 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
         return detect(imageData, DetectionType.OBJECT);
     }
 
+    /**
+     * Detects landmarks in the given image.
+     * @param imageData The image to process.
+     * @return A list of landmark detections.
+     */
     public List<Detection> detectLandmarks(ImageData imageData) {
         throw new UnsupportedOperationException("Landmark detection not yet implemented in MediaPipe backend");
     }
 
+    /**
+     * Detects objects of a specific type in the given image.
+     * @param imageData The image to process.
+     * @param type The type of detection to perform.
+     * @return A list of detections.
+     */
     public List<Detection> detect(ImageData imageData, DetectionType type) {
         validateInput(imageData, new DetectionQuery.Builder().type(type).build());
 

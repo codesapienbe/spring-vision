@@ -506,6 +506,12 @@ public class FaceDatabaseBuilder {
      */
     @FunctionalInterface
     public interface ProgressCallback {
+
+        /**
+         * Called when a progress update is available.
+         *
+         * @param update The progress update information.
+         */
         void onProgress(ProgressUpdate update);
     }
 }

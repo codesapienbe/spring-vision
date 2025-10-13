@@ -15,7 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Verifies correct component usage during assembly processes.
+ * Component verifier for industrial assembly processes.
+ *
+ * <p>Verifies that the correct components are used during assembly by comparing detected
+ * components against a reference database.</p>
  *
  * @author Spring Vision Team
  * @since 2.0.0
@@ -32,6 +35,18 @@ public class ComponentVerifier {
         COMPONENT_DATABASE.put("circle", new ComponentSpec("COMP-004", "Circular Component", 40, 40));
     }
 
+    /**
+     * Default constructor.
+     */
+    public ComponentVerifier() {
+    }
+
+    /**
+     * Detects and verifies components in the given image.
+     *
+     * @param imageData the image data to analyze
+     * @return list of detections with component verification results
+     */
     public List<Detection> detect(ImageData imageData) {
         logger.debug("Starting component verification");
         List<Detection> verifications = new ArrayList<>();

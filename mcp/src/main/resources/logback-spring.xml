@@ -1,37 +1,38 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-  <!-- Console appender for MCP stdio mode - outputs to stderr to avoid interfering with stdio protocol -->
-  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
-    <target>System.err</target>
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%15.15t] %-40.40logger{39} : %m%n%ex</pattern>
-    </encoder>
-  </appender>
+<configuration scan="true">
 
-  <!-- File appender for persistent logging -->
-  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>mcp.log</file>
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>mcp.%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>7</maxHistory>
-    </rollingPolicy>
-    <encoder>
-      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%15.15t] %-40.40logger{39} : %m%n%ex</pattern>
-    </encoder>
-  </appender>
+  <springProfile name="default">
+    <!-- Console appender with colors and a clean pattern -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight([%thread]) %highlight(%-5level) %cyan(%logger{36}) - %msg%n%ex
+        </pattern>
+        <charset>utf8</charset>
+      </encoder>
+    </appender>
 
-  <!-- Root logger -->
-  <root level="INFO">
-    <appender-ref ref="STDERR"/>
-    <appender-ref ref="FILE"/>
-  </root>
+    <!-- File appender for persistency -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>logs/mcp.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <fileNamePattern>logs/mcp.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+        <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+          <maxFileSize>10MB</maxFileSize>
+        </timeBasedFileNamingAndTriggeringPolicy>
+        <maxHistory>14</maxHistory>
+      </rollingPolicy>
+      <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+        <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n%ex</pattern>
+        <charset>utf8</charset>
+      </encoder>
+    </appender>
 
-  <!-- Reduce verbosity of some frameworks -->
-  <logger name="org.springframework" level="WARN"/>
-  <logger name="io.netty" level="WARN"/>
-  <logger name="reactor.netty" level="WARN"/>
-  <logger name="io.modelcontextprotocol" level="INFO"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="com.fasterxml.jackson" level="WARN"/>
 
-  <!-- Spring Vision logging -->
-  <logger name="io.github.codesapienbe.springvision" level="INFO"/>
+    <root level="DEBUG">
+      <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="FILE"/>
+    </root>
+  </springProfile>
+
 </configuration>

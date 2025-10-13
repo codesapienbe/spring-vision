@@ -31,6 +31,17 @@ public class VisionTemplateConfiguration {
     @Value("${spring.vision.backend:opencv}")
     private String backendType;
 
+    /**
+     * Default constructor for {@link VisionTemplateConfiguration}.
+     */
+    public VisionTemplateConfiguration() {
+        // Default constructor
+    }
+
+    /**
+     * Creates a {@link VisionTemplate} bean if one is not already present.
+     * @return The configured VisionTemplate.
+     */
     @Bean
     @ConditionalOnMissingBean
     public VisionTemplate visionTemplate() {

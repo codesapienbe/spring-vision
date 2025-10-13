@@ -63,6 +63,7 @@ public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapab
 
     /**
      * Constructor that accepts FaceBytesProperties.
+     * @param properties The FaceBytes configuration properties.
      */
     public FaceBytesBackend(io.github.codesapienbe.springvision.facebytes.config.FaceBytesProperties properties) {
         // Configuration initialization would go here

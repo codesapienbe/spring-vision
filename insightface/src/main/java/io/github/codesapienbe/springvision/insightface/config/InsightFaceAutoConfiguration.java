@@ -28,6 +28,13 @@ import org.springframework.context.annotation.Bean;
 public class InsightFaceAutoConfiguration {
 
     /**
+     * Default constructor for {@link InsightFaceAutoConfiguration}.
+     */
+    public InsightFaceAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates InsightFaceBackend bean if not already defined.
      *
      * @param properties the InsightFace configuration properties
@@ -51,4 +58,3 @@ public class InsightFaceAutoConfiguration {
         return new VisionTemplate(backend);
     }
 }
-

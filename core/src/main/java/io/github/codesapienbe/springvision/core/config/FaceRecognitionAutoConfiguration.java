@@ -46,7 +46,16 @@ public class FaceRecognitionAutoConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(FaceRecognitionAutoConfiguration.class);
 
     /**
+     * Default constructor for {@link FaceRecognitionAutoConfiguration}.
+     */
+    public FaceRecognitionAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Create the HNSW face embedding index.
+     * @param properties The face recognition properties.
+     * @return The configured face embedding index.
      */
     @Bean
     public FaceEmbeddingIndex faceEmbeddingIndex(FaceRecognitionAutoConfiguration.FaceRecognitionProperties properties) {
@@ -62,6 +71,7 @@ public class FaceRecognitionAutoConfiguration {
 
     /**
      * Create the face quality assessor.
+     * @return The configured face quality assessor.
      */
     @Bean
     public FaceQualityAssessor faceQualityAssessor() {
@@ -71,6 +81,11 @@ public class FaceRecognitionAutoConfiguration {
 
     /**
      * Create the face recognition engine.
+     * @param visionBackend The vision backend.
+     * @param embeddingIndex The face embedding index.
+     * @param qualityAssessor The face quality assessor.
+     * @param properties The face recognition properties.
+     * @return The configured face recognition engine.
      */
     @Bean
     public FaceRecognitionEngine faceRecognitionEngine(
@@ -96,6 +111,11 @@ public class FaceRecognitionAutoConfiguration {
 
     /**
      * Create the face database builder.
+     * @param visionBackend The vision backend.
+     * @param embeddingIndex The face embedding index.
+     * @param qualityAssessor The face quality assessor.
+     * @param properties The face recognition properties.
+     * @return The configured face database builder.
      */
     @Bean
     public FaceDatabaseBuilder faceDatabaseBuilder(
@@ -154,83 +174,170 @@ public class FaceRecognitionAutoConfiguration {
         private int batchSize = 8;
         private HNSWProperties hnsw = new HNSWProperties();
 
+        /**
+         * Default constructor for {@link FaceRecognitionProperties}.
+         */
+        public FaceRecognitionProperties() {
+            // Default constructor
+        }
+
         // Getters and setters
+        /**
+         * Checks if face recognition is enabled.
+         * @return {@code true} if enabled, {@code false} otherwise.
+         */
         public boolean isEnabled() {
             return enabled;
         }
 
+        /**
+         * Sets whether face recognition is enabled.
+         * @param enabled {@code true} to enable, {@code false} to disable.
+         */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
 
+        /**
+         * Gets the vision backend to use.
+         * @return The vision backend name.
+         */
         public String getBackend() {
             return backend;
         }
 
+        /**
+         * Sets the vision backend to use.
+         * @param backend The vision backend name.
+         */
         public void setBackend(String backend) {
             this.backend = backend;
         }
 
+        /**
+         * Gets the face embedding dimension.
+         * @return The embedding dimension.
+         */
         public int getEmbeddingDimension() {
             return embeddingDimension;
         }
 
+        /**
+         * Sets the face embedding dimension.
+         * @param embeddingDimension The embedding dimension.
+         */
         public void setEmbeddingDimension(int embeddingDimension) {
             this.embeddingDimension = embeddingDimension;
         }
 
+        /**
+         * Gets the maximum number of faces in the database.
+         * @return The maximum database size.
+         */
         public int getMaxDatabaseSize() {
             return maxDatabaseSize;
         }
 
+        /**
+         * Sets the maximum number of faces in the database.
+         * @param maxDatabaseSize The maximum database size.
+         */
         public void setMaxDatabaseSize(int maxDatabaseSize) {
             this.maxDatabaseSize = maxDatabaseSize;
         }
 
+        /**
+         * Gets the minimum face quality threshold.
+         * @return The quality threshold.
+         */
         public double getQualityThreshold() {
             return qualityThreshold;
         }
 
+        /**
+         * Sets the minimum face quality threshold.
+         * @param qualityThreshold The quality threshold.
+         */
         public void setQualityThreshold(double qualityThreshold) {
             this.qualityThreshold = qualityThreshold;
         }
 
+        /**
+         * Gets the minimum similarity for matches.
+         * @return The similarity threshold.
+         */
         public double getSimilarityThreshold() {
             return similarityThreshold;
         }
 
+        /**
+         * Sets the minimum similarity for matches.
+         * @param similarityThreshold The similarity threshold.
+         */
         public void setSimilarityThreshold(double similarityThreshold) {
             this.similarityThreshold = similarityThreshold;
         }
 
+        /**
+         * Gets the maximum number of results per query.
+         * @return The maximum number of results.
+         */
         public int getMaxResults() {
             return maxResults;
         }
 
+        /**
+         * Sets the maximum number of results per query.
+         * @param maxResults The maximum number of results.
+         */
         public void setMaxResults(int maxResults) {
             this.maxResults = maxResults;
         }
 
+        /**
+         * Gets the number of parallel threads for processing.
+         * @return The number of parallel threads.
+         */
         public int getParallelThreads() {
             return parallelThreads;
         }
 
+        /**
+         * Sets the number of parallel threads for processing.
+         * @param parallelThreads The number of parallel threads.
+         */
         public void setParallelThreads(int parallelThreads) {
             this.parallelThreads = parallelThreads;
         }
 
+        /**
+         * Gets the batch size for processing.
+         * @return The batch size.
+         */
         public int getBatchSize() {
             return batchSize;
         }
 
+        /**
+         * Sets the batch size for processing.
+         * @param batchSize The batch size.
+         */
         public void setBatchSize(int batchSize) {
             this.batchSize = batchSize;
         }
 
+        /**
+         * Gets the HNSW-specific configuration properties.
+         * @return The HNSW properties.
+         */
         public HNSWProperties getHnsw() {
             return hnsw;
         }
 
+        /**
+         * Sets the HNSW-specific configuration properties.
+         * @param hnsw The HNSW properties.
+         */
         public void setHnsw(HNSWProperties hnsw) {
             this.hnsw = hnsw;
         }
@@ -241,10 +348,25 @@ public class FaceRecognitionAutoConfiguration {
         public static class HNSWProperties {
             private String accuracyMode = "balanced"; // balanced, high, fast, large, memory
 
+            /**
+             * Default constructor for {@link HNSWProperties}.
+             */
+            public HNSWProperties() {
+                // Default constructor
+            }
+
+            /**
+             * Gets the accuracy mode for the HNSW index.
+             * @return The accuracy mode.
+             */
             public String getAccuracyMode() {
                 return accuracyMode;
             }
 
+            /**
+             * Sets the accuracy mode for the HNSW index.
+             * @param accuracyMode The accuracy mode.
+             */
             public void setAccuracyMode(String accuracyMode) {
                 this.accuracyMode = accuracyMode;
             }

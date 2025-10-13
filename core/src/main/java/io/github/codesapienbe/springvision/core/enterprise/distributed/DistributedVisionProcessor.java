@@ -496,6 +496,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the unique identifier for the task.
          * @return The unique identifier for the task.
          */
         public String getTaskId() {
@@ -503,6 +504,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the identifier of the tenant submitting the task.
          * @return The identifier of the tenant submitting the task.
          */
         public String getTenantId() {
@@ -510,6 +512,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the image data to process.
          * @return The image data to process.
          */
         public ImageData getImageData() {
@@ -517,6 +520,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the detection query.
          * @return The detection query.
          */
         public DetectionQuery getQuery() {
@@ -524,6 +528,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the timestamp of when the task was created.
          * @return The timestamp of when the task was created.
          */
         public long getCreatedAt() {
@@ -531,6 +536,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the timeout for the task in milliseconds.
          * @return The timeout for the task in milliseconds.
          */
         public long getTimeoutMs() {
@@ -582,6 +588,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the unique identifier for the task.
          * @return The unique identifier for the task.
          */
         public String getTaskId() {
@@ -589,6 +596,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the identifier of the node that processed the task.
          * @return The identifier of the node that processed the task.
          */
         public String getNodeId() {
@@ -596,6 +604,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the list of detections.
          * @return The list of detections.
          */
         public List<Detection> getDetections() {
@@ -603,6 +612,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the processing time in milliseconds.
          * @return The processing time in milliseconds.
          */
         public long getProcessingTimeMs() {
@@ -610,6 +620,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Checks if the task was successful.
          * @return Whether the task was successful.
          */
         public boolean isSuccess() {
@@ -617,6 +628,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the error message if the task failed.
          * @return The error message if the task failed.
          */
         public String getErrorMessage() {
@@ -691,6 +703,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the load factor of the node.
          * @return The load factor of the node.
          */
         public double getLoadFactor() {
@@ -699,6 +712,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the failure rate of the node.
          * @return The failure rate of the node.
          */
         public double getFailureRate() {
@@ -707,6 +721,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the average processing time of the node.
          * @return The average processing time of the node.
          */
         public double getAverageProcessingTime() {
@@ -717,6 +732,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the unique identifier for the node.
          * @return The unique identifier for the node.
          */
         public String getNodeId() {
@@ -724,6 +740,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the URL of the node.
          * @return The URL of the node.
          */
         public String getNodeUrl() {
@@ -731,6 +748,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the capabilities of the node.
          * @return The capabilities of the node.
          */
         public NodeCapabilities getCapabilities() {
@@ -738,6 +756,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the number of active tasks.
          * @return The number of active tasks.
          */
         public long getActiveTasks() {
@@ -745,6 +764,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the status of the node.
          * @return The status of the node.
          */
         public NodeStatus getStatus() {
@@ -752,6 +772,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the total number of tasks processed by the node.
          * @return The total number of tasks processed by the node.
          */
         public long getTotalTasks() {
@@ -759,6 +780,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the number of failed tasks on the node.
          * @return The number of failed tasks on the node.
          */
         public long getFailedTasks() {
@@ -804,6 +826,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the set of supported detection types.
          * @return The set of supported detection types.
          */
         public Set<DetectionType> getSupportedTypes() {
@@ -811,6 +834,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the maximum number of concurrent tasks.
          * @return The maximum number of concurrent tasks.
          */
         public int getMaxConcurrentTasks() {
@@ -818,6 +842,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the maximum memory usage.
          * @return The maximum memory usage.
          */
         public long getMaxMemoryUsage() {
@@ -825,6 +850,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Checks if GPU acceleration is enabled.
          * @return Whether GPU acceleration is enabled.
          */
         public boolean isGpuAcceleration() {
@@ -878,6 +904,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the status of the node.
          * @return The status of the node.
          */
         public NodeStatus getStatus() {
@@ -885,6 +912,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the timestamp of the last health check.
          * @return The timestamp of the last health check.
          */
         public long getLastCheckTime() {
@@ -892,6 +920,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the details of the health check.
          * @return The details of the health check.
          */
         public String getDetails() {
@@ -919,6 +948,13 @@ public class DistributedVisionProcessor {
     public static class RoundRobinStrategy implements ProcessingStrategy {
         private final AtomicLong counter = new AtomicLong(0);
 
+        /**
+         * Default constructor for RoundRobinStrategy.
+         */
+        public RoundRobinStrategy() {
+            // Default constructor
+        }
+
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             if (availableNodes.isEmpty()) {
@@ -934,6 +970,14 @@ public class DistributedVisionProcessor {
      * Load-based processing strategy.
      */
     public static class LoadBasedStrategy implements ProcessingStrategy {
+
+        /**
+         * Default constructor for LoadBasedStrategy.
+         */
+        public LoadBasedStrategy() {
+            // Default constructor
+        }
+
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
@@ -947,6 +991,14 @@ public class DistributedVisionProcessor {
      * Priority-based processing strategy.
      */
     public static class PriorityBasedStrategy implements ProcessingStrategy {
+
+        /**
+         * Default constructor for PriorityBasedStrategy.
+         */
+        public PriorityBasedStrategy() {
+            // Default constructor
+        }
+
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
@@ -1113,6 +1165,13 @@ public class DistributedVisionProcessor {
         private boolean enableLoadBalancing = true;
 
         /**
+         * Default constructor for DistributedConfiguration.
+         */
+        public DistributedConfiguration() {
+            // Default constructor
+        }
+
+        /**
          * Updates the configuration.
          *
          * @param newConfig The new configuration.
@@ -1129,6 +1188,7 @@ public class DistributedVisionProcessor {
         // Getters
 
         /**
+         * Gets the task timeout in milliseconds.
          * @return The task timeout in milliseconds.
          */
         public long getTaskTimeoutMs() {
@@ -1136,6 +1196,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the queue timeout in milliseconds.
          * @return The queue timeout in milliseconds.
          */
         public long getQueueTimeoutMs() {
@@ -1143,6 +1204,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the maximum queue size.
          * @return The maximum queue size.
          */
         public int getMaxQueueSize() {
@@ -1150,6 +1212,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Gets the maximum number of concurrent tasks.
          * @return The maximum number of concurrent tasks.
          */
         public int getMaxConcurrentTasks() {
@@ -1157,6 +1220,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Checks if fault tolerance is enabled.
          * @return Whether fault tolerance is enabled.
          */
         public boolean isEnableFaultTolerance() {
@@ -1164,6 +1228,7 @@ public class DistributedVisionProcessor {
         }
 
         /**
+         * Checks if load balancing is enabled.
          * @return Whether load balancing is enabled.
          */
         public boolean isEnableLoadBalancing() {

@@ -45,6 +45,9 @@ public record RoboticsProperties(
         int minDefectSize,
         int maxDefectsPerImage
     ) {
+        /**
+         * Default constructor with default values.
+         */
         public DefectDetection() {
             this(0.7, 50, 100);
         }
@@ -64,6 +67,9 @@ public record RoboticsProperties(
         boolean useStereoVision,
         double confidenceThreshold
     ) {
+        /**
+         * Default constructor with default values.
+         */
         public RoboticGuidance() {
             this(800.0, 6.0, false, 0.6);
         }
@@ -81,6 +87,9 @@ public record RoboticsProperties(
         double identificationThreshold,
         String componentDatabasePath
     ) {
+        /**
+         * Default constructor with default values.
+         */
         public ComponentVerification() {
             this(false, 0.7, null);
         }

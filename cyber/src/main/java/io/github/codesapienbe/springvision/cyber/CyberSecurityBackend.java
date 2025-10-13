@@ -59,6 +59,8 @@ public class CyberSecurityBackend implements VisionBackend, ThreatDetectionCapab
 
     /**
      * Constructs a new CyberSecurityBackend with all security detectors initialized.
+     *
+     * @param properties the cyber security configuration properties
      */
     public CyberSecurityBackend(io.github.codesapienbe.springvision.cyber.config.CyberSecurityProperties properties) {
         this.qrCodeDetector = new QRCodeSecurityDetector();

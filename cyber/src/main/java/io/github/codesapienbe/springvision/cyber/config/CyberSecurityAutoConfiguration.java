@@ -10,13 +10,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 
 /**
- * Auto-configuration for Spring Vision Cyber Security module.
+ * Auto-configuration for the Cyber Security vision backend.
  *
- * <p>This configuration is activated when:
- * <ul>
- *   <li>spring.vision.cyber.enabled=true</li>
- *   <li>CyberSecurityBackend class is on the classpath</li>
- * </ul>
+ * <p>This configuration class sets up the cyber security backend when enabled through
+ * configuration properties. It provides beans for security-focused computer vision capabilities.</p>
  *
  * @author Spring Vision Team
  * @since 1.1.0
@@ -26,6 +23,13 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(prefix = "spring.vision.cyber", name = "enabled", havingValue = "true")
 @EnableConfigurationProperties(CyberSecurityProperties.class)
 public class CyberSecurityAutoConfiguration {
+
+    /**
+     * Default constructor for {@link CyberSecurityAutoConfiguration}.
+     */
+    public CyberSecurityAutoConfiguration() {
+        // Default constructor
+    }
 
     /**
      * Creates CyberSecurityBackend bean if not already defined.
@@ -52,4 +56,3 @@ public class CyberSecurityAutoConfiguration {
     }
 
 }
-

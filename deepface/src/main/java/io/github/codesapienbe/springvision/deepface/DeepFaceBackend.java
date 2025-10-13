@@ -557,6 +557,7 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     /**
      * Allows configuring the DeepFace API URL via properties binding.
      * Maps from property: spring.vision.deepface.api-url
+     * @param apiUrl The new API URL.
      */
     public void setApiUrl(String apiUrl) {
         if (apiUrl == null || apiUrl.trim().isEmpty()) {
@@ -573,6 +574,7 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     /**
      * Allows configuring the API timeout (seconds) via properties binding.
      * Maps from property: spring.vision.deepface.timeout-seconds
+     * @param seconds The timeout in seconds.
      */
     public void setTimeoutSeconds(int seconds) {
         if (seconds <= 0) throw new IllegalArgumentException("timeoutSeconds must be positive");

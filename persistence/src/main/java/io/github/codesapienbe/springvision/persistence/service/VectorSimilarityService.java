@@ -78,6 +78,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Checks if the faces match.
          * @return Whether the faces match.
          */
         public boolean isMatch() {
@@ -85,6 +86,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Gets the distance between the embeddings.
          * @return The distance between the embeddings.
          */
         public double getDistance() {
@@ -92,6 +94,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Gets the similarity between the embeddings.
          * @return The similarity between the embeddings.
          */
         public double getSimilarity() {
@@ -117,6 +120,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Checks if the service is healthy.
          * @return Whether the service is healthy.
          */
         public boolean isOk() {
@@ -124,6 +128,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Gets a message describing the health status.
          * @return A message describing the health status.
          */
         public String getMessage() {
@@ -149,6 +154,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Gets the first embedding.
          * @return The first embedding.
          */
         public float[] getEmbeddingA() {
@@ -156,6 +162,7 @@ public interface VectorSimilarityService {
         }
 
         /**
+         * Gets the second embedding.
          * @return The second embedding.
          */
         public float[] getEmbeddingB() {

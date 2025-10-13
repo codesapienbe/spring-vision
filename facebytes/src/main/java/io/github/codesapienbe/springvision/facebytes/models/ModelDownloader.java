@@ -13,6 +13,9 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Map;
 
+/**
+ * Utility class for downloading and managing ONNX models.
+ */
 public final class ModelDownloader {
 
     private ModelDownloader() {
@@ -21,6 +24,9 @@ public final class ModelDownloader {
     /**
      * Resolve an on-disk model path or attempt a secure download into the local cache.
      * Returns absolute path to the model file or null when not available (or disabled).
+     * @param configuredPath The path to the model file configured by the user.
+     * @param defaultKey The key to look up the default URL for the model.
+     * @return The absolute path to the model file, or null if not available.
      */
     public static String resolveOrDownload(String configuredPath, String defaultKey) {
         try {

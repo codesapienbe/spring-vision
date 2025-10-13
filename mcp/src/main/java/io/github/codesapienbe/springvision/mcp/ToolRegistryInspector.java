@@ -42,6 +42,13 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
     };
 
     /**
+     * Default constructor for {@link ToolRegistryInspector}.
+     */
+    public ToolRegistryInspector() {
+        // Default constructor
+    }
+
+    /**
      * Handles the {@link ContextRefreshedEvent} to trigger the inspection of the tool registry.
      * This method is called once the Spring application context has been initialized or refreshed.
      *

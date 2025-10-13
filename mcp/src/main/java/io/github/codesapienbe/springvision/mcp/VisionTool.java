@@ -3,6 +3,8 @@ package io.github.codesapienbe.springvision.mcp;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.VisionResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
@@ -23,13 +25,16 @@ import java.util.ArrayList;
  *
  * <p>The methods in this class are designed to be used as tools in a Spring AI application,
  * allowing AI models to interact with the vision capabilities of the application. The methods
- * handle different input formats like byte arrays, base64 strings, and image URLs.</p>
+ * handle different input formats like byte arrays, base64 strings, and image URLs by coercing
+ * incoming JSON payloads to a byte[] before processing.</p>
  *
  * @see VisionTemplate
  * @see Tool
  */
 @Component
 public class VisionTool {
+
+    private static final Logger log = LoggerFactory.getLogger(VisionTool.class);
 
     private final VisionTemplate visionTemplate;
 
@@ -61,6 +66,18 @@ public class VisionTool {
             }
         } catch (Exception e) {
             throw new IOException("Failed to download image from URL: " + e.getMessage(), e);
+        }
+    }
+
+    private byte[] coerceToBytes(Object input) throws IOException {
+        try {
+            return JsonToBytesConverter.toBytes(input);
+        } catch (IllegalArgumentException iae) {
+            log.debug("coerceToBytes: invalid input provided: {}", iae.getMessage());
+            throw new IOException("Invalid image input: " + iae.getMessage(), iae);
+        } catch (Exception e) {
+            log.warn("coerceToBytes: unexpected error while converting input to bytes", e);
+            throw new IOException("Failed to convert image input to bytes: " + e.getMessage(), e);
         }
     }
 
@@ -96,14 +113,17 @@ public class VisionTool {
     /**
      * Detects objects or faces in an image provided as a byte array.
      *
-     * @param imageBytes    The image data as a byte array.
+     * @param imageInput    The image input; may be a raw byte[] or a JSON-friendly representation
+     *                      (base64 String, numeric array, Map with 'data', etc.). The input is
+     *                      coerced to byte[] before processing.
      * @param detectionType The type of detection to perform, either "FACE" or "OBJECT". Defaults to "FACE".
      * @return A map containing the detection results, including a list of detections and the total count.
      */
     @Tool(description = "Detect objects in an image. Accepts raw bytes and optional detectionType (FACE|OBJECT)")
-    public Map<String, Object> detect(byte[] imageBytes, String detectionType) {
+    public Map<String, Object> detect(Object imageInput, String detectionType) {
         Map<String, Object> response = new HashMap<>();
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             VisionResult detections;
             if (detectionType == null || "FACE".equalsIgnoreCase(detectionType)) {
@@ -117,6 +137,7 @@ public class VisionTool {
             response.put("count", detections.detections().size());
             return response;
         } catch (Exception e) {
+            log.error("detect failed", e);
             return Map.of("error", "Detection failed: " + e.getMessage());
         }
     }
@@ -164,12 +185,14 @@ public class VisionTool {
     /**
      * Performs Optical Character Recognition (OCR) on an image provided as a byte array.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageInput The image input; may be a raw byte[] or a JSON-friendly representation
+     *                   (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @return A map containing the recognized text and the raw detection results.
      */
     @Tool(description = "Run OCR on an image (byte[])")
-    public Map<String, Object> ocr(byte[] imageBytes) {
+    public Map<String, Object> ocr(Object imageInput) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var textDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
 
@@ -186,6 +209,7 @@ public class VisionTool {
             response.put("detections", textDetections);
             return response;
         } catch (Exception e) {
+            log.error("ocr failed", e);
             return Map.of("error", "OCR failed: " + e.getMessage());
         }
     }
@@ -212,12 +236,14 @@ public class VisionTool {
     /**
      * Recognizes faces in an image provided as a byte array.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageInput The image input; may be a raw byte[] or a JSON-friendly representation
+     *                   (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @return A map containing the face detection results and the count of faces found.
      */
     @Tool(description = "Recognize faces in an image (byte[])")
-    public Map<String, Object> faces(byte[] imageBytes) {
+    public Map<String, Object> faces(Object imageInput) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var faceDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.FACE);
             Map<String, Object> response = new HashMap<>();
@@ -225,6 +251,7 @@ public class VisionTool {
             response.put("count", faceDetections.detections().size());
             return response;
         } catch (Exception e) {
+            log.error("faces failed", e);
             return Map.of("error", "Face recognition failed: " + e.getMessage());
         }
     }
@@ -251,12 +278,14 @@ public class VisionTool {
     /**
      * Extracts face embeddings from an image provided as a byte array.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageInput The image input; may be a raw byte[] or a JSON-friendly representation
+     *                   (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @return A map containing a list of embedding vectors for each detected face.
      */
     @Tool(description = "Extract face embeddings from an image (byte[]). Returns a list of embedding vectors for each detected face.")
-    public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
+    public Map<String, Object> extractEmbeddings(Object imageInput) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var embeddings = visionTemplate.extractEmbeddings(imgData);
 
@@ -268,6 +297,7 @@ public class VisionTool {
             }
             return response;
         } catch (Exception e) {
+            log.error("extractEmbeddings failed", e);
             return Map.of("error", "Embedding extraction failed: " + e.getMessage());
         }
     }
@@ -491,12 +521,14 @@ public class VisionTool {
      * Detects and decodes barcodes and QR codes in an image provided as a byte array.
      * Returns the decoded data along with barcode type and location.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageInput The image input; may be a raw byte[] or a JSON-friendly representation
+     *                   (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @return A map containing the barcode detection results, decoded values, and the count of barcodes found.
      */
     @Tool(description = "Detect and decode barcodes and QR codes in an image. Returns decoded values, barcode types (QR, EAN, UPC, etc.), and locations.")
-    public Map<String, Object> detectBarcodes(byte[] imageBytes) {
+    public Map<String, Object> detectBarcodes(Object imageInput) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var barcodeDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
 
@@ -518,6 +550,7 @@ public class VisionTool {
 
             return response;
         } catch (Exception e) {
+            log.error("detectBarcodes failed", e);
             return Map.of("error", "Barcode detection failed: " + e.getMessage());
         }
     }
@@ -545,15 +578,17 @@ public class VisionTool {
      * Annotates an image with detected objects by drawing bounding boxes and labels.
      * Supports multiple detection types and custom annotation styles.
      *
-     * @param imageBytes    The image data as a byte array.
+     * @param imageInput    The image input; may be a raw byte[] or a JSON-friendly representation
+     *                      (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @param detectionType The type of objects to detect and annotate (FACE, OBJECT, TEXT, etc.). Defaults to "OBJECT".
      * @param drawBoxes     Whether to draw bounding boxes around detections. Defaults to true.
      * @param drawLabels    Whether to draw labels on detections. Defaults to true.
      * @return A map containing the annotated image (as base64) and detection information.
      */
     @Tool(description = "Annotate an image by detecting objects and drawing bounding boxes with labels. Returns the annotated image as base64 along with detection details.")
-    public Map<String, Object> annotateImage(byte[] imageBytes, String detectionType, Boolean drawBoxes, Boolean drawLabels) {
+    public Map<String, Object> annotateImage(Object imageInput, String detectionType, Boolean drawBoxes, Boolean drawLabels) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
             // Determine detection type
@@ -621,6 +656,7 @@ public class VisionTool {
 
             return response;
         } catch (Exception e) {
+            log.error("annotateImage failed", e);
             return Map.of("error", "Image annotation failed: " + e.getMessage());
         }
     }
@@ -651,12 +687,14 @@ public class VisionTool {
      * Extracts metadata from an image including EXIF, GPS, and camera information.
      * Returns comprehensive metadata such as GPS coordinates, camera settings, timestamps, and more.
      *
-     * @param imageBytes The image data as a byte array.
+     * @param imageInput The image input; may be a raw byte[] or a JSON-friendly representation
+     *                   (base64 String, numeric array, Map with 'data', etc.). The input is coerced to byte[] before processing.
      * @return A map containing extracted metadata grouped by type (GPS, EXIF, camera settings).
      */
     @Tool(description = "Extract EXIF, GPS, and camera metadata from an image. Returns GPS coordinates, camera information, timestamps, copyright, and image properties.")
-    public Map<String, Object> extractMetaData(byte[] imageBytes) {
+    public Map<String, Object> extractMetaData(Object imageInput) {
         try {
+            byte[] imageBytes = coerceToBytes(imageInput);
             ImageData imgData = ImageData.fromBytes(imageBytes);
             var metadataDetections = visionTemplate.detect(imgData, io.github.codesapienbe.springvision.core.DetectionType.METADATA_EXTRACTION);
 

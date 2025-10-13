@@ -136,6 +136,9 @@ public interface FaceEmbeddingIndex {
      * @param embedding the normalized face embedding vector
      */
     record EmbeddingEntry(String photoId, float[] embedding) {
+        /**
+         * Creates an {@code EmbeddingEntry} and validates its components.
+         */
         public EmbeddingEntry {
             if (photoId == null || photoId.trim().isEmpty()) {
                 throw new IllegalArgumentException("Photo ID must not be null or empty");
@@ -155,6 +158,9 @@ public interface FaceEmbeddingIndex {
      */
     record SearchResult(String photoId, double similarity, double distance) implements Comparable<SearchResult> {
 
+        /**
+         * Creates a {@code SearchResult} and validates its components.
+         */
         public SearchResult {
             if (photoId == null) {
                 throw new IllegalArgumentException("Photo ID must not be null");

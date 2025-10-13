@@ -410,6 +410,8 @@ public class FaceRecognitionEngine {
 
     /**
      * Get engine statistics and performance metrics.
+     *
+     * @return The recognition engine statistics.
      */
     public RecognitionEngineStats getStatistics() {
         var indexStats = embeddingIndex.getStatistics();

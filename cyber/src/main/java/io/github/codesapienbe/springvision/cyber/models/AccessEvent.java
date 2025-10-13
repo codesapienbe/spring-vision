@@ -30,6 +30,7 @@ public class AccessEvent {
 
     /**
      * Gets the unique event identifier.
+     *
      * @return The event ID.
      */
     public String getEventId() {
@@ -38,6 +39,7 @@ public class AccessEvent {
 
     /**
      * Gets the identifier of the person involved in the event.
+     *
      * @return The person's ID.
      */
     public String getPersonId() {
@@ -46,6 +48,7 @@ public class AccessEvent {
 
     /**
      * Gets the name of the person involved in the event.
+     *
      * @return The person's name.
      */
     public String getPersonName() {
@@ -54,6 +57,7 @@ public class AccessEvent {
 
     /**
      * Gets the timestamp of when the event occurred.
+     *
      * @return The event timestamp.
      */
     public LocalDateTime getTimestamp() {
@@ -62,6 +66,7 @@ public class AccessEvent {
 
     /**
      * Checks if the access was authorized.
+     *
      * @return {@code true} if authorized, {@code false} otherwise.
      */
     public boolean isAuthorized() {
@@ -70,6 +75,7 @@ public class AccessEvent {
 
     /**
      * Gets the location where the event occurred.
+     *
      * @return The event location.
      */
     public String getLocation() {
@@ -78,6 +84,7 @@ public class AccessEvent {
 
     /**
      * Sets the location where the event occurred.
+     *
      * @param location The event location.
      */
     public void setLocation(String location) {
@@ -86,6 +93,7 @@ public class AccessEvent {
 
     /**
      * Gets the action that was performed (e.g., "entry", "exit").
+     *
      * @return The action performed.
      */
     public String getAction() {
@@ -94,6 +102,7 @@ public class AccessEvent {
 
     /**
      * Sets the action that was performed.
+     *
      * @param action The action performed.
      */
     public void setAction(String action) {
@@ -102,6 +111,7 @@ public class AccessEvent {
 
     /**
      * Creates a new builder for creating an {@link AccessEvent}.
+     *
      * @return A new {@link Builder} instance.
      */
     public static Builder builder() {
@@ -110,6 +120,7 @@ public class AccessEvent {
 
     /**
      * Builder for {@link AccessEvent}.
+     * Provides a fluent API for constructing access event instances.
      */
     public static class Builder {
         private String personId;
@@ -120,7 +131,15 @@ public class AccessEvent {
         private String action;
 
         /**
+         * Default constructor for {@link Builder}.
+         */
+        public Builder() {
+            // Default constructor
+        }
+
+        /**
          * Sets the person's ID.
+         *
          * @param personId The person's ID.
          * @return This builder.
          */
@@ -131,6 +150,7 @@ public class AccessEvent {
 
         /**
          * Sets the person's name.
+         *
          * @param personName The person's name.
          * @return This builder.
          */
@@ -141,6 +161,7 @@ public class AccessEvent {
 
         /**
          * Sets the event timestamp.
+         *
          * @param timestamp The timestamp.
          * @return This builder.
          */
@@ -151,6 +172,7 @@ public class AccessEvent {
 
         /**
          * Sets whether the access was authorized.
+         *
          * @param authorized {@code true} if authorized, {@code false} otherwise.
          * @return This builder.
          */
@@ -161,6 +183,7 @@ public class AccessEvent {
 
         /**
          * Sets the event location.
+         *
          * @param location The location.
          * @return This builder.
          */
@@ -171,6 +194,7 @@ public class AccessEvent {
 
         /**
          * Sets the action performed.
+         *
          * @param action The action.
          * @return This builder.
          */
@@ -181,6 +205,7 @@ public class AccessEvent {
 
         /**
          * Builds the {@link AccessEvent}.
+         *
          * @return A new {@link AccessEvent} instance.
          */
         public AccessEvent build() {

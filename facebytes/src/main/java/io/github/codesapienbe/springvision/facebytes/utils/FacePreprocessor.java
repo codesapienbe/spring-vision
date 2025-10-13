@@ -25,6 +25,9 @@ import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 
 import io.github.codesapienbe.springvision.facebytes.enums.ModelType;
 
+/**
+ * Preprocesses face images for recognition, including alignment and resizing.
+ */
 public final class FacePreprocessor {
 
     private static final String EYE_CASCADE_CLASSPATH = "/haarcascade_eye.xml";
@@ -35,6 +38,9 @@ public final class FacePreprocessor {
     private final OpenCVFrameConverter.ToMat toMat = new OpenCVFrameConverter.ToMat();
     private final Java2DFrameConverter toFrame = new Java2DFrameConverter();
 
+    /**
+     * Default constructor for FacePreprocessor.
+     */
     public FacePreprocessor() {
         Loader.load(org.bytedeco.opencv.opencv_objdetect.CascadeClassifier.class);
         this.eyeClassifier = new CascadeClassifier(ensureEyeCascade());
@@ -43,6 +49,10 @@ public final class FacePreprocessor {
     /**
      * Aligns and resizes to a target size. This uses eye-based rotation estimation
      * when landmarks are not available and then resizes to the requested dimensions.
+     * @param face The face image to process.
+     * @param width The target width.
+     * @param height The target height.
+     * @return The aligned and resized image.
      */
     public BufferedImage alignAndResize(BufferedImage face, int width, int height) {
         BufferedImage src = face;
@@ -58,6 +68,11 @@ public final class FacePreprocessor {
 
     /**
      * Aligns and resizes using external landmarks if provided (landmarks are 5 points: x1,y1,...).
+     * @param face The face image to process.
+     * @param landmarks5 The 5-point facial landmarks.
+     * @param width The target width.
+     * @param height The target height.
+     * @return The aligned and resized image.
      */
     public BufferedImage alignAndResize(BufferedImage face, float[] landmarks5, int width, int height) {
         if (landmarks5 != null && landmarks5.length >= 10) {
@@ -69,6 +84,11 @@ public final class FacePreprocessor {
     /**
      * Aligns a face using 5-point landmarks (x1,y1,...,x5,y5). Uses three points (eyes + nose) to build affine.
      * Landmarks are in the input image coordinate space.
+     * @param face The face image to process.
+     * @param landmarks5 The 5-point facial landmarks.
+     * @param targetW The target width.
+     * @param targetH The target height.
+     * @return The aligned image.
      */
     public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH) {
         // Default to ArcFace template for backward compatibility
@@ -79,6 +99,12 @@ public final class FacePreprocessor {
      * Aligns using landmarks and a model-specific target template. Supports different
      * templates per model (e.g., ARCFACE, SFACE). Landmarks are expected as 5 points
      * (x1,y1,x2,y2,x3,...).
+     * @param face The face image to process.
+     * @param landmarks5 The 5-point facial landmarks.
+     * @param targetW The target width.
+     * @param targetH The target height.
+     * @param model The model type to use for the template.
+     * @return The aligned image.
      */
     public BufferedImage alignWithLandmarks(BufferedImage face, float[] landmarks5, int targetW, int targetH, ModelType model) {
         if (landmarks5 == null || landmarks5.length < 10) {

@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Auto-configuration for the Spring Vision Robotics module.
+ * Auto-configuration for the Robotics vision backend.
  *
  * <p>This configuration class sets up the robotics backend when enabled through
  * configuration properties. It provides beans for industrial automation and
@@ -22,6 +22,13 @@ import org.springframework.context.annotation.Configuration;
 public class RoboticsAutoConfiguration {
 
     /**
+     * Default constructor for {@link RoboticsAutoConfiguration}.
+     */
+    public RoboticsAutoConfiguration() {
+        // Default constructor
+    }
+
+    /**
      * Creates the RoboticsBackend bean if not already present.
      *
      * @param properties the robotics configuration properties
@@ -33,4 +40,3 @@ public class RoboticsAutoConfiguration {
         return new RoboticsBackend();
     }
 }
-

@@ -279,6 +279,7 @@ public final class EmotionPredictor {
         }
 
         /**
+         * Gets the predicted emotion.
          * @return The predicted emotion.
          */
         public Emotion emotion() {
@@ -286,6 +287,7 @@ public final class EmotionPredictor {
         }
 
         /**
+         * Gets the confidence of the prediction.
          * @return The confidence of the prediction.
          */
         public double confidence() {
