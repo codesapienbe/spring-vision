@@ -2,15 +2,15 @@ package io.github.codesapienbe.springvision.core.enterprise.distributed;
 
 import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.enterprise.multitenancy.TenantContext;
-import io.github.codesapienbe.springvision.core.logging.VisionLogger;
-import io.github.codesapienbe.springvision.core.metrics.VisionMetrics;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -57,6 +57,18 @@ public class DistributedVisionProcessor {
     // Health monitoring
     private final HealthMonitor healthMonitor;
 
+    // ⭐ NEW: ExecutorService for proper thread management
+    private final ExecutorService taskExecutor;
+    private final ScheduledExecutorService timeoutScheduler;
+
+    // ⭐ NEW: Background threads for proper lifecycle management
+    private Thread taskProcessorThread;
+    private Thread healthMonitorThread;
+    private Thread metricsCollectorThread;
+
+    // ⭐ NEW: Shutdown flag
+    private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
+
     /**
      * Default constructor for DistributedVisionProcessor.
      * Initializes configuration, load balancer, fault tolerance manager,
@@ -68,6 +80,14 @@ public class DistributedVisionProcessor {
         this.faultToleranceManager = new FaultToleranceManager();
         this.distributedMetrics = new DistributedMetrics();
         this.healthMonitor = new HealthMonitor();
+
+        // ⭐ NEW: Initialize managed ExecutorServices
+        this.taskExecutor = Executors.newVirtualThreadPerTaskExecutor();
+        this.timeoutScheduler = Executors.newScheduledThreadPool(2, r -> {
+            Thread t = new Thread(r, "timeout-scheduler");
+            t.setDaemon(true);
+            return t;
+        });
 
         initializeProcessingStrategies();
         startBackgroundProcesses();
@@ -277,31 +297,33 @@ public class DistributedVisionProcessor {
 
     /**
      * Starts background processing threads.
+     * ⭐ OPTIMIZED: Use Virtual Threads for lightweight, scalable background processing
      */
     private void startBackgroundProcesses() {
-        // Task processor thread
-        Thread taskProcessor = new Thread(this::processTaskQueue, "distributed-task-processor");
-        taskProcessor.setDaemon(true);
-        taskProcessor.start();
+        // ⭐ Task processor thread - using Virtual Thread
+        taskProcessorThread = Thread.ofVirtual()
+            .name("distributed-task-processor")
+            .start(this::processTaskQueue);
 
-        // Health monitor thread
-        Thread healthMonitorThread = new Thread(healthMonitor::runHealthChecks, "health-monitor");
-        healthMonitorThread.setDaemon(true);
-        healthMonitorThread.start();
+        // ⭐ Health monitor thread - using Virtual Thread
+        healthMonitorThread = Thread.ofVirtual()
+            .name("health-monitor")
+            .start(healthMonitor::runHealthChecks);
 
-        // Metrics collection thread
-        Thread metricsThread = new Thread(distributedMetrics::collectMetrics, "metrics-collector");
-        metricsThread.setDaemon(true);
-        metricsThread.start();
+        // ⭐ Metrics collection thread - using Virtual Thread
+        metricsCollectorThread = Thread.ofVirtual()
+            .name("metrics-collector")
+            .start(distributedMetrics::collectMetrics);
 
-        logger.info("Background processing threads started");
+        logger.info("Background processing threads started (using Virtual Threads)");
     }
 
     /**
      * Processes tasks from the queue.
+     * ⭐ MODIFIED: Check shutdown flag
      */
     private void processTaskQueue() {
-        while (!Thread.currentThread().isInterrupted()) {
+        while (!Thread.currentThread().isInterrupted() && !isShuttingDown.get()) {
             try {
                 DistributedTask task = taskQueue.poll(1, TimeUnit.SECONDS);
                 if (task != null) {
@@ -314,14 +336,15 @@ public class DistributedVisionProcessor {
                 logger.error("Error processing task from queue", e);
             }
         }
+        logger.info("Task processor thread terminated");
     }
 
     /**
      * Processes a single task.
      */
     private void processTask(DistributedTask task) {
-        String taskId = task.getTaskId();
-        String tenantId = task.getTenantId();
+        String taskId = task.taskId();
+        String tenantId = task.tenantId();
 
         try {
             // Check if task is still pending
@@ -332,10 +355,10 @@ public class DistributedVisionProcessor {
             }
 
             // Select processing strategy
-            ProcessingStrategy strategy = getProcessingStrategy(task.getQuery().getType());
+            ProcessingStrategy strategy = getProcessingStrategy(task.query().getType());
 
             // Route based on detection type
-            DetectionType detectionType = task.getQuery().getType();
+            DetectionType detectionType = task.query().getType();
             String nodeId = strategy.selectNode(loadBalancer.getAvailableNodes(), task).getNodeId();
 
             if (nodeId == null) {
@@ -364,25 +387,32 @@ public class DistributedVisionProcessor {
 
     /**
      * Executes a task on a specific node.
+     * ⭐ MODIFIED: Use managed ExecutorService instead of creating a new one
      */
     private void executeTaskOnNode(DistributedTask task, ProcessingNode node,
                                    CompletableFuture<DistributedResult> resultFuture) {
 
-        String taskId = task.getTaskId();
+        String taskId = task.taskId();
         String nodeId = node.getNodeId();
+
+        // Check if shutting down
+        if (isShuttingDown.get()) {
+            resultFuture.complete(DistributedResult.createErrorResult("System shutting down"));
+            pendingTasks.remove(taskId);
+            return;
+        }
 
         // Update node status
         node.incrementActiveTasks();
 
-        // Execute task asynchronously
+        // Execute a task using managed executor
         CompletableFuture.supplyAsync(() -> {
                 try {
-                    // Simulate task execution (replace with actual node communication)
                     return executeTaskOnNodeInternal(task, node);
                 } finally {
                     node.decrementActiveTasks();
                 }
-            }, Executors.newVirtualThreadPerTaskExecutor())
+            }, taskExecutor)  // ⭐ Use managed executor instead of creating new one
             .whenComplete((result, throwable) -> {
                 try {
                     if (throwable != null) {
@@ -392,7 +422,7 @@ public class DistributedVisionProcessor {
                     } else {
                         // Complete successfully
                         resultFuture.complete(result);
-                        distributedMetrics.recordTaskCompleted(taskId, task.getTenantId(), result.getProcessingTimeMs());
+                        distributedMetrics.recordTaskCompleted(taskId, task.tenantId(), result.processingTimeMs());
                     }
                 } finally {
                     pendingTasks.remove(taskId);
@@ -401,7 +431,7 @@ public class DistributedVisionProcessor {
     }
 
     /**
-     * Internal task execution on node (simulated).
+     * Internal task execution on a node (simulated).
      */
     private DistributedResult executeTaskOnNodeInternal(DistributedTask task, ProcessingNode node) {
         long startTime = System.currentTimeMillis();
@@ -412,7 +442,7 @@ public class DistributedVisionProcessor {
 
             // Simulate detection results
             List<Detection> detections = new ArrayList<>();
-            if (task.getQuery().getType() == DetectionType.FACE) {
+            if (task.query().getType() == DetectionType.FACE) {
                 detections.add(new Detection(DetectionType.FACE.name(),
                     0.95, new BoundingBox(0.1, 0.2, 0.3, 0.4), Map.of()));
             }
@@ -420,7 +450,7 @@ public class DistributedVisionProcessor {
             long processingTime = System.currentTimeMillis() - startTime;
 
             return new DistributedResult(
-                task.getTaskId(),
+                task.taskId(),
                 node.getNodeId(),
                 detections,
                 processingTime,
@@ -450,29 +480,152 @@ public class DistributedVisionProcessor {
 
     /**
      * Schedules task timeout.
+     * Use managed ScheduledExecutorService and return ScheduledFuture for cancellation
      */
-    private void scheduleTaskTimeout(String taskId, long timeoutMs) {
-        CompletableFuture.delayedExecutor(timeoutMs, TimeUnit.MILLISECONDS)
-            .execute(() -> {
-                CompletableFuture<DistributedResult> resultFuture = pendingTasks.remove(taskId);
-                if (resultFuture != null && !resultFuture.isDone()) {
-                    resultFuture.complete(DistributedResult.createErrorResult("Task timeout"));
-                    distributedMetrics.recordTaskTimeout(taskId);
+    private ScheduledFuture<?> scheduleTaskTimeout(String taskId, long timeoutMs) {
+        return timeoutScheduler.schedule(() -> {
+            CompletableFuture<DistributedResult> resultFuture = pendingTasks.remove(taskId);
+            if (resultFuture != null && !resultFuture.isDone()) {
+                resultFuture.complete(DistributedResult.createErrorResult("Task timeout"));
+                distributedMetrics.recordTaskTimeout(taskId);
+                logger.warn("Task {} timed out after {}ms", taskId, timeoutMs);
+            }
+        }, timeoutMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Comprehensive shutdown method to prevent resource leaks.
+     *
+     * <p>This method ensures proper cleanup of all resources:
+     * <ul>
+     *   <li>Sets a shutdown flag to prevent new task acceptance</li>
+     *   <li>Interrupts and joins background threads</li>
+     *   <li>Shuts down managed ExecutorServices with timeout</li>
+     *   <li>Cancels all pending tasks</li>
+     *   <li>Clears all internal state</li>
+     * </ul>
+     */
+    @PreDestroy
+    public void shutdown() {
+        if (isShuttingDown.compareAndSet(false, true)) {
+            logger.info("Shutting down DistributedVisionProcessor...");
+
+            try {
+                // 1. Cancel all pending tasks
+                logger.info("Cancelling {} pending tasks...", pendingTasks.size());
+                pendingTasks.forEach((taskId, future) -> {
+                    if (!future.isDone()) {
+                        future.complete(DistributedResult.createErrorResult("System shutting down"));
+                    }
+                });
+                pendingTasks.clear();
+
+                // 2. Interrupt background threads
+                logger.info("Interrupting background threads...");
+                if (taskProcessorThread != null && taskProcessorThread.isAlive()) {
+                    taskProcessorThread.interrupt();
                 }
-            });
+                if (healthMonitorThread != null && healthMonitorThread.isAlive()) {
+                    healthMonitorThread.interrupt();
+                }
+                if (metricsCollectorThread != null && metricsCollectorThread.isAlive()) {
+                    metricsCollectorThread.interrupt();
+                }
+
+                // 3. Wait for threads to terminate (with timeout)
+                logger.info("Waiting for background threads to terminate...");
+                if (taskProcessorThread != null) {
+                    try {
+                        taskProcessorThread.join(5000);
+                        if (taskProcessorThread.isAlive()) {
+                            logger.warn("Task processor thread did not terminate in time");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Interrupted while waiting for task processor thread");
+                    }
+                }
+
+                if (healthMonitorThread != null) {
+                    try {
+                        healthMonitorThread.join(2000);
+                        if (healthMonitorThread.isAlive()) {
+                            logger.warn("Health monitor thread did not terminate in time");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Interrupted while waiting for health monitor thread");
+                    }
+                }
+
+                if (metricsCollectorThread != null) {
+                    try {
+                        metricsCollectorThread.join(2000);
+                        if (metricsCollectorThread.isAlive()) {
+                            logger.warn("Metrics collector thread did not terminate in time");
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Interrupted while waiting for metrics collector thread");
+                    }
+                }
+
+                // 4. Shutdown ExecutorServices
+                logger.info("Shutting down ExecutorServices...");
+
+                // Shutdown task executor
+                taskExecutor.shutdown();
+                try {
+                    if (!taskExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
+                        logger.warn("Task executor did not terminate in time, forcing shutdown...");
+                        taskExecutor.shutdownNow();
+                        if (!taskExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                            logger.error("Task executor did not terminate after forced shutdown");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    taskExecutor.shutdownNow();
+                    logger.warn("Interrupted while shutting down task executor");
+                }
+
+                // Shutdown timeout scheduler
+                timeoutScheduler.shutdown();
+                try {
+                    if (!timeoutScheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                        logger.warn("Timeout scheduler did not terminate in time, forcing shutdown...");
+                        timeoutScheduler.shutdownNow();
+                        if (!timeoutScheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                            logger.error("Timeout scheduler did not terminate after forced shutdown");
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    timeoutScheduler.shutdownNow();
+                    logger.warn("Interrupted while shutting down timeout scheduler");
+                }
+
+                // 5. Clear remaining state
+                logger.info("Clearing internal state...");
+                taskQueue.clear();
+                processingNodes.clear();
+                processingStrategies.clear();
+
+                logger.info("DistributedVisionProcessor shutdown completed successfully");
+
+            } catch (Exception e) {
+                logger.error("Error during DistributedVisionProcessor shutdown", e);
+            }
+        } else {
+            logger.warn("Shutdown already in progress or completed");
+        }
     }
 
     /**
      * Distributed task data class.
      */
-    public static class DistributedTask {
-        private final String taskId;
-        private final String tenantId;
-        private final ImageData imageData;
-        private final DetectionQuery query;
-        private final long createdAt;
-        private final long timeoutMs;
-
+    public record DistributedTask(String taskId, String tenantId, ImageData imageData, DetectionQuery query,
+                                  long createdAt, long timeoutMs) {
         /**
          * Constructs a new DistributedTask.
          *
@@ -483,63 +636,68 @@ public class DistributedVisionProcessor {
          * @param createdAt The timestamp of when the task was created.
          * @param timeoutMs The timeout for the task in milliseconds.
          */
-        public DistributedTask(String taskId, String tenantId, ImageData imageData,
-                               DetectionQuery query, long createdAt, long timeoutMs) {
-            this.taskId = taskId;
-            this.tenantId = tenantId;
-            this.imageData = imageData;
-            this.query = query;
-            this.createdAt = createdAt;
-            this.timeoutMs = timeoutMs;
+        public DistributedTask {
         }
 
         // Getters
 
         /**
          * Gets the unique identifier for the task.
+         *
          * @return The unique identifier for the task.
          */
-        public String getTaskId() {
+        @Override
+        public String taskId() {
             return taskId;
         }
 
         /**
          * Gets the identifier of the tenant submitting the task.
+         *
          * @return The identifier of the tenant submitting the task.
          */
-        public String getTenantId() {
+        @Override
+        public String tenantId() {
             return tenantId;
         }
 
         /**
          * Gets the image data to process.
+         *
          * @return The image data to process.
          */
-        public ImageData getImageData() {
+        @Override
+        public ImageData imageData() {
             return imageData;
         }
 
         /**
          * Gets the detection query.
+         *
          * @return The detection query.
          */
-        public DetectionQuery getQuery() {
+        @Override
+        public DetectionQuery query() {
             return query;
         }
 
         /**
          * Gets the timestamp of when the task was created.
+         *
          * @return The timestamp of when the task was created.
          */
-        public long getCreatedAt() {
+        @Override
+        public long createdAt() {
             return createdAt;
         }
 
         /**
          * Gets the timeout for the task in milliseconds.
+         *
          * @return The timeout for the task in milliseconds.
          */
-        public long getTimeoutMs() {
+        @Override
+        public long timeoutMs() {
             return timeoutMs;
         }
     }
@@ -547,14 +705,8 @@ public class DistributedVisionProcessor {
     /**
      * Distributed result data class.
      */
-    public static class DistributedResult {
-        private final String taskId;
-        private final String nodeId;
-        private final List<Detection> detections;
-        private final long processingTimeMs;
-        private final boolean success;
-        private final String errorMessage;
-
+    public record DistributedResult(String taskId, String nodeId, List<Detection> detections, long processingTimeMs,
+                                    boolean success, String errorMessage) {
         /**
          * Constructs a new DistributedResult.
          *
@@ -565,14 +717,7 @@ public class DistributedVisionProcessor {
          * @param success          Whether the task was successful.
          * @param errorMessage     The error message if the task failed.
          */
-        public DistributedResult(String taskId, String nodeId, List<Detection> detections,
-                                 long processingTimeMs, boolean success, String errorMessage) {
-            this.taskId = taskId;
-            this.nodeId = nodeId;
-            this.detections = detections;
-            this.processingTimeMs = processingTimeMs;
-            this.success = success;
-            this.errorMessage = errorMessage;
+        public DistributedResult {
         }
 
         /**
@@ -589,49 +734,61 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the unique identifier for the task.
+         *
          * @return The unique identifier for the task.
          */
-        public String getTaskId() {
+        @Override
+        public String taskId() {
             return taskId;
         }
 
         /**
          * Gets the identifier of the node that processed the task.
+         *
          * @return The identifier of the node that processed the task.
          */
-        public String getNodeId() {
+        @Override
+        public String nodeId() {
             return nodeId;
         }
 
         /**
          * Gets the list of detections.
+         *
          * @return The list of detections.
          */
-        public List<Detection> getDetections() {
+        @Override
+        public List<Detection> detections() {
             return detections;
         }
 
         /**
          * Gets the processing time in milliseconds.
+         *
          * @return The processing time in milliseconds.
          */
-        public long getProcessingTimeMs() {
+        @Override
+        public long processingTimeMs() {
             return processingTimeMs;
         }
 
         /**
          * Checks if the task was successful.
+         *
          * @return Whether the task was successful.
          */
-        public boolean isSuccess() {
+        @Override
+        public boolean success() {
             return success;
         }
 
         /**
          * Gets the error message if the task failed.
+         *
          * @return The error message if the task failed.
          */
-        public String getErrorMessage() {
+        @Override
+        public String errorMessage() {
             return errorMessage;
         }
     }
@@ -704,6 +861,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the load factor of the node.
+         *
          * @return The load factor of the node.
          */
         public double getLoadFactor() {
@@ -713,6 +871,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the failure rate of the node.
+         *
          * @return The failure rate of the node.
          */
         public double getFailureRate() {
@@ -722,6 +881,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the average processing time of the node.
+         *
          * @return The average processing time of the node.
          */
         public double getAverageProcessingTime() {
@@ -733,6 +893,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the unique identifier for the node.
+         *
          * @return The unique identifier for the node.
          */
         public String getNodeId() {
@@ -741,6 +902,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the URL of the node.
+         *
          * @return The URL of the node.
          */
         public String getNodeUrl() {
@@ -749,6 +911,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the capabilities of the node.
+         *
          * @return The capabilities of the node.
          */
         public NodeCapabilities getCapabilities() {
@@ -757,6 +920,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the number of active tasks.
+         *
          * @return The number of active tasks.
          */
         public long getActiveTasks() {
@@ -765,6 +929,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the status of the node.
+         *
          * @return The status of the node.
          */
         public NodeStatus getStatus() {
@@ -773,6 +938,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the total number of tasks processed by the node.
+         *
          * @return The total number of tasks processed by the node.
          */
         public long getTotalTasks() {
@@ -781,6 +947,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the number of failed tasks on the node.
+         *
          * @return The number of failed tasks on the node.
          */
         public long getFailedTasks() {
@@ -791,12 +958,8 @@ public class DistributedVisionProcessor {
     /**
      * Node capabilities data class.
      */
-    public static class NodeCapabilities {
-        private final Set<DetectionType> supportedTypes;
-        private final int maxConcurrentTasks;
-        private final long maxMemoryUsage;
-        private final boolean gpuAcceleration;
-
+    public record NodeCapabilities(Set<DetectionType> supportedTypes, int maxConcurrentTasks, long maxMemoryUsage,
+                                   boolean gpuAcceleration) {
         /**
          * Constructs a new NodeCapabilities.
          *
@@ -805,12 +968,7 @@ public class DistributedVisionProcessor {
          * @param maxMemoryUsage     The maximum memory usage.
          * @param gpuAcceleration    Whether GPU acceleration is enabled.
          */
-        public NodeCapabilities(Set<DetectionType> supportedTypes, int maxConcurrentTasks,
-                                long maxMemoryUsage, boolean gpuAcceleration) {
-            this.supportedTypes = supportedTypes;
-            this.maxConcurrentTasks = maxConcurrentTasks;
-            this.maxMemoryUsage = maxMemoryUsage;
-            this.gpuAcceleration = gpuAcceleration;
+        public NodeCapabilities {
         }
 
         /**
@@ -827,33 +985,41 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the set of supported detection types.
+         *
          * @return The set of supported detection types.
          */
-        public Set<DetectionType> getSupportedTypes() {
+        @Override
+        public Set<DetectionType> supportedTypes() {
             return supportedTypes;
         }
 
         /**
          * Gets the maximum number of concurrent tasks.
+         *
          * @return The maximum number of concurrent tasks.
          */
-        public int getMaxConcurrentTasks() {
+        @Override
+        public int maxConcurrentTasks() {
             return maxConcurrentTasks;
         }
 
         /**
          * Gets the maximum memory usage.
+         *
          * @return The maximum memory usage.
          */
-        public long getMaxMemoryUsage() {
+        @Override
+        public long maxMemoryUsage() {
             return maxMemoryUsage;
         }
 
         /**
          * Checks if GPU acceleration is enabled.
+         *
          * @return Whether GPU acceleration is enabled.
          */
-        public boolean isGpuAcceleration() {
+        @Override
+        public boolean gpuAcceleration() {
             return gpuAcceleration;
         }
     }
@@ -905,6 +1071,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the status of the node.
+         *
          * @return The status of the node.
          */
         public NodeStatus getStatus() {
@@ -913,6 +1080,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the timestamp of the last health check.
+         *
          * @return The timestamp of the last health check.
          */
         public long getLastCheckTime() {
@@ -921,6 +1089,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the details of the health check.
+         *
          * @return The details of the health check.
          */
         public String getDetails() {
@@ -981,7 +1150,7 @@ public class DistributedVisionProcessor {
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
-                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().getType()))
+                .filter(node -> node.getCapabilities().supportsDetectionType(task.query().getType()))
                 .min(Comparator.comparingDouble(ProcessingNode::getLoadFactor))
                 .orElse(null);
         }
@@ -1002,7 +1171,7 @@ public class DistributedVisionProcessor {
         @Override
         public ProcessingNode selectNode(List<ProcessingNode> availableNodes, DistributedTask task) {
             return availableNodes.stream()
-                .filter(node -> node.getCapabilities().supportsDetectionType(task.getQuery().getType()))
+                .filter(node -> node.getCapabilities().supportsDetectionType(task.query().getType()))
                 .filter(node -> node.getStatus() == NodeStatus.HEALTHY)
                 .min(Comparator.comparingDouble(ProcessingNode::getFailureRate))
                 .orElse(null);
@@ -1039,13 +1208,13 @@ public class DistributedVisionProcessor {
 
         public void handleTaskFailure(DistributedTask task, Exception error) {
             // Implement task failure handling
-            logger.warn("Task failure detected: {}", task.getTaskId());
+            logger.warn("Task failure detected: {}", task.taskId());
         }
 
         public void handleNodeTaskFailure(DistributedTask task, ProcessingNode node, Throwable error) {
             // Implement node task failure handling
             node.recordTaskFailure();
-            logger.warn("Node task failure: {} on node: {}", task.getTaskId(), node.getNodeId());
+            logger.warn("Node task failure: {} on node: {}", task.taskId(), node.getNodeId());
         }
     }
 
@@ -1122,11 +1291,34 @@ public class DistributedVisionProcessor {
             totalTasksTimeout.incrementAndGet();
         }
 
+        /**
+         * ⭐ FIXED: Proper periodic metrics collection with shutdown support
+         */
         public void collectMetrics() {
-            // Implement metrics collection
-            logger.debug("Distributed metrics collected: created={}, completed={}, failed={}, timeout={}",
-                totalTasksCreated.get(), totalTasksCompleted.get(),
-                totalTasksFailed.get(), totalTasksTimeout.get());
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    // Log current metrics periodically
+                    logger.info("Distributed metrics - Created: {}, Completed: {}, Failed: {}, Timeout: {}",
+                        totalTasksCreated.get(),
+                        totalTasksCompleted.get(),
+                        totalTasksFailed.get(),
+                        totalTasksTimeout.get());
+
+                    // Log per-tenant metrics if any
+                    if (!tenantTaskCounts.isEmpty()) {
+                        logger.debug("Tenant task counts: {}", getTenantTaskCounts());
+                    }
+
+                    // Sleep for 60 seconds between collections
+                    Thread.sleep(60000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.info("Metrics collector thread terminated");
+                    break;
+                } catch (Exception e) {
+                    logger.error("Error during metrics collection", e);
+                }
+            }
         }
 
         // Getters
@@ -1189,6 +1381,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the task timeout in milliseconds.
+         *
          * @return The task timeout in milliseconds.
          */
         public long getTaskTimeoutMs() {
@@ -1197,6 +1390,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the queue timeout in milliseconds.
+         *
          * @return The queue timeout in milliseconds.
          */
         public long getQueueTimeoutMs() {
@@ -1205,6 +1399,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the maximum queue size.
+         *
          * @return The maximum queue size.
          */
         public int getMaxQueueSize() {
@@ -1213,6 +1408,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Gets the maximum number of concurrent tasks.
+         *
          * @return The maximum number of concurrent tasks.
          */
         public int getMaxConcurrentTasks() {
@@ -1221,6 +1417,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Checks if fault tolerance is enabled.
+         *
          * @return Whether fault tolerance is enabled.
          */
         public boolean isEnableFaultTolerance() {
@@ -1229,6 +1426,7 @@ public class DistributedVisionProcessor {
 
         /**
          * Checks if load balancing is enabled.
+         *
          * @return Whether load balancing is enabled.
          */
         public boolean isEnableLoadBalancing() {

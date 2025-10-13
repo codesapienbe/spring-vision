@@ -41,7 +41,7 @@ public class VisionProperties {
     private boolean enabled = true;
 
     /**
-     * The vision backend to use.cs
+     * The vision backend to use.
      * Supported backends: opencv (default), mediapipe, yolo, deepface.
      * If not specified, defaults to 'opencv'.
      */

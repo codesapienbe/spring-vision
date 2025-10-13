@@ -75,6 +75,7 @@ public class TenantContext {
 
     /**
      * Clears the current tenant context.
+     * This method should be called at the end of each request to prevent ThreadLocal memory leaks.
      */
     public static void clearCurrentTenant() {
         currentTenant.remove();

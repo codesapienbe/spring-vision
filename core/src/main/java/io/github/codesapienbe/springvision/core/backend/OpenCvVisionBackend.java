@@ -438,6 +438,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     @Override
+    @PreDestroy
     public void shutdown() throws BaseVisionException {
         if (!initialized) {
             return;
@@ -446,14 +447,79 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         logger.info("Shutting down OpenCV backend");
 
         try {
+            // Clean up ThreadLocal resources
+            if (dnnFaceNet != null) {
+                try {
+                    Net net = dnnFaceNet.get();
+                    if (net != null) {
+                        net.close();
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error closing DNN network: {}", e.getMessage());
+                } finally {
+                    dnnFaceNet.remove(); // Prevent memory leak
+                    dnnFaceNet = null;
+                }
+            }
+
             if (faceCascade != null) {
-                faceCascade.close();
-                faceCascade = null;
+                try {
+                    faceCascade.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing face cascade: {}", e.getMessage());
+                } finally {
+                    faceCascade = null;
+                }
+            }
+
+            if (eyeCascade != null) {
+                try {
+                    eyeCascade.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing eye cascade: {}", e.getMessage());
+                } finally {
+                    eyeCascade = null;
+                }
+            }
+
+            if (profileCascade != null) {
+                try {
+                    profileCascade.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing profile cascade: {}", e.getMessage());
+                } finally {
+                    profileCascade = null;
+                }
+            }
+
+            if (lbpCascade != null) {
+                try {
+                    lbpCascade.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing LBP cascade: {}", e.getMessage());
+                } finally {
+                    lbpCascade = null;
+                }
+            }
+
+            if (yuNetDetector != null) {
+                try {
+                    yuNetDetector.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing YuNet detector: {}", e.getMessage());
+                } finally {
+                    yuNetDetector = null;
+                }
             }
 
             if (frameConverter != null) {
-                frameConverter.close();
-                frameConverter = null;
+                try {
+                    frameConverter.close();
+                } catch (Exception e) {
+                    logger.warn("Error closing frame converter: {}", e.getMessage());
+                } finally {
+                    frameConverter = null;
+                }
             }
 
             initialized = false;
