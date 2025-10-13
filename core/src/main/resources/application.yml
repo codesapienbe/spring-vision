@@ -1,5 +1,5 @@
 # Spring Vision Core Configuration
-# For comprehensive documentation, see: docs/GPU_SUPPORT.md
+# For comprehensive documentation, see: docs/gpu.md
 
 spring:
   vision:

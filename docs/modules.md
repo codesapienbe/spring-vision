@@ -1,3 +1,5 @@
+[Docs Home](./index.md) · [Getting Started](./start.md) · [Architecture](./architecture.md) · [Config](./config.md)
+
 # Spring Vision Module Alignment Guide
 
 **Version**: 1.0  
@@ -392,28 +394,6 @@ public class FaceController {
 - Proper error handling
 - Shows auto-configuration in action
 
-### ❌ Bad Example
-
-```java
-
-@Service
-public class FaceService {
-
-    @Autowired
-    private CompreFaceBackend backend;  // ❌ Direct backend autowiring
-
-    public void detectFaces(byte[] data) {
-        backend.detect(data);  // ❌ No return value shown
-    }
-}
-```
-
-**Why it's bad:**
-
-- Direct backend dependency (defeats VisionTemplate purpose)
-- Not showing the unified API
-- Incomplete example
-
 ## Testing Standards
 
 Every module SHOULD include:
@@ -502,7 +482,8 @@ A well-aligned module should enable:
 
 ---
 
+See also: [Getting Started](./start.md) · [Configuration](./config.md) · [Runtime](./runtime.md) · [Roadmap](./roadmap.md)
+
 **Status**: This guide is the source of truth for module alignment.
 
 **Questions?** Review MODULE_ALIGNMENT_SUMMARY.md for current status of all modules.
-

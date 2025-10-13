@@ -1,3 +1,5 @@
+[Docs Home](./index.md) · [Getting Started](./start.md) · [Models Guide](./models.md) · [Modules](./modules.md)
+
 # Maven Model Download Guide
 
 ## Automatic Model Download
@@ -192,3 +194,6 @@ model.download.timeout=300
 
 model.download.retries=3
 
+---
+
+See also: [Models Guide](./models.md) · [Modules Overview](./modules.md) · [Runtime](./runtime.md) · [GPU Acceleration](./gpu.md)

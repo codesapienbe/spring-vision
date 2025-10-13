@@ -3,7 +3,6 @@ default: build
 
 .PHONY: build run dev clean deploy release docs default
 
-# Build target: Maven package and optional Docker image build
 build:
 	@echo "Building project: Maven install (will also build the docker image)"
 	mvn clean install -DskipTests
@@ -12,13 +11,9 @@ verify:
 	@echo "Testing project: Maven test"
 	mvn clean test
 
-# Run the MCP server
 run:
-	@echo "Finding an available port..."
-	@PORT=$$(python3 -c "import socket; s=socket.socket(); s.bind((\'\',0)); print(s.getsockname()[1]); s.close()"); \
-	echo "Running MCP server on port $$PORT"; \
-	cd mcp && mvn spring-boot:run -Dserver.port=$$PORT
-
+	@echo "Running MCP server on Docker..."
+	docker run -i --rm codesapienbe/spring-vision:latest
 
 dev:
 	@echo "Running MCP server on dev..."

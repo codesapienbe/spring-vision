@@ -1,3 +1,5 @@
+[Docs Home](./index.md) · [Roadmap](./roadmap.md) · [Contributing](./contributing.md)
+
 # TODO
 
 This file tracks planned features and modules for the Spring Vision project.
@@ -28,3 +30,7 @@ This module will be dedicated to industrial automation and robotics.
 - **Automated Defect Detection**: Identify defects in products on a production line from a video feed.
 - **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
 - **Component Verification**: Verify correct component usage during assembly.
+
+---
+
+See also: [Roadmap](./roadmap.md) · [Modules](./modules.md) · [Architecture](./architecture.md) · [FAQ](./faq.md)

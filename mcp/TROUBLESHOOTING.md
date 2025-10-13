@@ -253,7 +253,7 @@ docker logs -f <container-id>
 1. **Check logs**: `docker logs <container-id>`
 2. **Verify image**: `docker images | grep spring-vision`
 3. **Test Docker**: `docker run -i --rm codesapienbe/spring-vision:latest`
-4. **Review documentation**: README.md and CHANGELOG.md
+4. **Review documentation**: README.md and [docs/ROADMAP.md](../docs/ROADMAP.md)
 5. **Check GitHub issues**: https://github.com/codesapienbe/spring-vision
 
 ## Docker-Specific Commands
@@ -292,5 +292,6 @@ docker image prune -a
 For more information, see:
 
 - README.md - Setup and usage guide
-- CHANGELOG.md - Version history and features
+- docs/ROADMAP.md - Plans and milestones
+- docs/index.md - Full documentation portal
 - GitHub: https://github.com/codesapienbe/spring-vision

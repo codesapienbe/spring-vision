@@ -385,7 +385,7 @@ curl http://localhost:8080/actuator/health/vision
 
 ## Contributing
 
-See the main project [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
+See the main project [Contributing Guide](../docs/contributing.md) for contribution guidelines.
 
 ## License
 

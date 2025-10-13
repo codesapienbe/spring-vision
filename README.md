@@ -175,7 +175,7 @@ vision:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/CONTRIBUTING.md) for more details.
+We welcome contributions! Please see our [Contributing Guide](docs/contributing.md) for more details.
 
 ### Areas Needing Contribution
 
@@ -241,7 +241,7 @@ This module will be dedicated to industrial automation and robotics.
 
 ## 🙏 Acknowledgments
 
-Spring Vision builds upon excellent open-source projects like OpenCV, Spring Boot, and more. See the full list in our [documentation](docs/ACKNOWLEDGMENTS.md).
+Spring Vision builds upon excellent open-source projects like OpenCV, Spring Boot, and more. See the full list in our [documentation](docs/acknowledgments.md).
 
 ## 📄 License
 
