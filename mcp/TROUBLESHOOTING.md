@@ -97,6 +97,8 @@ java.lang.OutOfMemoryError: Java heap space
         "--rm",
         "-e",
         "JAVA_OPTS=-Xmx2G",
+        "--name",
+        "spring-vision-mcp",
         "codesapienbe/spring-vision:latest"
       ]
     }
@@ -242,7 +244,7 @@ docker logs -f <container-id>
 3. **Monitor container logs** during development
 4. **Set resource limits** in production:
    ```bash
-   docker run -i --rm --memory="1g" --cpus="2" codesapienbe/spring-vision:latest
+   docker run -i --rm --memory="1g" --cpus="2" --name spring-vision-mcp codesapienbe/spring-vision:latest
    ```
 5. **Use specialized backends** for production face comparison
 6. **Test with sample images** before production use
@@ -252,8 +254,8 @@ docker logs -f <container-id>
 
 1. **Check logs**: `docker logs <container-id>`
 2. **Verify image**: `docker images | grep spring-vision`
-3. **Test Docker**: `docker run -i --rm codesapienbe/spring-vision:latest`
-4. **Review documentation**: README.md and [docs/ROADMAP.md](../docs/ROADMAP.md)
+3. **Test Docker**: `docker run -i --rm --name spring-vision-test codesapienbe/spring-vision:latest`
+4. **Review documentation**: README.md and [docs/roadmap.md](../docs/roadmap.md)
 5. **Check GitHub issues**: https://github.com/codesapienbe/spring-vision
 
 ## Docker-Specific Commands
@@ -273,7 +275,7 @@ make deploy
 ### Run interactively for testing
 
 ```bash
-docker run -i --rm spring-vision:1.0
+docker run -i --rm --name spring-vision-mcp spring-vision:1.0
 # Type MCP JSON-RPC messages to test
 ```
 
@@ -292,6 +294,6 @@ docker image prune -a
 For more information, see:
 
 - README.md - Setup and usage guide
-- docs/ROADMAP.md - Plans and milestones
+- docs/roadmap.md - Plans and milestones
 - docs/index.md - Full documentation portal
 - GitHub: https://github.com/codesapienbe/spring-vision
