@@ -5,9 +5,11 @@ import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapa
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.util.ModelResourceLoader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import io.github.codesapienbe.springvision.core.util.OnnxRuntimeGuard;
+import io.github.codesapienbe.springvision.yolo.config.YoloProperties;
 
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -19,7 +21,6 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.nio.FloatBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -46,42 +47,20 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
 
     private static final Logger logger = LoggerFactory.getLogger(YoloBackend.class);
 
-    // YOLO model information
-    private static final Map<String, ModelInfo> MODEL_INFO = Map.of(
-        "yolov8n.onnx", new ModelInfo(
-            "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt",
-            "sha256:6fcc2a971d8bc901e81db872e3c01dd6357d11ac502b4bed4c78ddc2c5d47d6a",
-            "yolov8n"
-        ),
-        "yolov8s.onnx", new ModelInfo(
-            "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s.pt",
-            "sha256:a3ec3c53f073fd53f22e8cb7e75a4c7d3c07a1ca40b621cce04c175652206572",
-            "yolov8s"
-        ),
-        "yolov8m.onnx", new ModelInfo(
-            "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8m.pt",
-            "sha256:c2ce8e0240d84c5c7b8b4d8f21de54e9c71e8e0b5b8b4d8f21de54e9c71e8e0b",
-            "yolov8m"
-        )
-    );
-
-    // Configuration properties
-    private boolean enabled = false;
-    private String modelPath = "classpath:/models";
-    private String modelName = "yolov8n.onnx";
-    private double confidenceThreshold = 0.25;
-    private double nmsThreshold = 0.45;
-    private int maxDetections = 100;
-    private boolean enableAutoDownload = true;
-    private int downloadTimeoutSeconds = 300; // 5 minutes for large models
-    private int inputSize = 640;
+    // Configuration loaded from YoloProperties
+    private final String modelPath;
+    private final String modelName;
+    private final double confidenceThreshold;
+    private final double nmsThreshold;
+    private final int maxDetections;
+    private final boolean enableAutoDownload;
+    private final int inputSize;
+    private final Map<String, YoloProperties.ModelInfo> modelInfo;
 
     // ONNX Runtime components (loaded via reflection)
     private Object ortSession;
     private Object ortEnvironment;
     private Class<?> ortSessionClass;
-    private Class<?> ortEnvironmentClass;
-    private Class<?> onnxTensorClass;
 
     // Metrics
     private final AtomicLong detectionCount = new AtomicLong(0);
@@ -106,6 +85,83 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         "hair drier", "toothbrush"
     };
 
+    /**
+     * Default constructor with default configuration values.
+     */
+    public YoloBackend() {
+        this(new YoloProperties());
+    }
+
+    /**
+     * Constructor that loads configuration from YoloProperties.
+     * Properties object is used only for initialization, not stored.
+     */
+    public YoloBackend(YoloProperties properties) {
+        Objects.requireNonNull(properties, "YoloProperties must not be null");
+
+        // Load all configuration from properties into instance fields
+        this.modelPath = properties.modelPath();
+        this.modelName = properties.modelName();
+        this.confidenceThreshold = properties.confidenceThreshold();
+        this.nmsThreshold = properties.nmsThreshold();
+        this.maxDetections = properties.maxDetections();
+        this.enableAutoDownload = properties.enableAutoDownload();
+        this.inputSize = properties.inputSize();
+        this.modelInfo = properties.modelInfo();
+
+        logger.debug("YoloBackend initialized with model: {}", modelName);
+    }
+
+    /**
+     * Constructor that reads configuration directly from application.properties via @Value.
+     * Used when Properties bean is not available.
+     */
+    public YoloBackend(
+        @Value("${spring.vision.yolo.model-path:classpath:/models}") String modelPath,
+        @Value("${spring.vision.yolo.model-name:yolov8n.onnx}") String modelName,
+        @Value("${spring.vision.yolo.confidence-threshold:0.25}") double confidenceThreshold,
+        @Value("${spring.vision.yolo.nms-threshold:0.45}") double nmsThreshold,
+        @Value("${spring.vision.yolo.max-detections:100}") int maxDetections,
+        @Value("${spring.vision.yolo.enable-auto-download:true}") boolean enableAutoDownload,
+        @Value("${spring.vision.yolo.input-size:640}") int inputSize) {
+
+        this.modelPath = modelPath;
+        this.modelName = modelName;
+        this.confidenceThreshold = confidenceThreshold;
+        this.nmsThreshold = nmsThreshold;
+        this.maxDetections = maxDetections;
+        this.enableAutoDownload = enableAutoDownload;
+        this.inputSize = inputSize;
+
+        // Create default model info since we can't inject complex objects via @Value
+        this.modelInfo = createDefaultModelInfo();
+
+        logger.debug("YoloBackend initialized with model: {}, inputSize: {}", modelName, inputSize);
+    }
+
+    /**
+     * Creates default model info map when not provided via Properties.
+     */
+    private static Map<String, YoloProperties.ModelInfo> createDefaultModelInfo() {
+        return Map.of(
+            "yolov8n.onnx", new YoloProperties.ModelInfo(
+                "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8n.pt",
+                "sha256:6fcc2a971d8bc901e81db872e3c01dd6357d11ac502b4bed4c78ddc2c5d47d6a",
+                "yolov8n"
+            ),
+            "yolov8s.onnx", new YoloProperties.ModelInfo(
+                "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8s.pt",
+                "sha256:a3ec3c53f073fd53f22e8cb7e75a4c7d3c07a1ca40b621cce04c175652206572",
+                "yolov8s"
+            ),
+            "yolov8m.onnx", new YoloProperties.ModelInfo(
+                "https://github.com/ultralytics/assets/releases/download/v0.0.0/yolov8m.pt",
+                "sha256:c2ce8e0240d84c5c7b8b4d8f21de54e9c71e8e0b5b8b4d8f21de54e9c71e8e0b",
+                "yolov8m"
+            )
+        );
+    }
+
     @Override
     public String getBackendId() {
         return "yolo";
@@ -128,7 +184,6 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
 
     @Override
     public boolean isHealthy() {
-        // Consider backend healthy by default when not shut down to match test expectations
         return !shutdown;
     }
 
@@ -160,6 +215,14 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         return detect(imageData, DetectionType.OBJECT);
     }
 
+    /**
+     * Performs detection on the given image for a specific detection type.
+     *
+     * @param imageData The image to perform detection on.
+     * @param type      The type of detection to perform (e.g., OBJECT, FACE).
+     * @return A list of detections found in the image.
+     * @throws VisionBackendException if an error occurs during detection.
+     */
     public List<Detection> detect(ImageData imageData, DetectionType type) {
         validateInput(imageData, new DetectionQuery.Builder().type(type).build());
 
@@ -190,6 +253,12 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
 
     /**
      * Performs YOLO inference on the image using ONNX Runtime.
+     *
+     * @param imageData     The image data.
+     * @param type          The detection type.
+     * @param correlationId The correlation ID for logging.
+     * @return A list of detections.
+     * @throws Exception if inference fails.
      */
     private List<Detection> performYoloInference(ImageData imageData, DetectionType type, String correlationId)
         throws Exception {
@@ -218,7 +287,10 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Ensures ONNX Runtime is initialized and model is loaded.
+     * Ensures ONNX Runtime is initialized and the YOLO model is loaded.
+     * This method is idempotent.
+     *
+     * @throws Exception if initialization fails.
      */
     private void ensureInitialized() throws Exception {
         if (initialized) {
@@ -229,13 +301,11 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
             throw new VisionBackendException("ONNX Runtime is not available. Please add onnxruntime dependency.");
         }
 
-        // Initialize ONNX Runtime environment
         if (ortEnvironment == null) {
             ortEnvironment = OnnxRuntimeGuard.createEnvironment();
-            ortEnvironmentClass = ortEnvironment.getClass();
+            ortSessionClass = ortEnvironment.getClass();
         }
 
-        // Load YOLO model
         if (ortSession == null) {
             loadYoloModel();
         }
@@ -245,15 +315,14 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Loads the YOLO model from file or downloads it if needed.
+     * Loads the YOLO model from the configured path. If auto-download is enabled,
+     * it will download the model if it's not present locally.
+     *
+     * @throws Exception if the model cannot be loaded.
      */
     private void loadYoloModel() throws Exception {
         String modelFilePath = getModelFilePath();
 
-        // Download model if needed
-        if (enableAutoDownload && !Files.exists(Paths.get(modelFilePath))) {
-            downloadModel(modelName);
-        }
 
         // Create ONNX session via guard (reflection-guarded)
         ortSession = OnnxRuntimeGuard.createSession(ortEnvironment, modelFilePath);
@@ -266,7 +335,13 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Preprocesses the image for YOLO inference.
+     * Preprocesses the input image for YOLO inference. This involves resizing the
+     * image to the model's input size, normalizing pixel values, and converting
+     * it to the required tensor format (NCHW).
+     *
+     * @param imageData The raw byte data of the image.
+     * @return A 4D float array representing the preprocessed image tensor.
+     * @throws Exception if image processing fails.
      */
     private float[][][][] preprocessImage(byte[] imageData) throws Exception {
         // Convert byte array to BufferedImage
@@ -299,7 +374,11 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Runs ONNX inference on the preprocessed image.
+     * Runs the ONNX inference with the preprocessed image tensor.
+     *
+     * @param preprocessedImage The preprocessed image tensor.
+     * @return The raw output tensor from the model.
+     * @throws Exception if ONNX runtime inference fails.
      */
     private float[][][] runOnnxInference(float[][][][] preprocessedImage) throws Exception {
         // Create input tensor
@@ -307,7 +386,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         Class<?> floatBufferClass = Class.forName("java.nio.FloatBuffer");
 
         // Flatten the 4D array to 1D for FloatBuffer
-        float[] flatArray = new float[1 * 3 * inputSize * inputSize];
+        float[] flatArray = new float[3 * inputSize * inputSize];
         int index = 0;
         for (int b = 0; b < 1; b++) {
             for (int c = 0; c < 3; c++) {
@@ -323,7 +402,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         long[] shape = {1, 3, inputSize, inputSize};
 
         Object inputTensor = onnxTensorClass.getMethod("createTensor",
-                ortEnvironmentClass, floatBufferClass, long[].class)
+                ortSessionClass, floatBufferClass, long[].class)
             .invoke(null, ortEnvironment, floatBuffer, shape);
 
         // Run inference
@@ -337,8 +416,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         // Convert to float array
         if (outputArray instanceof float[][][]) {
             return (float[][][]) outputArray;
-        } else if (outputArray instanceof float[][][][]) {
-            float[][][][] output4D = (float[][][][]) outputArray;
+        } else if (outputArray instanceof float[][][][] output4D) {
             return output4D[0]; // Take first batch
         } else {
             throw new VisionBackendException("Unexpected output tensor format");
@@ -346,7 +424,15 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Post-processes YOLO output to extract detections.
+     * Post-processes the raw output from the YOLO model to generate a list of
+     * {@link Detection} objects. This includes applying a confidence threshold,
+     * non-maximum suppression (NMS), and scaling bounding boxes to the original
+     * image dimensions.
+     *
+     * @param rawOutput         The raw float tensor output from the YOLO model.
+     * @param originalImageSize The size of the original input image to scale bounding boxes.
+     * @param correlationId     The correlation ID for logging.
+     * @return A list of filtered and processed detections.
      */
     private List<Detection> postProcessResults(float[][][] rawOutput, int originalImageSize, String correlationId) {
         List<Detection> detections = new ArrayList<>();
@@ -376,7 +462,6 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
 
             // Filter by confidence threshold
             if (maxConfidence >= (float) confidenceThreshold && bestClass >= 0) {
-                // Convert from center format to corner format
                 float x1 = centerX - width / 2;
                 float y1 = centerY - height / 2;
                 float x2 = centerX + width / 2;
@@ -413,11 +498,13 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
             }
         }
 
-        // Apply Non-Maximum Suppression
-        detections = applyNMS(detections);
+        // Apply NMS using configured threshold
+        if (nmsThreshold > 0 && nmsThreshold < 1.0) {
+            detections = applyNMS(detections);
+        }
 
-        // Limit to max detections
-        if (detections.size() > maxDetections) {
+        // Limit results
+        if (maxDetections > 0 && detections.size() > maxDetections) {
             detections = detections.stream()
                 .sorted((a, b) -> Double.compare(b.confidence(), a.confidence()))
                 .limit(maxDetections)
@@ -431,7 +518,12 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Applies Non-Maximum Suppression to remove overlapping detections.
+     * Applies Non-Maximum Suppression (NMS) to a list of detections to filter
+     * out overlapping bounding boxes, keeping only the ones with the highest
+     * confidence.
+     *
+     * @param detections The list of detections to process.
+     * @return A new list of detections after applying NMS.
      */
     private List<Detection> applyNMS(List<Detection> detections) {
         if (detections.isEmpty()) {
@@ -471,7 +563,12 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Calculates Intersection over Union (IoU) between two bounding boxes.
+     * Calculates the Intersection over Union (IoU) between two bounding boxes.
+     * IoU is a measure of the overlap between two boxes.
+     *
+     * @param box1 The first bounding box.
+     * @param box2 The second bounding box.
+     * @return The IoU value, between 0.0 and 1.0.
      */
     private double calculateIoU(BoundingBox box1, BoundingBox box2) {
         double x1 = Math.max(box1.x(), box2.x());
@@ -492,7 +589,12 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Resizes an image to the specified dimensions.
+     * Resizes a {@link BufferedImage} to the specified target width and height.
+     *
+     * @param originalImage The image to resize.
+     * @param targetWidth   The target width.
+     * @param targetHeight  The target height.
+     * @return The resized image.
      */
     private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
@@ -504,11 +606,17 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Gets the model file path, prioritizing classpath resources.
+     * Determines the absolute file path for the configured YOLO model.
+     * It uses {@link ModelResourceLoader} to prioritize classpath resources,
+     * then checks a configured external path, and finally falls back to a
+     * default location, potentially triggering a download if enabled.
+     *
+     * @return The absolute path to the model file.
+     * @throws VisionBackendException if the model is unknown or the path cannot be resolved.
      */
     private String getModelFilePath() {
-        ModelInfo modelInfo = MODEL_INFO.get(modelName);
-        if (modelInfo == null) {
+        YoloProperties.ModelInfo modelInfoEntry = modelInfo.get(modelName);
+        if (modelInfoEntry == null) {
             throw new VisionBackendException("Unknown model: " + modelName);
         }
 
@@ -521,7 +629,7 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
             classpathResource,                                        // classpath resource
             modelName,                                                // model filename
             "yolo",                                                   // module subdirectory
-            modelInfo.url(),                                          // download URL
+            modelInfoEntry.url(),                                          // download URL
             enableAutoDownload                                        // auto-download flag
         );
 
@@ -535,19 +643,12 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Downloads the YOLO model if not present locally.
-     */
-    private void downloadModel(String modelName) throws Exception {
-        // This method is now handled by ModelResourceLoader in getModelFilePath()
-        // Keeping for backwards compatibility if called directly
-        String modelFilePath = getModelFilePath();
-        if (!Files.exists(Paths.get(modelFilePath))) {
-            throw new VisionBackendException("Model not found: " + modelName);
-        }
-    }
-
-    /**
-     * Validates input parameters.
+     * Validates the input {@link ImageData} and {@link DetectionQuery} to ensure
+     * they are not null and meet basic requirements before processing.
+     *
+     * @param imageData The image data to validate.
+     * @param query     The detection query to validate.
+     * @throws IllegalArgumentException if validation fails.
      */
     private void validateInput(ImageData imageData, DetectionQuery query) {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
@@ -567,14 +668,20 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
     }
 
     /**
-     * Generates correlation ID for request tracking.
+     * Generates a unique correlation ID for tracking a detection request through
+     * the system.
+     *
+     * @return A unique string identifier.
      */
     private String generateCorrelationId() {
         return "yolo-" + correlationIdCounter.incrementAndGet();
     }
 
     /**
-     * Checks if YOLO backend / ONNX runtime is available.
+     * Checks if the YOLO backend is available by verifying if the ONNX Runtime
+     * classes are present on the classpath.
+     *
+     * @return {@code true} if ONNX Runtime is available, {@code false} otherwise.
      */
     private boolean isAvailable() {
         // Consider available if ONNX runtime classes are present. Session may be null until initialized.
@@ -611,31 +718,5 @@ public class YoloBackend implements VisionBackend, ObjectDetectionCapability, Fa
         logger.info("YOLO backend shutdown completed: backend=yolo");
     }
 
-    /**
-     * Simple holder for model metadata used by this backend.
-     */
-    private static class ModelInfo {
-        private final String url;
-        private final String checksum;
-        private final String name;
-
-        ModelInfo(String url, String checksum, String name) {
-            this.url = url;
-            this.checksum = checksum;
-            this.name = name;
-        }
-
-        String url() {
-            return url;
-        }
-
-        String checksum() {
-            return checksum;
-        }
-
-        String name() {
-            return name;
-        }
-    }
 
 }

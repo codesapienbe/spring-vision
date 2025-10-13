@@ -19,6 +19,7 @@ import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapabi
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceLookupCapability;
+import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
 import jakarta.annotation.PreDestroy;
 
 import org.bytedeco.javacpp.FloatPointer;
@@ -86,7 +87,6 @@ import org.springframework.stereotype.Component;
  * @since 1.0.0
  */
 @Component
-@ConfigurationProperties(prefix = "spring.vision.opencv")
 @ConditionalOnProperty(prefix = "spring.vision.opencv", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability,
     AnnotationCapability, FaceVerificationCapability, FaceLookupCapability,
@@ -279,10 +279,22 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     private boolean dnnDownloadWarnLogged = false;
     private boolean sfaceInitWarnLogged = false;
 
+    private final OpenCvProperties properties;
+
     /**
      * Constructs a new OpenCV vision backend.
+     * Using external config
+     */
+    public OpenCvVisionBackend(OpenCvProperties properties) {
+        this.properties = properties;
+    }
+
+    /**
+     * Constructs a new OpenCV vision backend.
+     * Using default config
      */
     public OpenCvVisionBackend() {
+        this.properties = new OpenCvProperties();
         this.faceCascade = null;
         this.frameConverter = null;
         this.opencvAvailable = false;

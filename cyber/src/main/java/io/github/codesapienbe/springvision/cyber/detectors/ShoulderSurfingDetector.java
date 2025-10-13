@@ -56,7 +56,8 @@ public class ShoulderSurfingDetector {
     private final Map<String, Integer> suspiciousFaceTracker = new HashMap<>();
 
     /**
-     * Default constructor.
+     * Initializes the detector by loading the Haar Cascade for face detection
+     * and setting up the necessary converters for image processing.
      */
     public ShoulderSurfingDetector() {
         // Initialize OpenCV face detector
@@ -85,10 +86,13 @@ public class ShoulderSurfingDetector {
     }
 
     /**
-     * Analyzes a sequence of video frames to detect shoulder surfing attempts.
+     * Analyzes a sequence of video frames to detect potential shoulder surfing attempts.
+     * It processes each frame to identify faces and analyzes their position and persistence
+     * to flag suspicious activity.
      *
-     * @param videoFrames sequential frames from video stream
-     * @return list of detections indicating potential shoulder surfing
+     * @param videoFrames A list of sequential {@link ImageData} frames from a video stream.
+     * @return A list of {@link Detection} objects, each representing a potential
+     *         shoulder surfing attempt with associated confidence and metadata.
      */
     public List<Detection> analyzeVideoStream(List<ImageData> videoFrames) {
         List<Detection> allDetections = new ArrayList<>();
@@ -109,6 +113,9 @@ public class ShoulderSurfingDetector {
 
     /**
      * Analyzes a single frame for potential shoulder surfing.
+     * @param imageData The image data of the frame.
+     * @param frameNumber The frame number in the sequence.
+     * @return A list of detections for the frame.
      */
     private List<Detection> analyzeFrame(ImageData imageData, int frameNumber) {
         List<Detection> detections = new ArrayList<>();
@@ -154,6 +161,11 @@ public class ShoulderSurfingDetector {
     /**
      * Analyzes the position of a detected face to determine if it represents
      * a shoulder surfing threat.
+     * @param face The detected face rectangle.
+     * @param imageWidth The width of the image.
+     * @param imageHeight The height of the image.
+     * @param frameNumber The frame number.
+     * @return A detection if the face is suspicious, otherwise null.
      */
     private Detection analyzeFacePosition(Rect face, int imageWidth, int imageHeight, int frameNumber) {
         double faceY = face.y();
@@ -230,6 +242,8 @@ public class ShoulderSurfingDetector {
 
     /**
      * Filters and consolidates detections to reduce false positives.
+     * @param detections The list of detections to filter.
+     * @return The filtered list of detections.
      */
     private List<Detection> filterAndConsolidateDetections(List<Detection> detections) {
         // For now, return high-confidence detections only
@@ -239,7 +253,9 @@ public class ShoulderSurfingDetector {
     }
 
     /**
-     * Resets the tracking state. Should be called when starting a new video session.
+     * Resets the internal state of the detector, clearing any tracked faces.
+     * This should be called at the beginning of a new video analysis session to
+     * ensure that data from previous sessions does not interfere with the new one.
      */
     public void resetTracking() {
         suspiciousFaceTracker.clear();
@@ -248,8 +264,11 @@ public class ShoulderSurfingDetector {
 
     /**
      * Configures the sensitivity threshold for detecting suspicious positions.
+     * A higher value makes the detector more sensitive to faces in the periphery.
      *
-     * @param threshold value between 0.0 and 1.0 (higher = more sensitive)
+     * @param threshold A value between 0.0 and 1.0, where a higher value increases
+     *                  the area considered "suspicious".
+     * @throws IllegalArgumentException if the threshold is not within the valid range.
      */
     public void setSensitivityThreshold(double threshold) {
         if (threshold < 0.0 || threshold > 1.0) {

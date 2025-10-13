@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 
 /**
- * Auto-configuration for Spring Vision YOLO module.
+ * Autoconfiguration for Spring Vision YOLO module.
  *
  * <p>This configuration is activated when:
  * <ul>
@@ -36,7 +36,7 @@ public class YoloAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public YoloBackend yoloBackend(YoloProperties properties) {
-        return new YoloBackend();
+        return new YoloBackend(properties);
     }
 
     /**

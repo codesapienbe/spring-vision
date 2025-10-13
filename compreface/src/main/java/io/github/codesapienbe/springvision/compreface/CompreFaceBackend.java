@@ -89,6 +89,15 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
     }
 
     /**
+     * Creates a new CompreFace backend from properties configuration.
+     *
+     * @param properties the CompreFace properties configuration
+     */
+    public CompreFaceBackend(io.github.codesapienbe.springvision.compreface.config.CompreFaceProperties properties) {
+        this(properties.baseUrl(), Duration.ofSeconds(properties.timeout()));
+    }
+
+    /**
      * Creates a new CompreFace backend with the specified API URL.
      *
      * @param baseUrl the base URL of the CompreFace API server

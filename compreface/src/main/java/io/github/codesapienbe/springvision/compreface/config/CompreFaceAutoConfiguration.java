@@ -38,7 +38,7 @@ public class CompreFaceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public CompreFaceBackend compreFaceBackend(CompreFaceProperties properties) {
-        return new CompreFaceBackend(properties.getBaseUrl(), Duration.ofSeconds(properties.getTimeout()));
+        return new CompreFaceBackend(properties.baseUrl(), Duration.ofSeconds(properties.timeout()));
     }
 
     /**

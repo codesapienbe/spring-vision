@@ -4,8 +4,10 @@ import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.insightface.config.InsightFaceProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -40,38 +42,19 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
 
     private static final Logger logger = LoggerFactory.getLogger(InsightFaceBackend.class);
 
-    // InsightFace model information
-    private static final Map<String, ModelInfo> MODEL_INFO = Map.of(
-        "buffalo_l", new ModelInfo(
-            "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
-            "sha256:9f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c",
-            "buffalo_l"
-        ),
-        "buffalo_m", new ModelInfo(
-            "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
-            "sha256:8e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b",
-            "buffalo_m"
-        ),
-        "buffalo_s", new ModelInfo(
-            "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip",
-            "sha256:7d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a",
-            "buffalo_s"
-        )
-    );
-
-    // Configuration properties
-    private boolean enabled = false;
-    private String apiUrl = "http://localhost:8000";
-    private String apiKey = "";
-    private String modelName = "buffalo_l";
-    private double confidenceThreshold = 0.5;
-    private double verificationThreshold = 0.6;
-    private int maxDetections = 10;
-    private boolean enableAgeGender = true;
-    private boolean enableEmotion = true;
-    private boolean enableLandmarks = true;
-    private int timeoutSeconds = 30;
-    private int maxRetries = 3;
+    // Configuration loaded from InsightFaceProperties
+    private final String apiUrl;
+    private final String apiKey;
+    private final String modelName;
+    private final double confidenceThreshold;
+    private final double verificationThreshold;
+    private final int maxDetections;
+    private final boolean enableAgeGender;
+    private final boolean enableEmotion;
+    private final boolean enableLandmarks;
+    private final int timeoutSeconds;
+    private final int maxRetries;
+    private final Map<String, InsightFaceProperties.ModelInfo> modelInfo;
 
     // HTTP client for API calls
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -90,6 +73,90 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
     // Shutdown flag
     private volatile boolean shutdown = false;
     private volatile boolean initialized = false;
+
+    /**
+     * Default constructor with default configuration values.
+     */
+    public InsightFaceBackend() {
+        this(new InsightFaceProperties());
+    }
+
+    /**
+     * Constructor that loads configuration from InsightFaceProperties.
+     */
+    public InsightFaceBackend(InsightFaceProperties properties) {
+        Objects.requireNonNull(properties, "InsightFaceProperties must not be null");
+
+        this.apiUrl = properties.apiUrl();
+        this.apiKey = properties.apiKey();
+        this.modelName = properties.modelName();
+        this.confidenceThreshold = properties.confidenceThreshold();
+        this.verificationThreshold = properties.verificationThreshold();
+        this.maxDetections = properties.maxDetections();
+        this.enableAgeGender = properties.enableAgeGender();
+        this.enableEmotion = properties.enableEmotion();
+        this.enableLandmarks = properties.enableLandmarks();
+        this.timeoutSeconds = properties.timeoutSeconds();
+        this.maxRetries = properties.maxRetries();
+        this.modelInfo = properties.modelInfo();
+
+        logger.debug("InsightFaceBackend initialized with model: {}", modelName);
+    }
+
+    /**
+     * Constructor that reads configuration directly from application.properties via @Value.
+     */
+    public InsightFaceBackend(
+        @Value("${spring.vision.insightface.api-url:http://localhost:8000}") String apiUrl,
+        @Value("${spring.vision.insightface.api-key:}") String apiKey,
+        @Value("${spring.vision.insightface.model-name:buffalo_l}") String modelName,
+        @Value("${spring.vision.insightface.confidence-threshold:0.5}") double confidenceThreshold,
+        @Value("${spring.vision.insightface.verification-threshold:0.6}") double verificationThreshold,
+        @Value("${spring.vision.insightface.max-detections:10}") int maxDetections,
+        @Value("${spring.vision.insightface.enable-age-gender:true}") boolean enableAgeGender,
+        @Value("${spring.vision.insightface.enable-emotion:true}") boolean enableEmotion,
+        @Value("${spring.vision.insightface.enable-landmarks:true}") boolean enableLandmarks,
+        @Value("${spring.vision.insightface.timeout-seconds:30}") int timeoutSeconds,
+        @Value("${spring.vision.insightface.max-retries:3}") int maxRetries) {
+
+        this.apiUrl = apiUrl;
+        this.apiKey = apiKey;
+        this.modelName = modelName;
+        this.confidenceThreshold = confidenceThreshold;
+        this.verificationThreshold = verificationThreshold;
+        this.maxDetections = maxDetections;
+        this.enableAgeGender = enableAgeGender;
+        this.enableEmotion = enableEmotion;
+        this.enableLandmarks = enableLandmarks;
+        this.timeoutSeconds = timeoutSeconds;
+        this.maxRetries = maxRetries;
+        this.modelInfo = createDefaultModelInfo();
+
+        logger.debug("InsightFaceBackend initialized with model: {}", modelName);
+    }
+
+    /**
+     * Creates default model info map when not provided via Properties.
+     */
+    private static Map<String, InsightFaceProperties.ModelInfo> createDefaultModelInfo() {
+        return Map.of(
+            "buffalo_l", new InsightFaceProperties.ModelInfo(
+                "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
+                "sha256:9f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c",
+                "buffalo_l"
+            ),
+            "buffalo_m", new InsightFaceProperties.ModelInfo(
+                "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
+                "sha256:8e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b",
+                "buffalo_m"
+            ),
+            "buffalo_s", new InsightFaceProperties.ModelInfo(
+                "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip",
+                "sha256:7d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a",
+                "buffalo_s"
+            )
+        );
+    }
 
     @Override
     public String getBackendId() {
@@ -259,7 +326,7 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
         // Add face database to request
         Map<String, Object> database = new HashMap<>();
         for (Map.Entry<String, FaceRecord> entry : faceDatabase.entrySet()) {
-            database.put(entry.getKey(), entry.getValue().getEmbedding());
+            database.put(entry.getKey(), entry.getValue().embedding());
         }
         requestPayload.put("database", database);
 
@@ -606,197 +673,20 @@ public class InsightFaceBackend implements VisionBackend, FaceDetectionCapabilit
     }
 
     /**
-     * Model information including URL and checksum.
-     */
-    private static class ModelInfo {
-        final String url;
-        final String checksum;
-        final String name;
-
-        ModelInfo(String url, String checksum, String name) {
-            this.url = url;
-            this.checksum = checksum;
-            this.name = name;
-        }
-    }
-
-    /**
      * Face record for recognition database.
      */
-    private static class FaceRecord {
-        private final String identity;
-        private final double[] embedding;
-        private final long timestamp;
-
-        FaceRecord(String identity, double[] embedding, long timestamp) {
-            this.identity = identity;
-            this.embedding = embedding;
-            this.timestamp = timestamp;
-        }
-
-        public String getIdentity() {
-            return identity;
-        }
-
-        public double[] getEmbedding() {
-            return embedding;
-        }
-
-        public long getTimestamp() {
-            return timestamp;
-        }
+    private record FaceRecord(String identity, double[] embedding, long timestamp) {
     }
 
     /**
      * Result of face verification.
      */
-    public static class VerificationResult {
-        private final double distance;
-        private final boolean isMatch;
-        private final double similarity;
-
-        public VerificationResult(double distance, boolean isMatch, double similarity) {
-            this.distance = distance;
-            this.isMatch = isMatch;
-            this.similarity = similarity;
-        }
-
-        public double getDistance() {
-            return distance;
-        }
-
-        public boolean isMatch() {
-            return isMatch;
-        }
-
-        public double getSimilarity() {
-            return similarity;
-        }
+    public record VerificationResult(double distance, boolean isMatch, double similarity) {
     }
 
     /**
      * Result of face recognition.
      */
-    public static class RecognitionResult {
-        private final String identity;
-        private final double confidence;
-        private final double distance;
-
-        public RecognitionResult(String identity, double confidence, double distance) {
-            this.identity = identity;
-            this.confidence = confidence;
-            this.distance = distance;
-        }
-
-        public String getIdentity() {
-            return identity;
-        }
-
-        public double getConfidence() {
-            return confidence;
-        }
-
-        public double getDistance() {
-            return distance;
-        }
-    }
-
-    // Getters and setters for configuration properties
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public String getApiUrl() {
-        return apiUrl;
-    }
-
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
-    }
-
-    public String getApiKey() {
-        return apiKey;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
-    public double getVerificationThreshold() {
-        return verificationThreshold;
-    }
-
-    public void setVerificationThreshold(double verificationThreshold) {
-        this.verificationThreshold = verificationThreshold;
-    }
-
-    public int getMaxDetections() {
-        return maxDetections;
-    }
-
-    public void setMaxDetections(int maxDetections) {
-        this.maxDetections = maxDetections;
-    }
-
-    public boolean isEnableAgeGender() {
-        return enableAgeGender;
-    }
-
-    public void setEnableAgeGender(boolean enableAgeGender) {
-        this.enableAgeGender = enableAgeGender;
-    }
-
-    public boolean isEnableEmotion() {
-        return enableEmotion;
-    }
-
-    public void setEnableEmotion(boolean enableEmotion) {
-        this.enableEmotion = enableEmotion;
-    }
-
-    public boolean isEnableLandmarks() {
-        return enableLandmarks;
-    }
-
-    public void setEnableLandmarks(boolean enableLandmarks) {
-        this.enableLandmarks = enableLandmarks;
-    }
-
-    public int getTimeoutSeconds() {
-        return timeoutSeconds;
-    }
-
-    public void setTimeoutSeconds(int timeoutSeconds) {
-        this.timeoutSeconds = timeoutSeconds;
-    }
-
-    public int getMaxRetries() {
-        return maxRetries;
-    }
-
-    public void setMaxRetries(int maxRetries) {
-        this.maxRetries = maxRetries;
+    public record RecognitionResult(String identity, double confidence, double distance) {
     }
 }
-

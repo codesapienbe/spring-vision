@@ -65,6 +65,11 @@ public class QRCodeThreat {
     private String url;
     private List<String> threats;
 
+    /**
+     * Constructs a new QRCodeThreat with the given content.
+     *
+     * @param content The raw content decoded from the QR code.
+     */
     public QRCodeThreat(String content) {
         this.content = content;
         this.type = ThreatType.UNKNOWN;
@@ -72,50 +77,55 @@ public class QRCodeThreat {
         this.threats = new ArrayList<>();
     }
 
+    /**
+     * Gets the raw content decoded from the QR code.
+     *
+     * @return The raw content.
+     */
     public String getContent() {
         return content;
     }
 
     /**
-     * Gets the threat type.
+     * Gets the type of threat identified.
      *
-     * @return the threat type
+     * @return The threat type.
      */
     public ThreatType getType() {
         return type;
     }
 
     /**
-     * Sets the threat type.
+     * Sets the type of threat identified.
      *
-     * @param type the threat type to set
+     * @param type The threat type to set.
      */
     public void setType(ThreatType type) {
         this.type = type;
     }
 
     /**
-     * Gets the threat severity.
+     * Gets the severity level of the identified threat.
      *
-     * @return the threat severity
+     * @return The threat severity.
      */
     public ThreatSeverity getSeverity() {
         return severity;
     }
 
     /**
-     * Sets the threat severity.
+     * Sets the severity level of the identified threat.
      *
-     * @param severity the threat severity to set
+     * @param severity The threat severity to set.
      */
     public void setSeverity(ThreatSeverity severity) {
         this.severity = severity;
     }
 
     /**
-     * Gets the URL associated with the threat.
+     * Gets the URL associated with the threat, if applicable.
      *
-     * @return the URL
+     * @return The URL, or null if the threat is not URL-based.
      */
     public String getUrl() {
         return url;
@@ -124,25 +134,25 @@ public class QRCodeThreat {
     /**
      * Sets the URL associated with the threat.
      *
-     * @param url the URL to set
+     * @param url The URL to set.
      */
     public void setUrl(String url) {
         this.url = url;
     }
 
     /**
-     * Gets the list of threats.
+     * Gets the list of specific threats or reasons for the severity rating.
      *
-     * @return the list of threats
+     * @return A list of threat descriptions.
      */
     public List<String> getThreats() {
         return threats;
     }
 
     /**
-     * Sets the list of threats.
+     * Sets the list of specific threats or reasons for the severity rating.
      *
-     * @param threats the list of threats to set
+     * @param threats The list of threats to set.
      */
     public void setThreats(List<String> threats) {
         this.threats = threats;

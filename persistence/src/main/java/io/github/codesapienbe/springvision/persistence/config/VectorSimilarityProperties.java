@@ -1,21 +1,31 @@
 package io.github.codesapienbe.springvision.persistence.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for vector similarity features within the persistence module.
  * These properties allow for fine-tuning the behavior of vector indexes and similarity search providers.
  */
+@Component
 @ConfigurationProperties(prefix = "spring.vision.vector")
 public class VectorSimilarityProperties {
 
-    /** The desired vector provider. AUTO will attempt to detect the best one based on the database vendor. */
+    /**
+     * The desired vector provider. AUTO will attempt to detect the best one based on the database vendor.
+     */
     private VectorProvider provider = VectorProvider.AUTO;
-    /** PostgreSQL-specific vector settings. */
+    /**
+     * PostgreSQL-specific vector settings.
+     */
     private PostgreSQL postgresql = new PostgreSQL();
-    /** Oracle-specific vector settings. */
+    /**
+     * Oracle-specific vector settings.
+     */
     private Oracle oracle = new Oracle();
-    /** MySQL-specific vector settings. */
+    /**
+     * MySQL-specific vector settings.
+     */
     private MySQL mysql = new MySQL();
 
     /**
@@ -259,17 +269,29 @@ public class VectorSimilarityProperties {
      * Enumerates the supported vector providers for similarity search.
      */
     public enum VectorProvider {
-        /** Automatically detect the provider based on the database vendor. */
+        /**
+         * Automatically detect the provider based on the database vendor.
+         */
         AUTO,
-        /** Use PostgreSQL with the pgvector extension. */
+        /**
+         * Use PostgreSQL with the pgvector extension.
+         */
         POSTGRES,
-        /** Use Oracle's native vector capabilities. */
+        /**
+         * Use Oracle's native vector capabilities.
+         */
         ORACLE,
-        /** Use MySQL's native vector capabilities. */
+        /**
+         * Use MySQL's native vector capabilities.
+         */
         MYSQL,
-        /** Use a generic JPA-based implementation (fallback). */
+        /**
+         * Use a generic JPA-based implementation (fallback).
+         */
         JPA,
-        /** Use an H2-specific implementation for in-memory testing. */
+        /**
+         * Use an H2-specific implementation for in-memory testing.
+         */
         H2
     }
 }

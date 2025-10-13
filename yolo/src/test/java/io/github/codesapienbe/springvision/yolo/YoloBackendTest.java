@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.yolo;
 
 import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.yolo.config.YoloProperties;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -9,7 +10,8 @@ class YoloBackendTest {
 
     @Test
     void testBackendId() {
-        YoloBackend backend = new YoloBackend();
+        YoloProperties properties = new YoloProperties();
+        YoloBackend backend = new YoloBackend(properties);
         assertEquals("yolo", backend.getBackendId());
     }
 

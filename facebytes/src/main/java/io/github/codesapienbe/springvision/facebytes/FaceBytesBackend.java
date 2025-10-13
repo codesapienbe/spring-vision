@@ -55,10 +55,18 @@ public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapab
     private static final String VERSION = "1.0.0";
 
     /**
-     * Default constructor for FaceBytesBackend.
+     * Default constructor with default configuration values.
      */
     public FaceBytesBackend() {
-        // Default constructor
+        this(new io.github.codesapienbe.springvision.facebytes.config.FaceBytesProperties());
+    }
+
+    /**
+     * Constructor that accepts FaceBytesProperties.
+     */
+    public FaceBytesBackend(io.github.codesapienbe.springvision.facebytes.config.FaceBytesProperties properties) {
+        // Configuration initialization would go here
+        logger.debug("FaceBytesBackend initialized with detector: {}", properties.detectorBackend());
     }
 
     @Override

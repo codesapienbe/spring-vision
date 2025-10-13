@@ -62,6 +62,9 @@ public class PhysicalAccessMonitor {
     // Access event log (in production, this would be persisted to database)
     private final List<AccessEvent> accessLog = new ArrayList<>();
 
+    /**
+     * Initializes the monitor, loading the face detection model and preparing converters.
+     */
     public PhysicalAccessMonitor() {
         // Initialize OpenCV face detector
         String classifierPath = null;
@@ -88,10 +91,12 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Monitors access by detecting faces and checking authorization.
+     * Monitors an access point by analyzing an image from a camera feed. It detects
+     * faces and verifies them against a database of authorized personnel.
      *
-     * @param imageData the image from access control camera
-     * @return list of detections with access authorization status
+     * @param imageData The {@link ImageData} captured from the access control camera.
+     * @return A list of {@link Detection} objects, each indicating whether an access
+     *         attempt was authorized or unauthorized, along with relevant metadata.
      */
     public List<Detection> monitorAccess(ImageData imageData) {
         List<Detection> detections = new ArrayList<>();
@@ -134,6 +139,9 @@ public class PhysicalAccessMonitor {
 
     /**
      * Processes a detected face to determine access authorization.
+     * @param face The detected face rectangle.
+     * @param image The image in which the face was detected.
+     * @return A detection object with the result of the access attempt.
      */
     private Detection processAccessAttempt(Rect face, BufferedImage image) {
         // Create normalized bounding box
@@ -223,9 +231,11 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Registers an authorized person in the access control system.
+     * Registers a new person with authorization to access the monitored area.
+     * In a production system, this would persist the person's data to a secure database.
      *
-     * @param person the person to authorize
+     * @param person The {@link AuthorizedPerson} to register.
+     * @throws IllegalArgumentException if the person or their ID is null.
      */
     public void registerAuthorizedPerson(AuthorizedPerson person) {
         if (person == null || person.getId() == null) {
@@ -237,9 +247,10 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Removes an authorized person from the access control system.
+     * Revokes access for a previously authorized person. This removes them from the
+     * internal database of authorized individuals.
      *
-     * @param personId the ID of the person to remove
+     * @param personId The unique identifier of the person whose access is to be revoked.
      */
     public void revokeAccess(String personId) {
         AuthorizedPerson removed = authorizedPersons.remove(personId);
@@ -251,19 +262,21 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Retrieves the access log for audit purposes.
+     * Retrieves the complete log of all access events, both authorized and unauthorized.
+     * This is useful for auditing and security reviews.
      *
-     * @return list of all access events
+     * @return A list of all {@link AccessEvent}s recorded by the monitor.
      */
     public List<AccessEvent> getAccessLog() {
         return new ArrayList<>(accessLog);
     }
 
     /**
-     * Retrieves recent access events within a time window.
+     * Retrieves a filtered list of access events that occurred within a specified
+     * number of minutes from the current time.
      *
-     * @param minutes number of minutes to look back
-     * @return list of recent access events
+     * @param minutes The number of minutes to look back for recent events.
+     * @return A list of recent {@link AccessEvent}s.
      */
     public List<AccessEvent> getRecentAccessEvents(int minutes) {
         LocalDateTime cutoff = LocalDateTime.now().minusMinutes(minutes);
@@ -274,6 +287,7 @@ public class PhysicalAccessMonitor {
 
     /**
      * Logs an access event.
+     * @param event The event to log.
      */
     private void logAccessEvent(AccessEvent event) {
         accessLog.add(event);
@@ -285,26 +299,27 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Gets the number of authorized persons in the system.
+     * Returns the total number of persons currently authorized for access.
      *
-     * @return count of authorized persons
+     * @return The count of authorized individuals.
      */
     public int getAuthorizedPersonCount() {
         return authorizedPersons.size();
     }
 
     /**
-     * Checks if a person is authorized.
+     * Checks if a person with the given ID is currently authorized for access.
      *
-     * @param personId the person ID to check
-     * @return true if authorized, false otherwise
+     * @param personId The ID of the person to check.
+     * @return {@code true} if the person is authorized, {@code false} otherwise.
      */
     public boolean isAuthorized(String personId) {
         return authorizedPersons.containsKey(personId);
     }
 
     /**
-     * Clears the access log. Use with caution.
+     * Clears the entire access log. This is a destructive operation and should be
+     * used with caution, primarily for testing or maintenance purposes.
      */
     public void clearAccessLog() {
         accessLog.clear();
@@ -312,9 +327,11 @@ public class PhysicalAccessMonitor {
     }
 
     /**
-     * Sets the recognition confidence threshold.
+     * Sets the confidence threshold for face recognition. A higher threshold makes
+     * the system stricter, requiring a closer match to grant access.
      *
-     * @param threshold value between 0.0 and 1.0
+     * @param threshold A value between 0.0 and 1.0.
+     * @throws IllegalArgumentException if the threshold is outside the valid range.
      */
     public void setRecognitionThreshold(double threshold) {
         if (threshold < 0.0 || threshold > 1.0) {

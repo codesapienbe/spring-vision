@@ -89,6 +89,15 @@ public class DeepFaceBackend implements VisionBackend, FaceDetectionCapability, 
     }
 
     /**
+     * Creates a new DeepFace backend from properties configuration.
+     *
+     * @param properties the DeepFace properties configuration
+     */
+    public DeepFaceBackend(io.github.codesapienbe.springvision.deepface.config.DeepFaceProperties properties) {
+        this(properties.baseUrl(), properties.timeout());
+    }
+
+    /**
      * Creates a new DeepFace backend with the specified API URL.
      *
      * @param baseUrl the base URL of the DeepFace API server

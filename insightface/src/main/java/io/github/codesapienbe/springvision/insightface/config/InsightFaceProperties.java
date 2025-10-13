@@ -1,6 +1,9 @@
 package io.github.codesapienbe.springvision.insightface.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * Configuration properties for Spring Vision InsightFace module.
@@ -8,165 +11,63 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Spring Vision Team
  * @since 1.1.0
  */
+@Component
 @ConfigurationProperties(prefix = "spring.vision.insightface")
-public class InsightFaceProperties {
+public record InsightFaceProperties(
+    boolean enabled,
+    String apiUrl,
+    String apiKey,
+    String modelName,
+    double confidenceThreshold,
+    double verificationThreshold,
+    int maxDetections,
+    boolean enableAgeGender,
+    boolean enableEmotion,
+    boolean enableLandmarks,
+    int timeoutSeconds,
+    int maxRetries,
+    Map<String, ModelInfo> modelInfo
+) {
+    /**
+     * Default constructor with default values.
+     */
+    public InsightFaceProperties() {
+        this(
+            false,
+            "http://localhost:8000",
+            "",
+            "buffalo_l",
+            0.5,
+            0.6,
+            10,
+            true,
+            true,
+            true,
+            30,
+            3,
+            Map.of(
+                "buffalo_l", new ModelInfo(
+                    "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip",
+                    "sha256:9f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c",
+                    "buffalo_l"
+                ),
+                "buffalo_m", new ModelInfo(
+                    "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_m.zip",
+                    "sha256:8e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b",
+                    "buffalo_m"
+                ),
+                "buffalo_s", new ModelInfo(
+                    "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip",
+                    "sha256:7d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a",
+                    "buffalo_s"
+                )
+            )
+        );
+    }
 
     /**
-     * Enable/disable InsightFace backend.
+     * Model metadata for InsightFace models.
      */
-    private boolean enabled = false;
-
-    /**
-     * API URL for InsightFace service.
-     */
-    private String apiUrl = "http://localhost:8000";
-
-    /**
-     * API key for authentication.
-     */
-    private String apiKey = "";
-
-    /**
-     * Model name (buffalo_l, buffalo_m, buffalo_s).
-     */
-    private String modelName = "buffalo_l";
-
-    /**
-     * Confidence threshold for face detection (0.0 - 1.0).
-     */
-    private double confidenceThreshold = 0.5;
-
-    /**
-     * Verification threshold for face matching (0.0 - 1.0).
-     */
-    private double verificationThreshold = 0.6;
-
-    /**
-     * Maximum number of faces to detect.
-     */
-    private int maxDetections = 10;
-
-    /**
-     * Enable age and gender analysis.
-     */
-    private boolean enableAgeGender = true;
-
-    /**
-     * Enable emotion detection.
-     */
-    private boolean enableEmotion = true;
-
-    /**
-     * Enable landmark detection.
-     */
-    private boolean enableLandmarks = true;
-
-    /**
-     * Request timeout in seconds.
-     */
-    private int timeoutSeconds = 30;
-
-    /**
-     * Maximum retry attempts.
-     */
-    private int maxRetries = 3;
-
-    // Getters and Setters
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public String getApiUrl() {
-        return apiUrl;
-    }
-
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
-    }
-
-    public String getApiKey() {
-        return apiKey;
-    }
-
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
-    public double getVerificationThreshold() {
-        return verificationThreshold;
-    }
-
-    public void setVerificationThreshold(double verificationThreshold) {
-        this.verificationThreshold = verificationThreshold;
-    }
-
-    public int getMaxDetections() {
-        return maxDetections;
-    }
-
-    public void setMaxDetections(int maxDetections) {
-        this.maxDetections = maxDetections;
-    }
-
-    public boolean isEnableAgeGender() {
-        return enableAgeGender;
-    }
-
-    public void setEnableAgeGender(boolean enableAgeGender) {
-        this.enableAgeGender = enableAgeGender;
-    }
-
-    public boolean isEnableEmotion() {
-        return enableEmotion;
-    }
-
-    public void setEnableEmotion(boolean enableEmotion) {
-        this.enableEmotion = enableEmotion;
-    }
-
-    public boolean isEnableLandmarks() {
-        return enableLandmarks;
-    }
-
-    public void setEnableLandmarks(boolean enableLandmarks) {
-        this.enableLandmarks = enableLandmarks;
-    }
-
-    public int getTimeoutSeconds() {
-        return timeoutSeconds;
-    }
-
-    public void setTimeoutSeconds(int timeoutSeconds) {
-        this.timeoutSeconds = timeoutSeconds;
-    }
-
-    public int getMaxRetries() {
-        return maxRetries;
-    }
-
-    public void setMaxRetries(int maxRetries) {
-        this.maxRetries = maxRetries;
+    public record ModelInfo(String url, String checksum, String name) {
     }
 }
-

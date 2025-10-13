@@ -51,14 +51,24 @@ public class TesseractVisionBackend implements VisionBackend, TextOcrCapability 
     private final ITesseract tesseract;
 
     /**
-     * Default constructor for TesseractVisionBackend.
+     * Default constructor with default configuration values.
      */
     public TesseractVisionBackend() {
+        this(new io.github.codesapienbe.springvision.tesseract.config.TesseractProperties());
+    }
+
+    /**
+     * Constructor that accepts TesseractProperties.
+     */
+    public TesseractVisionBackend(io.github.codesapienbe.springvision.tesseract.config.TesseractProperties properties) {
         this.tesseract = new Tesseract();
-        // Set default language to English
-        this.tesseract.setLanguage("eng");
-        // Set tessdata path - tess4j handles this automatically
-        this.tesseract.setDatapath(System.getenv("TESSDATA_PREFIX"));
+        this.tesseract.setLanguage(properties.language());
+        this.tesseract.setPageSegMode(properties.pageSegMode());
+        this.tesseract.setOcrEngineMode(properties.ocrEngineMode());
+        if (properties.tessdataPath() != null) {
+            this.tesseract.setDatapath(properties.tessdataPath());
+        }
+        logger.debug("TesseractVisionBackend initialized with language: {}", properties.language());
     }
 
     @Override

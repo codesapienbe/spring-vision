@@ -36,7 +36,7 @@ public class DeepFaceAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DeepFaceBackend deepFaceBackend(DeepFaceProperties properties) {
-        return new DeepFaceBackend(properties.getBaseUrl(), properties.getTimeout());
+        return new DeepFaceBackend(properties.baseUrl(), properties.timeout());
     }
 
     /**

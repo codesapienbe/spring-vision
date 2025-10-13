@@ -8,30 +8,54 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Design-only interface for brain tumor classification from MRI scans.
- * Implementations are expected to use `io.github.codesapienbe.springvision.core.health.MRIImage` and
- * return `io.github.codesapienbe.springvision.core.health.TumorClassificationResult` so backends
- * can be wired through `VisionTemplate` capability interfaces.
+ * Defines the contract for a brain tumor classification system that analyzes MRI scans.
+ * <p>
+ * This interface is intended for backends that can take an {@link MRIImage} and classify
+ * whether it contains a tumor, and if so, what type. Implementations are expected to use
+ * deep learning models trained on medical imaging data. To ensure compatibility with the
+ * core framework, implementations should use the specified input and output types, allowing
+ * them to be integrated as capabilities within the {@code VisionTemplate}.
+ *
+ * @author Spring Vision Team
+ * @since 1.1.0
  */
 public interface BrainTumorClassifier {
 
     /**
-     * Identifier for the classifier (model name/version).
+     * Returns a unique identifier for the classification model being used, which may
+     * include its name and version (e.g., "tumor-classifier-v2.1").
+     *
+     * @return The model identifier.
      */
     String getModelId();
 
     /**
-     * Classify a single MRI image and return a result with probabilities and metadata.
+     * Classifies a single MRI image to determine the presence and type of a brain tumor.
+     *
+     * @param image The {@link MRIImage} to be classified.
+     * @return A {@link TumorClassificationResult} containing the classification, probabilities,
+     *         and any additional metadata.
+     * @throws BaseVisionException if an error occurs during the classification process.
      */
     TumorClassificationResult classify(MRIImage image) throws BaseVisionException;
 
     /**
-     * Bulk classify a list of MRI images. Implementations may process in parallel.
+     * Classifies a batch of MRI images. Implementations of this method may leverage
+     * parallel processing to handle multiple images efficiently.
+     *
+     * @param images A list of {@link MRIImage}s to be classified.
+     * @return A list of {@link TumorClassificationResult}s, one for each image in the batch.
+     * @throws BaseVisionException if an error occurs during the batch classification process.
      */
     List<TumorClassificationResult> classifyBatch(List<MRIImage> images) throws BaseVisionException;
 
     /**
-     * Optional: return model-specific metadata like expected input shape, preprocessing notes.
+     * Returns a map of metadata about the classification model, which can be useful
+     * for understanding its requirements and capabilities. This may include information
+     * like the expected input image dimensions, preprocessing steps, or the set of
+     * labels it can predict.
+     *
+     * @return A map containing model-specific metadata.
      */
     Map<String, String> getModelMetadata();
 }

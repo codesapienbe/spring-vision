@@ -12,9 +12,11 @@ import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapabi
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.util.ModelResourceLoader;
+import io.github.codesapienbe.springvision.mediapipe.config.MediaPipeProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PreDestroy;
@@ -52,35 +54,15 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
 
     private static final Logger logger = LoggerFactory.getLogger(MediaPipeBackend.class);
 
-    // Model URLs and checksums
-    private static final Map<String, ModelInfo> MODEL_INFO = Map.of(
-        "face_detection_short_range.tflite", new ModelInfo(
-            "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
-            "sha256:8f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c"
-        ),
-        "hand_landmarker.task", new ModelInfo(
-            "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
-            "sha256:7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b"
-        ),
-        "pose_landmarker_lite.task", new ModelInfo(
-            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-            "sha256:6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
-        ),
-        "efficientdet_lite0.tflite", new ModelInfo(
-            "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
-            "sha256:5d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
-        )
-    );
-
-    // Configuration properties
-    private boolean enabled = false;
-    private String modelPath = "classpath:/models";
-    private double confidenceThreshold = 0.7;
-    private int maxDetections = 10;
-    private boolean enableAutoDownload = true;
-    private int downloadTimeoutSeconds = 30;
-    private int maxPoolSize = 5;
-    private int poolTimeoutSeconds = 60;
+    // Configuration loaded from MediaPipeProperties
+    private final String modelPath;
+    private final double confidenceThreshold;
+    private final int maxDetections;
+    private final boolean enableAutoDownload;
+    private final int downloadTimeoutSeconds;
+    private final int maxPoolSize;
+    private final int poolTimeoutSeconds;
+    private final Map<String, MediaPipeProperties.ModelInfo> modelInfo;
 
     // MediaPipe classes (loaded via reflection)
     private Class<?> mpImageClass;
@@ -107,6 +89,79 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
     // Shutdown flag
     private volatile boolean shutdown = false;
     private volatile boolean initialized = false;
+
+    /**
+     * Default constructor with default configuration values.
+     */
+    public MediaPipeBackend() {
+        this(new MediaPipeProperties());
+    }
+
+    /**
+     * Constructor that loads configuration from MediaPipeProperties.
+     */
+    public MediaPipeBackend(MediaPipeProperties properties) {
+        Objects.requireNonNull(properties, "MediaPipeProperties must not be null");
+
+        this.modelPath = properties.modelPath();
+        this.confidenceThreshold = properties.confidenceThreshold();
+        this.maxDetections = properties.maxDetections();
+        this.enableAutoDownload = properties.enableAutoDownload();
+        this.downloadTimeoutSeconds = properties.downloadTimeoutSeconds();
+        this.maxPoolSize = properties.maxPoolSize();
+        this.poolTimeoutSeconds = properties.poolTimeoutSeconds();
+        this.modelInfo = properties.modelInfo();
+
+        logger.debug("MediaPipeBackend initialized with modelPath: {}", modelPath);
+    }
+
+    /**
+     * Constructor that reads configuration directly from application.properties via @Value.
+     */
+    public MediaPipeBackend(
+        @Value("${spring.vision.mediapipe.model-path:classpath:/models}") String modelPath,
+        @Value("${spring.vision.mediapipe.confidence-threshold:0.7}") double confidenceThreshold,
+        @Value("${spring.vision.mediapipe.max-detections:10}") int maxDetections,
+        @Value("${spring.vision.mediapipe.enable-auto-download:true}") boolean enableAutoDownload,
+        @Value("${spring.vision.mediapipe.download-timeout-seconds:30}") int downloadTimeoutSeconds,
+        @Value("${spring.vision.mediapipe.max-pool-size:5}") int maxPoolSize,
+        @Value("${spring.vision.mediapipe.pool-timeout-seconds:60}") int poolTimeoutSeconds) {
+
+        this.modelPath = modelPath;
+        this.confidenceThreshold = confidenceThreshold;
+        this.maxDetections = maxDetections;
+        this.enableAutoDownload = enableAutoDownload;
+        this.downloadTimeoutSeconds = downloadTimeoutSeconds;
+        this.maxPoolSize = maxPoolSize;
+        this.poolTimeoutSeconds = poolTimeoutSeconds;
+        this.modelInfo = createDefaultModelInfo();
+
+        logger.debug("MediaPipeBackend initialized with modelPath: {}", modelPath);
+    }
+
+    /**
+     * Creates default model info map when not provided via Properties.
+     */
+    private static Map<String, MediaPipeProperties.ModelInfo> createDefaultModelInfo() {
+        return Map.of(
+            "face_detection_short_range.tflite", new MediaPipeProperties.ModelInfo(
+                "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
+                "sha256:8f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c"
+            ),
+            "hand_landmarker.task", new MediaPipeProperties.ModelInfo(
+                "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
+                "sha256:7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b"
+            ),
+            "pose_landmarker_lite.task", new MediaPipeProperties.ModelInfo(
+                "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+                "sha256:6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
+            ),
+            "efficientdet_lite0.tflite", new MediaPipeProperties.ModelInfo(
+                "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                "sha256:5d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
+            )
+        );
+    }
 
     @Override
     public String getBackendId() {
@@ -612,8 +667,8 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
      * Downloads the MediaPipe model if needed, or loads from classpath.
      */
     private String downloadModelIfNeeded(String modelName) throws Exception {
-        ModelInfo modelInfo = MODEL_INFO.get(modelName);
-        if (modelInfo == null) {
+        MediaPipeProperties.ModelInfo info = this.modelInfo.get(modelName);
+        if (info == null) {
             throw new IllegalArgumentException("Unknown model: " + modelName);
         }
 
@@ -626,7 +681,7 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
             classpathResource,                                        // classpath resource
             modelName,                                                // model filename
             "mediapipe",                                              // module subdirectory
-            modelInfo.url,                                            // download URL
+            info.url(),                                               // download URL
             enableAutoDownload                                        // auto-download flag
         );
 
@@ -637,7 +692,7 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
         // Verify checksum if model was downloaded
         Path modelFile = Paths.get(resolvedPath);
         if (!resolvedPath.contains("classpath_") && Files.exists(modelFile)) {
-            if (!ModelResourceLoader.verifyChecksum(modelFile, modelInfo.checksum)) {
+            if (!ModelResourceLoader.verifyChecksum(modelFile, info.checksum())) {
                 logger.warn("Model checksum verification failed, deleting: model={}", modelName);
                 Files.deleteIfExists(modelFile);
                 throw new VisionBackendException("Model checksum verification failed: " + modelName);
@@ -646,36 +701,6 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
 
         modelDownloadCount.incrementAndGet();
         return resolvedPath;
-    }
-
-    /**
-     * Verifies SHA-256 checksum of model data.
-     */
-    private boolean verifyChecksum(Path modelFile, String expectedChecksum) throws Exception {
-        byte[] modelData = Files.readAllBytes(modelFile);
-        return verifyChecksum(modelData, expectedChecksum);
-    }
-
-    /**
-     * Verifies SHA-256 checksum of model data.
-     */
-    private boolean verifyChecksum(byte[] modelData, String expectedChecksum) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] hash = digest.digest(modelData);
-
-        String actualChecksum = "sha256:" + bytesToHex(hash);
-        return actualChecksum.equals(expectedChecksum);
-    }
-
-    /**
-     * Converts byte array to hexadecimal string.
-     */
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte b : bytes) {
-            result.append(String.format("%02x", b));
-        }
-        return result.toString();
     }
 
     /**
@@ -839,19 +864,6 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
     }
 
     /**
-     * Model information including URL and checksum.
-     */
-    private static class ModelInfo {
-        final String url;
-        final String checksum;
-
-        ModelInfo(String url, String checksum) {
-            this.url = url;
-            this.checksum = checksum;
-        }
-    }
-
-    /**
      * Simple object pool implementation for MediaPipe task instances.
      */
     private static class ObjectPool<T> {
@@ -887,71 +899,5 @@ public class MediaPipeBackend implements VisionBackend, FaceDetectionCapability,
             executor.shutdown();
             pool.clear();
         }
-    }
-
-    // Getters and setters for configuration properties
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public String getModelPath() {
-        return modelPath;
-    }
-
-    public void setModelPath(String modelPath) {
-        this.modelPath = modelPath;
-    }
-
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
-    public int getMaxDetections() {
-        return maxDetections;
-    }
-
-    public void setMaxDetections(int maxDetections) {
-        this.maxDetections = maxDetections;
-    }
-
-    public boolean isEnableAutoDownload() {
-        return enableAutoDownload;
-    }
-
-    public void setEnableAutoDownload(boolean enableAutoDownload) {
-        this.enableAutoDownload = enableAutoDownload;
-    }
-
-    public int getDownloadTimeoutSeconds() {
-        return downloadTimeoutSeconds;
-    }
-
-    public void setDownloadTimeoutSeconds(int downloadTimeoutSeconds) {
-        this.downloadTimeoutSeconds = downloadTimeoutSeconds;
-    }
-
-    public int getMaxPoolSize() {
-        return maxPoolSize;
-    }
-
-    public void setMaxPoolSize(int maxPoolSize) {
-        this.maxPoolSize = maxPoolSize;
-    }
-
-    public int getPoolTimeoutSeconds() {
-        return poolTimeoutSeconds;
-    }
-
-    public void setPoolTimeoutSeconds(int poolTimeoutSeconds) {
-        this.poolTimeoutSeconds = poolTimeoutSeconds;
     }
 }

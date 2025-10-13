@@ -51,9 +51,16 @@ public class CyberSecurityBackend implements VisionBackend, ThreatDetectionCapab
     private final PhysicalAccessMonitor physicalAccessMonitor;
 
     /**
-     * Constructs a new CyberSecurityBackend with all security detectors initialized.
+     * Default constructor with default configuration values.
      */
     public CyberSecurityBackend() {
+        this(new io.github.codesapienbe.springvision.cyber.config.CyberSecurityProperties());
+    }
+
+    /**
+     * Constructs a new CyberSecurityBackend with all security detectors initialized.
+     */
+    public CyberSecurityBackend(io.github.codesapienbe.springvision.cyber.config.CyberSecurityProperties properties) {
         this.qrCodeDetector = new QRCodeSecurityDetector();
         this.shoulderSurfingDetector = new ShoulderSurfingDetector();
         this.physicalAccessMonitor = new PhysicalAccessMonitor();

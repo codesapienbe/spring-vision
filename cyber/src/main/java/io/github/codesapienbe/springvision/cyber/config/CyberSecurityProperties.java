@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.cyber.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for Spring Vision Cyber Security module.
@@ -8,168 +9,52 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Spring Vision Team
  * @since 1.1.0
  */
+@Component
 @ConfigurationProperties(prefix = "spring.vision.cyber")
-public class CyberSecurityProperties {
-
+public record CyberSecurityProperties(
+    boolean enabled,
+    QRCodeSettings qrCode,
+    ShoulderSurfingSettings shoulderSurfing,
+    AccessMonitorSettings accessMonitor
+) {
     /**
-     * Enable/disable cyber security features.
+     * Default constructor with default values.
      */
-    private boolean enabled = true;
-
-    /**
-     * QR code detection settings.
-     */
-    private QRCodeSettings qrCode = new QRCodeSettings();
-
-    /**
-     * Shoulder surfing detection settings.
-     */
-    private ShoulderSurfingSettings shoulderSurfing = new ShoulderSurfingSettings();
-
-    /**
-     * Physical access monitoring settings.
-     */
-    private AccessMonitorSettings accessMonitor = new AccessMonitorSettings();
-
-    public boolean isEnabled() {
-        return enabled;
+    public CyberSecurityProperties() {
+        this(
+            true,
+            new QRCodeSettings(),
+            new ShoulderSurfingSettings(),
+            new AccessMonitorSettings()
+        );
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public QRCodeSettings getQrCode() {
-        return qrCode;
-    }
-
-    public void setQrCode(QRCodeSettings qrCode) {
-        this.qrCode = qrCode;
-    }
-
-    public ShoulderSurfingSettings getShoulderSurfing() {
-        return shoulderSurfing;
-    }
-
-    public void setShoulderSurfing(ShoulderSurfingSettings shoulderSurfing) {
-        this.shoulderSurfing = shoulderSurfing;
-    }
-
-    public AccessMonitorSettings getAccessMonitor() {
-        return accessMonitor;
-    }
-
-    public void setAccessMonitor(AccessMonitorSettings accessMonitor) {
-        this.accessMonitor = accessMonitor;
-    }
-
-    public static class QRCodeSettings {
-        /**
-         * Sensitivity for QR code threat detection (0.0 - 1.0).
-         */
-        private double sensitivity = 0.7;
-
-        /**
-         * Enable URL validation.
-         */
-        private boolean validateUrls = true;
-
-        public double getSensitivity() {
-            return sensitivity;
-        }
-
-        public void setSensitivity(double sensitivity) {
-            this.sensitivity = sensitivity;
-        }
-
-        public boolean isValidateUrls() {
-            return validateUrls;
-        }
-
-        public void setValidateUrls(boolean validateUrls) {
-            this.validateUrls = validateUrls;
+    public record QRCodeSettings(
+        double sensitivity,
+        boolean validateUrls
+    ) {
+        public QRCodeSettings() {
+            this(0.7, true);
         }
     }
 
-    public static class ShoulderSurfingSettings {
-        /**
-         * Enable shoulder surfing detection.
-         */
-        private boolean enabled = true;
-
-        /**
-         * Sensitivity threshold (0.0 - 1.0).
-         */
-        private double sensitivity = 0.7;
-
-        /**
-         * Minimum number of frames to consider as persistent threat.
-         */
-        private int persistenceFrames = 30;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public double getSensitivity() {
-            return sensitivity;
-        }
-
-        public void setSensitivity(double sensitivity) {
-            this.sensitivity = sensitivity;
-        }
-
-        public int getPersistenceFrames() {
-            return persistenceFrames;
-        }
-
-        public void setPersistenceFrames(int persistenceFrames) {
-            this.persistenceFrames = persistenceFrames;
+    public record ShoulderSurfingSettings(
+        boolean enabled,
+        double sensitivity,
+        int alertThreshold
+    ) {
+        public ShoulderSurfingSettings() {
+            this(true, 0.7, 3);
         }
     }
 
-    public static class AccessMonitorSettings {
-        /**
-         * Enable physical access monitoring.
-         */
-        private boolean enabled = true;
-
-        /**
-         * Recognition confidence threshold (0.0 - 1.0).
-         */
-        private double confidenceThreshold = 0.75;
-
-        /**
-         * Enable access event logging.
-         */
-        private boolean logEvents = true;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public double getConfidenceThreshold() {
-            return confidenceThreshold;
-        }
-
-        public void setConfidenceThreshold(double confidenceThreshold) {
-            this.confidenceThreshold = confidenceThreshold;
-        }
-
-        public boolean isLogEvents() {
-            return logEvents;
-        }
-
-        public void setLogEvents(boolean logEvents) {
-            this.logEvents = logEvents;
+    public record AccessMonitorSettings(
+        boolean enabled,
+        double confidenceThreshold,
+        boolean logUnauthorizedAccess
+    ) {
+        public AccessMonitorSettings() {
+            this(true, 0.8, true);
         }
     }
 }

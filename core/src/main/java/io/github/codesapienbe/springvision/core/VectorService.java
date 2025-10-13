@@ -5,24 +5,30 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Lightweight abstraction for vector similarity operations used by VisionTemplate.
- * Implementations may live in optional modules (JPA, PGVector, etc.).
+ * Defines the contract for storing and querying vector embeddings, typically used for
+ * face recognition and other similarity search tasks.
+ * <p>
+ * This lightweight abstraction allows {@link VisionTemplate} to perform vector-based
+ * operations without being tied to a specific storage implementation. Implementations
+ * can range from in-memory stores to dedicated vector databases like PGVector or JPA-based
+ * solutions, and are expected to be provided in optional modules.
  *
  * @author Spring Vision Team
  * @since 1.0.0
+ * @see VisionTemplate
  */
 public interface VectorService {
 
     /**
-     * Store a face embedding and return the stored embedding id.
+     * Stores a face embedding in the vector database and returns a unique identifier for it.
      *
-     * @param personId   the ID of the person associated with the embedding
-     * @param embedding  the face embedding vector
-     * @param modelName  the name of the model that generated the embedding
-     * @param imageHash  the hash of the image from which the embedding was extracted
-     * @param confidence the confidence score of the detection
-     * @param metadata   additional metadata to store with the embedding
-     * @return the unique ID of the stored embedding
+     * @param personId   The identifier for the person associated with the face embedding.
+     * @param embedding  The float array representing the face embedding vector.
+     * @param modelName  The name of the model that generated the embedding.
+     * @param imageHash  A hash of the source image, used for deduplication.
+     * @param confidence The confidence score of the face detection.
+     * @param metadata   A map of additional metadata to store alongside the embedding.
+     * @return The unique ID assigned to the stored embedding.
      */
     String storeFaceEmbedding(String personId,
                               float[] embedding,
@@ -32,17 +38,17 @@ public interface VectorService {
                               Map<String, Object> metadata);
 
     /**
-     * Find similar face embeddings.
+     * Searches for face embeddings that are similar to a given query embedding.
      *
-     * @param queryEmbedding   the embedding to find similarities for
-     * @param modelName        the name of the model to use for comparison
-     * @param metric           the distance metric to use (e.g., "cosine", "euclidean")
-     * @param threshold        the similarity threshold
-     * @param limit            the maximum number of results to return
-     * @param includePersonIds an optional set of person IDs to include in the search
-     * @param excludePersonIds an optional set of person IDs to exclude from the search
-     * @return a list of maps, where each map represents a similar face and contains keys
-     *         such as "embeddingId", "personId", "similarity", "distance", "modelName", and "createdAt"
+     * @param queryEmbedding   The embedding to find similarities for.
+     * @param modelName        The name of the model to use for comparison, ensuring compatibility.
+     * @param metric           The distance metric to use (e.g., "cosine", "euclidean").
+     * @param threshold        The similarity threshold for including a result.
+     * @param limit            The maximum number of similar faces to return.
+     * @param includePersonIds An optional set of person IDs to restrict the search to.
+     * @param excludePersonIds An optional set of person IDs to exclude from the search.
+     * @return A list of maps, where each map represents a similar face and contains details
+     *         like "embeddingId", "personId", "similarity", "distance", "modelName", and "createdAt".
      */
     List<Map<String, Object>> findSimilarFaces(float[] queryEmbedding,
                                                String modelName,

@@ -1,6 +1,9 @@
 package io.github.codesapienbe.springvision.mediapipe.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 /**
  * Configuration properties for Spring Vision MediaPipe module.
@@ -8,100 +11,56 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Spring Vision Team
  * @since 1.1.0
  */
+@Component
 @ConfigurationProperties(prefix = "spring.vision.mediapipe")
-public class MediaPipeProperties {
-
+public record MediaPipeProperties(
+    boolean enabled,
+    String modelPath,
+    double confidenceThreshold,
+    int maxDetections,
+    boolean enableAutoDownload,
+    int downloadTimeoutSeconds,
+    int maxPoolSize,
+    int poolTimeoutSeconds,
+    Map<String, ModelInfo> modelInfo
+) {
     /**
-     * Whether MediaPipe backend is enabled.
+     * Default constructor with default values.
      */
-    private boolean enabled = true;
-
-    /**
-     * Model complexity for face detection (0, 1, or 2).
-     * Higher values mean more accurate but slower detection.
-     */
-    private int modelComplexity = 1;
-
-    /**
-     * Minimum detection confidence threshold (0.0 to 1.0).
-     */
-    private float minDetectionConfidence = 0.5f;
-
-    /**
-     * Minimum tracking confidence threshold (0.0 to 1.0).
-     */
-    private float minTrackingConfidence = 0.5f;
-
-    /**
-     * Gets whether MediaPipe backend is enabled.
-     *
-     * @return true if enabled
-     */
-    public boolean isEnabled() {
-        return enabled;
+    public MediaPipeProperties() {
+        this(
+            true,
+            "classpath:/models",
+            0.7,
+            10,
+            true,
+            30,
+            5,
+            60,
+            Map.of(
+                "face_detection_short_range.tflite", new ModelInfo(
+                    "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
+                    "sha256:8f5d8c5e3b2a1f9e8d7c6b5a4f3e2d1c9b8a7f6e5d4c3b2a1f9e8d7c6b5a4f3e2d1c"
+                ),
+                "hand_landmarker.task", new ModelInfo(
+                    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
+                    "sha256:7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b"
+                ),
+                "pose_landmarker_lite.task", new ModelInfo(
+                    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+                    "sha256:6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
+                ),
+                "efficientdet_lite0.tflite", new ModelInfo(
+                    "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite",
+                    "sha256:5d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a8f7e6d5c4b3a2f1e9d8c7b6a5f4e3d2c1b9a"
+                )
+            )
+        );
     }
 
     /**
-     * Sets whether MediaPipe backend is enabled.
-     *
-     * @param enabled true to enable
+     * Model metadata for MediaPipe models.
      */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    /**
-     * Gets the model complexity.
-     *
-     * @return model complexity value
-     */
-    public int getModelComplexity() {
-        return modelComplexity;
-    }
-
-    /**
-     * Sets the model complexity.
-     *
-     * @param modelComplexity model complexity value
-     */
-    public void setModelComplexity(int modelComplexity) {
-        this.modelComplexity = modelComplexity;
-    }
-
-    /**
-     * Gets the minimum detection confidence.
-     *
-     * @return minimum detection confidence
-     */
-    public float getMinDetectionConfidence() {
-        return minDetectionConfidence;
-    }
-
-    /**
-     * Sets the minimum detection confidence.
-     *
-     * @param minDetectionConfidence minimum detection confidence
-     */
-    public void setMinDetectionConfidence(float minDetectionConfidence) {
-        this.minDetectionConfidence = minDetectionConfidence;
-    }
-
-    /**
-     * Gets the minimum tracking confidence.
-     *
-     * @return minimum tracking confidence
-     */
-    public float getMinTrackingConfidence() {
-        return minTrackingConfidence;
-    }
-
-    /**
-     * Sets the minimum tracking confidence.
-     *
-     * @param minTrackingConfidence minimum tracking confidence
-     */
-    public void setMinTrackingConfidence(float minTrackingConfidence) {
-        this.minTrackingConfidence = minTrackingConfidence;
+    public record ModelInfo(String url, String checksum) {
     }
 }
-

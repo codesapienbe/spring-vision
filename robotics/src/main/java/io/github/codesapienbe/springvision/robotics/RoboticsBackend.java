@@ -48,9 +48,16 @@ public class RoboticsBackend implements VisionBackend,
     private final ComponentVerifier componentVerifier;
 
     /**
-     * Constructs a new RoboticsBackend with all industrial automation detectors initialized.
+     * Default constructor with default configuration values.
      */
     public RoboticsBackend() {
+        this(new io.github.codesapienbe.springvision.robotics.config.RoboticsProperties());
+    }
+
+    /**
+     * Constructs a new RoboticsBackend with all industrial automation detectors initialized.
+     */
+    public RoboticsBackend(io.github.codesapienbe.springvision.robotics.config.RoboticsProperties properties) {
         this.defectDetector = new DefectDetector();
         this.roboticArmGuidance = new RoboticArmGuidance();
         this.componentVerifier = new ComponentVerifier();
