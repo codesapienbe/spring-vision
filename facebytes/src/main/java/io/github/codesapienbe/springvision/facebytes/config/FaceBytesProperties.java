@@ -6,6 +6,17 @@ import org.springframework.stereotype.Component;
 /**
  * Configuration properties for Spring Vision FaceBytes module.
  *
+ * @param enabled             whether FaceBytes backend is enabled
+ * @param modelPath           path to the model files
+ * @param detectorBackend     detector backend to use (e.g., 'opencv', 'ssd', 'dlib')
+ * @param recognitionModel    face recognition model to use
+ * @param distanceMetric      distance metric for face comparison
+ * @param confidenceThreshold confidence threshold for detections
+ * @param maxDetections       maximum number of detections to return
+ * @param enableAutoDownload  whether to automatically download models
+ * @param enableAlignment     whether to align faces before processing
+ * @param enableQualityCheck  whether to perform quality checks on detected faces
+ * @param minFaceSize         minimum face size in pixels
  * @author Spring Vision Team
  * @since 1.0.0
  */

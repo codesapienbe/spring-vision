@@ -6,6 +6,14 @@ import org.springframework.stereotype.Component;
 /**
  * Configuration properties for Spring Vision Tesseract module.
  *
+ * @param enabled             whether Tesseract backend is enabled
+ * @param tessdataPath        path to the Tesseract training data
+ * @param language            language code for OCR (e.g., 'eng' for English)
+ * @param pageSegMode         page segmentation mode
+ * @param ocrEngineMode       OCR engine mode
+ * @param minConfidence       minimum confidence threshold for OCR results
+ * @param enableAutoDownload  whether to automatically download language data
+ * @param additionalLanguages comma-separated list of additional languages
  * @author Spring Vision Team
  * @since 1.0.0
  */

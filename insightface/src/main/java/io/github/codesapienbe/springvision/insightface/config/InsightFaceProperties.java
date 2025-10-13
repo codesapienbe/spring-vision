@@ -8,6 +8,19 @@ import java.util.Map;
 /**
  * Configuration properties for Spring Vision InsightFace module.
  *
+ * @param enabled               whether InsightFace backend is enabled
+ * @param apiUrl                URL of the InsightFace API server
+ * @param apiKey                API key for authentication
+ * @param modelName             name of the model to use
+ * @param confidenceThreshold   confidence threshold for face detection
+ * @param verificationThreshold threshold for face verification
+ * @param maxDetections         maximum number of detections to return
+ * @param enableAgeGender       whether to enable age and gender detection
+ * @param enableEmotion         whether to enable emotion detection
+ * @param enableLandmarks       whether to enable facial landmarks detection
+ * @param timeoutSeconds        timeout in seconds for API requests
+ * @param maxRetries            maximum number of retry attempts
+ * @param modelInfo             map of model names to their metadata
  * @author Spring Vision Team
  * @since 1.1.0
  */
@@ -67,6 +80,10 @@ public record InsightFaceProperties(
 
     /**
      * Model metadata for InsightFace models.
+     *
+     * @param url      the URL to download the model from
+     * @param checksum the checksum for validating the downloaded model
+     * @param name     the name of the model
      */
     public record ModelInfo(String url, String checksum, String name) {
     }

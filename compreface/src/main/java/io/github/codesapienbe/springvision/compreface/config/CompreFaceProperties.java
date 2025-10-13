@@ -6,6 +6,15 @@ import org.springframework.stereotype.Component;
 /**
  * Configuration properties for Spring Vision CompreFace module.
  *
+ * @param enabled               whether CompreFace backend is enabled
+ * @param apiUrl                URL of the CompreFace API server
+ * @param baseUrl               base URL of the CompreFace server
+ * @param apiKey                API key for authentication
+ * @param connectTimeout        connection timeout in milliseconds
+ * @param readTimeout           read timeout in milliseconds
+ * @param timeout               general timeout in seconds
+ * @param detectionThreshold    threshold for face detection
+ * @param verificationThreshold threshold for face verification
  * @author Spring Vision Team
  * @since 1.1.0
  */

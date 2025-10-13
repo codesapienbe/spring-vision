@@ -8,6 +8,16 @@ import java.util.Map;
 /**
  * Configuration properties for Spring Vision YOLO module.
  *
+ * @param enabled                whether YOLO backend is enabled
+ * @param modelPath              path to the model files
+ * @param modelName              name of the YOLO model to use
+ * @param confidenceThreshold    confidence threshold for detections
+ * @param nmsThreshold           non-maximum suppression threshold
+ * @param maxDetections          maximum number of detections to return
+ * @param enableAutoDownload     whether to automatically download models
+ * @param downloadTimeoutSeconds timeout in seconds for model downloads
+ * @param inputSize              input size for the model
+ * @param modelInfo              map of model names to their metadata
  * @author Spring Vision Team
  * @since 1.1.0
  */
@@ -61,6 +71,10 @@ public record YoloProperties(
 
     /**
      * Model metadata for YOLO models.
+     *
+     * @param url      the URL to download the model from
+     * @param checksum the checksum for validating the downloaded model
+     * @param name     the name of the model
      */
     public record ModelInfo(String url, String checksum, String name) {
     }

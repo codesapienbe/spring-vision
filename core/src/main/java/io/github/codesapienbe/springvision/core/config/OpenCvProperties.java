@@ -6,6 +6,14 @@ import org.springframework.stereotype.Component;
 /**
  * Configuration properties for OpenCV Vision Backend.
  *
+ * @param enabled                whether OpenCV backend is enabled
+ * @param confidenceThreshold    confidence threshold for detections
+ * @param maxDetections          maximum number of detections to return
+ * @param enableAutoDownload     whether to automatically download models
+ * @param downloadTimeoutSeconds timeout in seconds for model downloads
+ * @param modelPath              path to the model files
+ * @param maxPoolSize            maximum size of the object pool
+ * @param poolTimeoutSeconds     timeout in seconds for pool operations
  * @author Spring Vision Team
  * @since 1.0.0
  */
@@ -37,4 +45,3 @@ public record OpenCvProperties(
         );
     }
 }
-

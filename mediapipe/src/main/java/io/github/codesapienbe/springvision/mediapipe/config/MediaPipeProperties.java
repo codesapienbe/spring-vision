@@ -8,6 +8,15 @@ import java.util.Map;
 /**
  * Configuration properties for Spring Vision MediaPipe module.
  *
+ * @param enabled                whether MediaPipe backend is enabled
+ * @param modelPath              path to the model files
+ * @param confidenceThreshold    confidence threshold for detections
+ * @param maxDetections          maximum number of detections to return
+ * @param enableAutoDownload     whether to automatically download models
+ * @param downloadTimeoutSeconds timeout in seconds for model downloads
+ * @param maxPoolSize            maximum size of the object pool
+ * @param poolTimeoutSeconds     timeout in seconds for pool operations
+ * @param modelInfo              map of model names to their metadata
  * @author Spring Vision Team
  * @since 1.1.0
  */
@@ -60,6 +69,9 @@ public record MediaPipeProperties(
 
     /**
      * Model metadata for MediaPipe models.
+     *
+     * @param url      the URL to download the model from
+     * @param checksum the checksum for validating the downloaded model
      */
     public record ModelInfo(String url, String checksum) {
     }
