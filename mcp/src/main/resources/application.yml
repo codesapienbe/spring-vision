@@ -1,0 +1,48 @@
+# Spring Vision MCP Server Configuration
+# Model Context Protocol server for Spring Vision computer vision capabilities
+
+spring:
+  application:
+    name: spring-vision-mcp
+
+  # Main application settings
+  main:
+    web-application-type: none  # Disable unnecessary Spring Boot features for MCP stdio mode
+    banner-mode: off  # Disable banner for cleaner stdio output
+
+  # Lifecycle settings
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  # Jackson JSON configuration
+  jackson:
+    serialization:
+      indent-output: false
+      fail-on-empty-beans: false
+
+  # Spring Vision Configuration
+  vision:
+    opencv:
+      enabled: true
+      confidence-threshold: 0.7
+
+  # MCP Server Configuration
+  ai:
+    mcp:
+      server:
+        transport: stdio
+        name: spring-vision
+        version: "1.0"
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    io.github.codesapienbe.springvision: INFO
+    org.springframework.ai.mcp: INFO
+    io.modelcontextprotocol: WARN
+
+# Server settings (disabled for MCP stdio mode)
+server:
+  port: -1
+

@@ -145,6 +145,13 @@
       <artifactId>metadata-extractor</artifactId>
       <version>2.19.0</version>
     </dependency>
+
+    <!-- ONNX Runtime for CPU (default profile) -->
+    <dependency>
+      <groupId>com.microsoft.onnxruntime</groupId>
+      <artifactId>onnxruntime</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
 
   <build>
@@ -283,4 +290,33 @@
       </plugin>
     </plugins>
   </build>
+
+  <!-- Profiles for CPU vs GPU ONNX Runtime -->
+  <profiles>
+    <!-- CPU Profile (Active by Default) -->
+    <profile>
+      <id>cpu</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <onnxruntime.provider>cpu</onnxruntime.provider>
+      </properties>
+    </profile>
+
+    <!-- GPU Profile (CUDA-enabled) -->
+    <profile>
+      <id>gpu</id>
+      <properties>
+        <onnxruntime.provider>gpu</onnxruntime.provider>
+      </properties>
+      <dependencies>
+        <!-- Replace CPU runtime with GPU runtime -->
+        <dependency>
+          <groupId>com.microsoft.onnxruntime</groupId>
+          <artifactId>onnxruntime_gpu</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>

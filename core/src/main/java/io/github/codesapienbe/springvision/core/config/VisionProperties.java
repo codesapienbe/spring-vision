@@ -14,25 +14,26 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * <p>Example configuration:</p>
  * <pre>{@code
- * vision:
- *   enabled: true
- *   backend: opencv  # Optional: defaults to 'opencv' if not specified
- *   fail-fast: true  # Optional: defaults to true for production safety
- *   opencv:
+ * spring:
+ *   vision:
  *     enabled: true
- *     face-cascade-path: /haarcascade_frontalface_default.xml
- *     confidence-threshold: 0.8
- *   health:
- *     enabled: true
- *   metrics:
- *     enabled: true
+ *     backend: opencv
+ *     execution-provider: cpu
+ *     fail-fast: true
+ *     opencv:
+ *       enabled: true
+ *       confidence-threshold: 0.8
+ *     health:
+ *       enabled: true
+ *     metrics:
+ *       enabled: true
  * }</pre>
  *
  * @author Spring Vision Team
  * @see VisionAutoConfiguration
  * @since 1.0.0
  */
-@ConfigurationProperties(prefix = "vision")
+@ConfigurationProperties(prefix = "spring.vision")
 public class VisionProperties {
 
     /**
@@ -54,6 +55,12 @@ public class VisionProperties {
      */
     private boolean failFast = true;
 
+    /**
+     * ONNX Runtime execution provider selection.
+     * Supported values: cpu (default), gpu
+     * GPU provider requires CUDA-compatible hardware and drivers.
+     */
+    private String executionProvider = "cpu";
 
     /**
      * OpenCV-specific configuration properties.
@@ -124,6 +131,23 @@ public class VisionProperties {
         this.failFast = failFast;
     }
 
+    /**
+     * Gets the ONNX Runtime execution provider.
+     *
+     * @return the execution provider name
+     */
+    public String getExecutionProvider() {
+        return executionProvider;
+    }
+
+    /**
+     * Sets the ONNX Runtime execution provider.
+     *
+     * @param executionProvider the execution provider name
+     */
+    public void setExecutionProvider(String executionProvider) {
+        this.executionProvider = executionProvider;
+    }
 
     /**
      * Gets the OpenCV configuration.
