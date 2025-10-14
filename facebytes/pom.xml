@@ -33,16 +33,13 @@
       <groupId>org.bytedeco</groupId>
       <artifactId>javacv</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>opencv-platform</artifactId>
-    </dependency>
-    <!-- Ensure platform-specific native OpenCV binary is pulled in at runtime to avoid loading incompatible system OpenCV libs -->
+    
+    <!-- Platform-specific OpenCV native binaries (use parent's ${opencv.classifier} to avoid android/ios artifacts) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>opencv</artifactId>
-      <version>4.9.0-${javacv.version}</version>
-      <classifier>linux-x86_64</classifier>
+      <version>${opencv.version}</version>
+      <classifier>${opencv.classifier}</classifier>
       <scope>runtime</scope>
     </dependency>
 

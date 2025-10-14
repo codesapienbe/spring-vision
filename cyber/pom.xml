@@ -33,9 +33,13 @@
       <groupId>org.bytedeco</groupId>
       <artifactId>javacv</artifactId>
     </dependency>
+    <!-- Platform-specific OpenCV native binaries (use parent's ${opencv.classifier} to avoid android/ios artifacts) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
-      <artifactId>opencv-platform</artifactId>
+      <artifactId>opencv</artifactId>
+      <version>${opencv.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- ZXing for QR Code detection and analysis -->
@@ -100,4 +104,3 @@
   </build>
 
 </project>
-

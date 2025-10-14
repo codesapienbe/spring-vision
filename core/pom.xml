@@ -22,10 +22,13 @@
       <artifactId>javacv</artifactId>
     </dependency>
 
-    <!-- Embedded OpenCV Platform with all native libraries -->
+    <!-- Platform-specific OpenCV native binaries (use parent's ${opencv.classifier} to avoid android/ios artifacts) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
-      <artifactId>opencv-platform</artifactId>
+      <artifactId>opencv</artifactId>
+      <version>${opencv.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- Spring Boot Starter -->

@@ -137,6 +137,45 @@ vision:
     confidence-threshold: 0.7
 ```
 
+## 🧭 Platform profiles (Maven)
+
+This project provides Maven profiles to select a platform-specific OpenCV native classifier so builds pull only the native binary needed for the target OS/architecture (reduces download and image size). Profiles auto-activate by OS/arch but can also be enabled explicitly in CI or for cross builds.
+
+- Auto-activation: Maven will activate the matching profile if running on the same OS/arch (for example, a Linux x86_64 host will auto-activate `platform-linux-x86_64`).
+- Manual activation: Use `-P` or override the property directly with `-Dopencv.classifier`.
+
+Available profiles and classifiers
+
+- `platform-linux-x86_64` -> `linux-x86_64`
+- `platform-linux-arm64`  -> `linux-arm64`
+- `platform-macosx-x86_64` -> `macosx-x86_64`
+- `platform-macosx-arm64` -> `macosx-arm64`
+- `platform-windows-x86_64` -> `windows-x86_64`
+
+Common commands
+
+```bash
+# Build normally (auto-activates the matching platform profile if applicable)
+mvn -DskipTests clean install
+
+# Explicitly build for linux x86_64 on any host
+mvn -Pplatform-linux-x86_64 -DskipTests clean install
+
+# Explicitly set classifier without using a profile
+mvn -Dopencv.classifier=macosx-arm64 -DskipTests clean install
+
+# Quick check: show the resolved OpenCV native classifier for the core module
+mvn -DskipTests -pl core -am dependency:tree -Dverbose -Dincludes=org.bytedeco:opencv
+```
+
+Notes
+
+- Use the profile that matches the target runtime where the application will run (OS + CPU arch).
+- For multi-arch Docker/CI pipelines, build one artifact per target platform (or explicitly set the classifier per job).
+- After a `clean install` the `target/` folders will reflect the chosen native classifier instead of the large multi-platform `opencv-platform` aggregator.
+
+If you'd like, I can add a short CI example (GitHub Actions) that builds for linux-x86_64 and linux-arm64 using these profiles.
+
 ## 🎨 Features
 
 - **🎯 Face Recognition & Verification**: Verify identities and extract face embeddings.

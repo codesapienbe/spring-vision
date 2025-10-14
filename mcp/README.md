@@ -33,6 +33,51 @@ This pushes the image as `codesapienbe/spring-vision:latest`.
 
 ---
 
+### ⚡ JBang MCP Server (Quick local run)
+
+If you want a lightweight developer-friendly way to run the MCP server locally without Docker, you can use the provided JBang launcher. This is great for quick testing, CI, or when you don't want to run containers.
+
+Prerequisites:
+
+- Java 21+ installed (JBang runs on Java 21+ as specified in the launcher)
+- jbang installed (https://www.jbang.dev/) OR a built jar from Maven
+
+Run using JBang (from the repository root):
+
+```bash
+# Run the launcher that pulls the published MCP artifact and starts the server
+jbang mcp/.jbang/mcp.java
+```
+
+You can pass JVM options via the `JAVA_OPTIONS` environment variable (the launcher already sets sensible defaults in the script):
+
+```bash
+JAVA_OPTIONS='-Xms64m -Xmx512m' jbang mcp/.jbang/mcp.java
+```
+
+Run in background (simple example):
+
+```bash
+nohup jbang mcp/.jbang/mcp.java > mcp.log 2>&1 &
+```
+
+Build and run a packaged jar (if you prefer not to use JBang):
+
+```bash
+# from the mcp module
+cd mcp
+mvn -DskipTests package
+# then run the produced jar (check exact artifact name in target/)
+java -jar target/<mcp-artifact>.jar
+```
+
+When to use JBang vs Docker:
+
+- JBang: very fast to start, ideal for local development and CI. Requires Java/jbang on the host. Easier to attach debuggers and to iterate on local code if you build from source.
+- Docker: recommended for production and reproducible deployments. Isolates dependencies and environment.
+
+---
+
 ## 🔧 MCP Client Configuration
 
 ### Claude Desktop / Cline / Other MCP Clients
@@ -75,7 +120,38 @@ Add this to your MCP client configuration file:
 }
 ```
 
-**Important:** The `-i` flag is crucial as it enables interactive mode for stdio communication.
+**Using JBang (Quick local run):**
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "jbang",
+      "args": [
+        "mcp/.jbang/mcp.java"
+      ]
+    }
+  }
+}
+```
+
+**Using a packaged jar (no JBang):**
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "path/to/mcp.jar"
+      ]
+    }
+  }
+}
+```
+
+**Important:** The `-i` flag is crucial for Docker as it enables interactive mode for stdio communication. For JBang/Java runs, the process must remain attached to stdio (don't run one-off background shells that immediately exit) so the client can communicate over stdio.
 
 ---
 

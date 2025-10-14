@@ -58,6 +58,10 @@
     <picocli.version>4.7.5</picocli.version>
     <spring-ai.version>1.0</spring-ai.version>
 
+    <!-- OpenCV platform selection: default to Linux x86_64. Change this property in CI/builds to target another platform. -->
+    <opencv.version>4.9.0-${javacv.version}</opencv.version>
+    <opencv.classifier>linux-x86_64</opencv.classifier>
+
     <!-- Code Quality & Plugins -->
     <checkstyle.version>10.12.5</checkstyle.version>
     <spotless.version>2.43.0</spotless.version>
@@ -131,11 +135,12 @@
         <artifactId>javacv</artifactId>
         <version>${javacv.version}</version>
       </dependency>
-      <!-- Embedded OpenCV Platform with all native libraries -->
+      <!-- Managed OpenCV artifact (platform-specific). Modules should declare org.bytedeco:opencv with the desired <classifier> to pull only the native binaries for that platform.
+           Default classifier is set via ${opencv.classifier} above (linux-x86_64). This removes Android/iOS natives from module dependency declarations and keeps artifacts small. -->
       <dependency>
         <groupId>org.bytedeco</groupId>
-        <artifactId>opencv-platform</artifactId>
-        <version>4.9.0-${javacv.version}</version>
+        <artifactId>opencv</artifactId>
+        <version>${opencv.version}</version>
       </dependency>
 
       <!-- Micrometer for Metrics -->
@@ -360,7 +365,6 @@
             <!-- Add timeout and retry configuration to handle network issues -->
             <waitUntil>uploaded</waitUntil>
             <waitMaxTime>600</waitMaxTime>
-            <retryAttempts>3</retryAttempts>
           </configuration>
         </plugin>
 
@@ -610,5 +614,79 @@
         </plugins>
       </build>
     </profile>
+
+    <!-- Platform profiles: set opencv.classifier per target platform.
+         Each profile will auto-activate on matching OS/arch, but can also
+         be selected manually with -P (for CI or cross builds).
+         Common usage examples:
+           mvn -Pplatform-linux-x86_64 clean install
+           mvn -DskipTests clean install (on a linux x86_64 host will auto-activate)
+    -->
+
+    <profile>
+      <id>platform-linux-x86_64</id>
+      <activation>
+        <os>
+          <name>Linux</name>
+          <arch>x86_64</arch>
+        </os>
+      </activation>
+      <properties>
+        <opencv.classifier>linux-x86_64</opencv.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>platform-linux-arm64</id>
+      <activation>
+        <os>
+          <name>Linux</name>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <opencv.classifier>linux-arm64</opencv.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>platform-macosx-x86_64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>x86_64</arch>
+        </os>
+      </activation>
+      <properties>
+        <opencv.classifier>macosx-x86_64</opencv.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>platform-macosx-arm64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <opencv.classifier>macosx-arm64</opencv.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>platform-windows-x86_64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>x86_64</arch>
+        </os>
+      </activation>
+      <properties>
+        <opencv.classifier>windows-x86_64</opencv.classifier>
+      </properties>
+    </profile>
+
   </profiles>
 </project>

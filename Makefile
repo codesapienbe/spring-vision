@@ -4,7 +4,7 @@ default: build
 .PHONY: build run dev clean deploy release docs default
 
 # Which modules to release by default (comma-separated list for Maven -pl)
-RELEASE_MODULES := core,starter
+RELEASE_MODULES := core,starter,mcp
 
 build:
 	@echo "Building project: Maven install (will also build the docker image)"
