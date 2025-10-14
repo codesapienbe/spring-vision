@@ -93,7 +93,7 @@ public class DetectionPerformanceMonitor {
      * @param detectorName name of the detector
      * @param elapsedNanos elapsed time in nanoseconds
      */
-    private void recordDetectorTime(String detectorName, long elapsedNanos) {
+    public void recordDetectorTime(String detectorName, long elapsedNanos) {
         detectorTimes.computeIfAbsent(detectorName, k -> new AtomicLong(0))
             .addAndGet(elapsedNanos);
         detectorCounts.computeIfAbsent(detectorName, k -> new AtomicInteger(0))
@@ -222,4 +222,3 @@ public class DetectionPerformanceMonitor {
         );
     }
 }
-

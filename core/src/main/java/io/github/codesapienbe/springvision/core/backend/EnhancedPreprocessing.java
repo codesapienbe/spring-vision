@@ -288,12 +288,26 @@ public class EnhancedPreprocessing {
             }
             processed = denoised;
 
-            // Step 3: CLAHE for contrast enhancement
+            // Step 3: Multi-Scale Retinex to normalize illumination (robust to harsh lighting)
+            Mat retinex = applyMultiScaleRetinex(processed);
+            if (processed != grayImage) {
+                processed.releaseReference();
+            }
+            processed = retinex;
+
+            // Step 4: CLAHE for contrast enhancement
             Mat enhanced = applyCLAHE(processed);
             if (processed != grayImage) {
                 processed.releaseReference();
             }
             processed = enhanced;
+
+            // Step 5: Mild sharpening to restore edge details after smoothing (optional)
+            Mat sharpened = applySharpen(processed, 0.6);
+            if (processed != grayImage) {
+                processed.releaseReference();
+            }
+            processed = sharpened;
 
             return processed;
 
