@@ -17,6 +17,7 @@ import java.util.Map;
  * - List/Array -> numeric array (0-255 or -128..127) converted to bytes
  * - Map with key "data" -> value is recursively converted
  * - Jackson JsonNode -> handles binary nodes, arrays of numbers
+ * - ToolContext -> extracts parameters and recursively processes
  */
 public final class JsonToBytesConverter {
 
@@ -75,29 +76,22 @@ public final class JsonToBytesConverter {
         }
 
         if (input instanceof Map<?, ?> map) {
-            // common shape: { "data": [ ... ] } or { "data": "base64..." }
-            if (map.containsKey("data")) {
-                return toBytes(map.get("data"));
-            }
-            // Handle ToolContext - look for common image parameter names
-            if (map.containsKey("imageInput") || map.containsKey("image") || map.containsKey("imageBytes")) {
-                Object imageData = map.get("imageInput");
-                if (imageData == null) imageData = map.get("image");
-                if (imageData == null) imageData = map.get("imageBytes");
-                return toBytes(imageData);
-            }
-            // try to find the first array-like entry
-            for (Map.Entry<?, ?> e : map.entrySet()) {
-                Object v = e.getValue();
-                if (v instanceof List<?> || v instanceof String || v instanceof byte[] || v instanceof JsonNode) {
-                    return toBytes(v);
-                }
-            }
-            throw new IllegalArgumentException("Map provided but no 'data', 'imageInput', 'image', or 'imageBytes' field or usable payload found");
+            return extractBytesFromMap(map);
         }
 
         if (input instanceof JsonNode node) {
             return jsonNodeToBytes(node);
+        }
+
+        // Handle ToolContext or any other object by converting to Map
+        if (input.getClass().getName().contains("ToolContext")) {
+            try {
+                // Convert ToolContext to a map and process it
+                Map<?, ?> contextMap = mapper.convertValue(input, Map.class);
+                return extractBytesFromMap(contextMap);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to extract data from ToolContext: " + e.getMessage(), e);
+            }
         }
 
         // Last resort: try converting via ObjectMapper to JsonNode
@@ -107,6 +101,38 @@ public final class JsonToBytesConverter {
         } catch (Exception e) {
             throw new IllegalArgumentException("Unsupported input type: " + input.getClass().getName());
         }
+    }
+
+    private static byte[] extractBytesFromMap(Map<?, ?> map) {
+        // Try common image parameter names in order of priority
+        String[] imageKeys = {"imageInput", "image", "imageBytes", "imageData", "data", "bytes"};
+
+        for (String key : imageKeys) {
+            if (map.containsKey(key)) {
+                Object value = map.get(key);
+                if (value != null) {
+                    try {
+                        return toBytes(value);
+                    } catch (Exception e) {
+                        // Try the next key if this one fails
+                    }
+                }
+            }
+        }
+
+        // If no specific image key found, look for any array-like or string value
+        for (Map.Entry<?, ?> e : map.entrySet()) {
+            Object v = e.getValue();
+            if (v instanceof List<?> || v instanceof String || v instanceof byte[] || v instanceof JsonNode) {
+                try {
+                    return toBytes(v);
+                } catch (Exception ex) {
+                    // Try the next entry if this one fails
+                }
+            }
+        }
+
+        throw new IllegalArgumentException("Map provided but no usable image data found in keys: " + map.keySet());
     }
 
     private static byte[] listToBytes(List<?> list) {
@@ -157,7 +183,17 @@ public final class JsonToBytesConverter {
         if (node.isObject()) {
             JsonNode data = node.get("data");
             if (data != null) return jsonNodeToBytes(data);
-            throw new IllegalArgumentException("JSON object did not contain a 'data' field with bytes");
+
+            // Try other common image keys
+            String[] imageKeys = {"imageInput", "image", "imageBytes", "imageData"};
+            for (String key : imageKeys) {
+                JsonNode imageNode = node.get(key);
+                if (imageNode != null) {
+                    return jsonNodeToBytes(imageNode);
+                }
+            }
+
+            throw new IllegalArgumentException("JSON object did not contain a 'data' or image field with bytes");
         }
 
         throw new IllegalArgumentException("Unrecognized JsonNode type for conversion to bytes");

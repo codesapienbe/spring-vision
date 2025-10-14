@@ -8,24 +8,27 @@ Built with **Spring AI 1.0.3** and the **Model Context Protocol** standard.
 
 ## 🐳 Docker Deployment (Recommended)
 
-### Building the Docker Image
+### Running the published Docker image
 
-The project uses Maven with Jib plugin for automated Docker builds:
+Use the published Docker image from Docker Hub (recommended for production):
 
 ```bash
-# Build the entire project and create Docker image
-make build
-
-# Or manually with Maven
-mvn clean install -DskipTests
+# Run the published image (keeps stdin open for MCP stdio communication)
+docker run -i --rm codesapienbe/spring-vision:latest
 ```
 
-This automatically creates the Docker image `spring-vision:1.0`.
-
-### Pushing to Docker Hub
+If you already have a local image tagged `spring-vision:1.0`, run the same command with that tag:
 
 ```bash
-# Tag and push to Docker Hub
+docker run -i --rm spring-vision:1.0
+```
+
+### Pushing to Docker Hub (maintainers)
+
+If you are maintaining the project and want to push a built image to Docker Hub, use the repo's tooling (this is intended for maintainers):
+
+```bash
+# Tag and push to Docker Hub (maintainers)
 make deploy
 ```
 
@@ -33,48 +36,71 @@ This pushes the image as `codesapienbe/spring-vision:latest`.
 
 ---
 
-### ⚡ JBang MCP Server (Quick local run)
+### ⚡ JBang / Manual jar (local, non-source run)
 
-If you want a lightweight developer-friendly way to run the MCP server locally without Docker, you can use the provided JBang launcher. This is great for quick testing, CI, or when you don't want to run containers.
+Local development builds from source are intentionally omitted from this README. If you want to run the MCP server locally without Docker, there are two supported non-source approaches:
+
+1) Run the published artifact with JBang (pulls the jar remotely)
+2) Manually download the packaged jar from Maven Central into a custom directory and point your MCP client to that jar
 
 Prerequisites:
 
-- Java 21+ installed (JBang runs on Java 21+ as specified in the launcher)
-- jbang installed (https://www.jbang.dev/) OR a built jar from Maven
+- Java 21+ installed
+- jbang installed (https://www.jbang.dev/) if you plan to use JBang
 
-Run using JBang (from the repository root):
-
-```bash
-# Run the launcher that pulls the published MCP artifact and starts the server
-jbang mcp/.jbang/mcp.java
-```
-
-You can pass JVM options via the `JAVA_OPTIONS` environment variable (the launcher already sets sensible defaults in the script):
+Run with JBang (remote jar)
 
 ```bash
-JAVA_OPTIONS='-Xms64m -Xmx512m' jbang mcp/.jbang/mcp.java
+# JBang can run a remote executable jar; this pulls the published MCP artifact from Maven Central and runs it.
+jbang https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar
 ```
 
-Run in background (simple example):
+You can pass JVM options via the `JAVA_OPTIONS` environment variable:
 
 ```bash
-nohup jbang mcp/.jbang/mcp.java > mcp.log 2>&1 &
+JAVA_OPTIONS='-Xms64m -Xmx512m' jbang https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar
 ```
 
-Build and run a packaged jar (if you prefer not to use JBang):
+Run in background (simple example that keeps the process attached to stdio):
 
 ```bash
-# from the mcp module
-cd mcp
-mvn -DskipTests package
-# then run the produced jar (check exact artifact name in target/)
-java -jar target/<mcp-artifact>.jar
+nohup jbang https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar > mcp.log 2>&1 &
 ```
 
-When to use JBang vs Docker:
+Manually download the jar and run from a custom directory
 
-- JBang: very fast to start, ideal for local development and CI. Requires Java/jbang on the host. Easier to attach debuggers and to iterate on local code if you build from source.
-- Docker: recommended for production and reproducible deployments. Isolates dependencies and environment.
+```bash
+# create a directory where you want to keep the MCP jar (user-defined)
+mkdir -p "$HOME/.local/share/spring-vision/mcp"
+cd "$HOME/.local/share/spring-vision/mcp"
+
+# download the published jar from Maven Central (adjust version as needed)
+wget -O mcp-1.0.251014.jar \
+  https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar
+
+# then run it with java (keep the process attached to stdio)
+java -jar "$HOME/.local/share/spring-vision/mcp/mcp-1.0.251014.jar"
+```
+
+Set a custom MCP client path to the downloaded jar
+
+Point your MCP client to the jar you downloaded by setting the client's command and args to run the jar. Example (Claude Desktop / Cline / other MCP clients):
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "/home/youruser/.local/share/spring-vision/mcp/mcp-1.0.251014.jar"
+      ]
+    }
+  }
+}
+```
+
+Important: The process must remain attached to stdio so the client can communicate over stdio. For Docker runs, keep the `-i` flag; for JBang/Java runs, don't wrap the command in a one-off shell that immediately exits.
 
 ---
 
@@ -120,7 +146,7 @@ Add this to your MCP client configuration file:
 }
 ```
 
-**Using JBang (Quick local run):**
+**Using JBang (remote jar):**
 
 ```json
 {
@@ -128,14 +154,14 @@ Add this to your MCP client configuration file:
     "spring-vision": {
       "command": "jbang",
       "args": [
-        "mcp/.jbang/mcp.java"
+        "https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar"
       ]
     }
   }
 }
 ```
 
-**Using a packaged jar (no JBang):**
+**Using a packaged jar (manual download):**
 
 ```json
 {
@@ -144,7 +170,7 @@ Add this to your MCP client configuration file:
       "command": "java",
       "args": [
         "-jar",
-        "path/to/mcp.jar"
+        "/path/to/mcp.jar"
       ]
     }
   }
@@ -439,19 +465,88 @@ Different vision backends support different capabilities:
 
 ## 🚀 Getting Started
 
-1. Build the project: `make build`
-2. (Optional) Push to Docker Hub: `make deploy`
-3. Add to your MCP client config (see above)
-4. Restart your AI assistant
-5. Explore new capabilities:
-    - "Detect faces in this image: [image_url]"
-    - "Recognize this face: [image_url]"
-    - "Extract text from this image: [image_url]"
-    - "Compare these two faces: [image_url1], [image_url2]"
-    - "Analyze the pose in this image: [image_url]"
-    - "What gesture is shown in this image: [image_url]?"
-    - "Scan the barcode in this image: [image_url]"
-    - "What landmark is this: [image_url]?"
-    - "Annotate objects in this image: [image_url]"
+Pick one of the supported run methods below (Docker is recommended for production):
+
+1) Docker (recommended)
+
+```bash
+# Run the published image (keeps stdin open for MCP stdio communication)
+docker run -i --rm codesapienbe/spring-vision:latest
+```
+
+2) JBang (remote jar)
+
+```bash
+# Run the published artifact directly with JBang (downloads the jar from Maven Central)
+jbang https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar
+```
+
+3) Manual jar download (user-defined directory)
+
+```bash
+# create a directory where you want to keep the MCP jar (user-defined)
+mkdir -p "$HOME/.local/share/spring-vision/mcp"
+cd "$HOME/.local/share/spring-vision/mcp"
+
+# download the published jar from Maven Central (adjust version as needed)
+wget -O mcp-1.0.251014.jar \
+  https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar
+
+# then run it with java (keep the process attached to stdio)
+java -jar "$HOME/.local/share/spring-vision/mcp/mcp-1.0.251014.jar"
+```
+
+Add the server to your MCP client config (choose the matching method above):
+
+- Docker example (recommended):
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "codesapienbe/spring-vision:latest"
+      ]
+    }
+  }
+}
+```
+
+- JBang example (remote jar):
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "jbang",
+      "args": [
+        "https://repo1.maven.org/maven2/io/github/codesapienbe/springvision/mcp/1.0.251014/mcp-1.0.251014.jar"
+      ]
+    }
+  }
+}
+```
+
+- Manual jar example:
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "/home/youruser/.local/share/spring-vision/mcp/mcp-1.0.251014.jar"
+      ]
+    }
+  }
+}
+```
+
+That's it — pick Docker (recommended) or one of the local non-source options (JBang or manual jar). Ensure the chosen process stays attached to stdio so the MCP client can communicate over stdio.
 
 **That's it!** Your AI now has advanced computer vision superpowers! 🦸‍♂️
