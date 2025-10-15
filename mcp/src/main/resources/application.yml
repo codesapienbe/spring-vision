@@ -7,7 +7,7 @@ spring:
 
   # Main application settings
   main:
-    web-application-type: reactive  # Enable reactive web for WebFlux
+    web-application-type: none  # Disable web for stdio transport
     banner-mode: off  # Disable banner for cleaner output
 
   # Jackson JSON configuration
@@ -22,27 +22,24 @@ spring:
       enabled: true
       confidence-threshold: 0.7
 
-  # MCP Server Configuration
+  # MCP Server Configuration (Spring AI 1.0.0 - stdio transport)
   ai:
     mcp:
       server:
-        transport: sse  # Use SSE (Server-Sent Events) over HTTP
-        sse:
-          path: /mcp/sse  # SSE endpoint path
+        enabled: true
+        transport: stdio
         name: spring-vision
-        version: "1.0.3"
+        version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
-# Server settings
-server:
-  port: 8081  # Use port 8081 to avoid conflict with Jenkins on 8080
-
-# Logging configuration
+# Logging configuration - keep logs separate from stdio communication
 logging:
   level:
-    root: INFO
+    root: WARN
     io.github.codesapienbe.springvision: INFO
-    org.springframework.ai.mcp: DEBUG
-    org.springframework.ai.mcp.server: DEBUG
-    io.modelcontextprotocol: INFO
-    org.springframework.web.reactive: DEBUG
+    org.springframework.ai: WARN
+    org.springframework.ai.mcp: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/mcp.log

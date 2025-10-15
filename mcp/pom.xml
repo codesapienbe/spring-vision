@@ -19,7 +19,7 @@
     <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
     <docker.image.name>spring-vision:${project.version}</docker.image.name>
     <spring-boot.version>3.1.3</spring-boot.version>
-    <spring-ai.version>1.0.3</spring-ai.version>
+    <spring-ai.version>1.0.0</spring-ai.version>
   </properties>
 
   <pluginRepositories>
@@ -91,13 +91,19 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
+    <!-- Spring Boot Actuator for health checks -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
     <!-- Jackson for JSON processing -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
-    <!-- Spring AI MCP Server WebFlux Starter -->
+    <!-- Spring AI MCP Server WebFlux Starter (includes tools support) -->
     <dependency>
       <groupId>org.springframework.ai</groupId>
       <artifactId>spring-ai-starter-mcp-server-webflux</artifactId>

@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run clean deploy release docs default
+.PHONY: build run clean deploy release docs default docker
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -12,6 +12,13 @@ build:
 	mvn clean install -DskipTests
 	@echo "Building Docker image..."
 	docker build -t spring-vision:$(SPRING_VISION_VERSION) -f mcp/Dockerfile .
+
+docker:
+	@echo "Building Docker image only - Version: $(SPRING_VISION_VERSION)"
+	docker build -t spring-vision:$(SPRING_VISION_VERSION) -t spring-vision:latest -f mcp/Dockerfile . &&\
+	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest &&\
+	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION);
+	@echo "Docker image built successfully: spring-vision:$(SPRING_VISION_VERSION) and spring-vision:latest"
 
 verify:
 	@echo "Testing project: Maven test"

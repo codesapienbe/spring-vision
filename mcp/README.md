@@ -2,152 +2,62 @@
 
 MCP (Model Context Protocol) server for Spring Vision - gives your AI assistant computer vision capabilities! 👁️
 
-Built with **Spring AI 1.0.3** and the **Model Context Protocol** standard.
+Built with **Spring AI 1.0.0** and the **Model Context Protocol** standard.
 
 ---
 
 ## 🔄 Architecture
 
-**Spring Vision MCP Server uses HTTP/SSE (Server-Sent Events) transport:**
+**Spring Vision MCP Server uses stdio (Standard Input/Output) transport:**
 
-- ✅ **Runs as a persistent HTTP server** on port 8081
-- ✅ **SSE transport** for reliable client-server communication
+- ✅ **Stdio transport** - Standard MCP communication via stdin/stdout
+- ✅ **Docker-based deployment** - Containerized for easy distribution
 - ✅ **Proper JSON-RPC** message handling (no log pollution)
 - ✅ **Clean separation** between application logs and protocol messages
 
 This architecture ensures:
 
-- **Stability**: HTTP transport is more reliable than stdio
-- **Debugging**: Logs don't interfere with MCP protocol messages
-- **Flexibility**: Multiple clients can connect simultaneously
-- **Production-ready**: Standard web server deployment
+- **Compatibility**: Works with all standard MCP clients (Claude Desktop, Cline, etc.)
+- **Simplicity**: Standard stdio transport as designed by the MCP specification
+- **Debugging**: Logs written to file, keeping stdio clean for MCP communication
+- **Portability**: Easy to integrate with any MCP client configuration
 
 ---
 
-## 🐳 Quick Start with Docker Compose (Recommended)
+## 🐳 Quick Start with Docker
 
-**The easiest way to run Spring Vision MCP Server with SSE support:**
+**The easiest way to run Spring Vision MCP Server:**
 
 ### Prerequisites
 
-- **Docker** and **Docker Compose** installed ([https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/))
+- **Docker** installed ([https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/))
 
 ### Build the Docker Image
 
 From the project root:
 
 ```bash
-mvn clean install -pl mcp -am
+# Build everything (JAR + Docker image)
+make build
+
+# Or manually:
+mvn clean package -pl mcp -am
+docker build -t codesapienbe/spring-vision:latest -f mcp/Dockerfile .
 ```
 
-This will create the `spring-vision:1.0.4` Docker image using Jib.
-
-### Start the Server
+### Test the Server
 
 ```bash
-cd mcp
-docker-compose up -d
-```
-
-The server will start on **http://localhost:8081** with the MCP endpoint at **http://localhost:8081/mcp**
-
-### Manage the Server
-
-```bash
-# View logs
-docker-compose logs -f
-
-# Stop the server
-docker-compose down
-
-# Restart the server
-docker-compose restart
-
-# Check status
-docker-compose ps
-```
-
----
-
-## ⚡ Alternative: Quick Start with JBang
-
-If you prefer not to use Docker:
-
-### Prerequisites
-
-- **Java 21+** installed
-- **JBang** installed ([https://www.jbang.dev/](https://www.jbang.dev/))
-
-### Installation
-
-```bash
-# Install JBang (if not already installed)
-curl -Ls https://sh.jbang.dev | bash -s - app setup
-```
-
-### Running the Server
-
-JBang will automatically download and run the published artifact from Maven Central:
-
-```bash
-jbang io.github.codesapienbe.springvision:mcp:1.0.4
-```
-
-Note: When using JBang, the server runs on port 8080 instead of 8081.
-
-### JVM Options (Optional)
-
-You can pass JVM options:
-
-```bash
-jbang -Xmx512m -Xms64m io.github.codesapienbe.springvision:mcp:1.0.4
+# Test with a simple initialize message
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | \
+docker run -i --rm codesapienbe/spring-vision:latest
 ```
 
 ---
 
 ## 🔧 MCP Client Configuration
 
-### GitHub Copilot (IntelliJ)
-
-**For Docker Compose deployment (Recommended):**
-
-Add to `~/.config/github-copilot/intellij/mcp.json`:
-
-```json
-{
-  "servers": {
-    "spring-vision": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8081/mcp"
-      }
-    }
-  }
-}
-```
-
-**For JBang deployment:**
-
-```json
-{
-  "servers": {
-    "spring-vision": {
-      "command": "jbang",
-      "args": [
-        "io.github.codesapienbe.springvision:mcp:1.0.4"
-      ],
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8080/mcp"
-      }
-    }
-  }
-}
-```
-
 ### Claude Desktop
-
-**For Docker Compose deployment (Recommended):**
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%/Claude/claude_desktop_config.json` (Windows):
 
@@ -155,67 +65,53 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "spring-vision": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8081/mcp"
-      }
-    }
-  }
-}
-```
-
-**For JBang deployment:**
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "jbang",
+      "command": "docker",
       "args": [
-        "io.github.codesapienbe.springvision:mcp:1.0.4"
-      ],
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8080/mcp"
-      }
+        "run",
+        "-i",
+        "--rm",
+        "codesapienbe/spring-vision:latest"
+      ]
     }
   }
 }
 ```
 
-### Cline / Other MCP Clients
+### Cline (VS Code Extension)
 
-**For Docker Compose deployment (Recommended):**
-
-Add to your MCP client's configuration file:
+Add to your Cline MCP settings:
 
 ```json
 {
   "mcpServers": {
     "spring-vision": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8081/mcp"
-      }
-    }
-  }
-}
-```
-
-**For JBang deployment:**
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "jbang",
+      "command": "docker",
       "args": [
-        "io.github.codesapienbe.springvision:mcp:1.0.4"
-      ],
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8080/mcp"
-      }
+        "run",
+        "-i",
+        "--rm",
+        "codesapienbe/spring-vision:latest"
+      ]
+    }
+  }
+}
+```
+
+### GitHub Copilot / Other MCP Clients
+
+For any MCP client that supports stdio transport:
+
+```json
+{
+  "servers": {
+    "spring-vision": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "codesapienbe/spring-vision:latest"
+      ]
     }
   }
 }
@@ -225,11 +121,10 @@ Add to your MCP client's configuration file:
 
 ## 📝 Notes
 
-- **Docker Compose deployment** runs on port **8081** (to avoid conflicts with other services)
-- **JBang deployment** runs on port **8080**
-- With SSE transport, the MCP client simply connects to the HTTP endpoint
-- The server must be running before the MCP client connects
-- No need for `command` and `args` in MCP config when using Docker Compose (server runs independently)
-- Example configurations are available in the `examples/` directory
+- **Stdio transport** is the standard MCP communication method
+- The server communicates via stdin/stdout when launched by MCP clients
+- Logs are written to `/app/logs/mcp.log` inside the container (separate from stdio)
+- The `--rm` flag ensures containers are cleaned up after use
+- The `-i` flag enables interactive stdin for MCP communication
 
 ---
