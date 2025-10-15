@@ -1,32 +1,73 @@
 package io.github.codesapienbe.springvision.mcp;
 
 import jakarta.annotation.PostConstruct;
+import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
- * Emits structured logs at startup to demonstrate logging configuration
- * and inform about MCP server HTTP/SSE transport.
+ * Emits structured JSON logs at startup for the MCP server using stdio transport.
+ * All logs are JSON formatted and sent to stderr to avoid interfering with MCP protocol on stdout.
  */
 @Component
 public class StartupLogger {
 
     private static final Logger log = LoggerFactory.getLogger(StartupLogger.class);
 
-    @Value("${server.port:8080}")
-    private int serverPort;
+    @Value("${spring.ai.mcp.server.name:spring-vision}")
+    private String serverName;
+
+    @Value("${spring.ai.mcp.server.version:1.0.5}")
+    private String serverVersion;
+
+    @Value("${spring.ai.mcp.server.transport:stdio}")
+    private String transport;
 
     @PostConstruct
     public void onStartup() {
-        log.info("=".repeat(80));
-        log.info("Spring Vision MCP Server - Ready");
-        log.info("=".repeat(80));
-        log.info("Transport: HTTP with SSE (Server-Sent Events)");
-        log.info("Server URL: http://localhost:{}", serverPort);
-        log.info("MCP Endpoint: http://localhost:{}/mcp", serverPort);
-        log.info("Vision capabilities: Face detection, OCR, pose estimation, and more");
-        log.info("=".repeat(80));
+        // Log startup with structured JSON format
+        log.info("Spring Vision MCP Server starting", 
+            StructuredArguments.keyValue("event", "mcp_server_startup"),
+            StructuredArguments.keyValue("server_name", serverName),
+            StructuredArguments.keyValue("server_version", serverVersion),
+            StructuredArguments.keyValue("transport", transport),
+            StructuredArguments.keyValue("protocol", "stdio"),
+            StructuredArguments.keyValue("stdout_reserved_for", "MCP JSON-RPC messages"),
+            StructuredArguments.keyValue("logs_output", "stderr and file (JSON format)")
+        );
+
+        // Log capabilities
+        log.info("MCP Server capabilities loaded",
+            StructuredArguments.keyValue("event", "mcp_capabilities"),
+            StructuredArguments.keyValue("capabilities", Map.of(
+                "face_detection", true,
+                "ocr", true,
+                "pose_estimation", true,
+                "object_detection", true,
+                "image_classification", true
+            ))
+        );
+
+        // Log stdio transport configuration
+        log.info("MCP stdio transport configured",
+            StructuredArguments.keyValue("event", "transport_config"),
+            StructuredArguments.keyValue("stdin", "MCP JSON-RPC requests"),
+            StructuredArguments.keyValue("stdout", "MCP JSON-RPC responses"),
+            StructuredArguments.keyValue("stderr", "Application logs (JSON)"),
+            StructuredArguments.keyValue("log_files", new String[]{
+                "logs/mcp.json.log",
+                "logs/mcp-error.json.log"
+            })
+        );
+
+        log.info("Spring Vision MCP Server ready",
+            StructuredArguments.keyValue("event", "mcp_server_ready"),
+            StructuredArguments.keyValue("status", "ready"),
+            StructuredArguments.keyValue("awaiting", "MCP initialize message")
+        );
     }
 }

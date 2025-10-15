@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.mcp;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.VisionResult;
+import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -68,7 +69,12 @@ public class VisionTool {
             .connectTimeout(REQUEST_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build() : httpClient;
-        log.info("VisionTool initialized with VisionTemplate backend");
+        log.info("VisionTool initialized",
+            StructuredArguments.keyValue("event", "vision_tool_init"),
+            StructuredArguments.keyValue("backend", "VisionTemplate"),
+            StructuredArguments.keyValue("max_image_size_bytes", MAX_IMAGE_SIZE_BYTES),
+            StructuredArguments.keyValue("request_timeout_seconds", REQUEST_TIMEOUT.getSeconds())
+        );
     }
 
     /**
@@ -82,7 +88,10 @@ public class VisionTool {
      * @throws IOException if the image cannot be downloaded or validation fails.
      */
     protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
-        log.debug("Attempting to download image from URL: {}", sanitizeUrlForLogging(imageUrl));
+        log.debug("Attempting to download image",
+            StructuredArguments.keyValue("event", "image_download_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl))
+        );
 
         try {
             // Validate URL format
@@ -121,7 +130,10 @@ public class VisionTool {
                     throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
                 }
 
-                log.debug("Successfully downloaded image: {} bytes", imageBytes.length);
+                log.debug("Successfully downloaded image",
+                    StructuredArguments.keyValue("event", "image_download_success"),
+                    StructuredArguments.keyValue("size_bytes", imageBytes.length)
+                );
                 return imageBytes;
             }
 
@@ -169,7 +181,10 @@ public class VisionTool {
     @Tool(description = "Count faces in an image from a URL. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFaces(String imageUrl) {
-        log.info("countFaces called with URL: {}", sanitizeUrlForLogging(imageUrl));
+        log.info("countFaces called",
+            StructuredArguments.keyValue("event", "count_faces_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl))
+        );
 
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
@@ -177,7 +192,10 @@ public class VisionTool {
         try {
             // Validate input
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
-                log.warn("countFaces called with empty or null imageUrl");
+                log.warn("countFaces validation failed",
+                    StructuredArguments.keyValue("event", "count_faces_validation_error"),
+                    StructuredArguments.keyValue("error", "empty_url")
+                );
                 response.put("status", "error");
                 response.put("count", 0);
                 response.put("message", "Image URL is required and cannot be empty");
@@ -189,9 +207,16 @@ public class VisionTool {
             byte[] imageBytes;
             try {
                 imageBytes = downloadImageFromUrl(imageUrl.trim());
-                log.debug("Image downloaded successfully, size: {} bytes", imageBytes.length);
+                log.debug("Image downloaded for face detection",
+                    StructuredArguments.keyValue("event", "image_download_complete"),
+                    StructuredArguments.keyValue("size_bytes", imageBytes.length)
+                );
             } catch (IOException e) {
-                log.error("Failed to download image from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+                log.error("Failed to download image",
+                    StructuredArguments.keyValue("event", "image_download_error"),
+                    StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
+                    StructuredArguments.keyValue("error", e.getMessage())
+                );
                 response.put("status", "error");
                 response.put("count", 0);
                 response.put("message", "Failed to download image from URL");
@@ -203,9 +228,14 @@ public class VisionTool {
             ImageData imgData;
             try {
                 imgData = ImageData.fromBytes(imageBytes);
-                log.debug("ImageData created successfully");
+                log.debug("ImageData created",
+                    StructuredArguments.keyValue("event", "image_data_created")
+                );
             } catch (Exception e) {
-                log.error("Failed to create ImageData from downloaded bytes", e);
+                log.error("Failed to create ImageData",
+                    StructuredArguments.keyValue("event", "image_data_error"),
+                    StructuredArguments.keyValue("error", e.getMessage())
+                );
                 response.put("status", "error");
                 response.put("count", 0);
                 response.put("message", "Invalid image format or corrupted image data");
@@ -217,9 +247,14 @@ public class VisionTool {
             VisionResult detections;
             try {
                 detections = visionTemplate.detectFaces(imgData);
-                log.debug("Face detection completed");
+                log.debug("Face detection completed",
+                    StructuredArguments.keyValue("event", "face_detection_complete")
+                );
             } catch (Exception e) {
-                log.error("Face detection failed", e);
+                log.error("Face detection failed",
+                    StructuredArguments.keyValue("event", "face_detection_error"),
+                    StructuredArguments.keyValue("error", e.getMessage())
+                );
                 response.put("status", "error");
                 response.put("count", 0);
                 response.put("message", "Face detection operation failed");
@@ -248,13 +283,23 @@ public class VisionTool {
             response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
 
-            log.info("countFaces completed successfully: {} faces detected in {}ms", faceCount, duration);
+            log.info("countFaces completed successfully",
+                StructuredArguments.keyValue("event", "count_faces_success"),
+                StructuredArguments.keyValue("face_count", faceCount),
+                StructuredArguments.keyValue("avg_confidence", Math.round(avgConfidence * 10000.0) / 10000.0),
+                StructuredArguments.keyValue("processing_time_ms", duration)
+            );
             return response;
 
         } catch (Exception e) {
             // Catch-all for any unexpected errors
             long duration = System.currentTimeMillis() - startTime;
-            log.error("Unexpected error in countFaces after {}ms", duration, e);
+            log.error("Unexpected error in countFaces",
+                StructuredArguments.keyValue("event", "count_faces_unexpected_error"),
+                StructuredArguments.keyValue("processing_time_ms", duration),
+                StructuredArguments.keyValue("error", e.getMessage()),
+                StructuredArguments.keyValue("error_type", e.getClass().getSimpleName())
+            );
 
             response.put("status", "error");
             response.put("count", 0);

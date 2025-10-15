@@ -1,38 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
 
+  <!-- 
+    Spring Vision MCP Server Logging Configuration
+    
+    CRITICAL: This MCP server uses stdio (stdin/stdout) transport.
+    - stdout is RESERVED for MCP protocol JSON-RPC messages
+    - All logs MUST go to stderr (console) or files to avoid protocol interference
+    - All logs use JSON format to prevent any parsing issues
+  -->
+
   <springProfile name="default">
-    <!-- Console appender with colors and a clean pattern -->
-    <!-- route console output to STDERR to avoid interfering with MCP stdio transport -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender" target="System.err">
-      <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-        <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight([%thread]) %highlight(%-5level) %cyan(%logger{36}) - %msg%n%ex
-        </pattern>
-        <charset>utf8</charset>
+    <!-- Console Appender - JSON format to STDERR -->
+    <!-- CRITICAL: target="System.err" ensures logs don't interfere with MCP stdio protocol on stdout -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <target>System.err</target>
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+          <timestamp>
+            <fieldName>timestamp</fieldName>
+            <timeZone>UTC</timeZone>
+          </timestamp>
+          <logLevel>
+            <fieldName>level</fieldName>
+          </logLevel>
+          <loggerName>
+            <fieldName>logger</fieldName>
+            <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+          </loggerName>
+          <threadName>
+            <fieldName>thread</fieldName>
+          </threadName>
+          <message>
+            <fieldName>message</fieldName>
+          </message>
+          <mdc/>
+          <stackTrace>
+            <fieldName>stackTrace</fieldName>
+          </stackTrace>
+          <logstashMarkers/>
+          <arguments/>
+        </providers>
       </encoder>
     </appender>
 
-    <!-- File appender for persistency -->
+    <!-- File Appender - JSON format for persistence and debugging -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <file>logs/mcp.log</file>
+      <file>logs/mcp.json.log</file>
       <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <fileNamePattern>logs/mcp.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+        <fileNamePattern>logs/mcp.%d{yyyy-MM-dd}.%i.json.log.gz</fileNamePattern>
         <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-          <maxFileSize>10MB</maxFileSize>
+          <maxFileSize>50MB</maxFileSize>
         </timeBasedFileNamingAndTriggeringPolicy>
-        <maxHistory>14</maxHistory>
+        <maxHistory>30</maxHistory>
+        <totalSizeCap>1GB</totalSizeCap>
       </rollingPolicy>
-      <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-        <pattern>%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n%ex</pattern>
-        <charset>utf8</charset>
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+          <timestamp>
+            <fieldName>timestamp</fieldName>
+            <timeZone>UTC</timeZone>
+          </timestamp>
+          <logLevel>
+            <fieldName>level</fieldName>
+          </logLevel>
+          <loggerName>
+            <fieldName>logger</fieldName>
+          </loggerName>
+          <threadName>
+            <fieldName>thread</fieldName>
+          </threadName>
+          <message>
+            <fieldName>message</fieldName>
+          </message>
+          <mdc/>
+          <stackTrace>
+            <fieldName>stackTrace</fieldName>
+          </stackTrace>
+          <logstashMarkers/>
+          <arguments/>
+        </providers>
       </encoder>
     </appender>
 
-    <logger name="org.springframework" level="INFO"/>
-    <logger name="com.fasterxml.jackson" level="WARN"/>
+    <!-- Error File Appender - Separate file for errors with JSON format -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <file>logs/mcp-error.json.log</file>
+      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <level>ERROR</level>
+      </filter>
+      <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <fileNamePattern>logs/mcp-error.%d{yyyy-MM-dd}.%i.json.log.gz</fileNamePattern>
+        <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+          <maxFileSize>50MB</maxFileSize>
+        </timeBasedFileNamingAndTriggeringPolicy>
+        <maxHistory>90</maxHistory>
+        <totalSizeCap>2GB</totalSizeCap>
+      </rollingPolicy>
+      <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+        <providers>
+          <timestamp>
+            <fieldName>timestamp</fieldName>
+            <timeZone>UTC</timeZone>
+          </timestamp>
+          <logLevel>
+            <fieldName>level</fieldName>
+          </logLevel>
+          <loggerName>
+            <fieldName>logger</fieldName>
+          </loggerName>
+          <threadName>
+            <fieldName>thread</fieldName>
+          </threadName>
+          <message>
+            <fieldName>message</fieldName>
+          </message>
+          <mdc/>
+          <stackTrace>
+            <fieldName>stackTrace</fieldName>
+          </stackTrace>
+          <logstashMarkers/>
+          <arguments/>
+        </providers>
+      </encoder>
+    </appender>
 
+    <!-- Logger Configurations -->
+    
+    <!-- MCP Server Application Loggers -->
+    <logger name="io.github.codesapienbe.springvision.mcp" level="INFO" additivity="false">
+      <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Spring Vision Core Loggers -->
+    <logger name="io.github.codesapienbe.springvision.core" level="INFO" additivity="false">
+      <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Spring AI MCP Loggers - Important for protocol debugging -->
+    <logger name="org.springframework.ai.mcp" level="INFO" additivity="false">
+      <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Spring Framework Loggers -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.boot" level="WARN"/>
+    
+    <!-- Jackson JSON Processing - Keep quiet unless errors -->
+    <logger name="com.fasterxml.jackson" level="WARN"/>
+    
+    <!-- Reactor (WebFlux) Loggers -->
+    <logger name="reactor.netty" level="WARN"/>
+    
+    <!-- Root Logger -->
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+      <appender-ref ref="FILE"/>
+      <appender-ref ref="ERROR_FILE"/>
+    </root>
+  </springProfile>
+
+  <!-- Development Profile - More verbose logging -->
+  <springProfile name="dev">
+    <logger name="io.github.codesapienbe.springvision" level="DEBUG"/>
+    <logger name="org.springframework.ai.mcp" level="DEBUG"/>
+    <logger name="reactor.netty" level="INFO"/>
+    
     <root level="DEBUG">
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
+      <appender-ref ref="ERROR_FILE"/>
+    </root>
+  </springProfile>
+
+  <!-- Production Profile - Minimal logging -->
+  <springProfile name="prod">
+    <logger name="io.github.codesapienbe.springvision" level="WARN"/>
+    <logger name="org.springframework.ai.mcp" level="WARN"/>
+    
+    <!-- Disable console logging in production to reduce overhead -->
+    <root level="WARN">
+      <appender-ref ref="FILE"/>
+      <appender-ref ref="ERROR_FILE"/>
     </root>
   </springProfile>
 

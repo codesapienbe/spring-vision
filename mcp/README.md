@@ -53,6 +53,15 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":
 docker run -i --rm codesapienbe/spring-vision:latest
 ```
 
+### Recommended run (keep server active and suppress JVM native-access warnings)
+
+Use this command to run the container with the recommended JVM flag so native library warnings are suppressed and the server stays active for MCP clients:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | \
+docker run -i --rm -e JAVA_OPTS='--enable-native-access=ALL-UNNAMED' codesapienbe/spring-vision:latest
+```
+
 ---
 
 ## 🔧 MCP Client Configuration
@@ -119,11 +128,81 @@ For any MCP client that supports stdio transport:
 
 ---
 
+## 📊 Logging & Monitoring
+
+The MCP server uses **structured JSON logging** to ensure reliable operation and easy debugging.
+
+### Logging Architecture
+
+- **stdout**: Reserved for MCP JSON-RPC protocol messages ONLY
+- **stderr**: Application logs in JSON format
+- **Files**: Persistent JSON logs for debugging and monitoring
+
+### Log Files
+
+- `logs/mcp.json.log` - All application logs (JSON format)
+- `logs/mcp-error.json.log` - Error logs only (JSON format)
+
+### Viewing Logs
+
+```bash
+# View real-time logs (pretty-printed JSON)
+docker run -i --rm codesapienbe/spring-vision:latest 2>&1 | jq
+
+# View log files (if mounted)
+docker run -i --rm -v $(pwd)/logs:/app/logs codesapienbe/spring-vision:latest
+tail -f logs/mcp.json.log | jq
+
+# Filter by event type
+jq 'select(.event == "count_faces_success")' logs/mcp.json.log
+
+# View errors only
+tail -f logs/mcp-error.json.log | jq
+```
+
+### Testing Logging
+
+Run the included test script to verify JSON logging is working:
+
+```bash
+cd mcp
+./test-logging.sh
+```
+
+### Log Format
+
+All logs follow this JSON structure:
+
+```json
+{
+  "timestamp": "2025-10-15T15:20:30.123Z",
+  "level": "INFO",
+  "logger": "io.github.codesapienbe.springvision.mcp.VisionTool",
+  "thread": "main",
+  "message": "countFaces completed successfully",
+  "event": "count_faces_success",
+  "face_count": 3,
+  "avg_confidence": 0.9234,
+  "processing_time_ms": 145
+}
+```
+
+### Key Features
+
+✅ **No parsing issues**: Every log is valid JSON  
+✅ **Structured data**: Easy to filter, search, and analyze  
+✅ **Event-based**: All logs include an `event` field for categorization  
+✅ **Production-ready**: Automatic rotation and retention policies  
+
+For detailed logging documentation, see [LOGGING.md](LOGGING.md).
+
+---
+
 ## 📝 Notes
 
 - **Stdio transport** is the standard MCP communication method
 - The server communicates via stdin/stdout when launched by MCP clients
-- Logs are written to `/app/logs/mcp.log` inside the container (separate from stdio)
+- All logs use JSON format and are written to stderr/files (NOT stdout)
 - The `--rm` flag ensures containers are cleaned up after use
 - The `-i` flag enables interactive stdin for MCP communication
 

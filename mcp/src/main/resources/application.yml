@@ -32,14 +32,14 @@ spring:
         version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
-# Logging configuration - keep logs separate from stdio communication
+# Logging configuration - JSON format via logback-spring.xml
+# CRITICAL: All logs go to stderr (console) or files, NOT stdout
+# stdout is RESERVED for MCP JSON-RPC protocol messages only
 logging:
   level:
-    root: WARN
+    root: INFO
     io.github.codesapienbe.springvision: INFO
     org.springframework.ai: WARN
     org.springframework.ai.mcp: INFO
-  pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/mcp.log
+  # Pattern and file configurations are managed by logback-spring.xml
+  # All logs use JSON format for consistent parsing

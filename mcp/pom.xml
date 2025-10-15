@@ -103,6 +103,13 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
+    <!-- Logstash Logback Encoder for JSON logging -->
+    <dependency>
+      <groupId>net.logstash.logback</groupId>
+      <artifactId>logstash-logback-encoder</artifactId>
+      <version>7.4</version>
+    </dependency>
+
     <!-- Spring AI MCP Server WebFlux Starter (includes tools support) -->
     <dependency>
       <groupId>org.springframework.ai</groupId>

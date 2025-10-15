@@ -1,5 +1,6 @@
 package io.github.codesapienbe.springvision.mcp;
 
+import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -69,7 +70,10 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
                 }
 
                 if (registryBean != null) {
-                    log.info("Found ToolRegistry bean of type {}", registryClassName);
+                    log.info("Found ToolRegistry bean",
+                        StructuredArguments.keyValue("event", "tool_registry_found"),
+                        StructuredArguments.keyValue("registry_type", registryClassName)
+                    );
                     // Try several common inspection methods to get the list of tools
                     String[] inspectMethods = new String[]{"listRegistered", "listRegisteredTools", "getRegistered", "getRegisteredTools", "getTools", "registered"};
                     for (String m : inspectMethods) {
@@ -77,13 +81,27 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
                             Method mm = registryClass.getMethod(m);
                             Object val = mm.invoke(registryBean);
                             if (val instanceof Collection) {
-                                log.info("ToolRegistry.{}() -> {} entries", m, ((Collection<?>) val).size());
-                                ((Collection<?>) val).forEach(item -> log.info(" - {}", item));
+                                Collection<?> tools = (Collection<?>) val;
+                                log.info("ToolRegistry inspection",
+                                    StructuredArguments.keyValue("event", "tool_registry_inspection"),
+                                    StructuredArguments.keyValue("method", m),
+                                    StructuredArguments.keyValue("tool_count", tools.size()),
+                                    StructuredArguments.keyValue("tools", tools)
+                                );
                             } else if (val instanceof Map) {
-                                log.info("ToolRegistry.{}() -> map with {} entries", m, ((Map<?, ?>) val).size());
-                                ((Map<?, ?>) val).forEach((k, v) -> log.info(" - {} -> {}", k, v));
+                                Map<?, ?> toolMap = (Map<?, ?>) val;
+                                log.info("ToolRegistry inspection",
+                                    StructuredArguments.keyValue("event", "tool_registry_inspection"),
+                                    StructuredArguments.keyValue("method", m),
+                                    StructuredArguments.keyValue("entry_count", toolMap.size()),
+                                    StructuredArguments.keyValue("tools", toolMap)
+                                );
                             } else {
-                                log.info("ToolRegistry.{}() -> {}", m, val);
+                                log.info("ToolRegistry inspection",
+                                    StructuredArguments.keyValue("event", "tool_registry_inspection"),
+                                    StructuredArguments.keyValue("method", m),
+                                    StructuredArguments.keyValue("result", val)
+                                );
                             }
                             return; // Stop after the first successful inspection
                         } catch (NoSuchMethodException nsme) {
@@ -95,10 +113,17 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
             } catch (ClassNotFoundException cnfe) {
                 // Class not found, try the next one
             } catch (Exception ex) {
-                log.warn("Failed to inspect registry {}: {}", registryClassName, ex.getMessage());
+                log.warn("Failed to inspect registry",
+                    StructuredArguments.keyValue("event", "tool_registry_inspection_failed"),
+                    StructuredArguments.keyValue("registry_type", registryClassName),
+                    StructuredArguments.keyValue("error", ex.getMessage())
+                );
             }
         }
 
-        log.debug("No Spring AI ToolRegistry found in context; skipping registry inspection.");
+        log.debug("No Spring AI ToolRegistry found",
+            StructuredArguments.keyValue("event", "tool_registry_not_found"),
+            StructuredArguments.keyValue("message", "Skipping registry inspection")
+        );
     }
 }

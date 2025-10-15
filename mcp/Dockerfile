@@ -28,11 +28,14 @@ COPY mcp/target/mcp-*.jar app.jar
 COPY core/src/main/resources resources/
 
 # Set environment variables for stdio transport
-ENV JAVA_OPTS="-Xms512m -Xmx2g -Djava.library.path=/usr/lib/x86_64-linux-gnu:/usr/lib/jni"
+# Add recommended native access flag to suppress JVM warnings from native libraries
+ENV JAVA_OPTS="--enable-native-access=ALL-UNNAMED -Xms512m -Xmx2g -Djava.library.path=/usr/lib/x86_64-linux-gnu:/usr/lib/jni"
 ENV SPRING_PROFILES_ACTIVE=default
 
 # Create logs directory
 RUN mkdir -p logs
 
-# Run the application in stdio mode (no port exposure needed)
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Run the application in stdio mode (no port exposure needed).
+# Keep the JVM running in the foreground so the MCP server remains active
+# and continues to listen for incoming stdio requests until manually stopped.
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
