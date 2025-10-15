@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run dev clean deploy release docs default
+.PHONY: build run dev clean deploy release docs mcp default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -22,6 +22,12 @@ run:
 dev:
 	@echo "Running MCP server on dev..."
 	java -jar /home/codesapienbe/Projects/spring-vision/mcp/target/mcp-$(SPRING_VISION_VERSION).jar
+
+mcp:
+	@echo "Building MCP server as Docker image.."
+	mvn -B -pl mcp -am -DskipTests install
+	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest &&\
+    docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
 
 clean:
 	mvn clean -q && docker image rm spring-vision:$(SPRING_VISION_VERSION) spring-vision:latest || true

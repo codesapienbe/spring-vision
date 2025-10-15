@@ -107,6 +107,7 @@
     <module>health</module>
     <module>cyber</module>
     <module>robotics</module>
+    <module>vllm</module>
   </modules>
 
   <dependencyManagement>
