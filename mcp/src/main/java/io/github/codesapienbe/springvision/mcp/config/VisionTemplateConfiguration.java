@@ -1,6 +1,9 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
+import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +43,7 @@ public class VisionTemplateConfiguration {
 
     /**
      * Creates a {@link VisionTemplate} bean if one is not already present.
+     *
      * @return The configured VisionTemplate.
      */
     @Bean
@@ -47,13 +51,25 @@ public class VisionTemplateConfiguration {
     public VisionTemplate visionTemplate() {
         logger.info("Initializing VisionTemplate with backend: {}", backendType);
 
-        // For now, use the default OpenCV backend
-        // Users can override this bean to use a different backend
-        VisionTemplate template = new VisionTemplate();
+        try {
+            // Create an OpenCV backend with default properties
+            OpenCvProperties properties = new OpenCvProperties();
+            OpenCvVisionBackend backend = new OpenCvVisionBackend(properties);
 
-        logger.warn("Using default OpenCV backend. For production face embeddings, " +
-            "consider using InsightFace, DeepFace, or FaceBytes backends for better quality.");
+            // IMPORTANT: Initialize the backend so it's in a healthy state
+            backend.initialize();
 
-        return template;
+            // Create VisionTemplate with initialized backend
+            VisionTemplate template = new VisionTemplate(backend);
+
+            logger.info("VisionTemplate initialized successfully with OpenCV backend");
+            logger.warn("Using default OpenCV backend. For production face embeddings, " +
+                "consider using InsightFace, DeepFace, or FaceBytes backends for better quality.");
+
+            return template;
+        } catch (BaseVisionException e) {
+            logger.error("Failed to initialize OpenCV backend", e);
+            throw new RuntimeException("Failed to initialize VisionTemplate", e);
+        }
     }
 }

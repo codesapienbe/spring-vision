@@ -18,7 +18,7 @@ import java.util.Map;
  *
  * <p>It listens for the {@link ContextRefreshedEvent} and then attempts to find a bean of type
  * {@code ToolRegistry}. Since the class name and package for {@code ToolRegistry} has changed
- * across different Spring AI versions, this inspector tries a list of known fully-qualified names.</p>
+ * across different Spring AI versions, this inspector tries a list of known fully qualified names.</p>
  *
  * <p>If a {@code ToolRegistry} bean is found, it uses reflection to call common methods
  * (e.g., {@code listRegisteredTools}, {@code getTools}) to retrieve and log the names of the
@@ -30,7 +30,7 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
     private static final Logger log = LoggerFactory.getLogger(ToolRegistryInspector.class);
 
     /**
-     * An array of fully-qualified class names for the Spring AI {@code ToolRegistry}.
+     * An array of fully qualified class names for the Spring AI {@code ToolRegistry}.
      * This is necessary to support different versions of the Spring AI library where the
      * package structure may have changed.
      */
@@ -65,7 +65,7 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
                 try {
                     registryBean = ctx.getBean(registryClass);
                 } catch (Exception ex) {
-                    // ignore if bean not found, try next class name
+                    // ignore if bean not found, try the next class name
                 }
 
                 if (registryBean != null) {

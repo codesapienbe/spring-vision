@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
   </parent>
 
   <artifactId>mcp</artifactId>
@@ -85,10 +85,10 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Spring Boot Starter (no web) -->
+    <!-- Spring Boot WebFlux Starter for reactive web -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter</artifactId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
     <!-- Jackson for JSON processing -->
@@ -97,10 +97,10 @@
       <artifactId>jackson-databind</artifactId>
     </dependency>
 
-    <!-- Spring AI MCP Server Starter -->
+    <!-- Spring AI MCP Server WebFlux Starter -->
     <dependency>
       <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-starter-mcp-server</artifactId>
+      <artifactId>spring-ai-starter-mcp-server-webflux</artifactId>
     </dependency>
 
     <!-- Spring Boot Test Starter for testing -->

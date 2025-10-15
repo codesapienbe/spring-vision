@@ -6,12 +6,12 @@ import io.github.codesapienbe.springvision.core.VisionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -36,29 +36,52 @@ public class VisionTool {
     // Security constraints
     private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-    private static final HttpClient httpClient = HttpClient.newBuilder()
-        .connectTimeout(REQUEST_TIMEOUT)
-        .followRedirects(HttpClient.Redirect.NORMAL)
-        .build();
+    private final HttpClient httpClient;
 
     /**
-     * Constructs a new VisionTool with the given VisionTemplate.
+     * No-arg constructor used by frameworks that require a default constructor.
+     * Delegates to a default VisionTemplate for convenience in tests and tools.
+     */
+    public VisionTool() {
+        this(new VisionTemplate());
+    }
+
+    /**
+     * Constructs a new VisionTool with the given VisionTemplate and a default HttpClient.
      *
      * @param visionTemplate The VisionTemplate to use for performing vision operations.
      */
+    @Autowired
     public VisionTool(VisionTemplate visionTemplate) {
+        this(visionTemplate, HttpClient.newBuilder()
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build());
+    }
+
+    /**
+     * Package-visible constructor used for testing to inject a custom HttpClient.
+     */
+    VisionTool(VisionTemplate visionTemplate, HttpClient httpClient) {
         this.visionTemplate = visionTemplate;
+        this.httpClient = httpClient == null ? HttpClient.newBuilder()
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build() : httpClient;
         log.info("VisionTool initialized with VisionTemplate backend");
     }
 
     /**
      * Downloads an image from a URL with security constraints and validation.
+     * <p>
+     * Made protected, so unit tests can override this behaviour (serve local images) without
+     * performing network calls. Production behaviour remains the same.
      *
      * @param imageUrl The URL of the image to download.
      * @return A byte array containing the image data.
      * @throws IOException if the image cannot be downloaded or validation fails.
      */
-    private byte[] downloadImageFromUrl(String imageUrl) throws IOException {
+    protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
         log.debug("Attempting to download image from URL: {}", sanitizeUrlForLogging(imageUrl));
 
         try {

@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>spring-vision</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.5</version>
   </parent>
 
   <artifactId>core</artifactId>
@@ -27,6 +27,15 @@
       <groupId>org.bytedeco</groupId>
       <artifactId>opencv</artifactId>
       <version>${opencv.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Platform-specific OpenBLAS native binaries required by OpenCV -->
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>openblas</artifactId>
+      <version>0.3.26-1.5.10</version>
       <classifier>${opencv.classifier}</classifier>
       <scope>runtime</scope>
     </dependency>

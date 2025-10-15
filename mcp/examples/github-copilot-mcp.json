@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "spring-vision": {
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:8081/mcp"
+      }
+    }
+  }
+}

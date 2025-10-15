@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+
+  spring-vision-mcp:
+    image: codesapienbe/spring-vision:latest
+    container_name: spring-vision-mcp
+    ports:
+      - "8081:8081"  # Map host port 8081 to container port 8081
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SERVER_PORT=8081
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - spring-vision-network
+
+networks:
+  spring-vision-network:
+    driver: bridge
+
