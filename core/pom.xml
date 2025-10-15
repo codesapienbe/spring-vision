@@ -199,6 +199,12 @@
 
   <build>
     <resources>
+      <!-- Include standard src/main/resources (contains pre-downloaded models) -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+      </resource>
+      <!-- Include generated resources from maven-download-plugin -->
       <resource>
         <directory>${project.build.directory}/generated-resources</directory>
         <filtering>false</filtering>
@@ -267,7 +273,7 @@
               <overwrite>false</overwrite>
             </configuration>
           </execution>
-          <!-- Haar cascades and LBP cascades expected at classpath root -->
+          <!-- Haar cascades and LBP cascades - download to models subdirectory -->
           <execution>
             <id>download-haar-face</id>
             <phase>generate-resources</phase>
@@ -278,7 +284,7 @@
               <url>
                 https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
               </url>
-              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
               <outputFileName>haarcascade_frontalface_default.xml</outputFileName>
               <skipCache>true</skipCache>
               <overwrite>false</overwrite>
@@ -292,7 +298,7 @@
             </goals>
             <configuration>
               <url>https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml</url>
-              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
               <outputFileName>haarcascade_eye.xml</outputFileName>
               <skipCache>true</skipCache>
               <overwrite>false</overwrite>
@@ -308,7 +314,7 @@
               <url>
                 https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml
               </url>
-              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
               <outputFileName>haarcascade_profileface.xml</outputFileName>
               <skipCache>true</skipCache>
               <overwrite>false</overwrite>
@@ -323,12 +329,31 @@
             <configuration>
               <url>https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml
               </url>
-              <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
               <outputFileName>lbpcascade_frontalface.xml</outputFileName>
               <skipCache>true</skipCache>
               <overwrite>false</overwrite>
             </configuration>
           </execution>
+          <!-- DNN face detector prototxt file (removed caffemodel due to download issues; YuNet is superior anyway :)) ) -->
+          <execution>
+            <id>download-dnn-prototxt</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>deploy.prototxt</outputFileName>
+              <skipCache>true</skipCache>
+              <overwrite>false</overwrite>
+            </configuration>
+          </execution>
+          <!-- Note: DNN Caffe model download removed due to GitHub timeout issues.
+               YuNet (ONNX) provides superior detection accuracy and is already included above. -->
         </executions>
       </plugin>
     </plugins>
