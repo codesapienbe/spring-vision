@@ -5,7 +5,6 @@ import io.github.codesapienbe.springvision.core.capabilities.*;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
-import io.github.codesapienbe.springvision.core.util.EmbeddingSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -588,19 +587,37 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
             "backendId", getBackendId()
         ));
 
-        // Route through EmbeddingCapability if available
+        // Require backend to implement EmbeddingCapability. Do not fall back to a central EmbeddingSupport.
         List<float[]> embeddings;
         if (backend instanceof EmbeddingCapability cap) {
             embeddings = cap.extractEmbeddings(imageData, DetectionCategory.FACE);
         } else {
-            // Fall back to default support (e.g., FaceBytes)
-            embeddings = EmbeddingSupport.defaultExtractEmbeddings(imageData);
+            throw new VisionUnsupportedException(
+                String.format("Embedding extraction is not supported by backend '%s'", getBackendId()),
+                "extractEmbeddings",
+                null
+            );
+        }
+
+        // Validate embeddings result to prevent null pointer exceptions
+        if (embeddings == null) {
+            logger.warn("Embedding extraction returned null result", Map.of(
+                "correlationId", correlationId,
+                "backendId", getBackendId()
+            ));
+            embeddings = List.of();
+        } else if (embeddings.isEmpty()) {
+            logger.debug("No embeddings extracted from image", Map.of(
+                "correlationId", correlationId,
+                "reason", "No faces detected or face detection failed",
+                "backendId", getBackendId()
+            ));
         }
 
         long processingTime = System.currentTimeMillis() - startTime;
         logger.info("Embedding extraction completed", Map.of(
             "correlationId", correlationId,
-            "embeddingsCount", embeddings == null ? 0 : embeddings.size(),
+            "embeddingsCount", embeddings.size(),
             "processingTimeMs", processingTime,
             "backendId", getBackendId()
         ));
@@ -633,13 +650,16 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
             "backendId", getBackendId()
         ));
 
-        // Route through FaceVerificationCapability if available
+        // Require backend to implement FaceVerificationCapability. Do not fall back to EmbeddingSupport.
         boolean result;
         if (backend instanceof FaceVerificationCapability cap) {
             result = cap.verify(a, b, metric, threshold);
         } else {
-            // Fall back to default support
-            result = EmbeddingSupport.defaultVerify(a, b, metric, threshold);
+            throw new VisionUnsupportedException(
+                String.format("Face verification is not supported by backend '%s'", getBackendId()),
+                "verify",
+                null
+            );
         }
 
         long processingTime = System.currentTimeMillis() - startTime;

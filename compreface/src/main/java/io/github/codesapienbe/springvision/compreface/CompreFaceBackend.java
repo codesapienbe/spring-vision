@@ -581,6 +581,72 @@ public class CompreFaceBackend implements VisionBackend, FaceDetectionCapability
      */
     @Override
     public java.util.List<java.lang.Integer> findNearestEmbeddings(io.github.codesapienbe.springvision.core.ImageData probeImage, float[] probeEmbedding, java.util.List<float[]> galleryEmbeddings, java.lang.String metric, int topK) throws io.github.codesapienbe.springvision.core.exception.BaseVisionException {
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, probeEmbedding, galleryEmbeddings, metric, topK);
+        // Simple in-memory fallback nearest neighbor search (backend-specific implementations may override)
+        if (galleryEmbeddings == null || galleryEmbeddings.isEmpty()) throw new IllegalArgumentException("Gallery embeddings must not be null or empty");
+        try {
+            float[] probe = probeEmbedding;
+            if (probe == null) {
+                if (probeImage == null) throw new IllegalArgumentException("Either probeImage or probeEmbedding must be provided");
+                List<float[]> pe = extractEmbeddings(probeImage, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+                if (pe == null || pe.isEmpty()) throw new io.github.codesapienbe.springvision.core.exception.BaseVisionException("Failed to extract probe embedding", null) {};
+                probe = pe.get(0);
+            }
+            float[] probeNorm = probe.clone();
+            if (!"euclidean".equalsIgnoreCase(metric)) probeNorm = l2Normalize(probeNorm);
+            List<java.util.Map.Entry<Integer, Double>> list = new ArrayList<>();
+            for (int i = 0; i < galleryEmbeddings.size(); i++) {
+                float[] g = galleryEmbeddings.get(i);
+                if (g == null) continue;
+                float[] gNorm = g.clone();
+                if (!"euclidean".equalsIgnoreCase(metric)) gNorm = l2Normalize(gNorm);
+                double dist = "euclidean".equalsIgnoreCase(metric) ? euclideanDistance(probeNorm, gNorm) : cosineDistance(probeNorm, gNorm);
+                if (Double.isNaN(dist)) continue;
+                list.add(new java.util.AbstractMap.SimpleEntry<>(i, dist));
+            }
+            list.sort(java.util.Comparator.comparingDouble(java.util.Map.Entry::getValue));
+            int k = Math.max(0, Math.min(topK, list.size()));
+            List<Integer> out = new ArrayList<>(k);
+            for (int i = 0; i < k; i++) out.add(list.get(i).getKey());
+            return out;
+        } catch (io.github.codesapienbe.springvision.core.exception.BaseVisionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new io.github.codesapienbe.springvision.core.exception.BaseVisionException("Failed to find nearest embeddings: " + e.getMessage(), e) {};
+        }
+    }
+
+    // Helper numeric utilities copied from EmbeddingSupport (local to CompreFaceBackend)
+    private static float[] l2Normalize(float[] vec) {
+        if (vec == null || vec.length == 0) return vec;
+        double s = 0.0;
+        for (float v : vec) s += v * v;
+        s = Math.sqrt(s);
+        if (s <= 0) return vec;
+        float[] out = new float[vec.length];
+        for (int i = 0; i < vec.length; i++) out[i] = (float) (vec[i] / s);
+        return out;
+    }
+
+    private static double euclideanDistance(float[] a, float[] b) {
+        if (a == null || b == null || a.length != b.length) return Double.NaN;
+        double s = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            double d = a[i] - b[i];
+            s += d * d;
+        }
+        return Math.sqrt(s);
+    }
+
+    private static double cosineDistance(float[] a, float[] b) {
+        if (a == null || b == null || a.length != b.length) return Double.NaN;
+        double dot = 0.0, na = 0.0, nb = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        if (na <= 0 || nb <= 0) return Double.NaN;
+        double sim = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        return 1.0 - sim;
     }
 }

@@ -212,9 +212,24 @@ public class VisionTool {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            response.put("message", "Failed to extract embeddings: " + e.getMessage());
+            
+            // Handle null exception messages by using the exception class name or cause chain
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+            
+            response.put("message", "Failed to extract embeddings: " + errorMsg);
             response.put("embeddings", List.of());
             response.put("processingTimeMs", duration);
+            
+            // Log full error for debugging
+            log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            
             return response;
         }
     }
