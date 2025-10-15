@@ -57,4 +57,15 @@ public interface VectorService {
                                                Integer limit,
                                                Set<String> includePersonIds,
                                                Set<String> excludePersonIds);
+
+    /**
+     * Find stored entries that match the given image hash.
+     * Returns a list of maps containing at least keys: "embeddingId", "personId", "modelName", "createdAt".
+     */
+    List<Map<String, Object>> findEntriesByImageHash(String imageHash);
+
+    /**
+     * Delete a stored embedding by its id.
+     */
+    void deleteEmbeddingById(String embeddingId);
 }

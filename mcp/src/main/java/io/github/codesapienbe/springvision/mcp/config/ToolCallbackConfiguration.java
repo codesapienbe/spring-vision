@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
 import io.github.codesapienbe.springvision.mcp.VisionTool;
+import io.github.codesapienbe.springvision.core.VectorService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
@@ -36,5 +37,10 @@ public class ToolCallbackConfiguration {
             builder.toolObjects(visionTool);
         }
         return builder.build();
+    }
+
+    @Bean
+    public VectorService inMemoryVectorService() {
+        return new io.github.codesapienbe.springvision.mcp.config.InMemoryVectorService();
     }
 }

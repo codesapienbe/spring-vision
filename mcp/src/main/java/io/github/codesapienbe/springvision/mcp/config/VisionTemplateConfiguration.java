@@ -1,5 +1,6 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
+import io.github.codesapienbe.springvision.core.VectorService;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
 import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
@@ -48,7 +49,7 @@ public class VisionTemplateConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public VisionTemplate visionTemplate() {
+    public VisionTemplate visionTemplate(VectorService vectorService) {
         logger.info("Initializing VisionTemplate with backend: {}", backendType);
 
         try {
@@ -59,8 +60,8 @@ public class VisionTemplateConfiguration {
             // IMPORTANT: Initialize the backend so it's in a healthy state
             backend.initialize();
 
-            // Create VisionTemplate with initialized backend
-            VisionTemplate template = new VisionTemplate(backend);
+            // Create VisionTemplate with initialized backend and provided VectorService
+            VisionTemplate template = new VisionTemplate(backend, vectorService);
 
             logger.info("VisionTemplate initialized successfully with OpenCV backend");
             logger.warn("Using default OpenCV backend. For production face embeddings, " +
