@@ -187,6 +187,11 @@ All logs follow this JSON structure:
 }
 ```
 
+
+## Example Prompts
+
+>> Count faces in https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg
+
 ### Key Features
 
 ✅ **No parsing issues**: Every log is valid JSON  
