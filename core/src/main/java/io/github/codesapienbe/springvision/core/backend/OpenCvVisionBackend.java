@@ -203,12 +203,12 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     private static final int MAX_SAFE_DIMENSION = 4000;     // Cap either width or height to 4K
 
     // Configuration properties
-    private boolean enabled = true;
-    private double confidenceThreshold = 0.8;
-    private int maxDetections = 10;
-    private boolean enableAutoDownload = true;
-    private int downloadTimeoutSeconds = 30;
-    private String modelPath = "classpath:/models";
+    private final boolean enabled = true;
+    private final double confidenceThreshold = 0.8;
+    private final int maxDetections = 10;
+    private final boolean enableAutoDownload = true;
+    private final int downloadTimeoutSeconds = 30;
+    private final String modelPath = "classpath:/models";
     private int maxPoolSize = 5;
     private int poolTimeoutSeconds = 60;
 
@@ -738,7 +738,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         }
 
         logger.info("Face cascade loading completed. Cascade available: {}",
-            faceCascade != null && faceCascade.empty() == false);
+            faceCascade != null && !faceCascade.empty());
     }
 
     /**
@@ -1092,8 +1092,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
 
         int sCols = src.cols();
         int sRows = src.rows();
-        int numDetections = (int) detectionsMat.size(2);
-        int step = (int) detectionsMat.size(3);
+        int numDetections = detectionsMat.size(2);
+        int step = detectionsMat.size(3);
         FloatPointer data = new FloatPointer(detectionsMat.data());
 
         for (int i = 0; i < numDetections; i++) {
@@ -1112,10 +1112,10 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
                 y2 /= scale;
             }
 
-            int left = (int) Math.max(0, Math.min(cols - 1, Math.round(x1)));
-            int top = (int) Math.max(0, Math.min(rows - 1, Math.round(y1)));
-            int right = (int) Math.max(0, Math.min(cols - 1, Math.round(x2)));
-            int bottom = (int) Math.max(0, Math.min(rows - 1, Math.round(y2)));
+            int left = Math.max(0, Math.min(cols - 1, Math.round(x1)));
+            int top = Math.max(0, Math.min(rows - 1, Math.round(y1)));
+            int right = Math.max(0, Math.min(cols - 1, Math.round(x2)));
+            int bottom = Math.max(0, Math.min(rows - 1, Math.round(y2)));
             int widthPx = Math.max(1, right - left);
             int heightPx = Math.max(1, bottom - top);
 
@@ -1468,11 +1468,11 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             Mat det = new Mat();
             yuNetDetector.detect(src, det);
             if (!det.empty()) {
-                int rows = (int) det.size(0);
-                int step = (int) det.size(1); // expected 15
+                int rows = det.size(0);
+                int step = det.size(1); // expected 15
                 FloatPointer dp = new FloatPointer(det.data());
                 for (int i = 0; i < rows; i++) {
-                    float x = dp.get((long) i * step + 0);
+                    float x = dp.get((long) i * step);
                     float y = dp.get((long) i * step + 1);
                     float w = dp.get((long) i * step + 2);
                     float h = dp.get((long) i * step + 3);
@@ -1582,7 +1582,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         float[] out = new float[channels * h * w];
         try {
             // Read byte data from Mat; OpenCV Mat stores BGR by default
-            org.bytedeco.javacpp.BytePointer bp = (org.bytedeco.javacpp.BytePointer) mat.data();
+            org.bytedeco.javacpp.BytePointer bp = mat.data();
             int stride = w * mat.channels();
             byte[] rowBuf = new byte[stride];
             int idxB = 0;
@@ -1633,41 +1633,58 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
      * Resolve model by checking classpath, then a local cache under user home, then downloading to cache from URLs.
      */
     private String resolveModel(String classpathResource, String[] urls, String cacheFileName) {
-        // 1) Classpath
+        // 1) Try to load from classpath first
         try (java.io.InputStream is = getClass().getResourceAsStream(classpathResource)) {
             if (is != null) {
+                logger.debug("Found model in classpath: {}", classpathResource);
                 File tmp = File.createTempFile("sv-model-", cacheFileName);
                 tmp.deleteOnExit();
                 Files.copy(is, tmp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                logger.info("Model loaded from classpath: {} -> {}", classpathResource, tmp.getAbsolutePath());
                 return tmp.getAbsolutePath();
+            } else {
+                logger.debug("Model not found in classpath: {}", classpathResource);
             }
-        } catch (Exception ignore) {
+        } catch (Exception e) {
+            logger.debug("Failed to load model from classpath {}: {}", classpathResource, e.getMessage());
         }
 
-        // 2) User cache
+        // 2) Check user cache directory
         try {
             Path base = getModelsBaseDir();
+            Files.createDirectories(base); // Ensure directory exists
             Path cached = base.resolve(cacheFileName);
             if (Files.exists(cached)) {
+                logger.info("Model found in cache: {}", cached.toAbsolutePath());
                 return cached.toAbsolutePath().toString();
             }
-            // 3) Download to cache
+
+            // 3) Try to download to cache
+            logger.debug("Attempting to download model: {}", cacheFileName);
             for (String u : urls) {
                 try {
+                    logger.debug("Trying download URL: {}", u);
                     java.net.URL url = new java.net.URL(u);
                     try (java.io.InputStream in = openWithTimeout(url, 6000, 15000)) {
                         Files.copy(in, cached, StandardCopyOption.REPLACE_EXISTING);
+                        logger.info("Model downloaded successfully: {} -> {}", u, cached.toAbsolutePath());
                         return cached.toAbsolutePath().toString();
                     }
-                } catch (Exception ignore) { /* try next */ }
+                } catch (Exception e) {
+                    logger.debug("Failed to download from {}: {}", u, e.getMessage());
+                }
             }
-        } catch (Exception ignore) {
+            logger.warn("Failed to download model from any URL: {}", cacheFileName);
+        } catch (Exception e) {
+            logger.warn("Error accessing cache directory: {}", e.getMessage());
         }
+
+        logger.warn("Could not resolve model: {} (classpath: {})", cacheFileName, classpathResource);
         return null;
     }
 
     private Path getModelsBaseDir() {
-        // Use ModelResourceLoader cache directory for consistency
+        // Use the ModelResourceLoader cache directory for consistency
         return Paths.get(System.getProperty("user.home", "."), ".spring-vision", "models", "opencv");
     }
 
@@ -1789,7 +1806,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             }
             double variance = std * std;
 
-            // Normalize variance to [0,1] with soft threshold ~100
+            // Normalize variance to [0,1] with a soft threshold ~100
             double blurScore = Math.min(1.0, variance / 100.0);
 
             // Illumination score: prefer mid-tones around ~128
@@ -1912,14 +1929,14 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
                         int pixelSize = Math.max(8, Math.min(width, height) / 12); // Adaptive pixel size
 
                         // Downscale then upscale for pixelation effect
-                        org.bytedeco.opencv.global.opencv_imgproc.resize(
+                        resize(
                             doubleBlurredFace,
                             pixelated,
                             new Size(Math.max(1, width / pixelSize), Math.max(1, height / pixelSize)),
                             0, 0,
                             org.bytedeco.opencv.global.opencv_imgproc.INTER_LINEAR
                         );
-                        org.bytedeco.opencv.global.opencv_imgproc.resize(
+                        resize(
                             pixelated,
                             doubleBlurredFace,
                             new Size(width, height),
@@ -2011,7 +2028,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             int minDim = Math.max(1, Math.min(imgW, imgH));
             double fontScale = Math.max(0.4, Math.min(2.5, minDim / 600.0));
             int thickness = Math.max(1, (int) Math.round(fontScale * 2));
-            int baseline[] = new int[1];
+            int[] baseline = new int[1];
 
             for (Detection face : faces) {
                 BoundingBox bbox = face.boundingBox();

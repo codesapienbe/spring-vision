@@ -1,190 +1,87 @@
-# FaceBytes Models
+# OpenCV Models for Spring Vision
 
-This directory contains face detection and recognition models for the FaceBytes module.
+This directory contains pre-trained models for face detection and recognition.
 
-## Bundled Models
+## Model Loading Strategy
 
-### Haar Cascade Face Detector
+Spring Vision uses a multi-detector fusion approach with the following priority:
 
-- **File**: `haarcascades/haarcascade_frontalface_default.xml`
-- **Size**: ~909 KB
-- **Description**: OpenCV Haar Cascade classifier for frontal face detection
-- **Status**: ✅ Already bundled
+1. **YuNet (Primary)** - Modern ONNX-based detector, highest accuracy
+2. **Haar Cascades (Fallback)** - Classic OpenCV detectors, always available
+3. **DNN-SSD (Optional)** - ResNet-based detector, provides additional coverage
 
-## Additional Models (Auto-downloaded)
+## Required Models
 
-The following models are downloaded automatically when needed:
+These models are essential and should always be present:
 
-### RetinaFace (Face Detection)
+- `haarcascade_frontalface_default.xml` - Haar cascade for frontal faces
+- `haarcascade_eye.xml` - Eye detection for face validation
+- `haarcascade_profileface.xml` - Profile face detection
+- `lbpcascade_frontalface.xml` - LBP cascade (better for diverse skin tones)
+- `face_detection_yunet_2023mar.onnx` - YuNet face detector (recommended)
 
-- **File**: `retinaface_r50.onnx`
-- **Size**: ~109 MB
-- **Description**: RetinaFace detector with ResNet-50 backbone
-- **Download URL**: Configured in ModelUrls class
-- **Accuracy**: High precision face detection with landmarks
+## Optional Models
 
-### ArcFace (Face Recognition)
+These models provide enhanced functionality but are not required:
 
-- **File**: `arcface_r100.onnx`
-- **Size**: ~250 MB
-- **Description**: ArcFace embedding model with ResNet-100 backbone
-- **Download URL**: Configured in ModelUrls class
-- **Features**: 512-dimensional face embeddings
-
-### SFace (Face Recognition - Lightweight)
-
-- **File**: `sface.onnx`
-- **Size**: ~37 MB
-- **Description**: Lightweight face recognition model from OpenCV
-- **Download URL**: OpenCV Zoo
-- **Features**: Fast 128-dimensional embeddings
-
-## Model Loading Priority
-
-The FaceBytes module uses the following priority when loading models:
-
-1. **Classpath resources** (this directory) - highest priority
-2. **Configured external path** - if specified in configuration
-3. **User cache** (~/.spring-vision/facebytes/models/) - for backwards compatibility
-4. **Auto-download** - downloads from configured URLs if not found
-
-## Configuration
-
-### Using Bundled Models (Default)
-
-```yaml
-facebytes:
-  auto_download: true  # Enable auto-download for ONNX models
-```
-
-### Disable Auto-download
-
-```yaml
-facebytes:
-  auto_download: false  # Disable auto-download, use only bundled/cached models
-```
-
-### Custom Model Paths
-
-```yaml
-facebytes:
-  detector:
-    retinaface:
-      onnx_path: /path/to/custom/retinaface.onnx
-  recognizer:
-    arcface:
-      onnx_path: /path/to/custom/arcface.onnx
-```
-
-## Adding Models Manually
-
-To manually download and bundle models:
-
-```bash
-cd facebytes/src/main/resources/models/
-
-# Create directories
-mkdir -p detection recognition
-
-# Download models (URLs from ModelUrls.java)
-# Note: Check the actual URLs in the source code
-wget <MODEL_URL> -O detection/retinaface_r50.onnx
-wget <MODEL_URL> -O recognition/arcface_r100.onnx
-```
-
-## Model Checksums
-
-The module verifies model integrity using SHA-256 checksums. Checksums are defined in `ModelUrls.checksums()` method.
-
-## License
-
-- **Haar Cascades**: BSD License (OpenCV)
-- **RetinaFace**: MIT License
-- **ArcFace**: Apache 2.0 License
-- **SFace**: Apache 2.0 License (OpenCV)
-
-Please verify licenses before redistribution.
-
-# MediaPipe Models
-
-This directory contains MediaPipe models bundled with the application for offline use.
-
-## Bundled Models
-
-Currently, this directory is prepared to contain the following models:
-
-### Face Detection
-
-- **File**: `face_detection_short_range.tflite`
-- **URL**: https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite
-- **Size**: ~1 MB
-- **Description**: BlazeFace short-range face detector (optimized for faces close to camera)
-
-### Hand Landmarks
-
-- **File**: `hand_landmarker.task`
-- **URL**: https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
-- **Size**: ~10 MB
-- **Description**: Hand landmark detection with 21 keypoints per hand
-
-### Pose Landmarks
-
-- **File**: `pose_landmarker_lite.task`
-- **URL**: https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
-- **Size**: ~5 MB
-- **Description**: Lightweight pose landmark detection with 33 body keypoints
-
-### Object Detection
-
-- **File**: `efficientdet_lite0.tflite`
-- **URL**: https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite
-- **Size**: ~4 MB
-- **Description**: EfficientDet Lite0 for general object detection (COCO classes)
+- `res10_300x300_ssd_iter_140000_fp16.caffemodel` - DNN-SSD face detector (~5MB)
+- `deploy.prototxt` - DNN-SSD configuration
+- `face_recognition_sface_2021dec.onnx` - Face recognition/embeddings (~37MB)
 
 ## Downloading Models
 
-To download all models for bundling:
+Run the download script to fetch all models:
 
 ```bash
-cd mediapipe/src/main/resources/models/
-
-# Face detection
-wget https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite \
-  -O face_detection_short_range.tflite
-
-# Hand landmarks
-wget https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
-
-# Pose landmarks
-wget https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
-
-# Object detection
-wget https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite
+./scripts/download-models.sh
 ```
 
-## Model Loading Priority
+The script will:
 
-The MediaPipe backend uses the following priority when loading models:
+1. Download all required models automatically
+2. Prompt for optional models (DNN-SSD caffemodel, quantized SFace)
+3. Report download status and total size
 
-1. **Classpath resources** (this directory) - highest priority
-2. **Configured external path** - if specified in configuration
-3. **User cache** (~/.spring-vision/models/mediapipe/) - for backwards compatibility
-4. **Auto-download** - downloads from Google's CDN if not found
+## Model Fallback Behavior
 
-## Usage
+If optional models are missing, the system will:
 
-Models in this directory are automatically loaded by the MediaPipe backend. No configuration is needed:
+1. **No DNN-SSD caffemodel**: Use YuNet + Haar cascades (recommended default)
+2. **No YuNet**: Use DNN-SSD + Haar cascades
+3. **No SFace**: Face recognition features disabled, detection still works
+4. **Only Haar cascades**: Basic detection works but with lower accuracy
 
-```yaml
-spring:
-  vision:
-    mediapipe:
-      enabled: true
-      # modelPath: classpath:/models (default)
-```
+## Current Status
 
-## License
+The system is designed to work optimally with:
 
-MediaPipe models are provided by Google under the Apache 2.0 License.
-See: https://github.com/google/mediapipe/blob/master/LICENSE
+- **YuNet + Haar Cascades** (default configuration)
+- Total size: ~10MB (without DNN-SSD caffemodel)
+
+Adding the DNN-SSD caffemodel increases size by ~5MB but provides minimal benefit over YuNet.
+
+## Troubleshooting
+
+### Models not loading from classpath
+
+If you see warnings about models not loading:
+
+1. Verify models exist in this directory
+2. Run `mvn clean install` to rebuild the JAR with models included
+3. Check logs for "Model loaded from classpath" messages
+
+### Native library issues
+
+In headless environments, you may see warnings about `jniopencv_highgui` - this is expected and normal. The system will skip GUI-dependent features and work correctly.
+
+### YuNet initialization failures
+
+If YuNet fails with `opencv_highgui` errors, the system will fall back to Haar cascades automatically.
+
+## Model Sources
+
+- **Haar/LBP Cascades**: https://github.com/opencv/opencv
+- **YuNet**: https://github.com/opencv/opencv_zoo
+- **DNN-SSD**: https://github.com/opencv/opencv_3rdparty
+- **SFace**: https://huggingface.co/opencv/face_recognition_sface
 
