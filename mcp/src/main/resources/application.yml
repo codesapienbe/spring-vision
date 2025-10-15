@@ -10,10 +10,6 @@ spring:
     web-application-type: reactive  # Enable reactive web for WebFlux
     banner-mode: off  # Disable banner for cleaner output
 
-  # Lifecycle settings
-  lifecycle:
-    timeout-per-shutdown-phase: 30s
-
   # Jackson JSON configuration
   jackson:
     serialization:
@@ -30,9 +26,12 @@ spring:
   ai:
     mcp:
       server:
-        transport: sse  # Use SSE (Server-Sent Events) over HTTP instead of stdio
+        transport: sse  # Use SSE (Server-Sent Events) over HTTP
+        sse:
+          path: /mcp/sse  # SSE endpoint path
         name: spring-vision
-        version: "1.0.4"
+        version: "1.0.3"
+        description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
 # Server settings
 server:
@@ -44,4 +43,6 @@ logging:
     root: INFO
     io.github.codesapienbe.springvision: INFO
     org.springframework.ai.mcp: DEBUG
+    org.springframework.ai.mcp.server: DEBUG
     io.modelcontextprotocol: INFO
+    org.springframework.web.reactive: DEBUG
