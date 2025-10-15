@@ -2,7 +2,8 @@
 
   <springProfile name="default">
     <!-- Console appender with colors and a clean pattern -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- route console output to STDERR to avoid interfering with MCP stdio transport -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender" target="System.err">
       <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
         <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight([%thread]) %highlight(%-5level) %cyan(%logger{36}) - %msg%n%ex
         </pattern>

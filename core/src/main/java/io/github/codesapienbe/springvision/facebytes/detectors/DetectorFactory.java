@@ -6,6 +6,9 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Factory for face detectors with singleton caching to avoid repeated native/ONNX initializations.
  */
@@ -14,11 +17,14 @@ public final class DetectorFactory {
     private DetectorFactory() {
     }
 
+    private static final Logger log = LoggerFactory.getLogger(DetectorFactory.class);
+
     // Memory-friendly cache using weak references so detectors can be GC'd under memory pressure
     private static final Map<DetectorBackend, WeakReference<FaceDetector>> detectorCache = new ConcurrentHashMap<>();
 
     /**
      * Returns the default detector backend instance (RetinaFace if available; falls back internally when missing).
+     *
      * @return the default face detector instance
      */
     public static FaceDetector createDefault() {
@@ -26,13 +32,14 @@ public final class DetectorFactory {
             return getRetinaFace();
         } catch (Exception e) {
             // If all advanced detectors fail, fall back to OpenCV
-            System.err.println("Default detector failed, using OpenCV fallback: " + e.getMessage());
+            log.warn("Default detector failed, using OpenCV fallback: {}", e.getMessage(), e);
             return getOpenCv();
         }
     }
 
     /**
      * Returns a detector instance for the requested backend, reusing cached instances when available.
+     *
      * @param backend the requested detector backend
      * @return a face detector instance for the specified backend
      */
@@ -55,7 +62,7 @@ public final class DetectorFactory {
             }
         } catch (Exception e) {
             // If the requested detector fails, fall back to OpenCV
-            System.err.println("Requested detector " + backend + " failed, using OpenCV fallback: " + e.getMessage());
+            log.warn("Requested detector {} failed, using OpenCV fallback: {}", backend, e.getMessage(), e);
             return getOpenCv();
         }
     }
@@ -89,7 +96,7 @@ public final class DetectorFactory {
                         detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
-                        System.err.println("RetinaFace detector initialization failed: " + e.getMessage());
+                        log.error("RetinaFace detector initialization failed: {}", e.getMessage(), e);
                         throw new RuntimeException("RetinaFace detector initialization failed", e);
                     }
                 }
@@ -111,7 +118,7 @@ public final class DetectorFactory {
                         detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
-                        System.err.println("Dlib detector initialization failed: " + e.getMessage());
+                        log.error("Dlib detector initialization failed: {}", e.getMessage(), e);
                         throw new RuntimeException("Dlib detector initialization failed", e);
                     }
                 }
@@ -133,7 +140,7 @@ public final class DetectorFactory {
                         detectorCache.put(key, new WeakReference<>(inst));
                     } catch (Exception e) {
                         // Log the error and throw exception - can't return different type
-                        System.err.println("MTCNN detector initialization failed: " + e.getMessage());
+                        log.error("MTCNN detector initialization failed: {}", e.getMessage(), e);
                         throw new RuntimeException("MTCNN detector initialization failed", e);
                     }
                 }

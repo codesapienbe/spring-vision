@@ -23,6 +23,9 @@ import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * OpenCV-based face detector using Haar cascade classifiers.
  * Provides robust face detection with proper native resource management.
@@ -36,6 +39,8 @@ public final class OpenCVDetector implements FaceDetector {
     private static final String CASCADE_GENERATED = "models/haarcascades/haarcascade_frontalface_default.xml";
     private static final String CASCADE_URL =
         "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml";
+
+    private static final Logger log = LoggerFactory.getLogger(OpenCVDetector.class);
 
     private final CascadeClassifier classifier;
     private final OpenCVFrameConverter.ToMat toMat = new OpenCVFrameConverter.ToMat();
@@ -101,7 +106,7 @@ public final class OpenCVDetector implements FaceDetector {
 
         } catch (Exception e) {
             // Log error and return empty list to prevent crashes
-            System.err.println("Face detection failed: " + e.getMessage());
+            log.error("Face detection failed: {}", e.getMessage(), e);
             return List.of();
         } finally {
             // Properly deallocate native resources
