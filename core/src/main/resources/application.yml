@@ -1,41 +1,28 @@
-# Spring Vision Core Configuration
-# For comprehensive documentation, see: docs/gpu.md
+# Default configuration for FaceBytes module (can be overridden by env vars or system properties)
+# Environment variables map to properties using the typical Spring relaxed binding:
+#   FACEBYTES_TEMPLATE_ARCFACE -> facebytes.template.arcface
+#   FACEBYTES_NORM_MEAN -> facebytes.norm.mean
 
-spring:
-  vision:
-    # ONNX Runtime Execution Provider
-    # Supported values: cpu (default), gpu
-    # GPU requires CUDA-compatible hardware, drivers, and building with -P gpu profile
-    execution-provider: cpu
+# Landmark templates expressed as comma-separated values for a 112px reference crop:
+# leftEyeX,leftEyeY,rightEyeX,rightEyeY,noseX,noseY
+facebytes:
+  template:
+    arcface: "38.2946,51.6963,73.5318,51.5014,56.0252,71.7366"
+    sface:   "36.0,50.0,76.0,50.0,56.0,74.0"
+    vgg:     "34.0,48.0,78.0,48.0,56.0,70.0"
 
-    # Vision backend selection
-    # Supported backends: opencv (default), mediapipe, yolo, deepface, facebytes
-    backend: opencv
-    enabled: true
-    fail-fast: true
+  # Normalization defaults applied by DeepFaceConfig when creating model inputs
+  norm:
+    mean: "0.0,0.0,0.0"
+    std:  "1.0,1.0,1.0"
 
-    # OpenCV Configuration
-    opencv:
-      enabled: true
-      confidence-threshold: 0.7
-      min-face-size-ratio: 0.1
-      max-face-size-ratio: 0.8
-      gpu-acceleration: false
-      max-image-size: 10485760  # 10MB
+  # Color space used for model inputs (RGB or BGR)
+  color:
+    space: "RGB"
 
-    # Health Monitoring
-    health:
-      enabled: true
-      check-interval: 30000  # 30 seconds
-      max-response-time: 5000  # 5 seconds
-
-    # Metrics
-    metrics:
-      enabled: true
-      collection-interval: 60000  # 60 seconds
-      detailed: false
-
-    # ONNX Model Configuration
-    model:
-      onnx:
-        enabled: true
+  # Model download and management defaults
+  auto_download: true
+  download:
+    connect_timeout_ms: 10000
+    read_timeout_ms: 20000
+    allow_insecure: false 

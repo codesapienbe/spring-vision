@@ -1,2 +1,2 @@
-io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration
-io.github.codesapienbe.springvision.core.config.FaceRecognitionAutoConfiguration
+io.github.codesapienbe.springvision.facebytes.config.FaceBytesAutoConfiguration
+

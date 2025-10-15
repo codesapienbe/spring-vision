@@ -155,6 +155,37 @@
       <artifactId>onnxruntime</artifactId>
       <optional>true</optional>
     </dependency>
+
+    <!-- Tesseract OCR (migrated from tesseract module) -->
+    <dependency>
+      <groupId>net.sourceforge.tess4j</groupId>
+      <artifactId>tess4j</artifactId>
+      <version>5.9.0</version>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- OpenPnP OpenCV for YOLO (migrated from yolo module) -->
+    <dependency>
+      <groupId>org.openpnp</groupId>
+      <artifactId>opencv</artifactId>
+      <version>4.9.0-0</version>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Dependencies from facebytes module (migrated) -->
+    <!-- Apache Commons Math3 for mathematical operations -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- DJL API (optional) -->
+    <dependency>
+      <groupId>ai.djl</groupId>
+      <artifactId>api</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
 
   <build>
