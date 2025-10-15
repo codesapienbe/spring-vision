@@ -68,4 +68,10 @@ public interface VectorService {
      * Delete a stored embedding by its id.
      */
     void deleteEmbeddingById(String embeddingId);
+
+    /**
+     * Find stored entries for a given person id.
+     * Returns a list of maps containing at least keys: "embeddingId", "personId", "modelName", "createdAt".
+     */
+    List<Map<String, Object>> findEntriesByPersonId(String personId);
 }

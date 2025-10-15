@@ -84,7 +84,6 @@ public final class EmbeddingSupport {
         return faceBytesAvailable;
     }
 
-    @SuppressWarnings("unchecked")
     private static List<float[]> extractEmbeddingsWithFaceBytes(BufferedImage img) throws Exception {
         List<?> results = (List<?>) representMethod.invoke(null, img);
         List<float[]> embeddings = new ArrayList<>(results.size());

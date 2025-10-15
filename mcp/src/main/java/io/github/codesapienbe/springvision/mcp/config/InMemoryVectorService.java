@@ -107,6 +107,23 @@ public class InMemoryVectorService implements VectorService {
         store.remove(embeddingId);
     }
 
+    @Override
+    public List<Map<String, Object>> findEntriesByPersonId(String personId) {
+        if (personId == null) return Collections.emptyList();
+        List<Map<String,Object>> out = new ArrayList<>();
+        for (Entry e : store.values()) {
+            if (personId.equals(e.personId)) {
+                Map<String,Object> m = new HashMap<>();
+                m.put("embeddingId", e.id);
+                m.put("personId", e.personId);
+                m.put("modelName", e.modelName);
+                m.put("createdAt", e.createdAt.toString());
+                out.add(m);
+            }
+        }
+        return out;
+    }
+
     private static double distance(float[] a, float[] b, String metric) {
         if (a == null || b == null || a.length != b.length) return Double.POSITIVE_INFINITY;
         if (metric == null || "cosine".equalsIgnoreCase(metric)) {

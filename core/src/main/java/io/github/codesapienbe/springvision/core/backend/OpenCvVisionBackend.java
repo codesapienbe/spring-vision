@@ -12,24 +12,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Random;
 
 import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
-import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
-import io.github.codesapienbe.springvision.core.capabilities.FaceVerificationCapability;
-import io.github.codesapienbe.springvision.core.capabilities.FaceLookupCapability;
 import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
 import jakarta.annotation.PreDestroy;
 
 import static org.bytedeco.opencv.global.opencv_core.CV_8UC3;
-import static org.bytedeco.opencv.global.opencv_core.flip;
 import static org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR;
-import static org.bytedeco.opencv.global.opencv_imgcodecs.imdecode;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2GRAY;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.equalizeHist;
@@ -60,7 +50,7 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability;
-import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+// Embedding capability removed from OpenCV backend to allow dedicated embedding backends
 
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -103,9 +93,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.opencv", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapability, ObjectDetectionCapability,
-    AnnotationCapability, FaceVerificationCapability, FaceLookupCapability,
-    MetaDataExtractionCapability, EmbeddingCapability {
+public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapability,
+    AnnotationCapability, MetaDataExtractionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(OpenCvVisionBackend.class);
 
@@ -200,15 +189,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     @SuppressWarnings("unused")
     private static final int MAX_SAFE_DIMENSION = 4000;     // Cap either width or height to 4K
 
-    // Configuration properties
-    private final boolean enabled = true;
-    private final double confidenceThreshold = 0.8;
-    private final int maxDetections = 10;
-    private final boolean enableAutoDownload = true;
-    private final int downloadTimeoutSeconds = 30;
-    private final String modelPath = "classpath:/models";
-    private int maxPoolSize = 5;
-    private int poolTimeoutSeconds = 60;
+    // Configuration properties moved to OpenCvProperties
 
     // Performance optimization components
     private OptimizedMatPool matPool;
@@ -290,143 +271,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     private boolean dnnDownloadWarnLogged = false;
     private boolean sfaceInitWarnLogged = false;
 
-    // In-backend gallery for nearest-neighbor search (runtime-only, in-memory)
-    private final ConcurrentMap<String, GalleryEntry> gallery = new ConcurrentHashMap<>();
-
-    private static final class GalleryEntry {
-        final String id;
-        final String personId;
-        final String modelName;
-        final float[] embedding;
-        final String imageHash;
-        final long createdAt;
-
-        GalleryEntry(String id, String personId, String modelName, float[] embedding, String imageHash) {
-            this.id = id;
-            this.personId = personId;
-            this.modelName = modelName;
-            this.embedding = embedding == null ? null : embedding.clone();
-            this.imageHash = imageHash;
-            this.createdAt = System.currentTimeMillis();
-        }
-    }
-
-    // Simple locality-sensitive hashing (LSH) style buckets for approximate NN (very lightweight)
-    private final ConcurrentMap<Integer, Set<String>> lshBuckets = new ConcurrentHashMap<>();
-    private final int lshHashCount = 8; // number of hash projections
-    private final Random lshRandom = new Random(0xC0FFEE);
-    private final float[][] lshProjections = new float[lshHashCount][];
-
-    // Image-hash -> set of embedding ids for fast lookup
-    private final ConcurrentMap<String, Set<String>> imageHashIndex = new ConcurrentHashMap<>();
-
-    private void indexImageHash(String imageHash, String embeddingId) {
-        if (imageHash == null || embeddingId == null) return;
-        imageHashIndex.computeIfAbsent(imageHash, k -> ConcurrentHashMap.newKeySet()).add(embeddingId);
-    }
-
-    private void removeImageHashIndex(String imageHash, String embeddingId) {
-        if (imageHash == null || embeddingId == null) return;
-        Set<String> s = imageHashIndex.get(imageHash);
-        if (s != null) s.remove(embeddingId);
-    }
-
-    private void ensureLshProjections(int dim) {
-        synchronized (lshProjections) {
-            if (lshProjections[0] != null && lshProjections[0].length == dim) return;
-            for (int i = 0; i < lshHashCount; i++) {
-                float[] p = new float[dim];
-                for (int j = 0; j < dim; j++) p[j] = (float) lshRandom.nextGaussian();
-                lshProjections[i] = p;
-            }
-            lshBuckets.clear();
-        }
-    }
-
-    private int computeLshKey(float[] embedding) {
-        int key = 0;
-        for (int i = 0; i < lshHashCount; i++) {
-            float dot = 0f;
-            float[] p = lshProjections[i];
-            for (int j = 0; j < embedding.length; j++) dot += embedding[j] * p[j];
-            if (dot >= 0) key |= (1 << i);
-        }
-        return key;
-    }
-
-    private void addToLsh(float[] embedding, String id) {
-        if (embedding == null) return;
-        ensureLshProjections(embedding.length);
-        int key = computeLshKey(embedding);
-        lshBuckets.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(id);
-    }
-
-    private void removeFromLsh(float[] embedding, String id) {
-        if (embedding == null) return;
-        int key = computeLshKey(embedding);
-        Set<String> set = lshBuckets.get(key);
-        if (set != null) set.remove(id);
-    }
-
-    /**
-     * Store an embedding in the backend gallery (runtime-only).
-     * Returns the generated gallery id.
-     */
-    public String storeGalleryEmbedding(String personId, float[] embedding, String modelName) {
-        String id = java.util.UUID.randomUUID().toString();
-        // imageHash unknown here; allow null
-        GalleryEntry entry = new GalleryEntry(id, personId, modelName, embedding, null);
-        gallery.put(id, entry);
-        addToLsh(embedding, id);
-        // index imageHash if present
-        if (entry.imageHash != null) indexImageHash(entry.imageHash, id);
-        return id;
-    }
-
-    /**
-     * Store an embedding in the backend gallery with a provided image hash (runtime-only).
-     * Returns the generated gallery id.
-     */
-    public String storeGalleryEmbedding(String personId, float[] embedding, String modelName, String imageHash) {
-        String id = java.util.UUID.randomUUID().toString();
-        GalleryEntry entry = new GalleryEntry(id, personId, modelName, embedding, imageHash);
-        gallery.put(id, entry);
-        addToLsh(embedding, id);
-        if (entry.imageHash != null) indexImageHash(entry.imageHash, id);
-        return id;
-    }
-
-    /**
-     * Remove an embedding from the backend gallery by id.
-     */
-    public void removeGalleryEmbedding(String id) {
-        GalleryEntry e = gallery.remove(id);
-        if (e != null) {
-            removeFromLsh(e.embedding, id);
-            if (e.imageHash != null) {
-                Set<String> s = imageHashIndex.get(e.imageHash);
-                if (s != null) s.remove(id);
-            }
-        }
-    }
-
-    /**
-     * Remove all gallery entries for a given personId. Returns list of removed ids.
-     */
-    public java.util.List<String> removeGalleryByPersonId(String personId) {
-        java.util.List<String> removed = new java.util.ArrayList<>();
-        if (personId == null || personId.isBlank()) return removed;
-        for (java.util.Map.Entry<String, GalleryEntry> en : gallery.entrySet()) {
-            GalleryEntry e = en.getValue();
-            if (personId.equals(e.personId)) {
-                if (gallery.remove(en.getKey(), e)) {
-                    removeFromLsh(e.embedding, en.getKey());
-                    removed.add(en.getKey());
-                }
-            }
-        }
-        return removed;
-    }
+    // Removed vector-store and in-backend gallery functionality to keep OpenCV backend minimal.
 
     private final OpenCvProperties properties;
 
@@ -506,10 +351,7 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         return performFaceDetection(imageData);
     }
 
-    @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        return performObjectDetection(imageData);
-    }
+    // Object detection capability removed from OpenCV backend (minimalist backend).
 
     @Override
     public void initialize() throws BaseVisionException {
@@ -520,8 +362,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             logger.info("Initializing performance optimization components...");
             // Create Mat pool using configured maximum size and pre-fill a small number
             int configuredPoolSize = Math.max(1, properties.maxPoolSize());
-            this.maxPoolSize = configuredPoolSize;
-            this.poolTimeoutSeconds = Math.max(1, properties.poolTimeoutSeconds());
             this.matPool = new OptimizedMatPool(configuredPoolSize); // Thread-safe Mat object pool
             this.matPool.preFill(Math.min(8, configuredPoolSize)); // Pre-fill to improve startup latency
             this.preprocessCache = new PreprocessingCache(); // Preprocessing cache
@@ -838,8 +678,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             try {
                 logger.info("Attempting to download face cascade classifier from {}", CASCADE_DOWNLOAD_URL);
 
-                java.net.URL url = new java.net.URL(CASCADE_DOWNLOAD_URL);
-                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                java.net.URI uri = java.net.URI.create(CASCADE_DOWNLOAD_URL);
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) uri.toURL().openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5_000); // 5 seconds
                 connection.setReadTimeout(5_000);    // 5 seconds
@@ -977,35 +817,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     /**
-     * Non-Maximum Suppression for rectangles.
-     */
-    private List<Integer> nonMaximumSuppression(List<Rect> rects, List<Float> scores, float iouThreshold) {
-        List<Integer> indices = new ArrayList<>();
-        List<Integer> order = new ArrayList<>();
-        for (int i = 0; i < rects.size(); i++) order.add(i);
-        order.sort((a, b) -> Float.compare(scores.get(b), scores.get(a)));
-
-        boolean[] suppressed = new boolean[rects.size()];
-        for (int i = 0; i < order.size(); i++) {
-            int idx = order.get(i);
-            if (suppressed[idx]) continue;
-            indices.add(idx);
-            Rect a = rects.get(idx);
-            for (int j = i + 1; j < order.size(); j++) {
-                int idxB = order.get(j);
-                if (suppressed[idxB]) continue;
-                Rect b = rects.get(idxB);
-                // Delegate IoU computation to OptimizedNMS for consistency and potential optimization
-                double iou = OptimizedNMS.computeIoU(a, b);
-                if (iou > iouThreshold) {
-                    suppressed[idxB] = true;
-                }
-            }
-        }
-        return indices;
-    }
-
-    /**
      * Collect DNN candidates at a given scale; map rectangles back to original coordinates.
      */
     private void collectDnnCandidates(Mat image, double scale, Net net,
@@ -1033,40 +844,40 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         int sRows = src.rows();
         int numDetections = detectionsMat.size(2);
         int step = detectionsMat.size(3);
-        FloatPointer data = new FloatPointer(detectionsMat.data());
 
-        for (int i = 0; i < numDetections; i++) {
-            float confidence = data.get((long) i * step + 2);
-            if (confidence < 0.5f) continue;
-            float x1 = data.get((long) i * step + 3) * sCols;
-            float y1 = data.get((long) i * step + 4) * sRows;
-            float x2 = data.get((long) i * step + 5) * sCols;
-            float y2 = data.get((long) i * step + 6) * sRows;
+        try (FloatPointer data = new FloatPointer(detectionsMat.data())) {
+            for (int i = 0; i < numDetections; i++) {
+                float confidence = data.get((long) i * step + 2);
+                if (confidence < 0.5f) continue;
+                float x1 = data.get((long) i * step + 3) * sCols;
+                float y1 = data.get((long) i * step + 4) * sRows;
+                float x2 = data.get((long) i * step + 5) * sCols;
+                float y2 = data.get((long) i * step + 6) * sRows;
 
-            // Map back to original if resized
-            if (usedResize) {
-                x1 /= scale;
-                y1 /= scale;
-                x2 /= scale;
-                y2 /= scale;
+                // Map back to original if resized
+                if (usedResize) {
+                    x1 /= scale;
+                    y1 /= scale;
+                    x2 /= scale;
+                    y2 /= scale;
+                }
+
+                int left = Math.max(0, Math.min(cols - 1, Math.round(x1)));
+                int top = Math.max(0, Math.min(rows - 1, Math.round(y1)));
+                int right = Math.max(0, Math.min(cols - 1, Math.round(x2)));
+                int bottom = Math.max(0, Math.min(rows - 1, Math.round(y2)));
+                int widthPx = Math.max(1, right - left);
+                int heightPx = Math.max(1, bottom - top);
+
+                double aspect = (double) widthPx / heightPx;
+                if (aspect < 0.5 || aspect > 1.8) continue;
+                outRects.add(new Rect(left, top, widthPx, heightPx));
+                outScores.add(confidence);
             }
-
-            int left = Math.max(0, Math.min(cols - 1, Math.round(x1)));
-            int top = Math.max(0, Math.min(rows - 1, Math.round(y1)));
-            int right = Math.max(0, Math.min(cols - 1, Math.round(x2)));
-            int bottom = Math.max(0, Math.min(rows - 1, Math.round(y2)));
-            int widthPx = Math.max(1, right - left);
-            int heightPx = Math.max(1, bottom - top);
-
-            double aspect = (double) widthPx / heightPx;
-            if (aspect < 0.5 || aspect > 1.8) continue;
-            outRects.add(new Rect(left, top, widthPx, heightPx));
-            outScores.add(confidence);
+            blob.releaseReference();
+            detectionsMat.releaseReference();
+            if (usedResize) resized.releaseReference();
         }
-
-        blob.releaseReference();
-        detectionsMat.releaseReference();
-        if (usedResize) resized.releaseReference();
     }
 
     /**
@@ -1101,10 +912,10 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             // Download fallback
             try {
                 logger.info("Attempting to download eye cascade...");
-                java.net.URL url = new java.net.URL(EYE_CASCADE_DOWNLOAD_URL);
+                    java.net.URI uri = java.net.URI.create(EYE_CASCADE_DOWNLOAD_URL);
                 java.io.File tmp = java.io.File.createTempFile("haarcascade_eye", ".xml");
                 tmp.deleteOnExit();
-                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                try (java.io.InputStream in = openWithTimeout(uri.toURL(), 4000, 5000);
                      java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) {
                     fos.write(in.readAllBytes());
                 }
@@ -1156,10 +967,10 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             // Download fallback
             try {
                 logger.info("Attempting to download LBP face cascade...");
-                java.net.URL url = new java.net.URL(LBP_CASCADE_DOWNLOAD_URL);
+                    java.net.URI uri = java.net.URI.create(LBP_CASCADE_DOWNLOAD_URL);
                 java.io.File tmp = java.io.File.createTempFile("lbpcascade_frontalface", ".xml");
                 tmp.deleteOnExit();
-                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                try (java.io.InputStream in = openWithTimeout(uri.toURL(), 4000, 5000);
                      java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) {
                     fos.write(in.readAllBytes());
                 }
@@ -1210,10 +1021,10 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             // Download fallback
             try {
                 logger.info("Attempting to download profile-face cascade...");
-                java.net.URL url = new java.net.URL(PROFILE_FACE_CASCADE_DOWNLOAD_URL);
+                java.net.URI uri = java.net.URI.create(PROFILE_FACE_CASCADE_DOWNLOAD_URL);
                 java.io.File tmp = java.io.File.createTempFile("haarcascade_profileface", ".xml");
                 tmp.deleteOnExit();
-                try (java.io.InputStream in = openWithTimeout(url, 4000, 5000);
+                try (java.io.InputStream in = openWithTimeout(uri.toURL(), 4000, 5000);
                      java.io.FileOutputStream fos = new java.io.FileOutputStream(tmp)) {
                     fos.write(in.readAllBytes());
                 }
@@ -1313,198 +1124,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         }
     }
 
-    @Override
-    public List<float[]> extractEmbeddings(io.github.codesapienbe.springvision.core.ImageData imageData, io.github.codesapienbe.springvision.core.DetectionCategory subject) throws io.github.codesapienbe.springvision.core.exception.BaseVisionException {
-        if (imageData == null || imageData.isEmpty()) {
-            throw new IllegalArgumentException("Image data must not be null or empty");
-        }
-
-        // Try SFace recognizer if available
-        if (sFaceRecognizer != null) {
-            try {
-                Class<?> cls = sFaceRecognizer.getClass();
-                // Prefer a method that accepts byte[]
-                try {
-                    java.lang.reflect.Method represent = cls.getMethod("represent", byte[].class);
-                    Object res = represent.invoke(sFaceRecognizer, (Object) imageData.data());
-                    if (res instanceof List) {
-                        @SuppressWarnings("unchecked")
-                        List<float[]> embeddings = (List<float[]>) res;
-                        return embeddings;
-                    }
-                } catch (NoSuchMethodException nsme) {
-                    // Try alternative signature with Mat (best-effort)
-                    try {
-                        java.lang.reflect.Method representMat = cls.getMethod("represent", org.bytedeco.opencv.opencv_core.Mat.class);
-                        // Decode image bytes to Mat using OpenCV imdecode
-                        org.bytedeco.javacpp.BytePointer rawPointer = new org.bytedeco.javacpp.BytePointer(imageData.data());
-                        org.bytedeco.opencv.opencv_core.Mat byteMat = new org.bytedeco.opencv.opencv_core.Mat(1, (int) imageData.getSizeInBytes(), org.bytedeco.opencv.global.opencv_core.CV_8U, rawPointer);
-                        org.bytedeco.opencv.opencv_core.Mat buffer = org.bytedeco.opencv.global.opencv_imgcodecs.imdecode(byteMat, org.bytedeco.opencv.global.opencv_imgcodecs.IMREAD_COLOR);
-                        Object res = representMat.invoke(sFaceRecognizer, buffer);
-                        if (res instanceof List) {
-                            @SuppressWarnings("unchecked")
-                            List<float[]> embeddings = (List<float[]>) res;
-                            buffer.releaseReference();
-                            rawPointer.deallocate();
-                            return embeddings;
-                        }
-                        buffer.releaseReference();
-                        rawPointer.deallocate();
-                    } catch (NoSuchMethodException ignored) {
-                        // fall through to EmbeddingSupport
-                    }
-                }
-            } catch (Exception e) {
-                logger.debug("SFace recognizer invocation failed: {}", e.getMessage());
-            }
-        }
-
-        // Fall back to EmbeddingSupport
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
-    }
-
-    /**
-     * Backend-level face verification using SFace recognizer when available.
-     * Falls back to EmbeddingSupport.defaultVerify if SFace not available or invocation fails.
-     */
-    @Override
-    public boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
-        if (a == null || b == null || a.isEmpty() || b.isEmpty()) {
-            throw new IllegalArgumentException("Image data must not be null or empty");
-        }
-
-        if (sFaceRecognizer != null) {
-            try {
-                Class<?> cls = sFaceRecognizer.getClass();
-                // Try direct match method if available: match(byte[], byte[], String, double)
-                try {
-                    java.lang.reflect.Method match = cls.getMethod("match", byte[].class, byte[].class, String.class, double.class);
-                    Object res = match.invoke(sFaceRecognizer, a.data(), b.data(), metric, threshold);
-                    if (res instanceof Boolean) return (Boolean) res;
-                } catch (NoSuchMethodException nsme) {
-                    // Fall back to computing embeddings and comparing
-                    List<float[]> ea = extractEmbeddings(a, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-                    List<float[]> eb = extractEmbeddings(b, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-                    if (ea == null || ea.isEmpty() || eb == null || eb.isEmpty()) return false;
-                    float[] va = ea.get(0);
-                    float[] vb = eb.get(0);
-                    double dist;
-                    if ("euclidean".equalsIgnoreCase(metric)) {
-                        dist = euclideanDistanceLocal(va, vb);
-                    } else {
-                        dist = cosineDistanceLocal(va, vb);
-                    }
-                    return dist <= threshold;
-                }
-            } catch (Exception e) {
-                logger.debug("SFace verify invocation failed: {}", e.getMessage());
-            }
-        }
-
-        // Fallback to default embedding-based verify
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultVerify(a, b, metric, threshold);
-    }
-
-    /**
-     * Backend-level nearest embedding search. Uses a local in-memory gallery if provided via VectorService
-     * otherwise falls back to EmbeddingSupport.findNearest which operates on provided gallery embeddings.
-     */
-    @Override
-    public List<Integer> findNearestEmbeddings(ImageData probeImage, float[] probeEmbedding, List<float[]> galleryEmbeddings, String metric, int topK) throws BaseVisionException {
-        // If backend gallery has entries and no explicit galleryEmbeddings provided, use in-backend search
-        if ((galleryEmbeddings == null || galleryEmbeddings.isEmpty()) && !gallery.isEmpty()) {
-            // Ensure we have a probe embedding
-            float[] probe = probeEmbedding;
-            if (probe == null) {
-                List<float[]> pe = extractEmbeddings(probeImage, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-                if (pe == null || pe.isEmpty()) return List.of();
-                probe = pe.get(0);
-            }
-
-            // Brute-force linear scan over gallery
-            List<java.util.Map.Entry<String, Double>> dists = new ArrayList<>();
-            for (GalleryEntry e : gallery.values()) {
-                if (e.embedding == null) continue;
-                if (e.modelName != null && metric != null && metric.equalsIgnoreCase("model") && !e.modelName.equals(metric)) continue;
-                double dist = "euclidean".equalsIgnoreCase(metric) ? euclideanDistanceLocal(probe, e.embedding) : cosineDistanceLocal(probe, e.embedding);
-                dists.add(new java.util.AbstractMap.SimpleEntry<>(e.id, dist));
-            }
-            dists.sort((a, b) -> Double.compare(a.getValue(), b.getValue()));
-            int k = Math.max(0, Math.min(topK, dists.size()));
-            List<Integer> out = new ArrayList<>();
-            for (int i = 0; i < k; i++) out.add(i); // return indices relative to sorted list
-            return out;
-        }
-
-        // Fallback: delegate to EmbeddingSupport
-        if (probeEmbedding != null) {
-            return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, probeEmbedding, galleryEmbeddings, metric, topK);
-        }
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.findNearest(probeImage, null, galleryEmbeddings, metric, topK);
-    }
-
-    /**
-     * Backend gallery lookup returning rich results (id, personId, distance, modelName, createdAt).
-     * This is a backend-owned nearest-neighbour search over the in-memory gallery.
-     */
-    public List<Map<String,Object>> findNearestGallery(float[] probeEmbedding, ImageData probeImage, String metric, Integer topK) throws BaseVisionException {
-        if ((gallery == null || gallery.isEmpty())) return List.of();
-
-        float[] probe = probeEmbedding;
-        if (probe == null) {
-            List<float[]> pe = extractEmbeddings(probeImage, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-            if (pe == null || pe.isEmpty()) return List.of();
-            probe = pe.get(0);
-        }
-
-        List<java.util.Map.Entry<GalleryEntry, Double>> scored = new ArrayList<>();
-        for (GalleryEntry e : gallery.values()) {
-            if (e.embedding == null) continue;
-            double dist = "euclidean".equalsIgnoreCase(metric) ? euclideanDistanceLocal(probe, e.embedding) : cosineDistanceLocal(probe, e.embedding);
-            scored.add(new java.util.AbstractMap.SimpleEntry<>(e, dist));
-        }
-
-        scored.sort((a,b) -> Double.compare(a.getValue(), b.getValue()));
-        int k = Math.max(0, Math.min(topK == null ? scored.size() : topK, scored.size()));
-        List<Map<String,Object>> out = new ArrayList<>(k);
-        for (int i = 0; i < k; i++) {
-            GalleryEntry e = scored.get(i).getKey();
-            double dist = scored.get(i).getValue();
-            Map<String,Object> m = new HashMap<>();
-            m.put("id", e.id);
-            m.put("personId", e.personId);
-            m.put("modelName", e.modelName);
-            m.put("distance", dist);
-            m.put("createdAt", e.createdAt);
-            out.add(m);
-        }
-        return out;
-    }
-
-    // Local helpers to avoid exposing EmbeddingSupport internals
-    private static double cosineDistanceLocal(float[] a, float[] b) {
-        if (a == null || b == null || a.length != b.length) return Double.NaN;
-        double dot = 0.0, na = 0.0, nb = 0.0;
-        for (int i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            na += a[i] * a[i];
-            nb += b[i] * b[i];
-        }
-        if (na <= 0 || nb <= 0) return Double.NaN;
-        double sim = dot / (Math.sqrt(na) * Math.sqrt(nb));
-        return 1.0 - sim;
-    }
-
-    private static double euclideanDistanceLocal(float[] a, float[] b) {
-        if (a == null || b == null || a.length != b.length) return Double.NaN;
-        double s = 0.0;
-        for (int i = 0; i < a.length; i++) {
-            double d = a[i] - b[i];
-            s += d * d;
-        }
-        return Math.sqrt(s);
-    }
-
     /**
      * Collect YuNet candidates at given scale; refine boxes using landmarks and map back to original image.
      */
@@ -1527,39 +1146,40 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             if (!det.empty()) {
                 int rows = det.size(0);
                 int step = det.size(1); // expected 15
-                FloatPointer dp = new FloatPointer(det.data());
-                for (int i = 0; i < rows; i++) {
-                    float x = dp.get((long) i * step);
-                    float y = dp.get((long) i * step + 1);
-                    float w = dp.get((long) i * step + 2);
-                    float h = dp.get((long) i * step + 3);
-                    float score = dp.get((long) i * step + 4);
-                    if (score < 0.35f) continue; // lower threshold for recall; duplicates removed by NMS
-                    // Expand bbox moderately around center to include forehead/chin
-                    double cx = x + w / 2.0;
-                    double cy = y + h / 2.0;
-                    double padX = w * 0.08;
-                    double padY = h * 0.12;
-                    double left = Math.max(0, cx - (w / 2.0 + padX));
-                    double top = Math.max(0, cy - (h / 2.0 + padY));
-                    double right = Math.min(src.cols() - 1, cx + (w / 2.0 + padX));
-                    double bottom = Math.min(src.rows() - 1, cy + (h / 2.0 + padY));
+                try (FloatPointer dp = new FloatPointer(det.data())) {
+                    for (int i = 0; i < rows; i++) {
+                        float x = dp.get((long) i * step);
+                        float y = dp.get((long) i * step + 1);
+                        float w = dp.get((long) i * step + 2);
+                        float h = dp.get((long) i * step + 3);
+                        float score = dp.get((long) i * step + 4);
+                        if (score < 0.35f) continue; // lower threshold for recall; duplicates removed by NMS
+                        // Expand bbox moderately around center to include forehead/chin
+                        double cx = x + w / 2.0;
+                        double cy = y + h / 2.0;
+                        double padX = w * 0.08;
+                        double padY = h * 0.12;
+                        double left = Math.max(0, cx - (w / 2.0 + padX));
+                        double top = Math.max(0, cy - (h / 2.0 + padY));
+                        double right = Math.min(src.cols() - 1, cx + (w / 2.0 + padX));
+                        double bottom = Math.min(src.rows() - 1, cy + (h / 2.0 + padY));
 
-                    int leftI = (int) Math.round(left);
-                    int topI = (int) Math.round(top);
-                    int widthPx = Math.max(1, (int) Math.round(right - left));
-                    int heightPx = Math.max(1, (int) Math.round(bottom - top));
+                        int leftI = (int) Math.round(left);
+                        int topI = (int) Math.round(top);
+                        int widthPx = Math.max(1, (int) Math.round(right - left));
+                        int heightPx = Math.max(1, (int) Math.round(bottom - top));
 
-                    // Map back to original if resized
-                    if (usedResize) {
-                        leftI = (int) Math.round(leftI / scale);
-                        topI = (int) Math.round(topI / scale);
-                        widthPx = (int) Math.max(1, Math.round(widthPx / scale));
-                        heightPx = (int) Math.max(1, Math.round(heightPx / scale));
+                        // Map back to original if resized
+                        if (usedResize) {
+                            leftI = (int) Math.round(leftI / scale);
+                            topI = (int) Math.round(topI / scale);
+                            widthPx = (int) Math.max(1, Math.round(widthPx / scale));
+                            heightPx = (int) Math.max(1, Math.round(heightPx / scale));
+                        }
+
+                        outRects.add(new Rect(leftI, topI, widthPx, heightPx));
+                        outScores.add(score);
                     }
-
-                    outRects.add(new Rect(leftI, topI, widthPx, heightPx));
-                    outScores.add(score);
                 }
             }
             det.releaseReference();
@@ -1625,8 +1245,8 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             for (String u : urls) {
                 try {
                     logger.debug("Trying download URL: {}", u);
-                    java.net.URL url = new java.net.URL(u);
-                    try (java.io.InputStream in = openWithTimeout(url, 6000, 15000)) {
+                    java.net.URI uri = java.net.URI.create(u);
+                    try (java.io.InputStream in = openWithTimeout(uri.toURL(), 6000, 15000)) {
                         Files.copy(in, cached, StandardCopyOption.REPLACE_EXISTING);
                         logger.info("Model downloaded successfully: {} -> {}", u, cached.toAbsolutePath());
                         return cached.toAbsolutePath().toString();
@@ -1672,9 +1292,14 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
             org.bytedeco.opencv.global.opencv_core.meanStdDev(lap, meanMat, stddevMat);
             double std = 0.0;
             if (!stddevMat.empty()) {
-                java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
-                if (db != null && db.remaining() > 0) {
-                    std = db.get(0);
+                try {
+                    @SuppressWarnings("deprecation")
+                    java.nio.DoubleBuffer db = stddevMat.getDoubleBuffer();
+                    if (db != null && db.remaining() > 0) {
+                        std = db.get(0);
+                    }
+                } catch (Throwable ignore) {
+                    // Best-effort: if deprecated API unavailable, skip
                 }
             }
             double variance = std * std;
@@ -2151,16 +1776,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     /**
-     * Performs object detection on the provided image data.
-     * Currently not implemented - returns empty list.
-     */
-    private List<Detection> performObjectDetection(ImageData imageData) {
-        // TODO: Implement object detection using OpenCV DNN or other methods
-        logger.warn("Object detection not yet implemented in OpenCV backend");
-        return Collections.emptyList();
-    }
-
-    /**
      * Enhanced multi-detector fusion combining YuNet, DNN-SSD, and Haar cascade.
      * Uses consensus voting and quality assessment for improved accuracy.
      */
@@ -2551,14 +2166,11 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
                 return 0.5;
             }
 
-            Mat faceRegion = new Mat(grayImage, new Rect(x, y, w, h));
-
-            // Calculate quality factors
-            double qualityFactor = computeQualityFactor(grayImage, rect);
-
-            faceRegion.releaseReference();
-
-            return Math.max(0.1, Math.min(1.0, qualityFactor));
+            try (Mat faceRegion = new Mat(grayImage, new Rect(x, y, w, h))) {
+                // Calculate quality factors
+                double qualityFactor = computeQualityFactor(grayImage, rect);
+                return Math.max(0.1, Math.min(1.0, qualityFactor));
+            }
 
         } catch (Exception e) {
             logger.debug("Quality assessment failed: {}", e.getMessage());

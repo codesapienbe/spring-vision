@@ -197,17 +197,7 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
         return vectorService.findSimilarFaces(queryEmbedding, modelName, metric, threshold, limit, includePersonIds, excludePersonIds);
     }
-
-    /**
-     * Find stored entries that match the given image hash via configured VectorService.
-     * @param imageHash SHA-256 image hash
-     * @return list of entry maps or empty list
-     */
-    public List<Map<String, Object>> findEntriesByImageHash(String imageHash) {
-        if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
-        return vectorService.findEntriesByImageHash(imageHash);
-    }
-
+    
     /**
      * Detects faces in the provided byte array.
      *
