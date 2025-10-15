@@ -13,7 +13,6 @@ import javax.imageio.ImageIO;
 import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
-import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -46,7 +45,7 @@ import io.github.codesapienbe.springvision.core.DetectionQuery;
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.facebytes", name = "enabled", havingValue = "true")
 public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapability, EmbeddingCapability,
-    BarcodeCapability, ObjectDetectionCapability {
+    BarcodeCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(FaceBytesBackend.class);
 
@@ -124,13 +123,7 @@ public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapab
         return detectWithEnhancements(imageData, query);
     }
 
-    @Override
-    public List<Detection> detectObjects(ImageData imageData) {
-        DetectionQuery query = new DetectionQuery.Builder()
-            .type(DetectionType.OBJECT)
-            .build();
-        return detectWithEnhancements(imageData, query);
-    }
+    // ObjectDetectionCapability removed - FaceBytes is specialized for face recognition only
 
     @Override
     public List<Detection> detectBarcodes(ImageData imageData) {
@@ -535,8 +528,65 @@ public final class FaceBytesBackend implements VisionBackend, FaceDetectionCapab
     public java.util.List<float[]> extractEmbeddings(io.github.codesapienbe.springvision.core.ImageData imageData,
                                                      io.github.codesapienbe.springvision.core.DetectionCategory subject)
         throws io.github.codesapienbe.springvision.core.exception.BaseVisionException {
-        // For now, ignore subject and always extract face embeddings via FaceBytes
-        return io.github.codesapienbe.springvision.core.util.EmbeddingSupport.defaultExtractEmbeddings(imageData);
+        
+        if (imageData == null || imageData.isEmpty()) {
+            throw new IllegalArgumentException("ImageData must not be null or empty");
+        }
+        
+        try {
+            // Convert ImageData to BufferedImage
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            if (img == null) {
+                throw new IllegalArgumentException("Unsupported or corrupt image data");
+            }
+            
+            // Extract embeddings directly using DeepFace (no reflection overhead)
+            List<EmbeddingResult> embeddingResults = DeepFace.represent(img);
+            
+            if (embeddingResults == null || embeddingResults.isEmpty()) {
+                logger.debug("No face embeddings extracted from image");
+                return List.of();
+            }
+            
+            // Convert EmbeddingResult to float[] arrays
+            List<float[]> embeddings = new ArrayList<>(embeddingResults.size());
+            for (EmbeddingResult result : embeddingResults) {
+                float[] embedding = result.embedding();
+                if (embedding != null && embedding.length > 0) {
+                    // Normalize embedding (L2 normalization for consistent similarity computation)
+                    embeddings.add(normalizeL2(embedding));
+                }
+            }
+            
+            logger.debug("Extracted {} face embeddings from image", embeddings.size());
+            return embeddings;
+            
+        } catch (java.io.IOException e) {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionProcessingException(
+                "Failed to read image data", "embedding_extraction", subject.name(), e);
+        } catch (Exception e) {
+            throw new io.github.codesapienbe.springvision.core.exception.BaseVisionException(
+                "Failed to extract embeddings: " + e.getMessage(), e) {};
+        }
+    }
+    
+    /**
+     * L2 normalization of embedding vector for consistent similarity computation.
+     */
+    private float[] normalizeL2(float[] embedding) {
+        double sumSquares = 0.0;
+        for (float v : embedding) {
+            sumSquares += v * v;
+        }
+        double norm = Math.sqrt(sumSquares);
+        if (norm < 1e-10) {
+            return embedding; // Avoid division by zero
+        }
+        float[] normalized = new float[embedding.length];
+        for (int i = 0; i < embedding.length; i++) {
+            normalized[i] = (float) (embedding[i] / norm);
+        }
+        return normalized;
     }
 
     private static double clamp01(double v) {
