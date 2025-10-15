@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
@@ -179,15 +178,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
      */
     @SuppressWarnings("unused")
     private static final double DEFAULT_CONFIDENCE_THRESHOLD = 0.8;
-    /**
-     * Minimum face size for detection (relative to the smaller image dimension).
-     * Reduced to support group photos and small faces farther from the camera.
-     */
-    private static final double MIN_FACE_SIZE_RATIO = 0.03;
-    /**
-     * Maximum face size for detection (relative to image size).
-     */
-    private static final double MAX_FACE_SIZE_RATIO = 0.8;
 
     /**
      * Fail-safe guardrail for incoming image payload to avoid memory/DoS issues.
@@ -794,23 +784,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         }
     }
 
-    /**
-     * Gamma correction helper operating in normalized float space.
-     */
-    private Mat applyGammaCorrection(Mat grayImage, double gamma) {
-        try {
-            Mat norm = new Mat();
-            grayImage.convertTo(norm, org.bytedeco.opencv.global.opencv_core.CV_32F, 1.0 / 255.0, 0.0);
-            org.bytedeco.opencv.global.opencv_core.pow(norm, gamma, norm);
-            Mat out = new Mat();
-            norm.convertTo(out, org.bytedeco.opencv.global.opencv_core.CV_8U, 255.0, 0.0);
-            norm.releaseReference();
-            return out;
-        } catch (Throwable t) {
-            logger.debug("Gamma correction failed: {}", t.getMessage());
-            return grayImage;
-        }
-    }
 
     private static java.io.InputStream openWithTimeout(java.net.URL url, int connectTimeoutMs, int readTimeoutMs) throws java.io.IOException {
         java.net.HttpURLConnection c = (java.net.HttpURLConnection) url.openConnection();
@@ -821,74 +794,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     /**
-     * Loads image data into an OpenCV Mat.
-     *
-     * @param imageData the image data to load
-     * @return the OpenCV Mat containing the image
-     * @throws BaseVisionException if the image cannot be loaded
-     */
-    private Mat loadImageToMat(ImageData imageData) throws BaseVisionException {
-        try {
-            // Check if OpenCV is actually available before trying to use it
-            if (!opencvAvailable) {
-                throw new VisionProcessingException(
-                    "OpenCV is not available for image processing",
-                    "opencv_unavailable",
-                    null
-                );
-            }
-
-            // Decode image from bytes
-            Mat image = imdecode(new Mat(imageData.data()), IMREAD_COLOR);
-
-            if (image.empty()) {
-                throw new VisionProcessingException(
-                    "Failed to decode image data",
-                    "image_decode",
-                    null
-                );
-            }
-
-            return image;
-
-        } catch (Exception e) {
-            throw new VisionProcessingException(
-                "Failed to load image into OpenCV Mat",
-                "image_load",
-                null,
-                e
-            );
-        }
-    }
-
-    /**
-     * Calculates confidence score for a detected face.
-     *
-     * @param faceRect    the detected face rectangle
-     * @param imageWidth  the image width
-     * @param imageHeight the image height
-     * @return the confidence score (0.0 to 1.0)
-     */
-    private double calculateFaceConfidence(Rect faceRect, int imageWidth, int imageHeight) {
-        // Base confidence on face size relative to image
-        double faceArea = faceRect.width() * faceRect.height();
-        double imageArea = imageWidth * imageHeight;
-        double areaRatio = faceArea / imageArea;
-
-        // Optimal face size is between 5% and 25% of image area
-        double optimalMin = 0.05;
-        double optimalMax = 0.25;
-
-        if (areaRatio < optimalMin) {
-            return 0.5 + (areaRatio / optimalMin) * 0.3; // 0.5 to 0.8
-        } else if (areaRatio > optimalMax) {
-            return 0.8 - ((areaRatio - optimalMax) / (0.5 - optimalMax)) * 0.3; // 0.8 to 0.5
-        } else {
-            return 0.8 + (0.2 * (1.0 - Math.abs(areaRatio - (optimalMin + optimalMax) / 2) / ((optimalMax - optimalMin) / 2))); // 0.8 to 1.0
-        }
-    }
-
-    /**
      * Calculates confidence score for a detected circle.
      *
      * @param radius the circle radius
@@ -896,118 +801,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
      * @param imageHeight the image height
      * @return the confidence score (0.0 to 1.0)
      */
-    /**
-     * Calculates a simple contrast measure in a region of the image.
-     *
-     * @param grayImage the grayscale image
-     * @param x         the x coordinate
-     * @param y         the y coordinate
-     * @param size      the size of the region
-     * @return the contrast value
-     */
-    private double calculateContrast(Mat grayImage, int x, int y, int size) {
-        try {
-            // Simple contrast calculation: sample a few pixels and calculate variance
-            double sum = 0;
-            double sumSq = 0;
-            int count = 0;
-
-            for (int dy = 0; dy < size && y + dy < grayImage.rows(); dy += 2) {
-                for (int dx = 0; dx < size && x + dx < grayImage.cols(); dx += 2) {
-                    double pixel = grayImage.getDoubleBuffer().get((y + dy) * grayImage.cols() + x + dx);
-                    sum += pixel;
-                    sumSq += pixel * pixel;
-                    count++;
-                }
-            }
-
-            if (count > 0) {
-                double mean = sum / count;
-                double variance = (sumSq / count) - (mean * mean);
-                return Math.sqrt(variance);
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            return 0.0;
-        }
-    }
-
-    private double calculateCircleConfidence(float radius, int imageWidth, int imageHeight) {
-        // Base confidence on circle size relative to image
-        double circleArea = Math.PI * radius * radius;
-        double imageArea = imageWidth * imageHeight;
-        double areaRatio = circleArea / imageArea;
-
-        // Optimal circle size is between 1% and 10% of image area
-        double optimalMin = 0.01;
-        double optimalMax = 0.10;
-
-        if (areaRatio < optimalMin) {
-            return 0.5 + (areaRatio / optimalMin) * 0.3; // 0.5 to 0.8
-        } else if (areaRatio > optimalMax) {
-            return 0.8 - ((areaRatio - optimalMax) / (0.3 - optimalMax)) * 0.3; // 0.8 to 0.5
-        } else {
-            return 0.8 + (0.2 * (1.0 - Math.abs(areaRatio - (optimalMin + optimalMax) / 2) / ((optimalMax - optimalMin) / 2))); // 0.8 to 1.0
-        }
-    }
-
-    /**
-     * Validates that image data is not null and valid.
-     *
-     * @param imageData the image data to validate
-     * @throws IllegalArgumentException if imageData is null or invalid
-     */
-    private void validateImageData(ImageData imageData) {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
-        }
-        if (imageData.isEmpty()) {
-            throw new IllegalArgumentException("Image data must not be empty");
-        }
-    }
-
-    /**
-     * Ensures the backend is initialized before use.
-     *
-     * @throws BaseVisionException if the backend is not initialized
-     */
-    private void ensureInitialized() throws BaseVisionException {
-        if (!initialized) {
-            throw new VisionBackendException(
-                "OpenCV backend is not initialized. Call initialize() first.",
-                "not_initialized",
-                null
-            );
-        }
-    }
-
-    /**
-     * Generates a unique correlation ID for tracking operations.
-     *
-     * @return a unique correlation ID
-     */
-    private String generateCorrelationId() {
-        return UUID.randomUUID().toString();
-    }
-
-    /**
-     * Checks if OpenCV is available for actual processing operations.
-     *
-     * @return true if OpenCV is available for processing
-     */
-    public boolean isOpenCvAvailableForProcessing() {
-        return opencvAvailable && initialized;
-    }
-
-    /**
-     * Gets the OpenCV availability status for monitoring purposes.
-     *
-     * @return true if OpenCV is available
-     */
-    public boolean isOpenCvAvailable() {
-        return opencvAvailable;
-    }
 
     /**
      * Validate a candidate face region using eye detection within the ROI.
@@ -1240,80 +1033,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     }
 
     /**
-     * Detect profile faces on original and horizontally flipped images.
-     */
-    private void addProfileDetections(Mat grayImage, int cols, int rows,
-                                      List<Detection> detections, double totalConfidenceAccumulator) {
-        // Detect on original (typically left-profile)
-        RectVector profiles = new RectVector();
-        int minDim = Math.min(cols, rows);
-        Size minSize = new Size((int) (minDim * MIN_FACE_SIZE_RATIO), (int) (minDim * MIN_FACE_SIZE_RATIO));
-        Size maxSize = new Size((int) (minDim * MAX_FACE_SIZE_RATIO), (int) (minDim * MAX_FACE_SIZE_RATIO));
-
-        profileCascade.detectMultiScale(grayImage, profiles, 1.1, 3, 0, minSize, maxSize);
-        for (long i = 0; i < profiles.size(); i++) {
-            Rect r = profiles.get(i);
-            if (!isFaceLikely(grayImage, r)) continue;
-            if (isOverlappingExisting(detections, r, cols, rows)) continue;
-            double nx = (double) r.x() / cols;
-            double ny = (double) r.y() / rows;
-            double nw = (double) r.width() / cols;
-            double nh = (double) r.height() / rows;
-            double conf = Math.min(0.9, 0.8 + (r.width() * r.height()) / (double) (cols * rows));
-            detections.add(new Detection("face", conf, new BoundingBox(nx, ny, nw, nh), java.util.Map.of(
-                "category", io.github.codesapienbe.springvision.core.DetectionCategory.FACE.name()
-            )));
-        }
-        profiles.deallocate();
-
-        // Detect on horizontally flipped image for right-profile faces
-        Mat flipped = new Mat();
-        flip(grayImage, flipped, 1);
-        RectVector profilesFlipped = new RectVector();
-        profileCascade.detectMultiScale(flipped, profilesFlipped, 1.1, 3, 0, minSize, maxSize);
-        for (long i = 0; i < profilesFlipped.size(); i++) {
-            Rect r = profilesFlipped.get(i);
-            // Map back to original coordinates
-            int xMapped = cols - r.x() - r.width();
-            Rect mapped = new Rect(Math.max(0, xMapped), r.y(), r.width(), r.height());
-            if (!isFaceLikely(grayImage, mapped)) continue;
-            if (isOverlappingExisting(detections, mapped, cols, rows)) continue;
-            double nx = (double) mapped.x() / cols;
-            double ny = (double) mapped.y() / rows;
-            double nw = (double) mapped.width() / cols;
-            double nh = (double) mapped.height() / rows;
-            double conf = Math.min(0.9, 0.8 + (mapped.width() * mapped.height()) / (double) (cols * rows));
-            detections.add(new Detection("face", conf, new BoundingBox(nx, ny, nw, nh), java.util.Map.of(
-                "category", io.github.codesapienbe.springvision.core.DetectionCategory.FACE.name()
-            )));
-        }
-        profilesFlipped.deallocate();
-        flipped.releaseReference();
-    }
-
-    /**
-     * Check if a new rect overlaps sufficiently with an existing detection; if so, skip.
-     */
-    private boolean isOverlappingExisting(List<Detection> detections, Rect r, int cols, int rows) {
-        double rx1 = r.x();
-        double ry1 = r.y();
-        double rx2 = r.x() + r.width();
-        double ry2 = r.y() + r.height();
-        for (Detection d : detections) {
-            Rect e = new Rect((int) Math.round(d.boundingBox().x() * cols),
-                (int) Math.round(d.boundingBox().y() * rows),
-                (int) Math.round(d.boundingBox().width() * cols),
-                (int) Math.round(d.boundingBox().height() * rows));
-            // Use optimized IoU computation
-            double iou = OptimizedNMS.computeIoU(new Rect((int) rx1, (int) ry1, (int) (rx2 - rx1), (int) (ry2 - ry1)), e);
-            if (iou > 0.4) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Load the profile-face cascade with classpath-first, then remote fallback.
      */
     private void loadProfileCascade() {
@@ -1512,102 +1231,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
         }
     }
 
-    /**
-     * Compute SFace embedding for a face crop (112x112 BGR).
-     */
-    private float[] computeSFaceEmbedding(Mat alignedFace112x112) {
-        // Primary path: use OpenCV FaceRecognizerSF when available
-        if (sFaceRecognizer != null) {
-            try {
-                Mat embedding = new Mat();
-                Class<?> cls = Class.forName("org.bytedeco.opencv.opencv_face.FaceRecognizerSF");
-                java.lang.reflect.Method feature = cls.getMethod("feature", Mat.class, Mat.class);
-                feature.invoke(sFaceRecognizer, alignedFace112x112, embedding);
-                int len = (int) embedding.total();
-                float[] vec = new float[len];
-                embedding.data().asByteBuffer().asFloatBuffer().get(vec);
-                embedding.releaseReference();
-                // L2 normalize
-                double norm = 0.0;
-                for (float v : vec) norm += v * v;
-                norm = Math.sqrt(norm);
-                if (norm > 0) {
-                    for (int i = 0; i < vec.length; i++) vec[i] /= (float) norm;
-                }
-                return vec;
-            } catch (Throwable t) {
-                logger.debug("SFace embedding failed (OpenCV): {}", t.getMessage());
-                // fall through to fallback attempt
-            }
-        }
-
-        // Fallback: try to use FaceBytes ModelManager via reflection (no compile-time dependency)
-        try {
-            Class<?> mm = Class.forName("io.github.codesapienbe.springvision.facebytes.models.ModelManager");
-            java.lang.reflect.Method isAvailable = mm.getMethod("isSFaceAvailable");
-            Boolean available = (Boolean) isAvailable.invoke(null);
-            if (available != null && available) {
-                // Convert Mat to NCHW float array expected by ModelManager
-                float[] nchw = matToNCHWFloat(alignedFace112x112);
-                long[] shape = new long[]{1, 3, alignedFace112x112.rows(), alignedFace112x112.cols()};
-                java.lang.reflect.Method run = mm.getMethod("runSFaceEmbedding", float[].class, long[].class);
-                Object result = run.invoke(null, nchw, shape);
-                if (result instanceof float[] arr && arr.length > 0) {
-                    // ModelManager already returns normalized embedding; return directly
-                    return arr;
-                }
-            }
-        } catch (ClassNotFoundException cnf) {
-            logger.debug("FaceBytes ModelManager not present for SFace fallback: {}", cnf.getMessage());
-        } catch (Throwable t) {
-            logger.debug("SFace fallback via ModelManager failed: {}", t.getMessage());
-        }
-
-        return null;
-    }
-
-    /**
-     * Convert a BGR Mat to a NCHW float array suitable for ONNX-style inference.
-     * The Mat is expected to be HxW with 3 channels (BGR). Values are converted to float
-     * in range [0,255]. Caller is responsible for matching model expected normalization.
-     */
-    private float[] matToNCHWFloat(Mat mat) {
-        int h = mat.rows();
-        int w = mat.cols();
-        int channels = mat.channels();
-        if (channels < 3) {
-            // expand single channel to 3 channels by duplication
-            channels = 3;
-        }
-        float[] out = new float[channels * h * w];
-        try {
-            // Read byte data from Mat; OpenCV Mat stores BGR by default
-            org.bytedeco.javacpp.BytePointer bp = mat.data();
-            int stride = w * mat.channels();
-            byte[] rowBuf = new byte[stride];
-            int idxB = 0;
-            int idxG = h * w;
-            int idxR = 2 * h * w;
-            for (int y = 0; y < h; y++) {
-                bp.position((long) y * stride);
-                bp.get(rowBuf);
-                int p = 0;
-                for (int x = 0; x < w; x++) {
-                    int b = rowBuf[p++] & 0xFF;
-                    int g = rowBuf[p++] & 0xFF;
-                    int r = rowBuf[p++] & 0xFF;
-                    out[idxB++] = (float) b;
-                    out[idxG++] = (float) g;
-                    out[idxR++] = (float) r;
-                }
-            }
-        } catch (Throwable t) {
-            logger.debug("Failed to convert Mat to NCHW float: {}", t.getMessage());
-            return new float[3 * h * w];
-        }
-        return out;
-    }
-
     private static double clamp01(double value) {
         if (Double.isNaN(value) || Double.isInfinite(value)) {
             return 0.0;
@@ -1686,94 +1309,6 @@ public class OpenCvVisionBackend implements VisionBackend, FaceDetectionCapabili
     private Path getModelsBaseDir() {
         // Use the ModelResourceLoader cache directory for consistency
         return Paths.get(System.getProperty("user.home", "."), ".spring-vision", "models", "opencv");
-    }
-
-    /**
-     * Compute dynamic min/max face area ratios from top N confident candidates; robust to outliers.
-     */
-    private static double[] computeDynamicAreaBounds(List<Rect> rects, List<Float> scores, int cols, int rows) {
-        int n = rects.size();
-        java.util.List<Integer> order = new java.util.ArrayList<>(n);
-        for (int i = 0; i < n; i++) order.add(i);
-        order.sort((a, b) -> Float.compare(scores.get(b), scores.get(a)));
-        int top = Math.min(3, n);
-        double[] areas = new double[top];
-        for (int i = 0; i < top; i++) {
-            Rect r = rects.get(order.get(i));
-            areas[i] = (double) r.width() * r.height() / ((double) cols * rows);
-        }
-        java.util.Arrays.sort(areas);
-        double median = areas[top / 2];
-        // Derive permissive bounds that suppress extreme outliers (e.g., huge false boxes) but keep small faces
-        double minArea = Math.min(0.01, median * 0.02);    // keep very small faces
-        double maxArea = Math.max(0.06, median * 1.8);     // drop overly large boxes
-        // Clamp to safe global limits
-        minArea = Math.max(0.00005, Math.min(minArea, 0.05));
-        maxArea = Math.max(minArea * 3.0, Math.min(maxArea, 0.9));
-        return new double[]{minArea, maxArea};
-    }
-
-    /**
-     * Apply a lightweight Multi-Scale Retinex on a grayscale image to normalize illumination
-     * while preserving edges. Returns an 8-bit grayscale Mat. Any failure returns the input.
-     */
-    private Mat applyMultiScaleRetinexGray(Mat grayImage) {
-        try {
-            // Convert to float in [0,1]
-            Mat inputFloat = new Mat();
-            grayImage.convertTo(inputFloat, org.bytedeco.opencv.global.opencv_core.CV_32F, 1.0 / 255.0, 0.0);
-
-            // log(I + eps)
-            double eps = 1e-6;
-            Mat epsMat = new Mat(inputFloat.size(), inputFloat.type(), new Scalar(eps));
-            org.bytedeco.opencv.global.opencv_core.add(inputFloat, epsMat, inputFloat);
-            Mat logI = new Mat();
-            org.bytedeco.opencv.global.opencv_core.log(inputFloat, logI);
-
-            // Accumulate SSR across multiple Gaussian scales
-            int[] kernelSizes = new int[]{15, 80, 250};
-            Mat acc = new Mat(logI.size(), logI.type(), new Scalar(0));
-            for (int k : kernelSizes) {
-                Mat blurred = new Mat();
-                org.bytedeco.opencv.global.opencv_imgproc.GaussianBlur(inputFloat, blurred, new Size(k, k), 0);
-                org.bytedeco.opencv.global.opencv_core.add(blurred, epsMat, blurred);
-                Mat logB = new Mat();
-                org.bytedeco.opencv.global.opencv_core.log(blurred, logB);
-                Mat ssr = new Mat();
-                org.bytedeco.opencv.global.opencv_core.subtract(logI, logB, ssr);
-                org.bytedeco.opencv.global.opencv_core.add(acc, ssr, acc);
-                ssr.releaseReference();
-                logB.releaseReference();
-                blurred.releaseReference();
-            }
-            epsMat.releaseReference();
-            // Average the accumulation
-            Mat scaleMat = new Mat(acc.size(), acc.type(), new Scalar(1.0 / kernelSizes.length));
-            org.bytedeco.opencv.global.opencv_core.multiply(acc, scaleMat, acc);
-            scaleMat.releaseReference();
-
-            // Normalize to 0..255 and convert to 8U
-            Mat out = new Mat();
-            org.bytedeco.opencv.global.opencv_core.normalize(
-                acc,
-                out,
-                0,
-                255,
-                org.bytedeco.opencv.global.opencv_core.NORM_MINMAX,
-                org.bytedeco.opencv.global.opencv_core.CV_8U,
-                new Mat()
-            );
-
-            // Cleanup
-            acc.releaseReference();
-            logI.releaseReference();
-            inputFloat.releaseReference();
-
-            return out;
-        } catch (Throwable t) {
-            logger.debug("Retinex processing failed: {}", t.getMessage());
-            return grayImage;
-        }
     }
 
     /**

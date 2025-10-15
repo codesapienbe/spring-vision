@@ -129,36 +129,7 @@
           </execution>
         </executions>
       </plugin>
-
-      <!-- Jib plugin: builds a Docker image into the local Docker daemon during the install phase. -->
-      <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>jib-maven-plugin</artifactId>
-        <version>${jib-maven-plugin.version}</version>
-        <configuration>
-          <from>
-            <image>eclipse-temurin:21-jdk</image>
-          </from>
-          <to>
-            <image>${docker.image.name}</image>
-          </to>
-          <container>
-            <mainClass>io.github.codesapienbe.springvision.mcp.SpringVisionMcpServerApplication</mainClass>
-            <ports>
-              <port>8080</port>
-            </ports>
-          </container>
-        </configuration>
-        <executions>
-          <execution>
-            <id>docker-build</id>
-            <phase>install</phase>
-            <goals>
-              <goal>dockerBuild</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      
     </plugins>
   </build>
 </project>

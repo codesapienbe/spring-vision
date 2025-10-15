@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run dev clean deploy release docs mcp default
+.PHONY: build run clean deploy release docs default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -10,6 +10,8 @@ build:
 	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)"
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false
 	mvn clean install -DskipTests
+	@echo "Building Docker image..."
+	docker build -t spring-vision:$(SPRING_VISION_VERSION) -f mcp/Dockerfile .
 
 verify:
 	@echo "Testing project: Maven test"
@@ -17,17 +19,7 @@ verify:
 
 run:
 	@echo "Running MCP server on Docker..."
-	docker run -i --rm codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
-
-dev:
-	@echo "Running MCP server on dev..."
-	java -jar /home/codesapienbe/Projects/spring-vision/mcp/target/mcp-$(SPRING_VISION_VERSION).jar
-
-mcp:
-	@echo "Building MCP server as Docker image.."
-	mvn -B -pl mcp -am -DskipTests install
-	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest &&\
-    docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
+	docker run -p "8081:8081" --name spring-vision-mcp --detach codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
 
 clean:
 	mvn clean -q && docker image rm spring-vision:$(SPRING_VISION_VERSION) spring-vision:latest || true

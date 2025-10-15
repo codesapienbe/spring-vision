@@ -1,136 +1,22 @@
-version: '3.8'
-
 services:
-  # DeepFace service for face detection and analysis
-  # https://hub.docker.com/r/serengil/deepface
-  deepface:
-    image: serengil/deepface:latest
-    container_name: spring-vision-deepface
-    ports:
-      - "127.0.0.1:5000:5000"
-    restart: unless-stopped
-    networks:
-      - spring-vision-network
 
-  # CompreFace service for face detection and recognition
-  # https://hub.docker.com/r/exadel/compreface
-  compreface:
-    image: exadel/compreface:latest
-    container_name: spring-vision-compreface
-    environment:
-      POSTGRES_URL: jdbc:postgresql://postgres:5432/springvision
-      POSTGRES_USER: springvision
-      POSTGRES_PASSWORD: springvision
-      EXTERNAL_DB: "true"
-      # Optional: Configure Java memory settings for better performance
-      API_JAVA_OPTS: ${COMPREFACE_API_JAVA_OPTS:--Xmx2g}
+  spring-vision-mcp:
+    image: codesapienbe/spring-vision:latest
+    container_name: spring-vision-mcp
     ports:
-      - "127.0.0.1:8000:80"
+      - "8081:8081"  # Map host port 8081 to container port 8081
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - SERVER_PORT=8081
     restart: unless-stopped
-    depends_on:
-      - postgres
-    networks:
-      - spring-vision-network
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:80/api/v1/recognition/detect || exit 1" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  # PostgreSQL database for applications that need persistence
-  postgres:
-    image: postgres:15-alpine
-    container_name: spring-vision-postgres
-    environment:
-      POSTGRES_DB: springvision
-      POSTGRES_USER: springvision
-      POSTGRES_PASSWORD: springvision
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    restart: unless-stopped
+      retries: 3
+      start_period: 40s
     networks:
       - spring-vision-network
-
-  # Redis for caching (optional)
-  redis:
-    image: redis:7-alpine
-    container_name: spring-vision-redis
-    ports:
-      - "127.0.0.1:6379:6379"
-    restart: unless-stopped
-    networks:
-      - spring-vision-network
-
-  # Basic Face Detection Example
-  basic-face-detection:
-    build:
-      context: ./examples/basic-face-detection
-    ports:
-      - "127.0.0.1:8080:8080"
-    environment:
-      - DEEPFACE_BASE_URL=http://deepface:5000
-      - COMPREFACE_BASE_URL=http://compreface
-    depends_on:
-      - deepface
-      - compreface
-    networks:
-      - spring-vision-network
-
-  # One Million Challenge Example
-  one-million-challenge:
-    build:
-      context: ./examples/one-million-challenge
-    ports:
-      - "127.0.0.1:8081:8080"
-    environment:
-      - DEEPFACE_BASE_URL=http://deepface:5000
-      - COMPREFACE_BASE_URL=http://compreface
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/springvision
-      - SPRING_DATASOURCE_USERNAME=springvision
-      - SPRING_DATASOURCE_PASSWORD=springvision
-    depends_on:
-      - deepface
-      - compreface
-      - postgres
-    networks:
-      - spring-vision-network
-
-  # Vaadin Application Example
-  vaadin-application:
-    build:
-      context: ./examples/vaadin-application
-    ports:
-      - "127.0.0.1:8082:8080"
-    environment:
-      - DEEPFACE_BASE_URL=http://deepface:5000
-      - COMPREFACE_BASE_URL=http://compreface
-    depends_on:
-      - deepface
-      - compreface
-    networks:
-      - spring-vision-network
-
-  # GWT Application Example
-  gwt-application:
-    build:
-      context: ./examples/gwt-application
-    ports:
-      - "127.0.0.1:8083:8080"
-    environment:
-      - DEEPFACE_BASE_URL=http://deepface:5000
-      - COMPREFACE_BASE_URL=http://compreface
-    depends_on:
-      - deepface
-      - compreface
-    networks:
-      - spring-vision-network
-
-volumes:
-  postgres-data:
-    driver: local
 
 networks:
   spring-vision-network:
