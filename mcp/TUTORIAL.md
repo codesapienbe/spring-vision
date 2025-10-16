@@ -94,6 +94,10 @@ docker run -i --rm codesapienbe/spring-vision:latest
 
 The most common way to use the server is through MCP clients like Claude Desktop or Cline. Add the configuration from the "Code Example" section above to your MCP client's configuration file, and the client will automatically manage the Docker container lifecycle.
 
+## Advised Video to Learn About MCP Servers
+
+https://youtu.be/GuTcle5edjk
+
 ## 📢 Call to Action
 
 * **Like and Subscribe**: "If you found this helpful, please like, subscribe, and share!"

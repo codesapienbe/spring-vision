@@ -1,13 +1,95 @@
-# DJL-based configuration (CPU - default)
+# DJL Vision Backend Configuration Example
+# Copy this configuration to your application.yml and customize as needed
+
 spring:
   vision:
     djl:
+      # Enable DJL backend (default: true)
       enabled: true
-      engine: PyTorch
-      confidence-threshold: 0.5
 
-    # Disable legacy backends
-    opencv:
-      enabled: false
-    facebytes:
-      enabled: false
+      # Engine selection: pytorch (default), tensorflow, mxnet, onnx
+      engine: pytorch
+
+      # Device: cpu (default), gpu, gpu:0, gpu:1, etc.
+      device: cpu
+
+      # Model cache directory (optional, defaults to ~/.djl/cache)
+      model-cache-dir: ${user.home}/.djl/cache
+
+      # Auto-download models from DJL Model Zoo (default: true)
+      auto-download: true
+
+      # Show progress bar during model download (default: false)
+      show-progress: false
+
+      # Maximum concurrent inference threads (default: 4)
+      max-concurrent-inferences: 4
+
+      # Face Detection Configuration
+      face-detection:
+        # Model: retinaface (default), lightface
+        model: retinaface
+        confidence-threshold: 0.7
+        max-faces: 100
+
+      # Face Recognition Configuration
+      face-recognition:
+        # Model: inception_resnet_v1 (default), facenet
+        model: inception_resnet_v1
+        embedding-size: 512
+        similarity-threshold: 0.6
+
+      # Object Detection Configuration
+      object-detection:
+        # Model: ssd (default), yolo
+        model: ssd
+        # Backbone: resnet50, mobilenet, etc.
+        backbone: resnet50
+        confidence-threshold: 0.5
+        top-k: 10
+
+      # Pose Estimation Configuration
+      pose-estimation:
+        model: simple_pose
+        joints: 17  # COCO 17 keypoints
+        confidence-threshold: 0.5
+
+      # Action Recognition Configuration
+      action-recognition:
+        model: action_recognition
+        confidence-threshold: 0.6
+
+      # Segmentation Configuration
+      segmentation:
+        # Model: instance_segmentation, semantic_segmentation
+        model: instance_segmentation
+        instance-level: true
+
+---
+# Profile for GPU acceleration
+spring:
+  config:
+    activate:
+      on-profile: gpu
+
+  vision:
+    djl:
+      device: gpu
+      engine: pytorch
+
+---
+# Profile for production with optimized settings
+spring:
+  config:
+    activate:
+      on-profile: production
+
+  vision:
+    djl:
+      show-progress: false
+      max-concurrent-inferences: 8
+      face-detection:
+        confidence-threshold: 0.8
+      object-detection:
+        confidence-threshold: 0.6
+

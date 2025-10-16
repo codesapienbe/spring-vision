@@ -88,6 +88,20 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- JUnit Platform Suite API for test suites -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit Platform Suite Engine for running test suites -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <!-- Spring Boot Test Starter -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -195,28 +209,30 @@
     <dependency>
       <groupId>ai.djl</groupId>
       <artifactId>api</artifactId>
-      <version>0.33.0</version>
     </dependency>
 
     <!-- DJL Model Zoo -->
     <dependency>
       <groupId>ai.djl</groupId>
       <artifactId>model-zoo</artifactId>
-      <version>0.33.0</version>
     </dependency>
 
     <!-- DJL PyTorch Engine (for face detection and recognition models) -->
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-engine</artifactId>
-      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL PyTorch Model Zoo -->
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-model-zoo</artifactId>
     </dependency>
 
     <!-- DJL PyTorch Native Auto (auto-selects platform) -->
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-native-auto</artifactId>
-      <version>1.9.1</version>
       <scope>runtime</scope>
     </dependency>
 
@@ -224,21 +240,13 @@
     <dependency>
       <groupId>ai.djl.opencv</groupId>
       <artifactId>opencv</artifactId>
-      <version>0.33.0</version>
-    </dependency>
-
-    <!-- DJL PyTorch Model Zoo -->
-    <dependency>
-      <groupId>ai.djl.pytorch</groupId>
-      <artifactId>pytorch-model-zoo</artifactId>
-      <version>0.33.0</version>
     </dependency>
 
     <!-- DJL ONNX Runtime Engine (for ONNX models) -->
     <dependency>
       <groupId>ai.djl.onnxruntime</groupId>
       <artifactId>onnxruntime-engine</artifactId>
-      <version>0.33.0</version>
+      <optional>true</optional>
     </dependency>
   </dependencies>
 

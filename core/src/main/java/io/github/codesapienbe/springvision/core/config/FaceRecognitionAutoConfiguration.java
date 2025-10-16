@@ -8,32 +8,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
-import io.github.codesapienbe.springvision.core.recognition.BasicFaceQualityAssessor;
-import io.github.codesapienbe.springvision.core.recognition.FaceDatabaseBuilder;
-import io.github.codesapienbe.springvision.core.recognition.FaceEmbeddingIndex;
-import io.github.codesapienbe.springvision.core.recognition.FaceQualityAssessor;
-import io.github.codesapienbe.springvision.core.recognition.FaceRecognitionEngine;
-import io.github.codesapienbe.springvision.core.recognition.HNSWConfig;
-import io.github.codesapienbe.springvision.core.recognition.HNSWFaceIndex;
-import io.github.codesapienbe.springvision.core.recognition.FaceRecognitionEngine.RecognitionConfig;
 
 /**
  * Auto-configuration for face recognition components.
  *
- * <p>This configuration automatically sets up the face recognition system when
- * enabled via properties. It configures the HNSW index, face recognition engine,
- * database builder, and quality assessor.</p>
- *
- * <p>Configuration properties:</p>
- * <ul>
- *   <li><code>spring.vision.recognition.enabled</code> - Enable face recognition (default: false)</li>
- *   <li><code>spring.vision.recognition.backend</code> - Vision backend to use (default: opencv)</li>
- *   <li><code>spring.vision.recognition.embedding-dimension</code> - Face embedding dimension (default: 512)</li>
- *   <li><code>spring.vision.recognition.max-database-size</code> - Maximum faces in database (default: 2000000)</li>
- *   <li><code>spring.vision.recognition.quality-threshold</code> - Minimum face quality (default: 0.3)</li>
- *   <li><code>spring.vision.recognition.similarity-threshold</code> - Minimum similarity for matches (default: 0.6)</li>
- *   <li><code>spring.vision.recognition.max-results</code> - Maximum results per query (default: 100)</li>
- * </ul>
+ * <p>DISABLED - This configuration is temporarily disabled pending implementation
+ * of the recognition package classes. Will be re-enabled in a future phase.</p>
  *
  * @author Spring Vision Team
  * @since 1.0.0
@@ -49,113 +29,11 @@ public class FaceRecognitionAutoConfiguration {
      * Default constructor for {@link FaceRecognitionAutoConfiguration}.
      */
     public FaceRecognitionAutoConfiguration() {
-        // Default constructor
+        logger.warn("FaceRecognitionAutoConfiguration is currently disabled - recognition package not yet implemented");
     }
 
-    /**
-     * Create the HNSW face embedding index.
-     * @param properties The face recognition properties.
-     * @return The configured face embedding index.
-     */
-    @Bean
-    public FaceEmbeddingIndex faceEmbeddingIndex(FaceRecognitionAutoConfiguration.FaceRecognitionProperties properties) {
-        logger.info("Creating HNSW face embedding index with dimension: {}",
-            properties.getEmbeddingDimension());
-
-        HNSWConfig config = createHNSWConfig(properties);
-        HNSWFaceIndex index = new HNSWFaceIndex(properties.getEmbeddingDimension(), config);
-
-        logger.info("HNSW face embedding index created successfully");
-        return index;
-    }
-
-    /**
-     * Create the face quality assessor.
-     * @return The configured face quality assessor.
-     */
-    @Bean
-    public FaceQualityAssessor faceQualityAssessor() {
-        logger.info("Creating basic face quality assessor");
-        return new BasicFaceQualityAssessor();
-    }
-
-    /**
-     * Create the face recognition engine.
-     * @param visionBackend The vision backend.
-     * @param embeddingIndex The face embedding index.
-     * @param qualityAssessor The face quality assessor.
-     * @param properties The face recognition properties.
-     * @return The configured face recognition engine.
-     */
-    @Bean
-    public FaceRecognitionEngine faceRecognitionEngine(
-        VisionBackend visionBackend,
-        FaceEmbeddingIndex embeddingIndex,
-        FaceQualityAssessor qualityAssessor,
-        FaceRecognitionAutoConfiguration.FaceRecognitionProperties properties) {
-
-        logger.info("Creating face recognition engine");
-
-        RecognitionConfig config = new RecognitionConfig(
-            properties.getQualityThreshold(),
-            properties.getSimilarityThreshold(),
-            properties.getMaxResults()
-        );
-
-        FaceRecognitionEngine engine = new FaceRecognitionEngine(
-            visionBackend, embeddingIndex, qualityAssessor, config);
-
-        logger.info("Face recognition engine created successfully");
-        return engine;
-    }
-
-    /**
-     * Create the face database builder.
-     * @param visionBackend The vision backend.
-     * @param embeddingIndex The face embedding index.
-     * @param qualityAssessor The face quality assessor.
-     * @param properties The face recognition properties.
-     * @return The configured face database builder.
-     */
-    @Bean
-    public FaceDatabaseBuilder faceDatabaseBuilder(
-        VisionBackend visionBackend,
-        FaceEmbeddingIndex embeddingIndex,
-        FaceQualityAssessor qualityAssessor,
-        FaceRecognitionAutoConfiguration.FaceRecognitionProperties properties) {
-
-        logger.info("Creating face database builder");
-
-        FaceDatabaseBuilder.DatabaseBuilderConfig config = new FaceDatabaseBuilder.DatabaseBuilderConfig(
-            properties.getParallelThreads(),
-            properties.getBatchSize(),
-            properties.getQualityThreshold(),
-            100,  // progressReportInterval - report every 100 files
-            false // stopOnError - continue on errors
-        );
-
-        FaceDatabaseBuilder builder = new FaceDatabaseBuilder(
-            visionBackend, embeddingIndex, qualityAssessor, config);
-
-        logger.info("Face database builder created successfully");
-        return builder;
-    }
-
-    /**
-     * Create HNSW configuration based on properties.
-     */
-    private HNSWConfig createHNSWConfig(FaceRecognitionAutoConfiguration.FaceRecognitionProperties properties) {
-        String accuracyMode = properties.getHnsw().getAccuracyMode();
-
-        return switch (accuracyMode.toLowerCase()) {
-            case "high" -> HNSWConfig.highAccuracyConfig();
-            case "fast" -> HNSWConfig.fastSearchConfig();
-            case "large" -> HNSWConfig.largeDatabaseConfig();
-            case "memory" -> HNSWConfig.memoryEfficientConfig();
-            case "balanced" -> HNSWConfig.defaultConfig();
-            default -> HNSWConfig.defaultConfig();
-        };
-    }
+    // TODO: Re-enable these beans when recognition package is implemented
+    // All bean methods commented out to avoid compilation errors
 
     /**
      * Configuration properties for face recognition.
@@ -182,8 +60,10 @@ public class FaceRecognitionAutoConfiguration {
         }
 
         // Getters and setters
+
         /**
          * Checks if face recognition is enabled.
+         *
          * @return {@code true} if enabled, {@code false} otherwise.
          */
         public boolean isEnabled() {
@@ -192,6 +72,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets whether face recognition is enabled.
+         *
          * @param enabled {@code true} to enable, {@code false} to disable.
          */
         public void setEnabled(boolean enabled) {
@@ -200,6 +81,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the vision backend to use.
+         *
          * @return The vision backend name.
          */
         public String getBackend() {
@@ -208,6 +90,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the vision backend to use.
+         *
          * @param backend The vision backend name.
          */
         public void setBackend(String backend) {
@@ -216,6 +99,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the face embedding dimension.
+         *
          * @return The embedding dimension.
          */
         public int getEmbeddingDimension() {
@@ -224,6 +108,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the face embedding dimension.
+         *
          * @param embeddingDimension The embedding dimension.
          */
         public void setEmbeddingDimension(int embeddingDimension) {
@@ -232,6 +117,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the maximum number of faces in the database.
+         *
          * @return The maximum database size.
          */
         public int getMaxDatabaseSize() {
@@ -240,6 +126,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the maximum number of faces in the database.
+         *
          * @param maxDatabaseSize The maximum database size.
          */
         public void setMaxDatabaseSize(int maxDatabaseSize) {
@@ -248,6 +135,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the minimum face quality threshold.
+         *
          * @return The quality threshold.
          */
         public double getQualityThreshold() {
@@ -256,6 +144,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the minimum face quality threshold.
+         *
          * @param qualityThreshold The quality threshold.
          */
         public void setQualityThreshold(double qualityThreshold) {
@@ -264,6 +153,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the minimum similarity for matches.
+         *
          * @return The similarity threshold.
          */
         public double getSimilarityThreshold() {
@@ -272,6 +162,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the minimum similarity for matches.
+         *
          * @param similarityThreshold The similarity threshold.
          */
         public void setSimilarityThreshold(double similarityThreshold) {
@@ -280,6 +171,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the maximum number of results per query.
+         *
          * @return The maximum number of results.
          */
         public int getMaxResults() {
@@ -288,6 +180,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the maximum number of results per query.
+         *
          * @param maxResults The maximum number of results.
          */
         public void setMaxResults(int maxResults) {
@@ -296,6 +189,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the number of parallel threads for processing.
+         *
          * @return The number of parallel threads.
          */
         public int getParallelThreads() {
@@ -304,6 +198,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the number of parallel threads for processing.
+         *
          * @param parallelThreads The number of parallel threads.
          */
         public void setParallelThreads(int parallelThreads) {
@@ -312,6 +207,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the batch size for processing.
+         *
          * @return The batch size.
          */
         public int getBatchSize() {
@@ -320,6 +216,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the batch size for processing.
+         *
          * @param batchSize The batch size.
          */
         public void setBatchSize(int batchSize) {
@@ -328,6 +225,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Gets the HNSW-specific configuration properties.
+         *
          * @return The HNSW properties.
          */
         public HNSWProperties getHnsw() {
@@ -336,6 +234,7 @@ public class FaceRecognitionAutoConfiguration {
 
         /**
          * Sets the HNSW-specific configuration properties.
+         *
          * @param hnsw The HNSW properties.
          */
         public void setHnsw(HNSWProperties hnsw) {
@@ -357,6 +256,7 @@ public class FaceRecognitionAutoConfiguration {
 
             /**
              * Gets the accuracy mode for the HNSW index.
+             *
              * @return The accuracy mode.
              */
             public String getAccuracyMode() {
@@ -365,6 +265,7 @@ public class FaceRecognitionAutoConfiguration {
 
             /**
              * Sets the accuracy mode for the HNSW index.
+             *
              * @param accuracyMode The accuracy mode.
              */
             public void setAccuracyMode(String accuracyMode) {

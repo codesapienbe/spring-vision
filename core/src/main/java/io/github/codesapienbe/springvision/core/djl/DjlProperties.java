@@ -14,37 +14,32 @@ public class DjlProperties {
     /**
      * Whether DJL backend is enabled.
      */
-    private boolean enabled = false;
+    private boolean enabled = true;
 
     /**
-     * Preferred engine (PyTorch, OnnxRuntime, TensorFlow, MXNet).
+     * Preferred engine: pytorch (default), mxnet, tensorflow, onnx
      */
     private String engine = "PyTorch";
 
     /**
+     * Device: cpu (default), gpu, gpu:0, gpu:1, etc.
+     */
+    private String device = "cpu";
+
+    /**
      * Model cache directory. Defaults to ~/.djl.ai
      */
-    private String cacheDir;
+    private String modelCacheDir;
 
     /**
-     * Face detection model URL or path.
+     * Auto-download models from ModelZoo
      */
-    private String faceDetectionModel;
+    private boolean autoDownload = true;
 
     /**
-     * Face recognition model URL or path.
+     * Enable progress bar during model download
      */
-    private String faceRecognitionModel;
-
-    /**
-     * Object detection model URL, artifact ID, or local path.
-     */
-    private String objectDetectionModel;
-
-    /**
-     * Whether to use GPU acceleration when available.
-     */
-    private boolean useGpu = false;
+    private boolean showProgress = false;
 
     /**
      * Model zoo location (comma-separated URLs).
@@ -52,15 +47,213 @@ public class DjlProperties {
     private String modelZooLocation;
 
     /**
-     * Minimum confidence threshold for detections.
-     */
-    private double confidenceThreshold = 0.5;
-
-    /**
      * Maximum number of concurrent inference threads.
      */
     private int maxConcurrentInferences = 4;
 
+    /**
+     * Face detection settings
+     */
+    private FaceDetection faceDetection = new FaceDetection();
+
+    /**
+     * Object detection settings
+     */
+    private ObjectDetection objectDetection = new ObjectDetection();
+
+    /**
+     * Pose estimation settings
+     */
+    private PoseEstimation poseEstimation = new PoseEstimation();
+
+    /**
+     * Action recognition settings
+     */
+    private ActionRecognition actionRecognition = new ActionRecognition();
+
+    /**
+     * Segmentation settings
+     */
+    private Segmentation segmentation = new Segmentation();
+
+    /**
+     * Face recognition settings
+     */
+    private FaceRecognition faceRecognition = new FaceRecognition();
+
+    // Nested configuration classes
+    public static class FaceDetection {
+        private String model = "retinaface"; // or "lightface"
+        private float confidenceThreshold = 0.7f;
+        private int maxFaces = 100;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public float getConfidenceThreshold() {
+            return confidenceThreshold;
+        }
+
+        public void setConfidenceThreshold(float confidenceThreshold) {
+            this.confidenceThreshold = confidenceThreshold;
+        }
+
+        public int getMaxFaces() {
+            return maxFaces;
+        }
+
+        public void setMaxFaces(int maxFaces) {
+            this.maxFaces = maxFaces;
+        }
+    }
+
+    public static class ObjectDetection {
+        private String model = "ssd"; // or "yolo"
+        private String backbone = "resnet50";
+        private float confidenceThreshold = 0.5f;
+        private int topK = 10;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public String getBackbone() {
+            return backbone;
+        }
+
+        public void setBackbone(String backbone) {
+            this.backbone = backbone;
+        }
+
+        public float getConfidenceThreshold() {
+            return confidenceThreshold;
+        }
+
+        public void setConfidenceThreshold(float confidenceThreshold) {
+            this.confidenceThreshold = confidenceThreshold;
+        }
+
+        public int getTopK() {
+            return topK;
+        }
+
+        public void setTopK(int topK) {
+            this.topK = topK;
+        }
+    }
+
+    public static class PoseEstimation {
+        private String model = "simple_pose";
+        private int joints = 17;
+        private float confidenceThreshold = 0.5f;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public int getJoints() {
+            return joints;
+        }
+
+        public void setJoints(int joints) {
+            this.joints = joints;
+        }
+
+        public float getConfidenceThreshold() {
+            return confidenceThreshold;
+        }
+
+        public void setConfidenceThreshold(float confidenceThreshold) {
+            this.confidenceThreshold = confidenceThreshold;
+        }
+    }
+
+    public static class ActionRecognition {
+        private String model = "action_recognition";
+        private float confidenceThreshold = 0.6f;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public float getConfidenceThreshold() {
+            return confidenceThreshold;
+        }
+
+        public void setConfidenceThreshold(float confidenceThreshold) {
+            this.confidenceThreshold = confidenceThreshold;
+        }
+    }
+
+    public static class Segmentation {
+        private String model = "instance_segmentation"; // or "semantic_segmentation"
+        private boolean instanceLevel = true;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public boolean isInstanceLevel() {
+            return instanceLevel;
+        }
+
+        public void setInstanceLevel(boolean instanceLevel) {
+            this.instanceLevel = instanceLevel;
+        }
+    }
+
+    public static class FaceRecognition {
+        private String model = "inception_resnet_v1"; // or "facenet"
+        private int embeddingSize = 512;
+        private float similarityThreshold = 0.6f;
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public int getEmbeddingSize() {
+            return embeddingSize;
+        }
+
+        public void setEmbeddingSize(int embeddingSize) {
+            this.embeddingSize = embeddingSize;
+        }
+
+        public float getSimilarityThreshold() {
+            return similarityThreshold;
+        }
+
+        public void setSimilarityThreshold(float similarityThreshold) {
+            this.similarityThreshold = similarityThreshold;
+        }
+    }
+
+    // Getters and setters
     public boolean isEnabled() {
         return enabled;
     }
@@ -77,44 +270,45 @@ public class DjlProperties {
         this.engine = engine;
     }
 
+    public String getDevice() {
+        return device;
+    }
+
+    public void setDevice(String device) {
+        this.device = device;
+    }
+
+    public String getModelCacheDir() {
+        return modelCacheDir;
+    }
+
+    public void setModelCacheDir(String modelCacheDir) {
+        this.modelCacheDir = modelCacheDir;
+    }
+
+    /**
+     * Convenience method - alias for getModelCacheDir().
+     *
+     * @return the model cache directory
+     */
     public String getCacheDir() {
-        return cacheDir;
+        return modelCacheDir;
     }
 
-    public void setCacheDir(String cacheDir) {
-        this.cacheDir = cacheDir;
+    public boolean isAutoDownload() {
+        return autoDownload;
     }
 
-    public String getFaceDetectionModel() {
-        return faceDetectionModel;
+    public void setAutoDownload(boolean autoDownload) {
+        this.autoDownload = autoDownload;
     }
 
-    public void setFaceDetectionModel(String faceDetectionModel) {
-        this.faceDetectionModel = faceDetectionModel;
+    public boolean isShowProgress() {
+        return showProgress;
     }
 
-    public String getFaceRecognitionModel() {
-        return faceRecognitionModel;
-    }
-
-    public void setFaceRecognitionModel(String faceRecognitionModel) {
-        this.faceRecognitionModel = faceRecognitionModel;
-    }
-
-    public String getObjectDetectionModel() {
-        return objectDetectionModel;
-    }
-
-    public void setObjectDetectionModel(String objectDetectionModel) {
-        this.objectDetectionModel = objectDetectionModel;
-    }
-
-    public boolean isUseGpu() {
-        return useGpu;
-    }
-
-    public void setUseGpu(boolean useGpu) {
-        this.useGpu = useGpu;
+    public void setShowProgress(boolean showProgress) {
+        this.showProgress = showProgress;
     }
 
     public String getModelZooLocation() {
@@ -125,19 +319,59 @@ public class DjlProperties {
         this.modelZooLocation = modelZooLocation;
     }
 
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
     public int getMaxConcurrentInferences() {
         return maxConcurrentInferences;
     }
 
     public void setMaxConcurrentInferences(int maxConcurrentInferences) {
         this.maxConcurrentInferences = maxConcurrentInferences;
+    }
+
+    public FaceDetection getFaceDetection() {
+        return faceDetection;
+    }
+
+    public void setFaceDetection(FaceDetection faceDetection) {
+        this.faceDetection = faceDetection;
+    }
+
+    public ObjectDetection getObjectDetection() {
+        return objectDetection;
+    }
+
+    public void setObjectDetection(ObjectDetection objectDetection) {
+        this.objectDetection = objectDetection;
+    }
+
+    public PoseEstimation getPoseEstimation() {
+        return poseEstimation;
+    }
+
+    public void setPoseEstimation(PoseEstimation poseEstimation) {
+        this.poseEstimation = poseEstimation;
+    }
+
+    public ActionRecognition getActionRecognition() {
+        return actionRecognition;
+    }
+
+    public void setActionRecognition(ActionRecognition actionRecognition) {
+        this.actionRecognition = actionRecognition;
+    }
+
+    public Segmentation getSegmentation() {
+        return segmentation;
+    }
+
+    public void setSegmentation(Segmentation segmentation) {
+        this.segmentation = segmentation;
+    }
+
+    public FaceRecognition getFaceRecognition() {
+        return faceRecognition;
+    }
+
+    public void setFaceRecognition(FaceRecognition faceRecognition) {
+        this.faceRecognition = faceRecognition;
     }
 }

@@ -5,8 +5,6 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
-import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

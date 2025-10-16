@@ -49,6 +49,22 @@ public enum DetectionType {
     OBJECT("object", "Object Detection", false, "Detects various object classes in images"),
 
     /**
+     * Body detection - identifies human bodies and body parts.
+     *
+     * <p>This detection type locates human bodies in images and can detect body parts,
+     * used for pose estimation and human body analysis. Requires specialized body detection backends.</p>
+     */
+    BODY("body", "Body Detection", false, "Detects human bodies and body parts"),
+
+    /**
+     * Scene understanding - analyzes and classifies the overall scene in images.
+     *
+     * <p>This detection type performs scene classification and segmentation to understand
+     * the context and composition of images. Requires specialized scene analysis backends.</p>
+     */
+    SCENE("scene", "Scene Understanding", false, "Analyzes and classifies image scenes"),
+
+    /**
      * Text recognition (OCR) - extracts text from images.
      *
      * <p>This detection type performs Optical Character Recognition to extract

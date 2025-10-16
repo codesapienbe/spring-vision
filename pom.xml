@@ -54,7 +54,8 @@
     <!-- Additional shared versions -->
     <commons-math3.version>3.6.1</commons-math3.version>
     <onnxruntime.version>1.15.1</onnxruntime.version>
-    <djl.version>0.27.0</djl.version>
+    <djl.version>0.33.0</djl.version>
+    <pytorch.version>2.1.1</pytorch.version>
     <picocli.version>4.7.5</picocli.version>
     <spring-ai.version>1.0</spring-ai.version>
 
@@ -122,14 +123,29 @@
         <scope>import</scope>
       </dependency>
 
+      <!-- DJL BOM - Import all DJL dependencies with consistent versions -->
+      <dependency>
+        <groupId>ai.djl</groupId>
+        <artifactId>bom</artifactId>
+        <version>${djl.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- PyTorch native auto (not in BOM, needs explicit version) -->
+      <dependency>
+        <groupId>ai.djl.pytorch</groupId>
+        <artifactId>pytorch-native-auto</artifactId>
+        <version>1.9.1</version>
+      </dependency>
+
       <!-- JavaCV Dependencies (includes OpenCV) -->
       <dependency>
         <groupId>org.bytedeco</groupId>
         <artifactId>javacv</artifactId>
         <version>${javacv.version}</version>
       </dependency>
-      <!-- Managed OpenCV artifact (platform-specific). Modules should declare org.bytedeco:opencv with the desired <classifier> to pull only the native binaries for that platform.
-           Default classifier is set via ${opencv.classifier} above (linux-x86_64). This removes Android/iOS natives from module dependency declarations and keeps artifacts small. -->
+
       <dependency>
         <groupId>org.bytedeco</groupId>
         <artifactId>opencv</artifactId>
@@ -143,7 +159,7 @@
         <version>${micrometer.version}</version>
       </dependency>
 
-      <!-- Managed versions for facebytes module -->
+      <!-- Managed versions for legacy modules -->
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-math3</artifactId>
@@ -160,12 +176,6 @@
         <groupId>com.microsoft.onnxruntime</groupId>
         <artifactId>onnxruntime_gpu</artifactId>
         <version>${onnxruntime.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>ai.djl</groupId>
-        <artifactId>api</artifactId>
-        <version>${djl.version}</version>
       </dependency>
 
       <!-- PicoCLI Dependencies -->
@@ -494,191 +504,6 @@
           </plugin>
         </plugins>
       </build>
-    </profile>
-
-    <!-- Example Application Profiles -->
-    <profile>
-      <id>basic</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-              <mainClass>io.github.codesapienbe.springvision.examples.basicfacedetection.BasicFaceDetectionApplication
-              </mainClass>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>repackage</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>javafx</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-              <mainClass>io.github.codesapienbe.springvision.examples.javafxapplication.JavaFXApplication</mainClass>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>repackage</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>gwt</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-              <mainClass>io.github.codesapienbe.springvision.examples.gwtapplication.GwtApplication</mainClass>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>repackage</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>vaadin</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-              <mainClass>io.github.codesapienbe.springvision.examples.vaadinapplication.VaadinApplication</mainClass>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>repackage</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <profile>
-      <id>picocli</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-              <mainClass>io.github.codesapienbe.springvision.examples.picocliapplication.PicoCLIApplication</mainClass>
-            </configuration>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>repackage</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-    <!-- Platform profiles: set opencv.classifier per target platform.
-         Each profile will auto-activate on matching OS/arch, but can also
-         be selected manually with -P (for CI or cross builds).
-         Common usage examples:
-           mvn -Pplatform-linux-x86_64 clean install
-           mvn -DskipTests clean install (on a linux x86_64 host will auto-activate)
-    -->
-
-    <profile>
-      <id>platform-linux-x86_64</id>
-      <activation>
-        <os>
-          <name>Linux</name>
-          <arch>x86_64</arch>
-        </os>
-      </activation>
-      <properties>
-        <opencv.classifier>linux-x86_64</opencv.classifier>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>platform-linux-arm64</id>
-      <activation>
-        <os>
-          <name>Linux</name>
-          <arch>aarch64</arch>
-        </os>
-      </activation>
-      <properties>
-        <opencv.classifier>linux-arm64</opencv.classifier>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>platform-macosx-x86_64</id>
-      <activation>
-        <os>
-          <family>mac</family>
-          <arch>x86_64</arch>
-        </os>
-      </activation>
-      <properties>
-        <opencv.classifier>macosx-x86_64</opencv.classifier>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>platform-macosx-arm64</id>
-      <activation>
-        <os>
-          <family>mac</family>
-          <arch>aarch64</arch>
-        </os>
-      </activation>
-      <properties>
-        <opencv.classifier>macosx-arm64</opencv.classifier>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>platform-windows-x86_64</id>
-      <activation>
-        <os>
-          <family>windows</family>
-          <arch>x86_64</arch>
-        </os>
-      </activation>
-      <properties>
-        <opencv.classifier>windows-x86_64</opencv.classifier>
-      </properties>
     </profile>
 
   </profiles>

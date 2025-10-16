@@ -88,7 +88,7 @@ public record VisionResult(
     }
 
     /**
-     * Creates a new VisionResult with current timestamp and empty metadata.
+     * Creates a new VisionResult with the current timestamp and empty metadata.
      *
      * @param detectionType     the type of detection performed
      * @param detections        the list of detections found
@@ -103,7 +103,7 @@ public record VisionResult(
     }
 
     /**
-     * Creates a new VisionResult with current timestamp and custom metadata.
+     * Creates a new VisionResult with the current timestamp and custom metadata.
      *
      * @param detectionType     the type of detection performed
      * @param detections        the list of detections found
@@ -151,7 +151,7 @@ public record VisionResult(
     /**
      * Gets the detection with the highest confidence score.
      *
-     * @return the detection with highest confidence, or null if no detections
+     * @return the detection with the highest confidence, or null if no detections
      */
     public Detection getHighestConfidenceDetection() {
         if (detections.isEmpty()) {
@@ -191,76 +191,100 @@ public record VisionResult(
     }
 
     /**
-     * Checks if the processing time is within acceptable limits.
+     * Creates a new builder for VisionResult.
      *
-     * @param maxProcessingTimeMs the maximum acceptable processing time in milliseconds
-     * @return true if processing time is within limits, false otherwise
+     * @return a new VisionResult builder
      */
-    public boolean isProcessingTimeAcceptable(long maxProcessingTimeMs) {
-        return processingTimeMs <= maxProcessingTimeMs;
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
-     * Gets a metadata value by key.
-     *
-     * @param key the metadata key
-     * @return the metadata value, or null if not found
+     * Builder for VisionResult.
      */
-    public Object getMetadata(String key) {
-        return metadata.get(key);
-    }
+    public static class Builder {
+        private DetectionType detectionType;
+        private List<Detection> detections = List.of();
+        private double averageConfidence = 0.0;
+        private long processingTimeMs = 0;
+        private Instant timestamp = Instant.now();
+        private Map<String, Object> metadata = Map.of();
 
-    /**
-     * Gets a metadata value by key with a default value.
-     *
-     * @param key          the metadata key
-     * @param defaultValue the default value to return if key not found
-     * @return the metadata value, or the default value if not found
-     */
-    public Object getMetadata(String key, Object defaultValue) {
-        return metadata.getOrDefault(key, defaultValue);
-    }
-
-    /**
-     * Checks if this result contains a specific metadata key.
-     *
-     * @param key the metadata key to check
-     * @return true if the key exists, false otherwise
-     */
-    public boolean hasMetadata(String key) {
-        return metadata.containsKey(key);
-    }
-
-    /**
-     * Creates a new VisionResult with additional metadata.
-     *
-     * @param additionalMetadata additional metadata to merge
-     * @return a new VisionResult with merged metadata
-     */
-    public VisionResult withAdditionalMetadata(Map<String, Object> additionalMetadata) {
-        Objects.requireNonNull(additionalMetadata, "Additional metadata must not be null");
-
-        Map<String, Object> mergedMetadata = Map.of();
-        if (!metadata.isEmpty() || !additionalMetadata.isEmpty()) {
-            mergedMetadata = Map.of(); // In a real implementation, merge the maps
+        /**
+         * Sets the detection type.
+         *
+         * @param detectionType the detection type
+         * @return this builder
+         */
+        public Builder detectionType(DetectionType detectionType) {
+            this.detectionType = detectionType;
+            return this;
         }
 
-        return new VisionResult(detectionType, detections, averageConfidence,
-            processingTimeMs, timestamp, mergedMetadata);
-    }
+        /**
+         * Sets the detections.
+         *
+         * @param detections the list of detections
+         * @return this builder
+         */
+        public Builder detections(List<Detection> detections) {
+            this.detections = detections;
+            return this;
+        }
 
-    /**
-     * Creates a new VisionResult with a single additional metadata entry.
-     *
-     * @param key   the metadata key
-     * @param value the metadata value
-     * @return a new VisionResult with the additional metadata
-     */
-    public VisionResult withMetadata(String key, Object value) {
-        Objects.requireNonNull(key, "Metadata key must not be null");
+        /**
+         * Sets the average confidence.
+         *
+         * @param averageConfidence the average confidence score
+         * @return this builder
+         */
+        public Builder averageConfidence(double averageConfidence) {
+            this.averageConfidence = averageConfidence;
+            return this;
+        }
 
-        Map<String, Object> newMetadata = Map.of(key, value);
-        return withAdditionalMetadata(newMetadata);
+        /**
+         * Sets the processing time in milliseconds.
+         *
+         * @param processingTimeMs the processing time
+         * @return this builder
+         */
+        public Builder processingTimeMs(long processingTimeMs) {
+            this.processingTimeMs = processingTimeMs;
+            return this;
+        }
+
+        /**
+         * Sets the timestamp.
+         *
+         * @param timestamp the timestamp
+         * @return this builder
+         */
+        public Builder timestamp(Instant timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
+        /**
+         * Sets the metadata.
+         *
+         * @param metadata the metadata map
+         * @return this builder
+         */
+        public Builder metadata(Map<String, Object> metadata) {
+            this.metadata = metadata;
+            return this;
+        }
+
+        /**
+         * Builds the VisionResult.
+         *
+         * @return a new VisionResult instance
+         */
+        public VisionResult build() {
+            return new VisionResult(detectionType, detections, averageConfidence,
+                processingTimeMs, timestamp, metadata);
+        }
     }
 
     @Override
