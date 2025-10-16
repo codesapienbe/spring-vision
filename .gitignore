@@ -231,3 +231,30 @@ DOWNLOADS.md
 
 /dataset
 dataset/
+
+# Spring Vision - Model Files (download via scripts instead)
+# Large model files should not be committed to Git
+*.onnx
+*.caffemodel
+*.tflite
+*.task
+*.h5
+*.pb
+*.pth
+*.pt
+*.weights
+*.bin
+
+# Keep only small config files
+!*.prototxt
+!*.xml
+!*.txt
+
+# Model cache directories
+.spring-vision/
+**/models/cache/
+
+# But keep the models directory structure and README
+!**/models/
+!**/models/README.md
+!**/models/**/.gitkeep

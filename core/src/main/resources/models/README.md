@@ -2,86 +2,74 @@
 
 This directory contains pre-trained models for face detection and recognition.
 
-## Model Loading Strategy
+## 🚀 Quick Start
 
-Spring Vision uses a multi-detector fusion approach with the following priority:
+**Important:** Large model files are NOT stored in Git. Download them using:
 
-1. **YuNet (Primary)** - Modern ONNX-based detector, highest accuracy
-2. **Haar Cascades (Fallback)** - Classic OpenCV detectors, always available
-3. **DNN-SSD (Optional)** - ResNet-based detector, provides additional coverage
+```bash
+cd scripts
+./download-models-quick.sh
+```
 
-## Required Models
+This will download the essential models (~42MB total):
 
-These models are essential and should always be present:
+- YuNet face detector (228KB)
+- SFace recognition model (37MB)
+- DNN-SSD face detector (5.2MB)
+
+## Model Files
+
+### ✅ Included in Repository (Small Files)
+
+These configuration files are committed to Git:
 
 - `haarcascade_frontalface_default.xml` - Haar cascade for frontal faces
 - `haarcascade_eye.xml` - Eye detection for face validation
 - `haarcascade_profileface.xml` - Profile face detection
 - `lbpcascade_frontalface.xml` - LBP cascade (better for diverse skin tones)
-- `face_detection_yunet_2023mar.onnx` - YuNet face detector (recommended)
-
-## Optional Models
-
-These models provide enhanced functionality but are not required:
-
-- `res10_300x300_ssd_iter_140000_fp16.caffemodel` - DNN-SSD face detector (~5MB)
 - `deploy.prototxt` - DNN-SSD configuration
-- `face_recognition_sface_2021dec.onnx` - Face recognition/embeddings (~37MB)
 
-## Downloading Models
+### 📥 Downloaded via Script (Large Files)
 
-Run the download script to fetch all models:
+These binary model files must be downloaded:
+
+- `face_detection_yunet_2023mar.onnx` - YuNet face detector (228KB)
+- `face_recognition_sface_2021dec.onnx` - Face recognition/embeddings (37MB)
+- `res10_300x300_ssd_iter_140000_fp16.caffemodel` - DNN-SSD face detector (5.2MB)
+
+## Why Not Commit Models to Git?
+
+Large binary files (especially ONNX and Caffe models) cause problems:
+
+- Push/pull operations become very slow
+- GitHub has file size limits (100MB max, warnings at 50MB)
+- Repository size grows unnecessarily
+- Harder to update models independently
+
+Instead, we use download scripts that fetch models on-demand.
+
+## Model Loading Strategy
+
+Spring Vision uses a multi-detector fusion approach with the following priority:
+
+1. **YuNet (Primary)** - Modern ONNX-based detector, highest accuracy
+2. **DNN-SSD (Secondary)** - ResNet-based detector, provides additional coverage
+3. **Haar Cascades (Fallback)** - Classic OpenCV detectors, always available
+
+## Advanced: Download All Models
+
+For additional models and backends, see:
 
 ```bash
-./scripts/download-models.sh
+./scripts/download-detector-models.sh  # All detector models
+./scripts/download-models.sh           # Complete model set
 ```
-
-The script will:
-
-1. Download all required models automatically
-2. Prompt for optional models (DNN-SSD caffemodel, quantized SFace)
-3. Report download status and total size
 
 ## Model Fallback Behavior
 
 If optional models are missing, the system will:
 
-1. **No DNN-SSD caffemodel**: Use YuNet + Haar cascades (recommended default)
-2. **No YuNet**: Use DNN-SSD + Haar cascades
+1. **No YuNet**: Use DNN-SSD + Haar cascades
+2. **No DNN-SSD**: Use YuNet + Haar cascades (recommended default)
 3. **No SFace**: Face recognition features disabled, detection still works
-4. **Only Haar cascades**: Basic detection works but with lower accuracy
-
-## Current Status
-
-The system is designed to work optimally with:
-
-- **YuNet + Haar Cascades** (default configuration)
-- Total size: ~10MB (without DNN-SSD caffemodel)
-
-Adding the DNN-SSD caffemodel increases size by ~5MB but provides minimal benefit over YuNet.
-
-## Troubleshooting
-
-### Models not loading from classpath
-
-If you see warnings about models not loading:
-
-1. Verify models exist in this directory
-2. Run `mvn clean install` to rebuild the JAR with models included
-3. Check logs for "Model loaded from classpath" messages
-
-### Native library issues
-
-In headless environments, you may see warnings about `jniopencv_highgui` - this is expected and normal. The system will skip GUI-dependent features and work correctly.
-
-### YuNet initialization failures
-
-If YuNet fails with `opencv_highgui` errors, the system will fall back to Haar cascades automatically.
-
-## Model Sources
-
-- **Haar/LBP Cascades**: https://github.com/opencv/opencv
-- **YuNet**: https://github.com/opencv/opencv_zoo
-- **DNN-SSD**: https://github.com/opencv/opencv_3rdparty
-- **SFace**: https://huggingface.co/opencv/face_recognition_sface
-
+4. **Only Haar cascades**: Basic detection works, but lower accuracy

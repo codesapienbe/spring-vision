@@ -1,0 +1,3 @@
+# This file ensures the models directory is preserved in Git
+# Model files (*.onnx, *.caffemodel, etc.) are downloaded via scripts/download-models-quick.sh
+
