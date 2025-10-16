@@ -1,1 +1,1 @@
-io.github.codesapienbe.springvision.facebytes.FaceBytesBackend
+io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend

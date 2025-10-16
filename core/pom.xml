@@ -193,6 +193,7 @@
     <dependency>
       <groupId>ai.djl</groupId>
       <artifactId>api</artifactId>
+      <version>0.31.1</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
@@ -246,23 +247,7 @@
           <retries>3</retries>
         </configuration>
         <executions>
-          <!-- SFace ONNX Model (128-d embeddings, lightweight) - PRIMARY MODEL -->
-          <execution>
-            <id>download-sface</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>sface.onnx</outputFileName>
-            </configuration>
-          </execution>
-
-          <!-- YuNet Face Detector (face detection) - PRIMARY DETECTOR -->
+          <!-- YuNet face detector (required by OpenCvVisionBackend) -->
           <execution>
             <id>download-yunet</id>
             <phase>generate-resources</phase>
@@ -273,74 +258,114 @@
               <url>
                 https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
               </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>yunet.onnx</outputFileName>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>face_detection_yunet_2023mar.onnx</outputFileName>
             </configuration>
           </execution>
 
-          <!-- ArcFace - Skipped until valid URL found -->
+          <!-- SFace embeddings model (used for embeddings) -->
           <execution>
-            <id>download-arcface</id>
+            <id>download-sface</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://huggingface.co/onnx-community/ArcFace-ONNX/resolve/main/arcfaceresnet100-8.onnx</url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>arcface.onnx</outputFileName>
-              <skip>true</skip> <!-- Skip - URL not available -->
+              <url>
+                https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>face_recognition_sface_2021dec.onnx</outputFileName>
             </configuration>
           </execution>
 
-          <!-- Age Prediction Model (Optional - skip if unavailable) -->
+          <!-- OpenCV DNN SSD model and prototxt (used as detector fallback) -->
           <execution>
-            <id>download-age-model</id>
+            <id>download-dnn-prototxt</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://huggingface.co/onnx-community/age_googlenet/resolve/main/model.onnx</url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>age_model.onnx</outputFileName>
-              <skip>true</skip>
+              <url>https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>deploy.prototxt</outputFileName>
             </configuration>
           </execution>
-
-          <!-- Gender Prediction Model (Optional - skip if unavailable) -->
           <execution>
-            <id>download-gender-model</id>
+            <id>download-dnn-caffemodel</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://huggingface.co/onnx-community/gender_googlenet/resolve/main/model.onnx</url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>gender_model.onnx</outputFileName>
-              <skip>true</skip>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv_3rdparty/master/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>res10_300x300_ssd_iter_140000_fp16.caffemodel</outputFileName>
+              <overwrite>true</overwrite>
+              <unpack>false</unpack>
             </configuration>
           </execution>
 
-          <!-- Emotion Prediction Model from HuggingFace -->
+          <!-- Haar/LBP cascades (small, ensure classpath availability) -->
           <execution>
-            <id>download-emotion-model</id>
+            <id>download-haar-frontal</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>wget</goal>
             </goals>
             <configuration>
-              <url>https://huggingface.co/onnx-community/emotion-ferplus-8/resolve/main/model.onnx</url>
-              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
-              <outputFileName>emotion_model.onnx</outputFileName>
-              <skip>true</skip>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>haarcascade_frontalface_default.xml</outputFileName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-haar-profile</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>haarcascade_profileface.xml</outputFileName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-haar-eye</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml</url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>haarcascade_eye.xml</outputFileName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-lbp-frontal</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
+              <outputFileName>lbpcascade_frontalface.xml</outputFileName>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
-      <!-- Models are downloaded by maven-download-plugin and bundled in JAR from classpath -->
     </plugins>
   </build>
 

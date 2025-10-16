@@ -232,8 +232,11 @@ DOWNLOADS.md
 /dataset
 dataset/
 
-# Spring Vision - Model Files (download via scripts instead)
-# Large model files should not be committed to Git
+# Spring Vision - Ignore models in source; Maven downloads models into target/generated-resources
+core/src/main/resources/models/
+**/src/main/resources/models/
+
+# Large model file types should not be committed anywhere
 *.onnx
 *.caffemodel
 *.tflite
@@ -244,17 +247,3 @@ dataset/
 *.pt
 *.weights
 *.bin
-
-# Keep only small config files
-!*.prototxt
-!*.xml
-!*.txt
-
-# Model cache directories
-.spring-vision/
-**/models/cache/
-
-# But keep the models directory structure and README
-!**/models/
-!**/models/README.md
-!**/models/**/.gitkeep
