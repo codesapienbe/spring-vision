@@ -1988,8 +1988,12 @@ public final class DeepFace {
 
     // ========================= MODEL SELECTION =========================
     private static float[] selectModelAndEmbed(BufferedImage processed, ModelType model, DeepFaceConfig cfg) {
-        if (model == null) model = ModelType.ARCFACE;
+        if (model == null) model = ModelType.SFACE; // Use SFace as default (downloaded from OpenCV Zoo)
         switch (model) {
+            case SFACE: {
+                SFaceModel m = new SFaceModel();
+                return m.generateEmbedding(processed, cfg.sfaceInputSize());
+            }
             case VGG_FACE: {
                 VGGFaceModel m = new VGGFaceModel();
                 return m.generateEmbedding(processed, Math.max(32, cfg.inputSize()));
@@ -2010,10 +2014,6 @@ public final class DeepFace {
                 OpenFaceModel m = new OpenFaceModel();
                 return m.generateEmbedding(processed, cfg.openfaceInputSize());
             }
-            case SFACE: {
-                SFaceModel m = new SFaceModel();
-                return m.generateEmbedding(processed, cfg.sfaceInputSize());
-            }
             case DEEP_FACE: {
                 DeepFaceModel m = new DeepFaceModel();
                 return m.generateEmbedding(processed, cfg.deepfaceInputSize());
@@ -2023,13 +2023,100 @@ public final class DeepFace {
                 return m.generateEmbedding(processed, DlibModel.DEFAULT_INPUT_SIZE);
             }
             default: {
-                VGGFaceModel m = new VGGFaceModel();
-                return m.generateEmbedding(processed, Math.max(32, cfg.inputSize()));
+                // Fallback to SFace (available from OpenCV Zoo)
+                SFaceModel m = new SFaceModel();
+                return m.generateEmbedding(processed, cfg.sfaceInputSize());
             }
         }
     }
 
-    // ========================= ARCFACE CONVENIENCE =========================
+    // ========================= SFACE CONVENIENCE =========================
+
+    /**
+     * Generates SFace embeddings for all detected faces in an image from a file path.
+     * SFace is the primary model (downloaded from OpenCV Zoo during build).
+     *
+     * @param imgPath The file path to the image.
+     * @return A list of {@link EmbeddingResult} objects.
+     */
+    public static List<EmbeddingResult> representSFace(String imgPath) {
+        return represent(imgPath, ModelType.SFACE, DeepFaceConfig.current().detectorBackend());
+    }
+
+    /**
+     * Generates SFace embeddings for all detected faces in a {@link BufferedImage}.
+     *
+     * @param image The image to process.
+     * @return A list of {@link EmbeddingResult} objects.
+     */
+    public static List<EmbeddingResult> representSFace(BufferedImage image) {
+        return represent(image, ModelType.SFACE, DeepFaceConfig.current().detectorBackend());
+    }
+
+    /**
+     * Generates SFace embeddings with an explicit detector backend.
+     *
+     * @param imgPath The file path to the image.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
+     */
+    public static List<EmbeddingResult> representSFace(String imgPath, DetectorBackend backend) {
+        return represent(imgPath, ModelType.SFACE, backend);
+    }
+
+    /**
+     * Generates SFace embeddings from a {@link BufferedImage} with an explicit detector backend.
+     *
+     * @param image   The image to process.
+     * @param backend The detector backend to use.
+     * @return A list of {@link EmbeddingResult} objects.
+     */
+    public static List<EmbeddingResult> representSFace(BufferedImage image, DetectorBackend backend) {
+        return represent(image, ModelType.SFACE, backend);
+    }
+
+    /**
+     * Verifies two images using the SFace model and default distance metric.
+     *
+     * @param img1 The file path of the first image.
+     * @param img2 The file path of the second image.
+     * @return A {@link VerificationResult}.
+     */
+    public static VerificationResult verifySFace(String img1, String img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.SFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /**
+     * Verifies two {@link BufferedImage}s using the SFace model.
+     *
+     * @param img1 The first image.
+     * @param img2 The second image.
+     * @return A {@link VerificationResult}.
+     */
+    public static VerificationResult verifySFace(BufferedImage img1, BufferedImage img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        return verify(img1, img2, ModelType.SFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+    }
+
+    /**
+     * Verifies two images from byte arrays using the SFace model.
+     *
+     * @param img1 The byte array of the first image.
+     * @param img2 The byte array of the second image.
+     * @return A {@link VerificationResult}.
+     */
+    public static VerificationResult verifySFace(byte[] img1, byte[] img2) {
+        DeepFaceConfig cfg = DeepFaceConfig.current();
+        try {
+            return verify(loadImage(img1), loadImage(img2), ModelType.SFACE, cfg.defaultDistanceMetric(), cfg.detectorBackend());
+        } catch (IOException e) {
+            Logs.error("DeepFace", "verify.load_failed", e, Map.of());
+            return new VerificationResult(false, 1.0, cfg.threshold(cfg.defaultDistanceMetric()), ModelType.SFACE, cfg.detectorBackend(), 0L);
+        }
+    }
+
+    // ========================= ARCFACE CONVENIENCE (LEGACY) =========================
 
     /**
      * Generates ArcFace embeddings for all detected faces in an image from a file path.

@@ -13,7 +13,9 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.github.codesapienbe.springvision.core.util.OnnxRuntimeGuard;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.FloatBuffer;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,6 +60,7 @@ public final class ModelManager {
 
     /**
      * Checks if the VGGFace model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isVggFaceAvailable() {
@@ -67,6 +70,7 @@ public final class ModelManager {
 
     /**
      * Checks if the ArcFace model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isArcFaceAvailable() {
@@ -76,6 +80,7 @@ public final class ModelManager {
 
     /**
      * Checks if the Facenet model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isFacenetAvailable() {
@@ -85,6 +90,7 @@ public final class ModelManager {
 
     /**
      * Checks if the Facenet512 model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isFacenet512Available() {
@@ -94,6 +100,7 @@ public final class ModelManager {
 
     /**
      * Checks if the OpenFace model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isOpenFaceAvailable() {
@@ -103,6 +110,7 @@ public final class ModelManager {
 
     /**
      * Checks if the SFace model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isSFaceAvailable() {
@@ -112,6 +120,7 @@ public final class ModelManager {
 
     /**
      * Checks if the DeepFace model is available.
+     *
      * @return {@code true} if the model is available, {@code false} otherwise.
      */
     public static boolean isDeepFaceAvailable() {
@@ -139,6 +148,7 @@ public final class ModelManager {
 
     /**
      * Replace the internal MeterRegistry (for integration with application metrics/Prometheus).
+     *
      * @param registry The MeterRegistry to use.
      */
     public static void setMeterRegistry(MeterRegistry registry) {
@@ -147,6 +157,7 @@ public final class ModelManager {
 
     /**
      * Gets the MeterRegistry used by the ModelManager.
+     *
      * @return The MeterRegistry.
      */
     public static MeterRegistry getMeterRegistry() {
@@ -162,7 +173,8 @@ public final class ModelManager {
 
     /**
      * Runs the VGGFace model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -190,7 +202,8 @@ public final class ModelManager {
 
     /**
      * Runs the ArcFace model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -218,7 +231,8 @@ public final class ModelManager {
 
     /**
      * Runs the Facenet model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -246,7 +260,8 @@ public final class ModelManager {
 
     /**
      * Runs the Facenet512 model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -274,7 +289,8 @@ public final class ModelManager {
 
     /**
      * Runs the OpenFace model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -302,7 +318,8 @@ public final class ModelManager {
 
     /**
      * Runs the SFace model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -330,7 +347,8 @@ public final class ModelManager {
 
     /**
      * Runs the DeepFace model to get an embedding.
-     * @param nchw The input tensor in NCHW format.
+     *
+     * @param nchw  The input tensor in NCHW format.
      * @param shape The shape of the input tensor.
      * @return The embedding as a float array.
      * @throws OrtException if the inference fails.
@@ -373,216 +391,128 @@ public final class ModelManager {
                     return;
                 }
 
-                String vggPath = DeepFaceConfig.current().vggOnnxPath();
-                if (vggPath == null || vggPath.isBlank()) {
-                    vggPath = System.getProperty(VGG_ONNX_SYS);
-                }
-                if (vggPath == null || vggPath.isBlank()) {
-                    vggPath = System.getenv(VGG_ONNX_ENV);
-                }
-                // Try resolving or downloading the default model into the cache when not explicitly configured
-                if (vggPath == null || vggPath.isBlank()) {
-                    try {
-                        vggPath = ModelDownloader.resolveOrDownload(null, "vggface.onnx");
-                        if (vggPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "vggface", "path", vggPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String arcPath = DeepFaceConfig.current().arcFaceOnnxPath();
-                if (arcPath == null || arcPath.isBlank()) {
-                    arcPath = System.getProperty(ARCFACE_ONNX_SYS);
-                }
-                if (arcPath == null || arcPath.isBlank()) {
-                    arcPath = System.getenv(ARCFACE_ONNX_ENV);
-                }
-                if (arcPath == null || arcPath.isBlank()) {
-                    try {
-                        arcPath = ModelDownloader.resolveOrDownload(null, "arcface.onnx");
-                        if (arcPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "arcface", "path", arcPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String fnPath = DeepFaceConfig.current().facenetOnnxPath();
-                if (fnPath == null || fnPath.isBlank()) {
-                    fnPath = System.getProperty(FACENET_ONNX_SYS);
-                }
-                if (fnPath == null || fnPath.isBlank()) {
-                    fnPath = System.getenv(FACENET_ONNX_ENV);
-                }
-                if (fnPath == null || fnPath.isBlank()) {
-                    try {
-                        fnPath = ModelDownloader.resolveOrDownload(null, "facenet128.onnx");
-                        if (fnPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "facenet", "path", fnPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String fn512Path = DeepFaceConfig.current().facenet512OnnxPath();
-                if (fn512Path == null || fn512Path.isBlank()) {
-                    fn512Path = System.getProperty(FACENET512_ONNX_SYS);
-                }
-                if (fn512Path == null || fn512Path.isBlank()) {
-                    fn512Path = System.getenv(FACENET512_ONNX_ENV);
-                }
-                if (fn512Path == null || fn512Path.isBlank()) {
-                    try {
-                        fn512Path = ModelDownloader.resolveOrDownload(null, "facenet512.onnx");
-                        if (fn512Path != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "facenet512", "path", fn512Path));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String ofPath = DeepFaceConfig.current().openfaceOnnxPath();
-                if (ofPath == null || ofPath.isBlank()) {
-                    ofPath = System.getProperty(OPENFACE_ONNX_SYS);
-                }
-                if (ofPath == null || ofPath.isBlank()) {
-                    ofPath = System.getenv(OPENFACE_ONNX_ENV);
-                }
-                if (ofPath == null || ofPath.isBlank()) {
-                    try {
-                        ofPath = ModelDownloader.resolveOrDownload(null, "openface.onnx");
-                        if (ofPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "openface", "path", ofPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String sfPath = DeepFaceConfig.current().sfaceOnnxPath();
-                if (sfPath == null || sfPath.isBlank()) {
-                    sfPath = System.getProperty(SFACE_ONNX_SYS);
-                }
-                if (sfPath == null || sfPath.isBlank()) {
-                    sfPath = System.getenv(SFACE_ONNX_ENV);
-                }
-                if (sfPath == null || sfPath.isBlank()) {
-                    try {
-                        sfPath = ModelDownloader.resolveOrDownload(null, "sface.onnx");
-                        if (sfPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "sface", "path", sfPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                String dfPath = DeepFaceConfig.current().deepfaceOnnxPath();
-                if (dfPath == null || dfPath.isBlank()) {
-                    dfPath = System.getProperty(DEEPFACE_ONNX_SYS);
-                }
-                if (dfPath == null || dfPath.isBlank()) {
-                    dfPath = System.getenv(DEEPFACE_ONNX_ENV);
-                }
-                if (dfPath == null || dfPath.isBlank()) {
-                    try {
-                        dfPath = ModelDownloader.resolveOrDownload(null, "deepface.onnx");
-                        if (dfPath != null)
-                            Logs.info("ModelManager", "model.resolved", Map.of("model", "deepface", "path", dfPath));
-                    } catch (Throwable ignored) {
-                    }
-                }
-                if (vggPath == null && arcPath == null && fnPath == null && fn512Path == null && ofPath == null && sfPath == null && dfPath == null) {
-                    Logs.info("ModelManager", "onnx.path_missing", Map.of("enabled", false));
-                    installShutdownHook();
-                    return;
-                }
                 env = (OrtEnvironment) OnnxRuntimeGuard.createEnvironment();
-                // Load VGG
-                if (vggPath != null && !vggPath.isBlank()) {
-                    File f = new File(vggPath);
-                    if (f.exists() && f.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "vggface", "path", vggPath));
-                        long t0 = System.nanoTime();
-                        vggSession = env.createSession(vggPath, new OrtSession.SessionOptions());
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "vggface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "vggface", "path", vggPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "vggface", "path", vggPath));
-                    }
+
+                // Load models from classpath - simple and direct
+                loadModelFromClasspath("arcface.onnx", "/models/facebytes/arcface.onnx", s -> arcfaceSession = s);
+                loadModelFromClasspath("sface.onnx", "/models/facebytes/sface.onnx", s -> sfaceSession = s);
+                loadModelFromClasspath("vggface.onnx", "/models/facebytes/vggface.onnx", s -> vggSession = s);
+                loadModelFromClasspath("facenet128.onnx", "/models/facebytes/facenet128.onnx", s -> facenetSession = s);
+                loadModelFromClasspath("facenet512.onnx", "/models/facebytes/facenet512.onnx", s -> facenet512Session = s);
+                loadModelFromClasspath("openface.onnx", "/models/facebytes/openface.onnx", s -> openfaceSession = s);
+                loadModelFromClasspath("deepface.onnx", "/models/facebytes/deepface.onnx", s -> deepfaceSession = s);
+
+                if (vggSession == null && arcfaceSession == null && facenetSession == null &&
+                    facenet512Session == null && openfaceSession == null && sfaceSession == null && deepfaceSession == null) {
+                    Logs.warn("ModelManager", "onnx.no_models_found", Map.of(
+                        "message", "No ONNX models found in classpath",
+                        "expected_location", "classpath:/models/facebytes/*.onnx",
+                        "action", "Run: mvn clean install to download models during build"
+                    ));
                 }
-                if (arcPath != null && !arcPath.isBlank()) {
-                    File f2 = new File(arcPath);
-                    if (f2.exists() && f2.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "arcface", "path", arcPath));
-                        long t0 = System.nanoTime();
-                        arcfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, arcPath);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "arcface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "arcface", "path", arcPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "arcface", "path", arcPath));
-                    }
-                }
-                if (fnPath != null && !fnPath.isBlank()) {
-                    File f3 = new File(fnPath);
-                    if (f3.exists() && f3.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "facenet", "path", fnPath));
-                        long t0 = System.nanoTime();
-                        facenetSession = (OrtSession) OnnxRuntimeGuard.createSession(env, fnPath);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "facenet").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "facenet", "path", fnPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "facenet", "path", fnPath));
-                    }
-                }
-                if (fn512Path != null && !fn512Path.isBlank()) {
-                    File f4 = new File(fn512Path);
-                    if (f4.exists() && f4.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "facenet512", "path", fn512Path));
-                        long t0 = System.nanoTime();
-                        facenet512Session = (OrtSession) OnnxRuntimeGuard.createSession(env, fn512Path);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "facenet512").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "facenet512", "path", fn512Path, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "facenet512", "path", fn512Path));
-                    }
-                }
-                if (ofPath != null && !ofPath.isBlank()) {
-                    File f5 = new File(ofPath);
-                    if (f5.exists() && f5.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "openface", "path", ofPath));
-                        long t0 = System.nanoTime();
-                        openfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, ofPath);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "openface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "openface", "path", ofPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "openface", "path", ofPath));
-                    }
-                }
-                if (sfPath != null && !sfPath.isBlank()) {
-                    File f6 = new File(sfPath);
-                    if (f6.exists() && f6.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "sface", "path", sfPath));
-                        long t0 = System.nanoTime();
-                        sfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, sfPath);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "sface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "sface", "path", sfPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "sface", "path", sfPath));
-                    }
-                }
-                if (dfPath != null && !dfPath.isBlank()) {
-                    File f7 = new File(dfPath);
-                    if (f7.exists() && f7.isFile()) {
-                        Logs.info("ModelLoader", "model.load.start", Map.of("model", "deepface", "path", dfPath));
-                        long t0 = System.nanoTime();
-                        deepfaceSession = (OrtSession) OnnxRuntimeGuard.createSession(env, dfPath);
-                        long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
-                        Timer.builder("facebytes.model.load.time").tag("model", "deepface").register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
-                        Logs.info("ModelLoader", "model.load.complete", Map.of("model", "deepface", "path", dfPath, "load_time_ms", loadMs));
-                    } else {
-                        Logs.warn("ModelLoader", "model.file_not_found", Map.of("model", "deepface", "path", dfPath));
-                    }
-                }
+
                 installShutdownHook();
             } catch (Throwable t) {
-                Logs.warn("ModelManager", "onnx.init_failed", Map.of("error", t.getClass().getSimpleName()));
-                safeClose();
+                Logs.error("ModelManager", "init.failed", t, Map.of());
                 installShutdownHook();
             }
+        }
+    }
+
+    /**
+     * Load a model from classpath resource.
+     */
+    private static void loadModelFromClasspath(String modelName, String classpathPath, java.util.function.Consumer<OrtSession> sessionSetter) {
+        try {
+            InputStream is = ModelManager.class.getResourceAsStream(classpathPath);
+            if (is == null) {
+                Logs.debug("ModelManager", "classpath_resource_not_found", Map.of("path", classpathPath, "model", modelName));
+                return;
+            }
+
+            // Extract to temp file (ONNX Runtime requires file path, not stream)
+            Path tempFile = java.nio.file.Files.createTempFile("spring-vision-", "-" + modelName);
+            java.nio.file.Files.copy(is, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            is.close();
+            tempFile.toFile().deleteOnExit();
+
+            String tempPath = tempFile.toAbsolutePath().toString();
+
+            Logs.info("ModelLoader", "model.load.start", Map.of("model", modelName, "classpath", classpathPath));
+            long t0 = System.nanoTime();
+            OrtSession session = (OrtSession) OnnxRuntimeGuard.createSession(env, tempPath);
+            long loadMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - t0);
+
+            sessionSetter.accept(session);
+
+            Timer.builder("facebytes.model.load.time").tag("model", modelName).register(meterRegistry).record(loadMs, TimeUnit.MILLISECONDS);
+            Logs.info("ModelLoader", "model.load.complete", Map.of("model", modelName, "load_time_ms", loadMs));
+
+        } catch (Exception e) {
+            Logs.warn("ModelManager", "model_load_failed", Map.of("model", modelName, "error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Resolves model path from configuration or classpath.
+     * Priority: 1) System property, 2) Environment variable, 3) Classpath resource
+     */
+    private static String resolveModelPath(String modelKey, Map<String, String> classpathModels) {
+        // Check system property and environment variable first
+        String envKey = "FACEBYTES_" + modelKey.replace(".onnx", "").toUpperCase() + "_ONNX_PATH";
+        String sysKey = "facebytes." + modelKey.replace(".onnx", "") + ".onnx";
+
+        String configured = System.getProperty(sysKey);
+        if (configured == null) configured = System.getenv(envKey);
+
+        if (configured != null && !configured.isBlank()) {
+            File f = new File(configured);
+            if (f.exists() && f.isFile()) {
+                return configured;
+            }
+            Logs.warn("ModelManager", "configured_path_invalid", Map.of("model", modelKey, "path", configured));
+        }
+
+        // Try to extract classpath resource to temp file
+        String classpathLocation = classpathModels.get(modelKey);
+        if (classpathLocation != null) {
+            return extractClasspathResource(classpathLocation, modelKey);
+        }
+
+        return null;
+    }
+
+    /**
+     * Extracts a classpath resource to a temporary file for ONNX Runtime to load.
+     */
+    private static String extractClasspathResource(String classpathPath, String modelKey) {
+        try {
+            InputStream is = ModelManager.class.getResourceAsStream(classpathPath);
+            if (is == null) {
+                Logs.warn("ModelManager", "classpath_resource_not_found", Map.of("path", classpathPath, "model", modelKey));
+                return null;
+            }
+
+            // Extract to temp file (ONNX Runtime requires file path)
+            Path tempDir = java.nio.file.Files.createTempDirectory("spring-vision-facebytes");
+            Path tempFile = tempDir.resolve(modelKey);
+            java.nio.file.Files.copy(is, tempFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            is.close();
+
+            // Mark for deletion on exit
+            tempFile.toFile().deleteOnExit();
+            tempDir.toFile().deleteOnExit();
+
+            Logs.info("ModelManager", "classpath_resource_extracted", Map.of(
+                "model", modelKey,
+                "classpath", classpathPath,
+                "temp_path", tempFile.toAbsolutePath().toString()
+            ));
+
+            return tempFile.toAbsolutePath().toString();
+        } catch (Exception e) {
+            Logs.error("ModelManager", "classpath_extraction_failed", e, Map.of("path", classpathPath, "model", modelKey));
+            return null;
         }
     }
 

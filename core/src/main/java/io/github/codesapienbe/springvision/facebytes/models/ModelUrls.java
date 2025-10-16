@@ -2,61 +2,65 @@ package io.github.codesapienbe.springvision.facebytes.models;
 
 import java.util.Map;
 
+/**
+ * Model URLs and classpath locations for FaceBytes ONNX models.
+ * Models are downloaded during Maven build and bundled in JAR.
+ * No runtime downloads - all models must be present in classpath.
+ */
 public final class ModelUrls {
 
     private ModelUrls() {
     }
 
-    public static Map<String, String> defaults() {
+    /**
+     * Classpath locations for ONNX models bundled in JAR.
+     * These paths correspond to models downloaded by maven-download-plugin during build.
+     */
+    public static Map<String, String> classpathLocations() {
         return Map.ofEntries(
-            Map.entry("arcface.onnx", "https://github.com/serengil/deepface_models/releases/download/pre-trained-weights/ArcFace.onnx"),
-            Map.entry("facenet128.onnx", "https://github.com/serengil/deepface_models/releases/download/pre-trained-weights/Facenet128.onnx"),
-            Map.entry("openface.onnx", "https://github.com/serengil/deepface_models/releases/download/pre-trained-weights/OpenFace.onnx"),
-            Map.entry("deepid.onnx", "https://github.com/serengil/deepface_models/releases/download/pre-trained-weights/DeepID.onnx"),
-            Map.entry("vggface.onnx", "https://github.com/serengil/deepface_models/releases/download/pre-trained-weights/VGGFace.onnx"),
+            // Face recognition embedding models
+            Map.entry("arcface.onnx", "/models/facebytes/arcface.onnx"),
+            Map.entry("facenet128.onnx", "/models/facebytes/facenet128.onnx"),
+            Map.entry("sface.onnx", "/models/facebytes/sface.onnx"),
 
-            // DeepFace Keras model artifacts (source: serengil/deepface_models)
-            Map.entry("age_model_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/age_model_weights.h5"),
-            Map.entry("arcface_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/arcface_weights.h5"),
-            Map.entry("deepid_keras_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/deepid_keras_weights.h5"),
-            Map.entry("facenet512_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/facenet512_weights.h5"),
-            Map.entry("facenet_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/facenet_weights.h5"),
-            Map.entry("facial_expression_model_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/facial_expression_model_weights.h5"),
-            Map.entry("gender_model_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/gender_model_weights.h5"),
-            Map.entry("openface_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/openface_weights.h5"),
-            Map.entry("race_model_single_batch.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/race_model_single_batch.h5"),
-            Map.entry("retinaface.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/retinaface.h5"),
-            Map.entry("vgg_face_weights.h5", "https://github.com/serengil/deepface_models/releases/download/v1.0/vgg_face_weights.h5")
+            // Face detector models
+            Map.entry("yunet.onnx", "/models/facebytes/yunet.onnx"),
+            Map.entry("retinaface.onnx", "/models/facebytes/yunet.onnx"), // alias
+
+            // Facial analysis models
+            Map.entry("age_model.onnx", "/models/facebytes/age_model.onnx"),
+            Map.entry("gender_model.onnx", "/models/facebytes/gender_model.onnx"),
+            Map.entry("emotion_model.onnx", "/models/facebytes/emotion_model.onnx")
         );
     }
 
     /**
-     * Optional SHA-256 checksums for remote model artifacts. When present, downloads will be
-     * validated against these values. Populate with authoritative checksums as models are released.
+     * @deprecated Models are now bundled in JAR from classpath. This method is kept for reference only.
+     * Use classpathLocations() instead.
      */
-    public static Map<String, String> checksums() {
-        // NOTE: These values are example placeholders (64-char hex). Replace with
-        // authoritative SHA-256 hex strings for the listed model files before
-        // enabling strict checksum validation.
-        final String placeholder64 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    @Deprecated(forRemoval = true)
+    public static Map<String, String> defaults() {
         return Map.ofEntries(
-            Map.entry("arcface.onnx", placeholder64),
-            Map.entry("facenet128.onnx", placeholder64),
-            Map.entry("openface.onnx", placeholder64),
-            Map.entry("deepid.onnx", placeholder64),
-            Map.entry("vggface.onnx", placeholder64),
+            // ONNX models for face recognition embeddings
+            Map.entry("arcface.onnx", "https://github.com/onnx/models/raw/main/validated/vision/body_analysis/arcface/model/arcfaceresnet100-8.onnx"),
+            Map.entry("facenet128.onnx", "https://storage.googleapis.com/ailia-models/facenet/facenet.onnx"),
+            Map.entry("sface.onnx", "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"),
 
-            Map.entry("age_model_weights.h5", placeholder64),
-            Map.entry("arcface_weights.h5", placeholder64),
-            Map.entry("deepid_keras_weights.h5", placeholder64),
-            Map.entry("facenet512_weights.h5", placeholder64),
-            Map.entry("facenet_weights.h5", placeholder64),
-            Map.entry("facial_expression_model_weights.h5", placeholder64),
-            Map.entry("gender_model_weights.h5", placeholder64),
-            Map.entry("openface_weights.h5", placeholder64),
-            Map.entry("race_model_single_batch.h5", placeholder64),
-            Map.entry("retinaface.h5", placeholder64),
-            Map.entry("vgg_face_weights.h5", placeholder64)
+            // Face detector models
+            Map.entry("retinaface.onnx", "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"),
+
+            // Facial analysis ONNX models
+            Map.entry("age_model.onnx", "https://github.com/onnx/models/raw/main/vision/body_analysis/age_gender/models/age_googlenet.onnx"),
+            Map.entry("gender_model.onnx", "https://github.com/onnx/models/raw/main/vision/body_analysis/age_gender/models/gender_googlenet.onnx"),
+            Map.entry("emotion_model.onnx", "https://github.com/onnx/models/raw/main/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx")
         );
+    }
+
+    /**
+     * @deprecated Checksum validation not needed for classpath-bundled models.
+     */
+    @Deprecated(forRemoval = true)
+    public static Map<String, String> checksums() {
+        return Map.of();
     }
 }

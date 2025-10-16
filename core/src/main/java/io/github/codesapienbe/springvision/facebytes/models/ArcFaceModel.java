@@ -68,16 +68,18 @@ public final class ArcFaceModel {
 
     private static float[] tryOnnxEmbedding(BufferedImage resized, int size) throws Exception {
         Class<?> mm = Class.forName("io.github.codesapienbe.springvision.facebytes.models.ModelManager");
-        // Ensure model is available (download if needed)
-        String configured = DeepFaceConfig.current().arcFaceOnnxPath();
-        if (configured == null || configured.isBlank()) {
-            // Resolve default arcface url -> cache
-            String path = ModelDownloader.resolveOrDownload(null, "arcface.onnx");
-            if (path != null) System.setProperty("facebytes.arcface.onnx", path);
-        }
+
         Method isAvailable = mm.getMethod("isArcFaceAvailable");
         boolean available = (boolean) isAvailable.invoke(null);
-        if (!available) return null;
+        if (!available) {
+            Logs.error("ArcFaceModel", "onnx.unavailable", null, java.util.Map.of(
+                "message", "ArcFace model not found in classpath",
+                "action", "Run: mvn clean install to download models during build",
+                "expected_location", "classpath:/models/facebytes/arcface.onnx"
+            ));
+            return null;
+        }
+
         float[] nchw = toNchwInsightFace(resized);
         long[] shape = new long[]{1, 3, size, size};
         Method run = mm.getMethod("runArcFaceEmbedding", float[].class, long[].class);

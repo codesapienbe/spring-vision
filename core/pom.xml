@@ -233,7 +233,114 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
 
-      <!-- Models are pre-downloaded via scripts/download-models.sh and included in src/main/resources/models -->
+      <!-- Download FaceBytes ONNX models during build -->
+      <plugin>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>download-maven-plugin</artifactId>
+        <version>1.9.0</version>
+        <configuration>
+          <!-- Global configuration for all downloads -->
+          <skipCache>false</skipCache>
+          <overwrite>false</overwrite>
+          <readTimeOut>60000</readTimeOut>
+          <retries>3</retries>
+        </configuration>
+        <executions>
+          <!-- SFace ONNX Model (128-d embeddings, lightweight) - PRIMARY MODEL -->
+          <execution>
+            <id>download-sface</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>sface.onnx</outputFileName>
+            </configuration>
+          </execution>
+
+          <!-- YuNet Face Detector (face detection) - PRIMARY DETECTOR -->
+          <execution>
+            <id>download-yunet</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>
+                https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+              </url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>yunet.onnx</outputFileName>
+            </configuration>
+          </execution>
+
+          <!-- ArcFace - Skipped until valid URL found -->
+          <execution>
+            <id>download-arcface</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://huggingface.co/onnx-community/ArcFace-ONNX/resolve/main/arcfaceresnet100-8.onnx</url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>arcface.onnx</outputFileName>
+              <skip>true</skip> <!-- Skip - URL not available -->
+            </configuration>
+          </execution>
+
+          <!-- Age Prediction Model (Optional - skip if unavailable) -->
+          <execution>
+            <id>download-age-model</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://huggingface.co/onnx-community/age_googlenet/resolve/main/model.onnx</url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>age_model.onnx</outputFileName>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+
+          <!-- Gender Prediction Model (Optional - skip if unavailable) -->
+          <execution>
+            <id>download-gender-model</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://huggingface.co/onnx-community/gender_googlenet/resolve/main/model.onnx</url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>gender_model.onnx</outputFileName>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+
+          <!-- Emotion Prediction Model from HuggingFace -->
+          <execution>
+            <id>download-emotion-model</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>https://huggingface.co/onnx-community/emotion-ferplus-8/resolve/main/model.onnx</url>
+              <outputDirectory>${project.build.directory}/generated-resources/models/facebytes</outputDirectory>
+              <outputFileName>emotion_model.onnx</outputFileName>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Models are downloaded by maven-download-plugin and bundled in JAR from classpath -->
     </plugins>
   </build>
 

@@ -167,6 +167,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the current configuration.
+     *
      * @return The current configuration.
      */
     public static DeepFaceConfig current() {
@@ -182,6 +183,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the threshold for the given distance metric.
+     *
      * @param metric The distance metric.
      * @return The threshold for the given distance metric.
      */
@@ -195,7 +197,8 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the threshold for the given model and distance metric.
-     * @param model The model type.
+     *
+     * @param model  The model type.
      * @param metric The distance metric.
      * @return The threshold for the given model and distance metric.
      */
@@ -221,6 +224,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the model.
+     *
      * @return The input size for the model.
      */
     public int inputSize() {
@@ -229,6 +233,7 @@ public final class DeepFaceConfig {
 
     /**
      * Checks if faces should be aligned before processing.
+     *
      * @return Whether to align faces before processing.
      */
     public boolean align() {
@@ -237,6 +242,7 @@ public final class DeepFaceConfig {
 
     /**
      * Checks if face detection is enforced.
+     *
      * @return Whether to enforce face detection.
      */
     public boolean enforceDetection() {
@@ -245,6 +251,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the detector backend to use.
+     *
      * @return The detector backend to use.
      */
     public DetectorBackend detectorBackend() {
@@ -253,6 +260,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the margin for face detection.
+     *
      * @return The margin for face detection.
      */
     public int margin() {
@@ -261,6 +269,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the default distance metric.
+     *
      * @return The default distance metric.
      */
     public DistanceMetric defaultDistanceMetric() {
@@ -276,6 +285,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the emotion detection model.
+     *
      * @return The path to the emotion detection model.
      */
     public String emotionOnnxPath() {
@@ -284,6 +294,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the emotion detection model.
+     *
      * @return The input size for the emotion detection model.
      */
     public int emotionInputSize() {
@@ -292,6 +303,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the gender detection model.
+     *
      * @return The path to the gender detection model.
      */
     public String genderOnnxPath() {
@@ -300,6 +312,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the gender detection model.
+     *
      * @return The input size for the gender detection model.
      */
     public int genderInputSize() {
@@ -308,6 +321,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the age detection model.
+     *
      * @return The path to the age detection model.
      */
     public String ageOnnxPath() {
@@ -316,6 +330,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the age detection model.
+     *
      * @return The input size for the age detection model.
      */
     public int ageInputSize() {
@@ -324,6 +339,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the race detection model.
+     *
      * @return The path to the race detection model.
      */
     public String raceOnnxPath() {
@@ -332,6 +348,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the race detection model.
+     *
      * @return The input size for the race detection model.
      */
     public int raceInputSize() {
@@ -340,6 +357,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the VGG-Face model.
+     *
      * @return The path to the VGG-Face model.
      */
     public String vggOnnxPath() {
@@ -347,15 +365,18 @@ public final class DeepFaceConfig {
     }
 
     /**
-     * Whether the framework may auto-download remote model artifacts. Defaults to true.
+     * Whether the framework may auto-download remote model artifacts.
+     * DISABLED by default - models must be bundled in JAR via Maven build.
+     *
      * @return whether auto-download is enabled.
      */
     public boolean autoDownloadEnabled() {
-        return readBoolean(AUTO_DOWNLOAD_ENV, AUTO_DOWNLOAD_SYS, true);
+        return readBoolean(AUTO_DOWNLOAD_ENV, AUTO_DOWNLOAD_SYS, false);
     }
 
     /**
      * Connect timeout in milliseconds for model downloads. Default 10000.
+     *
      * @return the connect timeout in milliseconds.
      */
     public int modelDownloadConnectTimeoutMs() {
@@ -364,6 +385,7 @@ public final class DeepFaceConfig {
 
     /**
      * Read timeout in milliseconds for model downloads. Default 20000.
+     *
      * @return the read timeout in milliseconds.
      */
     public int modelDownloadReadTimeoutMs() {
@@ -372,6 +394,7 @@ public final class DeepFaceConfig {
 
     /**
      * Allow non-HTTPS downloads (not recommended). Defaults to false.
+     *
      * @return whether insecure downloads are allowed.
      */
     public boolean allowInsecureDownloads() {
@@ -380,6 +403,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the ArcFace model.
+     *
      * @return The path to the ArcFace model.
      */
     public String arcFaceOnnxPath() {
@@ -388,6 +412,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the ArcFace model.
+     *
      * @return The input size for the ArcFace model.
      */
     public int arcFaceInputSize() {
@@ -396,6 +421,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the FaceNet model.
+     *
      * @return The path to the FaceNet model.
      */
     public String facenetOnnxPath() {
@@ -404,6 +430,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the FaceNet model.
+     *
      * @return The input size for the FaceNet model.
      */
     public int facenetInputSize() {
@@ -412,6 +439,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the FaceNet512 model.
+     *
      * @return The path to the FaceNet512 model.
      */
     public String facenet512OnnxPath() {
@@ -420,6 +448,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the FaceNet512 model.
+     *
      * @return The input size for the FaceNet512 model.
      */
     public int facenet512InputSize() {
@@ -428,6 +457,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the OpenFace model.
+     *
      * @return The path to the OpenFace model.
      */
     public String openfaceOnnxPath() {
@@ -436,6 +466,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the OpenFace model.
+     *
      * @return The input size for the OpenFace model.
      */
     public int openfaceInputSize() {
@@ -444,6 +475,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the SFace model.
+     *
      * @return The path to the SFace model.
      */
     public String sfaceOnnxPath() {
@@ -452,6 +484,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the SFace model.
+     *
      * @return The input size for the SFace model.
      */
     public int sfaceInputSize() {
@@ -460,6 +493,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the DeepFace model.
+     *
      * @return The path to the DeepFace model.
      */
     public String deepfaceOnnxPath() {
@@ -468,6 +502,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the DeepFace model.
+     *
      * @return The input size for the DeepFace model.
      */
     public int deepfaceInputSize() {
@@ -476,6 +511,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the path to the RetinaFace model.
+     *
      * @return The path to the RetinaFace model.
      */
     public String retinaFaceOnnxPath() {
@@ -484,6 +520,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the input size for the RetinaFace model.
+     *
      * @return The input size for the RetinaFace model.
      */
     public int retinaFaceInputSize() {
@@ -492,6 +529,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the score threshold for the RetinaFace model.
+     *
      * @return The score threshold for the RetinaFace model.
      */
     public double retinaFaceScoreThreshold() {
@@ -500,6 +538,7 @@ public final class DeepFaceConfig {
 
     /**
      * Gets the NMS threshold for the RetinaFace model.
+     *
      * @return The NMS threshold for the RetinaFace model.
      */
     public double retinaFaceNmsThreshold() {
@@ -508,6 +547,7 @@ public final class DeepFaceConfig {
 
     /**
      * Returns whether ONNX model loading/inference is enabled. Defaults to true.
+     *
      * @return whether ONNX is enabled.
      */
     public boolean onnxEnabled() {
@@ -516,6 +556,7 @@ public final class DeepFaceConfig {
 
     /**
      * Normalization mean per channel as three comma-separated values (R,G,B) in 0..1 range. Default 0,0,0.
+     *
      * @return the normalization mean.
      */
     public double[] normalizationMean() {
@@ -524,6 +565,7 @@ public final class DeepFaceConfig {
 
     /**
      * Normalization std per channel as three comma-separated values (R,G,B). Default 1,1,1.
+     *
      * @return the normalization standard deviation.
      */
     public double[] normalizationStd() {
@@ -532,6 +574,7 @@ public final class DeepFaceConfig {
 
     /**
      * Color space for model input: "RGB" or "BGR". Defaults to RGB.
+     *
      * @return the color space.
      */
     public String colorSpace() {
@@ -542,6 +585,7 @@ public final class DeepFaceConfig {
      * Returns model-specific landmark template points for a 112px reference crop as
      * an array {leftEyeX,leftEyeY,rightEyeX,rightEyeY,noseX,noseY}.
      * Values can be overridden via environment/system properties as comma-separated list.
+     *
      * @param model The model type.
      * @return the template points.
      */
