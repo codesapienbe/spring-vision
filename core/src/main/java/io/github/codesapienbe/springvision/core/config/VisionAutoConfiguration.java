@@ -35,9 +35,11 @@ import io.micrometer.core.instrument.MeterRegistry;
  * proper lifecycle management.</p>
  *
  * <p>
- * <strong>Backend Selection:</strong> If no backend is explicitly configured via
- * {@code vision.backend} property, OpenCV will be used as the default backend.
- * Supported backends include: opencv (default), mediapipe, yolo, deepface.</p>
+ * <strong>Backend Selection:</strong> DJL (Deep Java Library) is the default
+ * backend for model loading and inference. Other backends can be selected via
+ * the {@code vision.backend} property (for example: djl, cyber, robotics).
+ * Legacy OpenCV-based implementations were removed from the main branch and
+ * are available only via the optional {@code legacy-backends} Maven profile.</p>
  *
  * <p>
  * Example usage:</p>

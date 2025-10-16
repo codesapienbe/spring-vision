@@ -97,9 +97,6 @@
     <module>core</module>
     <module>starter</module>
     <module>mcp</module>
-    <module>health</module>
-    <module>cyber</module>
-    <module>robotics</module>
     <module>model</module>
   </modules>
 
@@ -132,24 +129,11 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- PyTorch native auto (not in BOM, needs explicit version) -->
+      <!-- PyTorch native auto (not in BOM, needs an explicit version) -->
       <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-native-auto</artifactId>
         <version>1.9.1</version>
-      </dependency>
-
-      <!-- JavaCV Dependencies (includes OpenCV) -->
-      <dependency>
-        <groupId>org.bytedeco</groupId>
-        <artifactId>javacv</artifactId>
-        <version>${javacv.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.bytedeco</groupId>
-        <artifactId>opencv</artifactId>
-        <version>${opencv.version}</version>
       </dependency>
 
       <!-- Micrometer for Metrics -->
@@ -452,58 +436,57 @@
     </plugins>
   </build>
 
+  <!-- Profiles for CPU vs GPU ONNX Runtime -->
   <profiles>
+    <!-- CPU Profile (Active by Default) -->
     <profile>
-      <id>release</id>
-      <build>
-        <plugins>
-          <!-- Source Plugin -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-          </plugin>
-
-          <!-- Javadoc Plugin -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-          </plugin>
-
-          <!-- GPG Plugin -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-          </plugin>
-
-          <!-- Central Publishing Plugin -->
-          <plugin>
-            <groupId>org.sonatype.central</groupId>
-            <artifactId>central-publishing-maven-plugin</artifactId>
-            <extensions>true</extensions>
-          </plugin>
-
-        </plugins>
-      </build>
+      <id>cpu</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <onnxruntime.provider>cpu</onnxruntime.provider>
+      </properties>
     </profile>
 
+    <!-- GPU Profile: Uncomment to activate GPU support with ONNX Runtime -->
     <profile>
-      <id>ci</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>com.diffplug.spotless</groupId>
-            <artifactId>spotless-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>spotless-check</id>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
+      <id>gpu</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <onnxruntime.provider>cuda</onnxruntime.provider>
+      </properties>
+    </profile>
+
+    <!-- Legacy/backends profile: optionally activates legacy JavaCV/OpenCV/native artifacts
+         Activate with -Plegacy-backends when you need the old OpenCV/JavaCV native dependencies.
+    -->
+    <profile>
+      <id>legacy-backends</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>${javacv.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>opencv</artifactId>
+            <version>${opencv.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>openblas</artifactId>
+            <version>0.3.26-1.5.10</version>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
     </profile>
 
   </profiles>

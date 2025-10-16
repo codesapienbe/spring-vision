@@ -16,33 +16,6 @@
   <description>Core domain classes and interfaces for Spring Vision</description>
 
   <dependencies>
-    <!-- JavaCV for OpenCV integration (optional - legacy backend) -->
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>javacv</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Platform-specific OpenCV native binaries (optional - legacy backend) -->
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>opencv</artifactId>
-      <version>${opencv.version}</version>
-      <classifier>${opencv.classifier}</classifier>
-      <scope>runtime</scope>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Platform-specific OpenBLAS native binaries required by OpenCV (optional - legacy backend) -->
-    <dependency>
-      <groupId>org.bytedeco</groupId>
-      <artifactId>openblas</artifactId>
-      <version>0.3.26-1.5.10</version>
-      <classifier>${opencv.classifier}</classifier>
-      <scope>runtime</scope>
-      <optional>true</optional>
-    </dependency>
-
     <!-- Spring Boot Starter -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -308,6 +281,42 @@
         <dependency>
           <groupId>com.microsoft.onnxruntime</groupId>
           <artifactId>onnxruntime_gpu</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <!-- Legacy/backends profile: opt-in profile for legacy JavaCV/OpenCV native artifacts.
+         Activate with -Plegacy-backends to include JavaCV/OpenCV/OpenBLAS artifacts when you
+         need to run the old OpenCV-based backends. Kept opt-in to avoid accidental native blobs
+         in standard builds.
+    -->
+    <profile>
+      <id>legacy-backends</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.bytedeco</groupId>
+          <artifactId>javacv</artifactId>
+          <version>${javacv.version}</version>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.bytedeco</groupId>
+          <artifactId>opencv</artifactId>
+          <version>${opencv.version}</version>
+          <classifier>${opencv.classifier}</classifier>
+          <scope>runtime</scope>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.bytedeco</groupId>
+          <artifactId>openblas</artifactId>
+          <version>0.3.26-1.5.10</version>
+          <classifier>${opencv.classifier}</classifier>
+          <scope>runtime</scope>
+          <optional>true</optional>
         </dependency>
       </dependencies>
     </profile>

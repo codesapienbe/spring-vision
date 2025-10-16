@@ -143,6 +143,47 @@
         </executions>
       </plugin>
 
+      <!-- Add Jib Maven Plugin (Google) so we can build container images without a Dockerfile -->
+      <plugin>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>${jib-maven-plugin.version}</version>
+        <configuration>
+          <!-- Base image must already contain OS-level runtime deps (OpenCV, libglib, etc.) if you need them.
+               If you rely on the project Dockerfile to assemble native .so files, continue using that Dockerfile.
+               Jib is ideal for fast, reproducible JVM images when a suitable base image is available. -->
+          <from>
+            <image>eclipse-temurin:21-jre-jammy</image>
+          </from>
+
+          <to>
+            <image>${docker.image.name}</image>
+          </to>
+
+          <!-- JVM flags and environment similar to the Dockerfile -->
+          <container>
+            <jvmFlags>
+              <jvmFlag>--enable-native-access=ALL-UNNAMED</jvmFlag>
+              <jvmFlag>-Xms512m</jvmFlag>
+              <jvmFlag>-Xmx2g</jvmFlag>
+            </jvmFlags>
+            <environment>
+              <SPRING_PROFILES_ACTIVE>default</SPRING_PROFILES_ACTIVE>
+            </environment>
+            <!-- For Spring Boot executable jars, Jib will detect and set an appropriate entrypoint (JarLauncher).
+                 You can override entrypoint if you prefer to run 'java -jar /app/app.jar'. -->
+            <appRoot>/app</appRoot>
+          </container>
+
+          <!-- Extra directory allows adding native libs or other files to the image if you place them under src/main/jib -->
+          <extraDirectories>
+            <paths>
+              <path>src/main/jib</path>
+            </paths>
+          </extraDirectories>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
 </project>

@@ -61,3 +61,5 @@ RUN mkdir -p logs
 
 # Run the application in stdio mode (no port exposure needed)
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
+
+

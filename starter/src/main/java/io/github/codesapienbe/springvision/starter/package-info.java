@@ -43,15 +43,16 @@
  *   <li>Spring Boot Starter - Spring Boot integration</li>
  *   <li>Spring Boot Actuator - Health monitoring and metrics</li>
  *   <li>Micrometer Core - Metrics collection</li>
- *   <li>OpenCV Dependencies - Computer vision library</li>
- *   <li>JavaCV - Java bindings for OpenCV</li>
+ *   <li>DJL (Deep Java Library) - default runtime for models</li>
+ *   <li>Optional legacy OpenCV/JavaCV artifacts are available using the
+ *       {@code -Plegacy-backends} Maven profile and are not included by default</li>
  * </ul>
  *
  * <h2>Auto-Configuration</h2>
  *
  * <p>The starter automatically configures:</p>
  * <ul>
- *   <li>Vision backend (OpenCV by default)</li>
+ *   <li>Vision backend (DJL by default; legacy OpenCV is opt-in via -Plegacy-backends)</li>
  *   <li>Vision template for easy access</li>
  *   <li>Health indicators for monitoring</li>
  *   <li>Metrics collection for observability</li>

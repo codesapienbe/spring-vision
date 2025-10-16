@@ -27,10 +27,6 @@
 
 **Spring Vision** is a production-ready computer vision framework that brings powerful AI capabilities to your Spring Boot applications. Detect faces, recognize objects, analyze emotions, and build intelligent applications with just a few lines of code.
 
-## 📖 Documentation
-
-For comprehensive documentation, including API references, architecture diagrams, and guides, please visit our [**documentation portal**](docs/index.md).
-
 ## ✨ Why Spring Vision?
 
 - **🚀 Zero-Configuration Setup**: Get started in minutes with auto-configuration and sensible defaults.
@@ -124,3 +120,52 @@ spring:
 - **GPU Acceleration**: CUDA support for faster inference
 - **Model Zoo Integration**: Access to pre-trained models from DJL model zoo
 - **Memory Efficient**: Optimized memory usage and cleanup
+
+## Modules
+
+Spring Vision is a modular framework that allows you to plug in different computer vision backends and features.
+
+### Face Recognition Modules
+
+- **CompreFace**: Face detection, recognition, and analysis using the CompreFace REST API.
+- **DeepFace**: Face recognition and analysis using the DeepFace library.
+- **FaceBytes**: A lightweight, native face detection and recognition engine.
+- **InsightFace**: High-accuracy face recognition using the InsightFace library.
+
+### Computer Vision Modules
+
+- **MediaPipe**: A framework for building multimodal applied machine learning pipelines.
+- **YOLO**: Real-time object detection using the YOLO (You Only Look Once) model.
+- **Tesseract**: OCR (Optical Character Recognition) for extracting text from images.
+
+### Specialized Modules
+
+- **Cyber**: A module for detecting cyber threats, such as QR code phishing and shoulder surfing.
+- **Health**: A module for health-related computer vision tasks, such as fall detection and vital sign monitoring.
+
+### Infrastructure Modules
+
+- **Persistence**: A module for persisting computer vision data, such as face embeddings and detection results.
+- **Starter**: A starter module that provides auto-configuration and a unified API for all backends.
+
+## Architecture
+
+Spring Vision is designed with a layered architecture that separates the application layer from the computer vision backends.
+
+- **Application Layer**: This layer includes the REST API, web UI, and CLI.
+- **Framework Core**: This layer provides the core functionality of the framework, such as the `VisionTemplate`, configuration, and utilities.
+- **Backends**: This layer includes the different computer vision backends, such as OpenCV, YOLO, and MediaPipe.
+- **Integrations**: This layer includes integrations with other systems, such as persistence, health monitoring, and robotics.
+
+## GPU Acceleration
+
+Spring Vision supports GPU acceleration for faster inference. To enable GPU acceleration, you need to:
+
+1.  **Build with the `gpu` profile**: `mvn clean install -P gpu`
+2.  **Configure the `execution-provider`**: `spring.vision.execution-provider=gpu`
+
+For more information, see the [GPU Acceleration](docs/gpu.md) documentation.
+
+## Contributing
+
+We welcome contributions! Please see the [Contributing](docs/contributing.md) guide for more information.
