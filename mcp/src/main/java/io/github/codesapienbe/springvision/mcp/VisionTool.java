@@ -185,7 +185,7 @@ public class VisionTool {
             for (float[] emb : rawEmbeddings) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", "face-" + idx);
-                item.put("embedding_base64", Base64.getEncoder().encodeToString(floatArrayToBytes(emb)));
+                item.put("embedding_base64", Base64.getEncoder().encodeToString(serializeEmbedding(emb)));
                 item.put("length", emb.length);
                 out.add(item);
                 idx++;
@@ -632,41 +632,8 @@ public class VisionTool {
             float[] sourceEmbedding = sourceEmbeddings.get(0);
             float[] targetEmbedding = targetEmbeddings.get(0);
 
-            // Calculate multiple similarity metrics for robust verification
-            double cosineSimilarity = calculateCosineSimilarity(sourceEmbedding, targetEmbedding);
-            double euclideanDistance = calculateEuclideanDistance(sourceEmbedding, targetEmbedding);
-            double manhattanDistance = calculateManhattanDistance(sourceEmbedding, targetEmbedding);
-
-            // Normalize Euclidean distance to similarity score (0-1)
-            double euclideanSimilarity = 1.0 / (1.0 + euclideanDistance);
-
-            // Normalize Manhattan distance to similarity score (0-1)
-            double manhattanSimilarity = 1.0 / (1.0 + manhattanDistance / sourceEmbedding.length);
-
-            // Combined weighted similarity score
-            double combinedSimilarity = (cosineSimilarity * 0.5) + (euclideanSimilarity * 0.3) + (manhattanSimilarity * 0.2);
-
-            // Threshold for face match (can be adjusted based on requirements)
-            double matchThreshold = 0.6;
-            boolean isMatch = combinedSimilarity >= matchThreshold;
-
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "success");
-            response.put("isMatch", isMatch);
-            response.put("similarity", Math.round(combinedSimilarity * 10000.0) / 10000.0);
-            response.put("metrics", Map.of(
-                "cosineSimilarity", Math.round(cosineSimilarity * 10000.0) / 10000.0,
-                "euclideanSimilarity", Math.round(euclideanSimilarity * 10000.0) / 10000.0,
-                "manhattanSimilarity", Math.round(manhattanSimilarity * 10000.0) / 10000.0,
-                "euclideanDistance", Math.round(euclideanDistance * 10000.0) / 10000.0,
-                "manhattanDistance", Math.round(manhattanDistance * 10000.0) / 10000.0
-            ));
-            response.put("threshold", matchThreshold);
-            response.put("sourceFacesCount", sourceEmbeddings.size());
-            response.put("targetFacesCount", targetEmbeddings.size());
-            response.put("processingTimeMs", duration);
-            response.put("message", isMatch ? "Faces match" : "Faces do not match");
-            return response;
+            // Delegate evaluation to shared helper to keep logic consistent with other methods
+            return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
@@ -1028,7 +995,42 @@ public class VisionTool {
             }
         } catch (Exception ignored) {
         }
-        return io.github.codesapienbe.springvision.core.VectorUtils.computeSimilarityMetrics(a, b);
+        // Inline fallback implementation to avoid runtime classloading issues
+        Map<String, Object> m = new HashMap<>();
+        if (a == null || b == null || a.length != b.length) {
+            m.put("cosineSimilarity", 0.0);
+            m.put("euclideanDistance", Double.POSITIVE_INFINITY);
+            m.put("manhattanDistance", Double.POSITIVE_INFINITY);
+            m.put("euclideanSimilarity", 0.0);
+            m.put("manhattanSimilarity", 0.0);
+            m.put("combinedSimilarity", 0.0);
+            return m;
+        }
+
+        double dot = 0.0, na = 0.0, nb = 0.0;
+        double euclidSum = 0.0, manhattan = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+            double d = a[i] - b[i];
+            euclidSum += d * d;
+            manhattan += Math.abs(d);
+        }
+        double cosine = 0.0;
+        if (na > 0 && nb > 0) cosine = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        double euclid = Math.sqrt(euclidSum);
+        double euclidSim = 1.0 / (1.0 + euclid);
+        double manhattanSim = 1.0 / (1.0 + manhattan / a.length);
+        double combined = (cosine * 0.5) + (euclidSim * 0.3) + (manhattanSim * 0.2);
+
+        m.put("cosineSimilarity", cosine);
+        m.put("euclideanDistance", euclid);
+        m.put("manhattanDistance", manhattan);
+        m.put("euclideanSimilarity", euclidSim);
+        m.put("manhattanSimilarity", manhattanSim);
+        m.put("combinedSimilarity", combined);
+        return m;
     }
 
     private byte[] serializeEmbedding(float[] arr) {
@@ -1038,7 +1040,16 @@ public class VisionTool {
             }
         } catch (Exception ignored) {
         }
-        return io.github.codesapienbe.springvision.core.VectorUtils.embeddingToBytes(arr);
+        if (arr == null) return new byte[0];
+        byte[] out = new byte[arr.length * 4];
+        for (int i = 0; i < arr.length; i++) {
+            int bits = Float.floatToIntBits(arr[i]);
+            out[i * 4] = (byte) ((bits >> 24) & 0xFF);
+            out[i * 4 + 1] = (byte) ((bits >> 16) & 0xFF);
+            out[i * 4 + 2] = (byte) ((bits >> 8) & 0xFF);
+            out[i * 4 + 3] = (byte) (bits & 0xFF);
+        }
+        return out;
     }
 
 }

@@ -1,7 +1,6 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
 import io.github.codesapienbe.springvision.core.VectorService;
-import io.github.codesapienbe.springvision.core.VectorUtils;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -122,11 +121,23 @@ public class InMemoryVectorService implements VectorService {
         if (a == null || b == null || a.length != b.length) return Double.POSITIVE_INFINITY;
         if (metric == null || "cosine".equalsIgnoreCase(metric)) {
             // cosine distance = 1 - cosine similarity
-            double sim = VectorUtils.cosineSimilarity(a, b);
+            double dot = 0.0, na = 0.0, nb = 0.0;
+            for (int i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+                na += a[i] * a[i];
+                nb += b[i] * b[i];
+            }
+            if (na <= 0 || nb <= 0) return Double.POSITIVE_INFINITY;
+            double sim = dot / (Math.sqrt(na) * Math.sqrt(nb));
             return 1.0 - sim;
         } else {
             // euclidean
-            return VectorUtils.euclideanDistance(a, b);
+            double s = 0.0;
+            for (int i = 0; i < a.length; i++) {
+                double d = a[i] - b[i];
+                s += d * d;
+            }
+            return Math.sqrt(s);
         }
     }
 }
