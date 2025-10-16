@@ -13,7 +13,6 @@ import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.TranslateException;
 import ai.djl.Application;
 import ai.djl.Device;
-import ai.djl.engine.Engine;
 import ai.djl.training.util.ProgressBar;
 import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.capabilities.*;
@@ -89,22 +88,47 @@ public class DjlVisionBackend implements VisionBackend,
     // Constructors
     public DjlVisionBackend() {
         this.properties = new DjlProperties();
-        this.device = Device.fromName(properties.getDevice());
+        this.device = safeCreateDevice(this.properties.getDevice());
         logBackendInfo();
     }
 
     public DjlVisionBackend(DjlProperties properties) {
         this.properties = properties != null ? properties : new DjlProperties();
-        this.device = Device.fromName(this.properties.getDevice());
+        this.device = safeCreateDevice(this.properties.getDevice());
         logBackendInfo();
     }
 
+    private Device safeCreateDevice(String deviceName) {
+        try {
+            // Device.fromName may trigger engine/native initialization in some DJL versions.
+            // Wrap in try/catch and fall back to CPU to avoid JNI downloads during tests or in constrained environments.
+            return Device.fromName(deviceName);
+        } catch (Throwable t) {
+            logger.warn("Failed to initialize DJL device '{}' - falling back to CPU. Reason: {}", deviceName, t.toString());
+            try {
+                return Device.cpu();
+            } catch (Throwable t2) {
+                // Extremely defensive: if even Device.cpu() fails, return a best-effort null and let callers handle it.
+                logger.error("Failed to create fallback CPU Device for DJL: {}", t2.toString());
+                return null;
+            }
+        }
+    }
+
     private void logBackendInfo() {
+        // Avoid calling Engine.getEngine(...) here since that can trigger native/JNI downloads in some environments.
+        String configuredEngine = properties.getEngine();
+        String deviceName = properties.getDevice();
+        boolean gpuAvailable = false;
+        try {
+            gpuAvailable = (device != null) && device.isGpu();
+        } catch (Throwable ignored) {
+            // ignore - some DJL versions may throw when querying device properties
+        }
+
         logger.info("Initializing DJL Vision Backend - Engine: {}, Device: {}, Version: {}",
-            properties.getEngine(), properties.getDevice(), VERSION);
-        logger.info("DJL Engine: {}, GPU Available: {}",
-            Engine.getEngine(properties.getEngine()).getEngineName(),
-            device.isGpu());
+            configuredEngine, deviceName, VERSION);
+        logger.info("DJL Engine (configured): {}, GPU Available: {}", configuredEngine, gpuAvailable);
     }
 
     @Override
@@ -143,10 +167,10 @@ public class DjlVisionBackend implements VisionBackend,
 
         Map<String, Object> details = new HashMap<>();
         details.put("engine", properties.getEngine());
-        details.put("device", device.getDeviceType());
+        details.put("device", properties.getDevice());
         boolean gpuAvailable = false;
         try {
-            gpuAvailable = !device.isGpu() || device.toString().contains("gpu");
+            gpuAvailable = (device != null) && device.isGpu();
         } catch (Exception e) {
             // GPU detection not available in this DJL version
         }
@@ -154,11 +178,13 @@ public class DjlVisionBackend implements VisionBackend,
         details.put("modelsLoaded", modelCache.size());
 
         if (healthStatus == BackendHealthInfo.HealthStatus.HEALTHY) {
+            // Use the overload that accepts metrics so the details map is included
             return BackendHealthInfo.healthy(getBackendId(),
-                "DJL backend is operational", responseTime);
+                "DJL backend is operational", responseTime, details);
         } else {
+            // Include metrics even for unhealthy responses to aid debugging
             return BackendHealthInfo.unhealthy(getBackendId(),
-                "DJL backend is not operational", healthErrorMessage, responseTime);
+                "DJL backend is not operational", healthErrorMessage, responseTime, details);
         }
     }
 
