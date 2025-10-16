@@ -377,6 +377,210 @@ public class VisionTool {
         }
     }
 
+    @Tool(description = "Detect objects in an image. Returns detected objects with bounding boxes and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectObjects(String imageUrl) {
+        log.info("detectObjects called",
+            StructuredArguments.keyValue("event", "detect_objects_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("objects", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            VisionResult detections = visionTemplate.detectObjects(imgData);
+
+            List<Map<String, Object>> objects = new ArrayList<>();
+            for (var detection : detections.detections()) {
+                Map<String, Object> obj = new HashMap<>();
+                obj.put("label", detection.label());
+                obj.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    obj.put("boundingBox", bbox);
+                }
+
+                objects.add(obj);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("objects", objects);
+            response.put("count", objects.size());
+            response.put("averageConfidence", Math.round(detections.averageConfidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d objects", objects.size()));
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("objects", List.of());
+            response.put("count", 0);
+            response.put("message", "Failed to detect objects: " + e.getMessage());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect objects from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect human poses in an image. Returns detected poses with joint positions and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectPoses(String imageUrl) {
+        log.info("detectPoses called",
+            StructuredArguments.keyValue("event", "detect_poses_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("poses", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports pose estimation
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support pose estimation");
+                response.put("poses", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability poseBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> poseDetections = poseBackend.detectPoses(imgData);
+
+            List<Map<String, Object>> poses = new ArrayList<>();
+            for (var detection : poseDetections) {
+                Map<String, Object> pose = new HashMap<>();
+                pose.put("label", detection.label());
+                pose.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                pose.put("attributes", detection.attributes());
+                poses.add(pose);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("poses", poses);
+            response.put("count", poses.size());
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d poses", poses.size()));
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to detect poses: " + errorMsg);
+            response.put("poses", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect poses from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect and recognize actions in an image. Returns recognized actions with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeActions(String imageUrl) {
+        log.info("recognizeActions called",
+            StructuredArguments.keyValue("event", "recognize_actions_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("actions", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports action recognition
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support action recognition");
+                response.put("actions", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability actionBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> actionDetections = actionBackend.recognizeActions(imgData);
+
+            List<Map<String, Object>> actions = new ArrayList<>();
+            for (var detection : actionDetections) {
+                Map<String, Object> action = new HashMap<>();
+                action.put("action", detection.label());
+                action.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                actions.add(action);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("actions", actions);
+            response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
+            response.put("count", actions.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to recognize actions: " + errorMsg);
+            response.put("actions", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to recognize actions from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
     private static byte[] floatArrayToBytes(float[] arr) {
         byte[] out = new byte[arr.length * 4];
         for (int i = 0; i < arr.length; i++) {
