@@ -1,6 +1,6 @@
 package io.github.codesapienbe.springvision.core;
 
-import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.error.ErrorHandler;
 import io.github.codesapienbe.springvision.core.logging.VisionLogger;
 import io.github.codesapienbe.springvision.core.metrics.VisionMetrics;
@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 1.1.0
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {VisionTemplate.class, OpenCvVisionBackend.class,
+@SpringBootTest(classes = {VisionTemplate.class, DjlVisionBackend.class,
     ErrorHandler.class, VisionMetrics.class})
 @ActiveProfiles("test")
 public class VisionTemplateIntegrationTest {
@@ -307,7 +307,7 @@ public class VisionTemplateIntegrationTest {
     void testHealthCheckFunctionality() {
         // Test backend health checks
         List<VisionBackend> backends = List.of(
-            new OpenCvVisionBackend()
+            new DjlVisionBackend()
         );
 
         for (VisionBackend backend : backends) {

@@ -1,6 +1,6 @@
 package io.github.codesapienbe.springvision.core;
 
-import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.*;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -64,7 +64,7 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
      * with their preferred `VisionBackend` implementation.
      */
     public VisionTemplate() {
-        this(new OpenCvVisionBackend());
+        this(new DjlVisionBackend());
     }
 
     /**
@@ -196,7 +196,7 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
         return vectorService.findSimilarFaces(queryEmbedding, modelName, metric, threshold, limit, includePersonIds, excludePersonIds);
     }
-    
+
     /**
      * Detects faces in the provided byte array.
      *

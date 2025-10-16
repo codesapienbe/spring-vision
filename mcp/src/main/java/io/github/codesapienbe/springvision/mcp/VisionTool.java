@@ -25,22 +25,17 @@ import java.util.Map;
 /**
  * Minimal MCP tool exposing only face counting and embedding extraction.
  *
- * <p>This tool delegates to {@link VisionTemplate}, which can coordinate multiple
- * vision backends. For example:
+ * <p>This tool integrates with the Spring Vision framework to provide computer vision
+ * capabilities through the Model Context Protocol (MCP). It supports multiple backends
+ * and provides comprehensive vision analysis including face detection, object recognition,
+ * and embedding extraction.</p>
+ *
+ * <p>The tool automatically selects the best available backend:
  * <ul>
- *   <li>{@code OpenCvVisionBackend} - handles face detection and other vision operations</li>
- * </ul>
- *
- * <p>Enable backend in {@code application.yml}:
- * <pre>
- * spring:
- *   vision:
- *     opencv:
- *       enabled: true
- * </pre>
- *
- * <p>The {@code VisionTemplate} will automatically route operations to the OpenCV backend
- * which is the default backend for all vision capabilities.
+ *   <li>{@code DjlVisionBackend} - Modern AI-powered vision using Deep Java Library (default)</li>
+ *   <li>{@code CyberSecurityBackend} - Specialized security threat detection</li>
+ *   <li>{@code RoboticsBackend} - Industrial automation and robotics vision</li>
+ * </ul></p>
  */
 @Component
 public class VisionTool {

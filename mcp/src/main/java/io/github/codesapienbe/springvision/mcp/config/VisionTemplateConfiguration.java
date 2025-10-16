@@ -3,7 +3,7 @@ package io.github.codesapienbe.springvision.mcp.config;
 import io.github.codesapienbe.springvision.core.VectorService;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
@@ -108,19 +108,18 @@ public class VisionTemplateConfiguration {
             }
         }
 
-        // If no backend found or selected, create default OpenCV backend
+        // If no backend found or selected, create default DJL backend
         if (selectedBackend == null) {
-            logger.warn("No healthy backends found - initializing default OpenCV backend");
-            logger.warn("OpenCV does NOT support embeddings. For full MCP tool support, enable an embedding-capable backend.");
+            logger.warn("No healthy backends found - initializing default DJL backend");
+            logger.info("DJL backend supports face detection and modern AI models");
 
             try {
-                OpenCvProperties properties = new OpenCvProperties();
-                OpenCvVisionBackend opencvBackend = new OpenCvVisionBackend(properties);
-                opencvBackend.initialize();
-                selectedBackend = opencvBackend;
-                logger.info("Default OpenCV backend initialized successfully");
-            } catch (BaseVisionException e) {
-                logger.error("Failed to initialize default OpenCV backend", e);
+                DjlVisionBackend djlBackend = new DjlVisionBackend();
+                djlBackend.initialize();
+                selectedBackend = djlBackend;
+                logger.info("Default DJL backend initialized successfully");
+            } catch (Exception e) {
+                logger.error("Failed to initialize default DJL backend", e);
                 throw new RuntimeException("Failed to initialize VisionTemplate - no backends available", e);
             }
         }

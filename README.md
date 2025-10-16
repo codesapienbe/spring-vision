@@ -35,7 +35,8 @@ For comprehensive documentation, including API references, architecture diagrams
 
 - **🚀 Zero-Configuration Setup**: Get started in minutes with auto-configuration and sensible defaults.
 - **🎨 Production-Ready Features**: Enterprise security, real-time monitoring, and high performance for production workloads.
-- **🔌 Pluggable Backends**: Switch between OpenCV, FaceBytes, YOLO, MediaPipe, and more.
+- **🤖 DJL-Powered**: Built on Deep Java Library for modern AI model management and inference.
+- **🔌 Pluggable Backends**: DJL (default), OpenCV, FaceBytes, YOLO, MediaPipe support.
 - **🌐 Cross-Platform**: Works on Linux, macOS, and Windows.
 - **🏗️ Spring Boot Native**: Health checks, metrics, and async support with virtual threads.
 
@@ -44,18 +45,16 @@ For comprehensive documentation, including API references, architecture diagrams
 ### 1. Add Dependency
 
 ```xml
-
 <dependency>
-    <groupId>com.springvision</groupId>
+    <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>1.1</version>
+    <version>1.0.5</version>
 </dependency>
 ```
 
 ### 2. Use in Your Code
 
 ```java
-
 @RestController
 public class VisionController {
 
@@ -69,219 +68,59 @@ public class VisionController {
 }
 ```
 
-That's it! Your Spring Boot application now has state-of-the-art computer vision capabilities.
+That's it! Your Spring Boot application now has state-of-the-art computer vision capabilities powered by DJL.
 
-## 🚀 GPU Acceleration Support
+## ⚙️ Configuration
 
-Spring Vision now supports GPU-accelerated inference using NVIDIA CUDA for significantly improved performance on compatible hardware.
+### Default Configuration (CPU)
 
-### Building with GPU Support
-
-To build the project with GPU support, use the `gpu` Maven profile:
-
-```bash
-# Build with GPU support
-mvn clean install -P gpu
-
-# Build specific module with GPU support
-cd core
-mvn clean install -P gpu
-```
-
-### Runtime Configuration
-
-Configure the execution provider in your `application.properties`:
-
-```properties
-# For CPU execution (default)
-vision.execution-provider=cpu
-# For GPU execution (requires CUDA drivers and GPU build)
-vision.execution-provider=gpu
-```
-
-### Requirements for GPU Acceleration
-
-To use GPU acceleration, you need:
-
-1. **NVIDIA GPU**: CUDA-compatible GPU (Compute Capability 3.5 or higher)
-2. **CUDA Toolkit**: Version 11.x or 12.x installed
-3. **cuDNN**: Compatible version installed
-4. **GPU Build**: Project built with `-P gpu` profile
-
-### Performance Benefits
-
-GPU acceleration can provide significant performance improvements:
-
-- **Face Detection**: Up to 5-10x faster
-- **Object Recognition**: Up to 8-15x faster
-- **Batch Processing**: Up to 20x faster for large batches
-
-### Automatic Fallback
-
-If GPU acceleration fails to initialize (e.g., missing drivers or incompatible hardware), Spring Vision will automatically fall back to CPU execution with a warning logged:
-
-```
-WARN: Failed to configure CUDA execution provider. Falling back to CPU.
-```
-
-### Example Configuration
+Spring Vision works out of the box with DJL and PyTorch:
 
 ```yaml
-vision:
-  execution-provider: gpu  # or 'cpu' for CPU-only
-  backend: opencv
-  enabled: true
-  fail-fast: true
-  opencv:
-    enabled: true
-    confidence-threshold: 0.7
+spring:
+  vision:
+    djl:
+      enabled: true
+      engine: PyTorch
+      confidence-threshold: 0.5
 ```
 
-## 🧭 Platform profiles (Maven)
+### GPU Acceleration
 
-This project provides Maven profiles to select a platform-specific OpenCV native classifier so builds pull only the native binary needed for the target OS/architecture (reduces download and image size). Profiles auto-activate by OS/arch but can also be enabled explicitly in CI or for cross builds.
+For GPU acceleration, use the GPU profile:
 
-- Auto-activation: Maven will activate the matching profile if running on the same OS/arch (for example, a Linux x86_64 host will auto-activate `platform-linux-x86_64`).
-- Manual activation: Use `-P` or override the property directly with `-Dopencv.classifier`.
-
-Available profiles and classifiers
-
-- `platform-linux-x86_64` -> `linux-x86_64`
-- `platform-linux-arm64`  -> `linux-arm64`
-- `platform-macosx-x86_64` -> `macosx-x86_64`
-- `platform-macosx-arm64` -> `macosx-arm64`
-- `platform-windows-x86_64` -> `windows-x86_64`
-
-Common commands
-
-```bash
-# Build normally (auto-activates the matching platform profile if applicable)
-mvn -DskipTests clean install
-
-# Explicitly build for linux x86_64 on any host
-mvn -Pplatform-linux-x86_64 -DskipTests clean install
-
-# Explicitly set classifier without using a profile
-mvn -Dopencv.classifier=macosx-arm64 -DskipTests clean install
-
-# Quick check: show the resolved OpenCV native classifier for the core module
-mvn -DskipTests -pl core -am dependency:tree -Dverbose -Dincludes=org.bytedeco:opencv
+```yaml
+spring:
+  vision:
+    djl:
+      enabled: true
+      engine: PyTorch
+      confidence-threshold: 0.5
+      
+spring:
+  profiles:
+    active: gpu
 ```
 
-Notes
+### Legacy Backends
 
-- Use the profile that matches the target runtime where the application will run (OS + CPU arch).
-- For multi-arch Docker/CI pipelines, build one artifact per target platform (or explicitly set the classifier per job).
-- After a `clean install` the `target/` folders will reflect the chosen native classifier instead of the large multi-platform `opencv-platform` aggregator.
+You can still use legacy backends if needed:
 
-If you'd like, I can add a short CI example (GitHub Actions) that builds for linux-x86_64 and linux-arm64 using these profiles.
-
-## 🎨 Features
-
-- **🎯 Face Recognition & Verification**: Verify identities and extract face embeddings.
-- **🎯 Object Detection & Recognition**: Detect and recognize objects in images.
-- **🔒 Privacy Protection**: Automatically blur faces for privacy.
-- **🎯 Batch Processing**: Process thousands of images efficiently.
-
-## 🔌 Supported Backends
-
-| Backend                | Capabilities                                                                | Performance | Use Case                    |
-|------------------------|-----------------------------------------------------------------------------|-------------|-----------------------------|
-| **🎯 FaceBytes**       | Face recognition, verification, analysis                                    | ⭐⭐⭐⭐⭐       | Production face recognition |
-| **⚡ OpenCV**           | Face detection, object detection                                            | ⭐⭐⭐⭐⭐       | High-performance detection  |
-| **🎯 YOLO**            | Real-time object detection                                                  | ⭐⭐⭐⭐⭐       | Object recognition          |
-| **🎯 MediaPipe**       | Face, hand, pose detection                                                  | ⭐⭐⭐⭐        | Multi-modal detection       |
-| **☁️ CompreFace**      | Enterprise face recognition                                                 | ⭐⭐⭐         | Cloud-based recognition     |
-| **🧠 DeepFace**        | Advanced deep learning                                                      | ⭐⭐⭐         | Research & development      |
-| **🔍 InsightFace**     | State-of-the-art recognition                                                | ⭐⭐⭐⭐⭐       | High-accuracy recognition   |
-| ❤️ **Health (v2.0)**   | Real-time heart rate, tumor classification, fall detection, stress analysis | TBD         | Healthcare                  |
-| 🔒 **Cyber (v2.0)**    | QR code hijacking, shoulder surfing prevention, physical access monitoring  | TBD         | Cybersecurity               |
-| 🤖 **Robotics (v2.0)** | Automated defect detection, robotic arm guidance, component verification    | TBD         | Industrial Automation       |
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Spring Vision Framework                    │
-├─────────────────────────────────────────────────────────────┤
-│  🎨 Application Layer (Web UI, REST API, CLI/Desktop)         │
-├─────────────────────────────────────────────────────────────┤
-│  🧠 Framework Core (VisionTemplate)                         │
-├─────────────────────────────────────────────────────────────┤
-│  🎯 Backend Implementations (FaceBytes, OpenCV, YOLO, etc.)   │
-└─────────────────────────────────────────────────────────────┘
+```yaml
+spring:
+  vision:
+    djl:
+      enabled: false
+    opencv:
+      enabled: true
+    facebytes:
+      enabled: true
 ```
 
-## 🤝 Contributing
+## 🚀 DJL Backend Features
 
-We welcome contributions! Please see our [Contributing Guide](docs/contributing.md) for more details.
-
-### Areas Needing Contribution
-
-- **🔌 New Backends**: We are always looking for new backend integrations.
-- **⚡ Performance**: Optimization and benchmarking for existing and new backends.
-- **📖 Documentation**: Tutorials, examples, and guides for new features.
-- **🧪 Testing**: More integration tests and examples for different use cases.
-- **🔒 Security**: Security audits and improvements are always welcome.
-
-## 🗺️ Roadmap
-
-### ✅ **Version 1.1 (Released Q2 2024)**
-
-- **New Backends**: Integrated MediaPipe and YOLO backends for multi-modal and real-time object detection.
-- **Performance**: Major performance optimizations, enhancing throughput and latency.
-- **Security**: Added advanced security features for enterprise-grade deployments.
-
-### 🚀 **Version 1.2 (Q3 2024)**
-
-- **InsightFace Backend**: Integration of the state-of-the-art face recognition model.
-- **Batch Processing**: High-throughput image processing capabilities.
-- **Cloud-Native Deployment**: Official guides for Kubernetes and other cloud platforms.
-- **Advanced Metrics**: Deeper monitoring and observability into the vision pipelines.
-
-### 🎯 **Version 2.0 (Q4 2024)**
-
-- **New Modules**: Introduction of `spring-vision-health`, `spring-vision-cyber`, and `spring-vision-robotics`.
-- **API Overhaul**: A major revision of the API for improved usability, performance, and consistency.
-- **Community Focus**: Expanded documentation, more examples, and streamlined contribution process.
-
-## 💡 Planned Features (v2.0)
-
-### ❤️ `spring-vision-health`
-
-A new module focused on health-related computer vision tasks.
-
-- **Real-time Heart Rate Monitoring**: Monitor heart rate from a video source.
-- **Brain Tumor Classification**: Classify brain tumors from MRI scans (glioma, meningioma, pituitary).
-- **Fall Detection**: Detect falls from video streams to monitor at-risk individuals.
-- **Stress Level Analysis**: Analyze stress levels from facial expressions and other physiological signals.
-
-### 🔒 `spring-vision-cyber`
-
-This module will apply computer vision to cybersecurity challenges.
-
-- **Visual QR Code Hijacking Detection**: Detect and flag suspicious QR codes.
-- **Shoulder Surfing Prevention**: Analyze video streams to detect and alert when someone is looking over a user's shoulder.
-- **Physical Access Monitoring**: Use face recognition to monitor and log access to secure areas.
-
-### 🤖 `spring-vision-robotics`
-
-This module will be dedicated to industrial automation and robotics.
-
-- **Automated Defect Detection**: Identify defects in products on a production line from a video feed.
-- **Robotic Arm Guidance**: Provide visual input to guide robotic arms for pick-and-place operations.
-- **Component Verification**: Verify correct component usage during assembly.
-
-## 💬 Community
-
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/spring-vision/spring-vision/issues)
-- **🎯 Feature Requests**: [GitHub Discussions](https://github.com/spring-vision/spring-vision/discussions)
-- **❓ Questions**: [Stack Overflow](https://stackoverflow.com/questions/tagged/spring-vision)
-
-## 🙏 Acknowledgments
-
-Spring Vision builds upon excellent open-source projects like OpenCV, Spring Boot, and more. See the full list in our [documentation](docs/acknowledgments.md).
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+- **Automatic Model Management**: DJL downloads and caches models automatically
+- **Multi-Engine Support**: PyTorch, ONNX Runtime, TensorFlow
+- **GPU Acceleration**: CUDA support for faster inference
+- **Model Zoo Integration**: Access to pre-trained models from DJL model zoo
+- **Memory Efficient**: Optimized memory usage and cleanup

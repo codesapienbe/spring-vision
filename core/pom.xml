@@ -16,28 +16,31 @@
   <description>Core domain classes and interfaces for Spring Vision</description>
 
   <dependencies>
-    <!-- JavaCV for OpenCV integration -->
+    <!-- JavaCV for OpenCV integration (optional - legacy backend) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacv</artifactId>
+      <optional>true</optional>
     </dependency>
 
-    <!-- Platform-specific OpenCV native binaries (use parent's ${opencv.classifier} to avoid android/ios artifacts) -->
+    <!-- Platform-specific OpenCV native binaries (optional - legacy backend) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>opencv</artifactId>
       <version>${opencv.version}</version>
       <classifier>${opencv.classifier}</classifier>
       <scope>runtime</scope>
+      <optional>true</optional>
     </dependency>
 
-    <!-- Platform-specific OpenBLAS native binaries required by OpenCV -->
+    <!-- Platform-specific OpenBLAS native binaries required by OpenCV (optional - legacy backend) -->
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>openblas</artifactId>
       <version>0.3.26-1.5.10</version>
       <classifier>${opencv.classifier}</classifier>
       <scope>runtime</scope>
+      <optional>true</optional>
     </dependency>
 
     <!-- Spring Boot Starter -->
@@ -181,7 +184,6 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- Dependencies from facebytes module (migrated) -->
     <!-- Apache Commons Math3 for mathematical operations -->
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -189,25 +191,62 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- DJL API (optional) -->
+    <!-- DJL API (default backend) -->
     <dependency>
       <groupId>ai.djl</groupId>
       <artifactId>api</artifactId>
-      <version>0.31.1</version>
-      <optional>true</optional>
+      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL Model Zoo -->
+    <dependency>
+      <groupId>ai.djl</groupId>
+      <artifactId>model-zoo</artifactId>
+      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL PyTorch Engine (for face detection and recognition models) -->
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-engine</artifactId>
+      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL PyTorch Native Auto (auto-selects platform) -->
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-native-auto</artifactId>
+      <version>1.9.1</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- DJL OpenCV support -->
+    <dependency>
+      <groupId>ai.djl.opencv</groupId>
+      <artifactId>opencv</artifactId>
+      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL PyTorch Model Zoo -->
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-model-zoo</artifactId>
+      <version>0.33.0</version>
+    </dependency>
+
+    <!-- DJL ONNX Runtime Engine (for ONNX models) -->
+    <dependency>
+      <groupId>ai.djl.onnxruntime</groupId>
+      <artifactId>onnxruntime-engine</artifactId>
+      <version>0.33.0</version>
     </dependency>
   </dependencies>
 
   <build>
     <resources>
-      <!-- Include standard src/main/resources (contains pre-downloaded models) -->
+      <!-- Include standard src/main/resources -->
       <resource>
         <directory>src/main/resources</directory>
-        <filtering>false</filtering>
-      </resource>
-      <!-- Include generated resources from maven-download-plugin -->
-      <resource>
-        <directory>${project.build.directory}/generated-resources</directory>
         <filtering>false</filtering>
       </resource>
     </resources>
@@ -234,138 +273,6 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
 
-      <!-- Download FaceBytes ONNX models during build -->
-      <plugin>
-        <groupId>com.googlecode.maven-download-plugin</groupId>
-        <artifactId>download-maven-plugin</artifactId>
-        <version>1.9.0</version>
-        <configuration>
-          <!-- Global configuration for all downloads -->
-          <skipCache>false</skipCache>
-          <overwrite>false</overwrite>
-          <readTimeOut>60000</readTimeOut>
-          <retries>3</retries>
-        </configuration>
-        <executions>
-          <!-- YuNet face detector (required by OpenCvVisionBackend) -->
-          <execution>
-            <id>download-yunet</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>face_detection_yunet_2023mar.onnx</outputFileName>
-            </configuration>
-          </execution>
-
-          <!-- SFace embeddings model (used for embeddings) -->
-          <execution>
-            <id>download-sface</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>face_recognition_sface_2021dec.onnx</outputFileName>
-            </configuration>
-          </execution>
-
-          <!-- OpenCV DNN SSD model and prototxt (used as detector fallback) -->
-          <execution>
-            <id>download-dnn-prototxt</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>deploy.prototxt</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-dnn-caffemodel</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://raw.githubusercontent.com/opencv/opencv_3rdparty/master/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000_fp16.caffemodel
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>res10_300x300_ssd_iter_140000_fp16.caffemodel</outputFileName>
-              <overwrite>true</overwrite>
-              <unpack>false</unpack>
-            </configuration>
-          </execution>
-
-          <!-- Haar/LBP cascades (small, ensure classpath availability) -->
-          <execution>
-            <id>download-haar-frontal</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>haarcascade_frontalface_default.xml</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-haar-profile</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>
-                https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>haarcascade_profileface.xml</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-haar-eye</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_eye.xml</url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>haarcascade_eye.xml</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-lbp-frontal</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>https://raw.githubusercontent.com/opencv/opencv/master/data/lbpcascades/lbpcascade_frontalface.xml
-              </url>
-              <outputDirectory>${project.build.directory}/generated-resources/models</outputDirectory>
-              <outputFileName>lbpcascade_frontalface.xml</outputFileName>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 

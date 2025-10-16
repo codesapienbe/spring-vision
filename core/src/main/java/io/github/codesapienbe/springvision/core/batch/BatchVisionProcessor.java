@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.batch;
 
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -399,7 +399,7 @@ public class BatchVisionProcessor {
      */
     private List<VisionResult> processBatchSynchronously(List<ImageData> images, DetectionType detectionType, Map<String, Object> parameters) {
         // Use the actual OpenCV vision backend
-        OpenCvVisionBackend backend = new OpenCvVisionBackend();
+        DjlVisionBackend backend = new DjlVisionBackend();
 
         try {
             // Initialize the backend

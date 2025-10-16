@@ -1,4 +1,4 @@
-# DJL-based configuration (CPU - default)
+# DJL configuration optimized for GPU acceleration
 spring:
   vision:
     djl:
@@ -11,3 +11,8 @@ spring:
       enabled: false
     facebytes:
       enabled: false
+
+# Activate GPU profile
+spring:
+  profiles:
+    active: gpu

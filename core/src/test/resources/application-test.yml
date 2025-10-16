@@ -1,66 +1,46 @@
-# Test configuration for FaceBytes module
+# Test configuration for DJL-based Spring Vision
 # This file configures the test environment for integration tests
+
+spring:
+  vision:
+    # Use DJL for testing with mock/lightweight models
+    djl:
+      enabled: true
+      engine: PyTorch
+      confidence-threshold: 0.1  # Lower threshold for tests
+      # Use lightweight models for testing
+      face-detection-model: "mock://test-face-detection"
+      object-detection-model: "mock://test-object-detection"
 
 logging:
   level:
-    com.deepface: DEBUG
+    ai.djl: DEBUG
+    io.github.codesapienbe.springvision: DEBUG
+    com.deepface: WARN
     org.opencv: WARN
-    ai.djl: WARN
     com.microsoft.onnxruntime: WARN
 
 # Test-specific configurations
 test:
   # Enable synthetic test image generation
   synthetic-images: true
-  
+
   # Test image dimensions
   image:
     width: 200
     height: 200
-  
+
   # Face detection test settings
   face-detection:
     min-confidence: 0.1
     max-faces: 10
-  
+
   # Embedding test settings
   embedding:
     mock-mode: true  # Use mock embeddings for testing
     dimension: 512
-  
+
   # Performance test settings
   performance:
     timeout-ms: 30000  # 30 seconds timeout for tests
     max-memory-mb: 512  # Limit memory usage during tests
-
-# Disable real model loading during tests
-models:
-  vgg-face:
-    enabled: false
-    mock-mode: true
-  
-  arcface:
-    enabled: false
-    mock-mode: true
-  
-  facenet:
-    enabled: false
-    mock-mode: true
-
-# Face detection backend configuration for tests
-detection:
-  opencv:
-    enabled: true
-    cascade-file: "haarcascade_frontalface_default.xml"
-  
-  mtcnn:
-    enabled: false  # Disable during tests for speed
-  
-  retinaface:
-    enabled: false  # Disable during tests for speed
-
-# Distance metric thresholds for testing
-thresholds:
-  cosine: 0.68
-  euclidean: 0.60
-  euclidean-l2: 1.13 

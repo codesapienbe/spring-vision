@@ -16,7 +16,7 @@ import org.springframework.core.env.Environment;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -192,30 +192,25 @@ public class VisionAutoConfiguration {
 
     /**
      * Create a vision backend by name, using reflection for optional modules to avoid hard dependencies.
-     * Falls back to OpenCV when the requested backend isn't on classpath.
+     * Falls back to DJL when the requested backend isn't on classpath.
      */
     private VisionBackend createBackendByName(String backendName, VisionProperties properties) {
         return switch (backendName) {
-            case "opencv" -> {
-                logger.info("Initializing OpenCV backend (default)");
-                yield createOpenCvBackend(properties);
+            case "djl" -> {
+                logger.info("Initializing DJL backend (default)");
+                yield createDjlBackend(properties);
             }
-            case "mediapipe" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.mediapipe.MediaPipeBackend", properties);
-            case "yolo" -> reflectInstantiate("io.github.codesapienbe.springvision.yolo.YoloBackend", properties);
-            case "deepface" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.deepface.DeepFaceBackend", properties);
-            case "insightface" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.insightface.InsightFaceBackend", properties);
-            case "compreface" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.compreface.CompreFaceBackend", properties);
-            case "tesseract" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.tesseract.TesseractVisionBackend", properties);
+            case "opencv" -> {
+                logger.info("OpenCV backend has been replaced by DJL. Using DJL backend instead.");
+                yield createDjlBackend(properties);
+            }
             case "cyber" ->
                 reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", properties);
+            case "robotics" ->
+                reflectInstantiate("io.github.codesapienbe.springvision.robotics.RoboticsBackend", properties);
             default -> {
-                logger.warn("Backend '{}' not supported or not on classpath. Falling back to OpenCV.", backendName);
-                yield createOpenCvBackend(properties);
+                logger.warn("Backend '{}' not supported or not on classpath. Falling back to DJL.", backendName);
+                yield createDjlBackend(properties);
             }
         };
     }
@@ -231,8 +226,8 @@ public class VisionAutoConfiguration {
 
             return (VisionBackend) instance;
         } catch (Throwable t) {
-            logger.warn("Could not initialize backend '{}': {}. Falling back to OpenCV.", className, t.toString());
-            return createOpenCvBackend(properties);
+            logger.warn("Could not initialize backend '{}': {}. Falling back to DJL.", className, t.toString());
+            return createDjlBackend(properties);
         }
     }
 
@@ -260,61 +255,31 @@ public class VisionAutoConfiguration {
      */
     private String resolvePropertiesPrefix(Object backend) {
         String pkg = backend.getClass().getPackageName();
-        if (pkg.contains("mediapipe")) return "spring.vision.mediapipe";
-        if (pkg.contains("yolo")) return "spring.vision.yolo";
-        if (pkg.contains("deepface")) return "spring.vision.deepface";
-        if (pkg.contains("insightface")) return "spring.vision.insightface";
-        if (pkg.contains("compreface")) return "spring.vision.compreface";
-        if (pkg.contains("tesseract")) return "spring.vision.tesseract";
         if (pkg.contains("cyber")) return "spring.vision.cyber";
-        if (pkg.contains("opencv")) return "spring.vision.opencv";
+        if (pkg.contains("robotics")) return "spring.vision.robotics";
+        if (pkg.contains("djl")) return "spring.vision.djl";
         return null;
     }
 
     /**
-     * Creates an OpenCV vision backend with the specified configuration.
+     * Creates a DJL vision backend with the specified configuration.
      *
      * @param properties the vision configuration properties
-     * @return the configured OpenCV backend
-     * @throws IllegalStateException if OpenCV backend cannot be initialized
+     * @return the configured DJL backend
+     * @throws IllegalStateException if DJL backend cannot be initialized
      */
-    private VisionBackend createOpenCvBackend(VisionProperties properties) {
-        logger.info("Creating OpenCV vision backend");
+    private VisionBackend createDjlBackend(VisionProperties properties) {
+        logger.info("Creating DJL vision backend (default)");
 
         try {
-            OpenCvVisionBackend backend = new OpenCvVisionBackend();
+            DjlVisionBackend backend = new DjlVisionBackend();
             backend.initialize();
-            logger.info("OpenCV backend initialized successfully");
+            logger.info("DJL backend initialized successfully");
             return backend;
-        } catch (UnsatisfiedLinkError e) {
-            String errorMessage = String.format(
-                "OpenCV native libraries not found. Please ensure OpenCV is properly installed. " +
-                    "You can disable vision auto-configuration with 'vision.enabled=false' or " +
-                    "choose a different backend with 'spring.vision.backend=mediapipe'. Error: %s",
-                e.getMessage()
-            );
-            logger.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        } catch (NoClassDefFoundError e) {
-            String errorMessage = String.format(
-                "OpenCV Java bindings not found on classpath. Please add opencv-platform dependency. " +
-                    "You can disable vision auto-configuration with 'vision.enabled=false'. Error: %s",
-                e.getMessage()
-            );
-            logger.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        } catch (ExceptionInInitializerError e) {
-            String errorMessage = String.format(
-                "OpenCV initialization failed during static initialization. " +
-                    "This usually indicates a native library compatibility issue. Error: %s",
-                e.getMessage()
-            );
-            logger.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
         } catch (Exception e) {
             String errorMessage = String.format(
-                "Unexpected error during OpenCV backend initialization. " +
-                    "Please check your OpenCV installation and configuration. Error: %s",
+                "DJL backend initialization failed. " +
+                    "Please check your DJL configuration. Error: %s",
                 e.getMessage()
             );
             logger.error(errorMessage, e);
