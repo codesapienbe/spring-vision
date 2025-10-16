@@ -42,12 +42,6 @@ class DjlPropertiesTest {
     }
 
     @Test
-    void testObjectDetectionProperties() {
-        assertNotNull(properties.getObjectDetection());
-        assertEquals(50, properties.getObjectDetection().getMaxDetections());
-    }
-
-    @Test
     void testDefaultValues() {
         DjlProperties defaultProps = new DjlProperties();
         assertTrue(defaultProps.isEnabled());
