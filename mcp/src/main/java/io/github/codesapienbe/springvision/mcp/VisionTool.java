@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -221,6 +222,157 @@ public class VisionTool {
             // Log full error for debugging
             log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
 
+            return response;
+        }
+    }
+
+    @Tool(description = "Extract text from an image using OCR. Returns detected text with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractText(String imageUrl) {
+        log.info("extractText called",
+            StructuredArguments.keyValue("event", "extract_text_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("text", "");
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports OCR
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.OcrCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support OCR");
+                response.put("text", "");
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.OcrCapability ocrBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.OcrCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> textDetections =
+                ocrBackend.extractText(imgData);
+
+            List<Map<String, Object>> detections = new ArrayList<>();
+            StringBuilder fullText = new StringBuilder();
+
+            for (io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection detection : textDetections) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("text", detection.text());
+                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                item.put("boundingBox", detection.boundingBox());
+                detections.add(item);
+                fullText.append(detection.text()).append(" ");
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("text", fullText.toString().trim());
+            response.put("detections", detections);
+            response.put("count", detections.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to extract text: " + errorMsg);
+            response.put("text", "");
+            response.put("processingTimeMs", duration);
+            log.error("Failed to extract text from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Classify an image into categories. Returns top predictions with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> classifyImage(String imageUrl, Integer topK) {
+        if (topK == null) topK = 5;
+
+        log.info("classifyImage called",
+            StructuredArguments.keyValue("event", "classify_image_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
+            StructuredArguments.keyValue("topK", topK));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("classifications", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports image classification
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support image classification");
+                response.put("classifications", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
+                classificationBackend.classifyImage(imgData, topK);
+
+            List<Map<String, Object>> classifications = new ArrayList<>();
+            for (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.Classification classification : result.classifications()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("label", classification.label());
+                item.put("confidence", Math.round(classification.confidence() * 10000.0) / 10000.0);
+                classifications.add(item);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("classifications", classifications);
+            response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
+            response.put("count", classifications.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to classify image: " + errorMsg);
+            response.put("classifications", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to classify image from URL: {}", sanitizeUrlForLogging(imageUrl), e);
             return response;
         }
     }

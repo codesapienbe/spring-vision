@@ -56,7 +56,9 @@ public class DjlVisionBackend implements VisionBackend,
     PoseEstimationCapability,
     ActionRecognitionCapability,
     SegmentationCapability,
-    EmbeddingCapability {
+    EmbeddingCapability,
+    OcrCapability,
+    ImageClassificationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -908,6 +910,176 @@ public class DjlVisionBackend implements VisionBackend,
             throw new VisionBackendException(
                 "Embedding extraction failed",
                 "extraction_failed",
+                null,
+                e
+            );
+        }
+    }
+
+    // ==========================
+    // OCR Implementation
+    // ==========================
+
+    @Override
+    public List<OcrCapability.TextDetection> extractText(ImageData imageData) throws BaseVisionException {
+        if (!initialized) {
+            throw new VisionBackendException(
+                "Backend not initialized",
+                "not_initialized",
+                null
+            );
+        }
+
+        String correlationId = generateCorrelationId();
+
+        try {
+            logger.debug("DJL OCR requested: correlationId={}", correlationId);
+
+            Image djlImage = ImageFactory.getInstance()
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
+
+            // Load OCR model on demand
+            Criteria<Image, String> criteria = Criteria.builder()
+                .optApplication(Application.CV.WORD_RECOGNITION)
+                .setTypes(Image.class, String.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .build();
+
+            try (ZooModel<Image, String> ocrModel = criteria.loadModel();
+                 Predictor<Image, String> predictor = ocrModel.newPredictor()) {
+
+                String extractedText = predictor.predict(djlImage);
+
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("model", ocrModel.getName());
+                attributes.put("correlationId", correlationId);
+
+                Map<String, Object> bbox = new HashMap<>();
+                bbox.put("x", 0);
+                bbox.put("y", 0);
+                bbox.put("width", djlImage.getWidth());
+                bbox.put("height", djlImage.getHeight());
+
+                OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
+                    extractedText,
+                    1.0, // High confidence for full image OCR
+                    bbox,
+                    attributes
+                );
+
+                logger.info("DJL OCR completed: {} characters extracted, correlationId={}",
+                    extractedText.length(), correlationId);
+
+                return List.of(textDetection);
+            }
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Failed to load image for OCR",
+                "image_load_failed",
+                "OCR",
+                e
+            );
+        } catch (TranslateException e) {
+            throw new VisionProcessingException(
+                "Failed to perform OCR",
+                "inference_failed",
+                "OCR",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "OCR failed",
+                "ocr_failed",
+                null,
+                e
+            );
+        }
+    }
+
+    // ==========================
+    // Image Classification Implementation
+    // ==========================
+
+    @Override
+    public ImageClassificationCapability.ClassificationResult classifyImage(ImageData imageData, int topK) throws BaseVisionException {
+        if (!initialized) {
+            throw new VisionBackendException(
+                "Backend not initialized",
+                "not_initialized",
+                null
+            );
+        }
+
+        String correlationId = generateCorrelationId();
+
+        try {
+            logger.debug("DJL image classification requested: topK={}, correlationId={}", topK, correlationId);
+
+            Image djlImage = ImageFactory.getInstance()
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
+
+            // Load image classification model on demand
+            Criteria<Image, ai.djl.modality.Classifications> criteria = Criteria.builder()
+                .optApplication(Application.CV.IMAGE_CLASSIFICATION)
+                .setTypes(Image.class, ai.djl.modality.Classifications.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .build();
+
+            try (ZooModel<Image, ai.djl.modality.Classifications> classificationModel = criteria.loadModel();
+                 Predictor<Image, ai.djl.modality.Classifications> predictor = classificationModel.newPredictor()) {
+
+                ai.djl.modality.Classifications classifications = predictor.predict(djlImage);
+
+                List<ImageClassificationCapability.Classification> results = new ArrayList<>();
+                List<ai.djl.modality.Classifications.Classification> topKItems = classifications.topK(topK);
+
+                for (ai.djl.modality.Classifications.Classification item : topKItems) {
+                    Map<String, Object> attributes = new HashMap<>();
+                    attributes.put("backend", BACKEND_ID);
+                    attributes.put("model", classificationModel.getName());
+
+                    ImageClassificationCapability.Classification classification =
+                        new ImageClassificationCapability.Classification(
+                            item.getClassName(),
+                            item.getProbability(),
+                            attributes
+                        );
+                    results.add(classification);
+                }
+
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("correlationId", correlationId);
+                metadata.put("topK", topK);
+                metadata.put("totalClasses", classifications.getClassNames().size());
+
+                logger.info("DJL image classification completed: {} classifications, correlationId={}",
+                    results.size(), correlationId);
+
+                return new ImageClassificationCapability.ClassificationResult(results, metadata);
+            }
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Failed to load image for classification",
+                "image_load_failed",
+                "CLASSIFICATION",
+                e
+            );
+        } catch (TranslateException e) {
+            throw new VisionProcessingException(
+                "Failed to classify image",
+                "inference_failed",
+                "CLASSIFICATION",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Image classification failed",
+                "classification_failed",
                 null,
                 e
             );
