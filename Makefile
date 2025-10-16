@@ -10,6 +10,9 @@ build:
 	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false;
 	mvn clean install -DskipTests;
+	@echo "Tagging local image so run/deploy targets reference the same name";
+	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION) || true;
+	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest || true;
 
 verify:
 	@echo "Testing project: Maven test";
@@ -24,8 +27,6 @@ clean:
 
 deploy:
 	@echo "Pushing Docker image spring-vision:$(SPRING_VISION_VERSION) to registry...";
-	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest;
-	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION);
 	docker push docker.io/codesapienbe/spring-vision:latest;
 	docker push docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
 
