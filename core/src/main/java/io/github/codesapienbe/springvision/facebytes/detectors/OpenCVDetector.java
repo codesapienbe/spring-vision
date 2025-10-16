@@ -52,16 +52,28 @@ public final class OpenCVDetector implements FaceDetector {
      * @throws IllegalStateException if the Haar cascade classifier cannot be loaded
      */
     public OpenCVDetector() {
+        CascadeClassifier tempClassifier = null;
         try {
-            Loader.load(org.bytedeco.opencv.opencv_objdetect.CascadeClassifier.class);
+            // Try to load JavaCV native libraries
+            try {
+                Loader.load(org.bytedeco.opencv.opencv_objdetect.CascadeClassifier.class);
+            } catch (UnsatisfiedLinkError e) {
+                log.error("Failed to load JavaCV native libraries. This usually means the native OpenCV libraries are not installed or not in the library path: {}", e.getMessage());
+                throw new IllegalStateException("JavaCV native libraries not available: " + e.getMessage() +
+                    ". Please ensure OpenCV native libraries are installed in the system.", e);
+            }
+
             String cascadePath = ensureCascadeAvailable();
-            this.classifier = new CascadeClassifier(cascadePath);
-            if (this.classifier.empty()) {
+            tempClassifier = new CascadeClassifier(cascadePath);
+            if (tempClassifier.empty()) {
                 throw new IllegalStateException("Failed to load Haar cascade from: " + cascadePath);
             }
+            log.info("OpenCV detector initialized successfully with cascade: {}", cascadePath);
         } catch (Exception e) {
+            log.error("Failed to initialize OpenCV detector: {}", e.getMessage(), e);
             throw new IllegalStateException("Failed to initialize OpenCV detector: " + e.getMessage(), e);
         }
+        this.classifier = tempClassifier;
     }
 
     /**

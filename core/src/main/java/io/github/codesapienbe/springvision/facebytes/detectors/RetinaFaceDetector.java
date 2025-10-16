@@ -97,7 +97,14 @@ public final class RetinaFaceDetector implements FaceDetector {
         if (image == null) return List.of();
         if (session == null) {
             // Fallback to OpenCV when ONNX is missing
-            return fallbackOpenCv().detectFaces(image);
+            try {
+                return fallbackOpenCv().detectFaces(image);
+            } catch (Throwable t) {
+                Logs.error("RetinaFaceDetector", "opencv.fallback_failed", t, Map.of(
+                    "error", t.getMessage() != null ? t.getMessage() : t.getClass().getName()
+                ));
+                return List.of();
+            }
         }
         DeepFaceConfig cfg = DeepFaceConfig.current();
         int size = cfg.retinaFaceInputSize();
