@@ -23,7 +23,6 @@ import java.util.Optional;
  *
  * <p>This configuration intelligently selects the best available backend:
  * <ul>
- *   <li>FaceBytes backend - Preferred for face embeddings and recognition</li>
  *   <li>InsightFace backend - Best for face embeddings and recognition</li>
  *   <li>DeepFace backend - Alternative face recognition</li>
  *   <li>CompreFace backend - Service-based face recognition</li>
@@ -50,70 +49,70 @@ public class VisionTemplateConfiguration {
 
     /**
      * Creates a {@link VisionTemplate} bean if one is not already present.
-     * 
+     *
      * <p>This method intelligently selects the best available backend based on capabilities:
      * <ol>
-     *   <li>Prefers embedding-capable backends (FaceBytes, InsightFace, etc.) for full MCP tool support</li>
+     *   <li>Prefers embedding-capable backends (InsightFace, CompreFace, etc.) for full MCP tool support</li>
      *   <li>Falls back to OpenCV for basic face detection if no embedding backend is available</li>
      * </ol>
      *
-     * @param vectorService optional vector service for similarity operations
+     * @param vectorService     optional vector service for similarity operations
      * @param availableBackends all registered VisionBackend beans
      * @return The configured VisionTemplate with the best available backend
      */
     @Bean
     @ConditionalOnMissingBean
     public VisionTemplate visionTemplate(
-            VectorService vectorService,
-            @Autowired(required = false) List<VisionBackend> availableBackends) {
-        
+        VectorService vectorService,
+        @Autowired(required = false) List<VisionBackend> availableBackends) {
+
         logger.info("Initializing VisionTemplate - scanning for available backends...");
-        
+
         // Try to find an embedding-capable backend first (preferred for MCP tools)
         VisionBackend selectedBackend = null;
-        
+
         if (availableBackends != null && !availableBackends.isEmpty()) {
             logger.info("Found {} registered backend(s)", availableBackends.size());
-            
+
             // Log all available backends
             for (VisionBackend backend : availableBackends) {
                 boolean supportsEmbeddings = backend instanceof EmbeddingCapability;
-                logger.info("  - {}: {} (embeddings: {})", 
-                    backend.getBackendId(), 
+                logger.info("  - {}: {} (embeddings: {})",
+                    backend.getBackendId(),
                     backend.getDisplayName(),
                     supportsEmbeddings);
             }
-            
+
             // Prefer embedding-capable backends for MCP tools
             Optional<VisionBackend> embeddingBackend = availableBackends.stream()
                 .filter(b -> b instanceof EmbeddingCapability)
                 .filter(VisionBackend::isHealthy)
                 .findFirst();
-            
+
             if (embeddingBackend.isPresent()) {
                 selectedBackend = embeddingBackend.get();
-                logger.info("Selected embedding-capable backend: {} (supports full MCP tool functionality)", 
+                logger.info("Selected embedding-capable backend: {} (supports full MCP tool functionality)",
                     selectedBackend.getBackendId());
             } else {
                 // Fall back to any healthy backend
                 Optional<VisionBackend> anyHealthyBackend = availableBackends.stream()
                     .filter(VisionBackend::isHealthy)
                     .findFirst();
-                
+
                 if (anyHealthyBackend.isPresent()) {
                     selectedBackend = anyHealthyBackend.get();
                     logger.warn("Selected backend '{}' does NOT support embeddings - " +
-                        "embedding extraction will fail. Consider enabling FaceBytes, InsightFace, or CompreFace.", 
+                            "embedding extraction will fail. Consider enabling InsightFace or CompreFace.",
                         selectedBackend.getBackendId());
                 }
             }
         }
-        
+
         // If no backend found or selected, create default OpenCV backend
         if (selectedBackend == null) {
             logger.warn("No healthy backends found - initializing default OpenCV backend");
-            logger.warn("OpenCV does NOT support embeddings. For full MCP tool support, enable FaceBytes backend.");
-            
+            logger.warn("OpenCV does NOT support embeddings. For full MCP tool support, enable an embedding-capable backend.");
+
             try {
                 OpenCvProperties properties = new OpenCvProperties();
                 OpenCvVisionBackend opencvBackend = new OpenCvVisionBackend(properties);
@@ -125,16 +124,16 @@ public class VisionTemplateConfiguration {
                 throw new RuntimeException("Failed to initialize VisionTemplate - no backends available", e);
             }
         }
-        
+
         // Create VisionTemplate with selected backend
         VisionTemplate template = new VisionTemplate(selectedBackend, vectorService);
-        
+
         logger.info("=== VisionTemplate Configuration Summary ===");
         logger.info("Backend: {} ({})", selectedBackend.getBackendId(), selectedBackend.getDisplayName());
         logger.info("Embeddings Support: {}", selectedBackend instanceof EmbeddingCapability ? "YES" : "NO");
         logger.info("Supported Detection Types: {}", selectedBackend.getSupportedDetectionTypes());
         logger.info("============================================");
-        
+
         return template;
     }
 }

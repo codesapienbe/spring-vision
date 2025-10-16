@@ -240,7 +240,7 @@ public class PhysicalAccessMonitor {
         // 3. Return match if similarity exceeds threshold
 
         // For skeleton implementation, we'll return null (no match)
-        // This can be integrated with FaceBytes or other face recognition backends
+        // This can be integrated with other face recognition backends
         return null;
     }
 

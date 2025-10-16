@@ -24,27 +24,23 @@ import java.util.Map;
 
 /**
  * Minimal MCP tool exposing only face counting and embedding extraction.
- * 
+ *
  * <p>This tool delegates to {@link VisionTemplate}, which can coordinate multiple
  * vision backends. For example:
  * <ul>
- *   <li>{@code OpenCvVisionBackend} - handles face detection</li>
- *   <li>{@code FaceBytesBackend} - handles face embedding extraction</li>
+ *   <li>{@code OpenCvVisionBackend} - handles face detection and other vision operations</li>
  * </ul>
- * 
- * <p>Enable multiple backends in {@code application.yml}:
+ *
+ * <p>Enable backend in {@code application.yml}:
  * <pre>
  * spring:
  *   vision:
  *     opencv:
  *       enabled: true
- *     facebytes:
- *       enabled: true
  * </pre>
- * 
- * <p>The {@code VisionTemplate} will automatically route operations to the appropriate
- * backend based on capabilities (e.g., face detection goes to OpenCV, embedding
- * extraction goes to FaceBytes).
+ *
+ * <p>The {@code VisionTemplate} will automatically route operations to the OpenCV backend
+ * which is the default backend for all vision capabilities.
  */
 @Component
 public class VisionTool {
@@ -64,28 +60,28 @@ public class VisionTool {
     @Autowired
     public VisionTool(VisionTemplate visionTemplate) {
         this(visionTemplate, HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build());
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build());
     }
 
     VisionTool(VisionTemplate visionTemplate, HttpClient httpClient) {
         this.visionTemplate = visionTemplate;
         this.httpClient = httpClient == null ? HttpClient.newBuilder()
-                .connectTimeout(REQUEST_TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build() : httpClient;
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build() : httpClient;
         log.info("VisionTool initialized",
-                StructuredArguments.keyValue("event", "vision_tool_init"),
-                StructuredArguments.keyValue("backend", visionTemplate.getBackendId()),
-                StructuredArguments.keyValue("max_image_size_bytes", MAX_IMAGE_SIZE_BYTES),
-                StructuredArguments.keyValue("request_timeout_seconds", REQUEST_TIMEOUT.getSeconds()));
+            StructuredArguments.keyValue("event", "vision_tool_init"),
+            StructuredArguments.keyValue("backend", visionTemplate.getBackendId()),
+            StructuredArguments.keyValue("max_image_size_bytes", MAX_IMAGE_SIZE_BYTES),
+            StructuredArguments.keyValue("request_timeout_seconds", REQUEST_TIMEOUT.getSeconds()));
     }
 
     protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
         log.debug("Attempting to download image",
-                StructuredArguments.keyValue("event", "image_download_start"),
-                StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+            StructuredArguments.keyValue("event", "image_download_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
 
         try {
             URI uri = URI.create(imageUrl);
@@ -95,10 +91,10 @@ public class VisionTool {
             }
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .timeout(REQUEST_TIMEOUT)
-                    .GET()
-                    .build();
+                .uri(uri)
+                .timeout(REQUEST_TIMEOUT)
+                .GET()
+                .build();
 
             HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() != 200) throw new IOException("HTTP error " + response.statusCode());
@@ -130,8 +126,8 @@ public class VisionTool {
     @SuppressWarnings("unused")
     public Map<String, Object> countFaces(String imageUrl) {
         log.info("countFaces called",
-                StructuredArguments.keyValue("event", "count_faces_start"),
-                StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+            StructuredArguments.keyValue("event", "count_faces_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
 
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
@@ -173,8 +169,8 @@ public class VisionTool {
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddings(String imageUrl) {
         log.info("extractEmbeddings called",
-                StructuredArguments.keyValue("event", "extract_embeddings_start"),
-                StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+            StructuredArguments.keyValue("event", "extract_embeddings_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
 
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
@@ -212,7 +208,7 @@ public class VisionTool {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            
+
             // Handle null exception messages by using the exception class name or cause chain
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.isBlank()) {
@@ -222,14 +218,14 @@ public class VisionTool {
                     errorMsg += ": " + cause.getMessage();
                 }
             }
-            
+
             response.put("message", "Failed to extract embeddings: " + errorMsg);
             response.put("embeddings", List.of());
             response.put("processingTimeMs", duration);
-            
+
             // Log full error for debugging
             log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            
+
             return response;
         }
     }

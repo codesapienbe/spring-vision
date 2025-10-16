@@ -211,8 +211,6 @@ public class VisionAutoConfiguration {
                 reflectInstantiate("io.github.codesapienbe.springvision.compreface.CompreFaceBackend", properties);
             case "tesseract" ->
                 reflectInstantiate("io.github.codesapienbe.springvision.tesseract.TesseractVisionBackend", properties);
-            case "facebytes" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.facebytes.FaceBytesBackend", properties);
             case "cyber" ->
                 reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", properties);
             default -> {
@@ -268,7 +266,6 @@ public class VisionAutoConfiguration {
         if (pkg.contains("insightface")) return "spring.vision.insightface";
         if (pkg.contains("compreface")) return "spring.vision.compreface";
         if (pkg.contains("tesseract")) return "spring.vision.tesseract";
-        if (pkg.contains("facebytes")) return "spring.vision.facebytes";
         if (pkg.contains("cyber")) return "spring.vision.cyber";
         if (pkg.contains("opencv")) return "spring.vision.opencv";
         return null;

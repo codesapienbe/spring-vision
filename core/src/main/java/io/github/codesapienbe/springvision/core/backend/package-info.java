@@ -25,7 +25,6 @@
  *   <li><code>spring-vision-compreface</code> - CompreFace backend for face recognition</li>
  *   <li><code>spring-vision-insightface</code> - InsightFace backend for high-accuracy face recognition</li>
  *   <li><code>spring-vision-yolo</code> - YOLO backend for object detection</li>
- *   <li><code>spring-vision-facebytes</code> - FaceBytes backend (Java rewrite of DeepFace)</li>
  * </ul>
  *
  * <h3>Testing</h3>
