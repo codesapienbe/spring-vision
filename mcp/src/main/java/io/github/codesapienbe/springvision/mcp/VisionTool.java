@@ -49,10 +49,6 @@ public class VisionTool {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private final HttpClient httpClient;
 
-    public VisionTool() {
-        this(new VisionTemplate());
-    }
-
     @Autowired
     public VisionTool(VisionTemplate visionTemplate) {
         this(visionTemplate, HttpClient.newBuilder()
@@ -694,6 +690,106 @@ public class VisionTool {
         }
     }
 
+    // New: support file uploads (raw bytes) for verification
+    @Tool(description = "Verify if two face images (uploaded as raw bytes) belong to the same person. Returns similarity score and match result.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> verifyFacesFromBytes(byte[] sourceImageBytes, byte[] targetImageBytes) {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (sourceImageBytes == null || sourceImageBytes.length == 0) {
+                response.put("status", "error");
+                response.put("message", "Source image bytes are required and cannot be empty");
+                response.put("isMatch", false);
+                return response;
+            }
+
+            if (targetImageBytes == null || targetImageBytes.length == 0) {
+                response.put("status", "error");
+                response.put("message", "Target image bytes are required and cannot be empty");
+                response.put("isMatch", false);
+                return response;
+            }
+
+            ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
+            ImageData targetData = ImageData.fromBytes(targetImageBytes);
+
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
+            List<float[]> targetEmbeddings = visionTemplate.extractEmbeddings(targetData);
+
+            if (sourceEmbeddings.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "No faces detected in source image");
+                response.put("isMatch", false);
+                return response;
+            }
+
+            if (targetEmbeddings.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "No faces detected in target image");
+                response.put("isMatch", false);
+                return response;
+            }
+
+            float[] sourceEmbedding = sourceEmbeddings.get(0);
+            float[] targetEmbedding = targetEmbeddings.get(0);
+
+            return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+            response.put("message", "Failed to verify faces from bytes: " + errorMsg);
+            response.put("isMatch", false);
+            response.put("processingTimeMs", duration);
+            log.error("Failed to verify faces from bytes", e);
+            return response;
+        }
+    }
+
+    // New helper: unify similarity evaluation and response creation
+    private Map<String, Object> evaluateSimilarityAndBuildResponse(float[] sourceEmbedding, float[] targetEmbedding, int sourceFacesCount, int targetFacesCount, long startTime) {
+        Map<String, Object> response = new HashMap<>();
+        // Use VectorService if available for consistent calculations, otherwise VectorUtils
+        Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, targetEmbedding);
+        double cosineSimilarity = ((Number) metrics.getOrDefault("cosineSimilarity", 0.0)).doubleValue();
+        double euclideanDistance = ((Number) metrics.getOrDefault("euclideanDistance", 0.0)).doubleValue();
+        double manhattanDistance = ((Number) metrics.getOrDefault("manhattanDistance", 0.0)).doubleValue();
+        double euclideanSimilarity = ((Number) metrics.getOrDefault("euclideanSimilarity", 0.0)).doubleValue();
+        double manhattanSimilarity = ((Number) metrics.getOrDefault("manhattanSimilarity", 0.0)).doubleValue();
+        double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
+
+        double matchThreshold = 0.6;
+        boolean isMatch = combinedSimilarity >= matchThreshold;
+
+        long duration = System.currentTimeMillis() - startTime;
+        response.put("status", "success");
+        response.put("isMatch", isMatch);
+        response.put("similarity", Math.round(combinedSimilarity * 10000.0) / 10000.0);
+        response.put("metrics", Map.of(
+            "cosineSimilarity", Math.round(cosineSimilarity * 10000.0) / 10000.0,
+            "euclideanSimilarity", Math.round(euclideanSimilarity * 10000.0) / 10000.0,
+            "manhattanSimilarity", Math.round(manhattanSimilarity * 10000.0) / 10000.0,
+            "euclideanDistance", Math.round(euclideanDistance * 10000.0) / 10000.0,
+            "manhattanDistance", Math.round(manhattanDistance * 10000.0) / 10000.0
+        ));
+        response.put("threshold", matchThreshold);
+        response.put("sourceFacesCount", sourceFacesCount);
+        response.put("targetFacesCount", targetFacesCount);
+        response.put("processingTimeMs", duration);
+        response.put("message", isMatch ? "Faces match" : "Faces do not match");
+        return response;
+    }
+
     @Tool(description = "Lookup matching faces in a dataset. Returns URLs of images containing matching faces sorted by similarity.")
     @SuppressWarnings("unused")
     public Map<String, Object> lookupFaces(String sourceImageUrl, java.util.Set<String> datasetImageUrls) {
@@ -749,17 +845,9 @@ public class VisionTool {
                     if (!datasetEmbeddings.isEmpty()) {
                         float[] datasetEmbedding = datasetEmbeddings.get(0);
 
-                        // Calculate multiple similarity metrics
-                        double cosineSimilarity = calculateCosineSimilarity(sourceEmbedding, datasetEmbedding);
-                        double euclideanDistance = calculateEuclideanDistance(sourceEmbedding, datasetEmbedding);
-                        double manhattanDistance = calculateManhattanDistance(sourceEmbedding, datasetEmbedding);
-
-                        // Normalize distances to similarity scores
-                        double euclideanSimilarity = 1.0 / (1.0 + euclideanDistance);
-                        double manhattanSimilarity = 1.0 / (1.0 + manhattanDistance / sourceEmbedding.length);
-
-                        // Combined weighted similarity score
-                        double combinedSimilarity = (cosineSimilarity * 0.5) + (euclideanSimilarity * 0.3) + (manhattanSimilarity * 0.2);
+                        // Calculate similarity metrics using shared utilities
+                        Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, datasetEmbedding);
+                        double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
 
                         // Only include matches above threshold
                         double matchThreshold = 0.5;
@@ -769,9 +857,9 @@ public class VisionTool {
                             match.put("similarity", Math.round(combinedSimilarity * 10000.0) / 10000.0);
                             match.put("facesDetected", datasetEmbeddings.size());
                             match.put("metrics", Map.of(
-                                "cosine", Math.round(cosineSimilarity * 10000.0) / 10000.0,
-                                "euclidean", Math.round(euclideanSimilarity * 10000.0) / 10000.0,
-                                "manhattan", Math.round(manhattanSimilarity * 10000.0) / 10000.0
+                                "cosine", Math.round(((Number) metrics.getOrDefault("cosineSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0,
+                                "euclidean", Math.round(((Number) metrics.getOrDefault("euclideanSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0,
+                                "manhattan", Math.round(((Number) metrics.getOrDefault("manhattanSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0
                             ));
                             matches.add(match);
                         }
@@ -822,69 +910,135 @@ public class VisionTool {
         }
     }
 
-    // Similarity calculation methods
+    // New: support file uploads (raw bytes) for lookup
+    @Tool(description = "Lookup matching faces in a dataset where images are provided as raw bytes (file uploads). Returns matches sorted by similarity.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> lookupFacesFromBytes(byte[] sourceImageBytes, java.util.Collection<byte[]> datasetImageBytes) {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
 
-    private double calculateCosineSimilarity(float[] embedding1, float[] embedding2) {
-        if (embedding1.length != embedding2.length) {
-            throw new IllegalArgumentException("Embeddings must have the same length");
+        try {
+            if (sourceImageBytes == null || sourceImageBytes.length == 0) {
+                response.put("status", "error");
+                response.put("message", "Source image bytes are required and cannot be empty");
+                response.put("matches", List.of());
+                return response;
+            }
+
+            if (datasetImageBytes == null || datasetImageBytes.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Dataset image bytes are required and cannot be empty");
+                response.put("matches", List.of());
+                return response;
+            }
+
+            ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
+
+            if (sourceEmbeddings.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "No faces detected in source image");
+                response.put("matches", List.of());
+                return response;
+            }
+
+            float[] sourceEmbedding = sourceEmbeddings.get(0);
+
+            List<Map<String, Object>> matches = new ArrayList<>();
+            int processedCount = 0;
+            int errorCount = 0;
+
+            for (byte[] datasetBytes : datasetImageBytes) {
+                try {
+                    ImageData datasetData = ImageData.fromBytes(datasetBytes);
+                    List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData);
+
+                    if (!datasetEmbeddings.isEmpty()) {
+                        float[] datasetEmbedding = datasetEmbeddings.get(0);
+
+                        Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, datasetEmbedding);
+                        double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
+
+                        double matchThreshold = 0.5;
+                        if (combinedSimilarity >= matchThreshold) {
+                            Map<String, Object> match = new HashMap<>();
+                            match.put("imageBytes", datasetBytes); // retain raw bytes if caller needs them
+                            match.put("similarity", Math.round(combinedSimilarity * 10000.0) / 10000.0);
+                            match.put("facesDetected", datasetEmbeddings.size());
+                            match.put("metrics", Map.of(
+                                "cosine", Math.round(((Number) metrics.getOrDefault("cosineSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0,
+                                "euclidean", Math.round(((Number) metrics.getOrDefault("euclideanSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0,
+                                "manhattan", Math.round(((Number) metrics.getOrDefault("manhattanSimilarity", 0.0)).doubleValue() * 10000.0) / 10000.0
+                            ));
+                            matches.add(match);
+                        }
+                    }
+                    processedCount++;
+                } catch (Exception e) {
+                    errorCount++;
+                    log.warn("Failed to process dataset image bytes", e);
+                }
+            }
+
+            // Sort matches by similarity (highest first)
+            matches.sort((a, b) -> Double.compare(
+                ((Number) b.get("similarity")).doubleValue(),
+                ((Number) a.get("similarity")).doubleValue()
+            ));
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("matches", matches);
+            response.put("matchCount", matches.size());
+            response.put("sourceFacesCount", sourceEmbeddings.size());
+            response.put("datasetSize", datasetImageBytes.size());
+            response.put("processedCount", processedCount);
+            response.put("errorCount", errorCount);
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Found %d matching faces in dataset", matches.size()));
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to lookup faces from bytes: " + errorMsg);
+            response.put("matches", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to lookup faces from bytes", e);
+            return response;
         }
-
-        double dotProduct = 0.0;
-        double norm1 = 0.0;
-        double norm2 = 0.0;
-
-        for (int i = 0; i < embedding1.length; i++) {
-            dotProduct += embedding1[i] * embedding2[i];
-            norm1 += embedding1[i] * embedding1[i];
-            norm2 += embedding2[i] * embedding2[i];
-        }
-
-        norm1 = Math.sqrt(norm1);
-        norm2 = Math.sqrt(norm2);
-
-        if (norm1 == 0.0 || norm2 == 0.0) {
-            return 0.0;
-        }
-
-        return dotProduct / (norm1 * norm2);
     }
 
-    private double calculateEuclideanDistance(float[] embedding1, float[] embedding2) {
-        if (embedding1.length != embedding2.length) {
-            throw new IllegalArgumentException("Embeddings must have the same length");
+    // Shared metric/serialization helpers delegating to VectorService when available,
+    // otherwise falling back to VectorUtils.
+    private Map<String, Object> computeSimilarityMetrics(float[] a, float[] b) {
+        try {
+            if (visionTemplate != null && visionTemplate.vectorService() != null) {
+                return visionTemplate.vectorService().computeSimilarityMetrics(a, b);
+            }
+        } catch (Exception ignored) {
         }
-
-        double sum = 0.0;
-        for (int i = 0; i < embedding1.length; i++) {
-            double diff = embedding1[i] - embedding2[i];
-            sum += diff * diff;
-        }
-
-        return Math.sqrt(sum);
+        return io.github.codesapienbe.springvision.core.VectorUtils.computeSimilarityMetrics(a, b);
     }
 
-    private double calculateManhattanDistance(float[] embedding1, float[] embedding2) {
-        if (embedding1.length != embedding2.length) {
-            throw new IllegalArgumentException("Embeddings must have the same length");
+    private byte[] serializeEmbedding(float[] arr) {
+        try {
+            if (visionTemplate != null && visionTemplate.vectorService() != null) {
+                return visionTemplate.vectorService().embeddingToBytes(arr);
+            }
+        } catch (Exception ignored) {
         }
-
-        double sum = 0.0;
-        for (int i = 0; i < embedding1.length; i++) {
-            sum += Math.abs(embedding1[i] - embedding2[i]);
-        }
-
-        return sum;
+        return io.github.codesapienbe.springvision.core.VectorUtils.embeddingToBytes(arr);
     }
 
-    private static byte[] floatArrayToBytes(float[] arr) {
-        byte[] out = new byte[arr.length * 4];
-        for (int i = 0; i < arr.length; i++) {
-            int bits = Float.floatToIntBits(arr[i]);
-            out[i * 4] = (byte) ((bits >> 24) & 0xFF);
-            out[i * 4 + 1] = (byte) ((bits >> 16) & 0xFF);
-            out[i * 4 + 2] = (byte) ((bits >> 8) & 0xFF);
-            out[i * 4 + 3] = (byte) (bits & 0xFF);
-        }
-        return out;
-    }
 }

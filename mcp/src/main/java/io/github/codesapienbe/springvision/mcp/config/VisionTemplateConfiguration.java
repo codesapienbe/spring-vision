@@ -8,7 +8,6 @@ import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,9 +33,6 @@ import java.util.Optional;
 public class VisionTemplateConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionTemplateConfiguration.class);
-
-    @Value("${spring.vision.backend:auto}")
-    private String backendType;
 
     /**
      * Default constructor for {@link VisionTemplateConfiguration}.
@@ -106,7 +102,7 @@ public class VisionTemplateConfiguration {
             }
         }
 
-        // If no backend found or selected, create default DJL backend
+        // If no backend found or selected, create the default DJL backend
         if (selectedBackend == null) {
             logger.warn("No healthy backends found - initializing default DJL backend");
             logger.info("DJL backend supports face detection and modern AI models");
@@ -122,7 +118,7 @@ public class VisionTemplateConfiguration {
             }
         }
 
-        // Create VisionTemplate with selected backend
+        // Create VisionTemplate with the selected backend
         VisionTemplate template = new VisionTemplate(selectedBackend, vectorService);
 
         logger.info("=== VisionTemplate Configuration Summary ===");

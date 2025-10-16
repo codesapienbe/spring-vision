@@ -1,5 +1,6 @@
 package io.github.codesapienbe.springvision.core;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,8 +15,8 @@ import java.util.Set;
  * solutions, and are expected to be provided in optional modules.
  *
  * @author Spring Vision Team
- * @since 1.0.0
  * @see VisionTemplate
+ * @since 1.0.0
  */
 public interface VectorService {
 
@@ -48,7 +49,7 @@ public interface VectorService {
      * @param includePersonIds An optional set of person IDs to restrict the search to.
      * @param excludePersonIds An optional set of person IDs to exclude from the search.
      * @return A list of maps, where each map represents a similar face and contains details
-     *         like "embeddingId", "personId", "similarity", "distance", "modelName", and "createdAt".
+     * like "embeddingId", "personId", "similarity", "distance", "modelName", and "createdAt".
      */
     List<Map<String, Object>> findSimilarFaces(float[] queryEmbedding,
                                                String modelName,
@@ -74,4 +75,43 @@ public interface VectorService {
      * Returns a list of maps containing at least keys: "embeddingId", "personId", "modelName", "createdAt".
      */
     List<Map<String, Object>> findEntriesByPersonId(String personId);
+
+    // New: utility methods for similarity and embedding serialization
+
+    /**
+     * Calculate cosine similarity between two embeddings. Default implementation delegates to VectorUtils.
+     */
+    default double cosineSimilarity(float[] a, float[] b) {
+        return VectorUtils.cosineSimilarity(a, b);
+    }
+
+    /**
+     * Calculate euclidean distance between two embeddings. Default implementation delegates to VectorUtils.
+     */
+    default double euclideanDistance(float[] a, float[] b) {
+        return VectorUtils.euclideanDistance(a, b);
+    }
+
+    /**
+     * Calculate manhattan distance between two embeddings. Default implementation delegates to VectorUtils.
+     */
+    default double manhattanDistance(float[] a, float[] b) {
+        return VectorUtils.manhattanDistance(a, b);
+    }
+
+    /**
+     * Convert float[] embedding to a byte[] representation (big-endian floats).
+     */
+    default byte[] embeddingToBytes(float[] arr) {
+        return VectorUtils.embeddingToBytes(arr);
+    }
+
+    /**
+     * Compute a set of similarity metrics and a combined score for two embeddings.
+     * Returns a map with keys: cosineSimilarity, euclideanDistance, manhattanDistance,
+     * euclideanSimilarity, manhattanSimilarity, combinedSimilarity
+     */
+    default Map<String, Object> computeSimilarityMetrics(float[] a, float[] b) {
+        return VectorUtils.computeSimilarityMetrics(a, b);
+    }
 }
