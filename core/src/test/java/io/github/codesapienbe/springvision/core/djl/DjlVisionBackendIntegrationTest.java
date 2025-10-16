@@ -50,7 +50,7 @@ class DjlVisionBackendIntegrationTest {
 
         BackendHealthInfo healthInfo = backend.getHealthInfo();
         assertNotNull(healthInfo);
-        assertEquals("djl", healthInfo.getBackendId());
+        assertEquals("djl", healthInfo.backendId());
     }
 
     @Test
