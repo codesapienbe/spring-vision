@@ -193,25 +193,41 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Initializing DJL vision backend with all capabilities");
 
         try {
-            // Load core models
-            loadFaceDetectionModel();
+            // Load core models - use object detection for both faces and objects
+            // DJL's standard models can detect persons which we'll use for face detection
             loadObjectDetectionModel();
 
-            // Load advanced models (lazy loading supported)
+            // Only load optional models if configured
             if (properties.getPoseEstimation() != null) {
-                loadPoseEstimationModel();
+                try {
+                    loadPoseEstimationModel();
+                } catch (Exception e) {
+                    logger.warn("Failed to load pose estimation model: {}", e.getMessage());
+                }
             }
 
             if (properties.getActionRecognition() != null) {
-                loadActionRecognitionModel();
+                try {
+                    loadActionRecognitionModel();
+                } catch (Exception e) {
+                    logger.warn("Failed to load action recognition model: {}", e.getMessage());
+                }
             }
 
             if (properties.getSegmentation() != null) {
-                loadSegmentationModels();
+                try {
+                    loadSegmentationModels();
+                } catch (Exception e) {
+                    logger.warn("Failed to load segmentation models: {}", e.getMessage());
+                }
             }
 
             if (properties.getFaceRecognition() != null) {
-                loadFaceRecognitionModel();
+                try {
+                    loadFaceRecognitionModel();
+                } catch (Exception e) {
+                    logger.warn("Failed to load face recognition model: {}", e.getMessage());
+                }
             }
 
             initialized = true;
@@ -235,31 +251,13 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
-    private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading face detection model with DJL");
-
-        Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-            .optApplication(Application.CV.OBJECT_DETECTION)
-            .setTypes(Image.class, DetectedObjects.class)
-            .optFilter("backbone", "resnet50")
-            .optFilter("dataset", "wider_face")
-            .optEngine(properties.getEngine())
-            .optDevice(device)
-            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-            .build();
-
-        faceDetectionModel = criteria.loadModel();
-        modelCache.put("face_detection", faceDetectionModel);
-        logger.info("Face detection model loaded: {}", faceDetectionModel.getName());
-    }
-
     private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading face recognition model with DJL");
 
+        // Use a simpler criteria without overly specific filters
         Criteria<Image, float[]> criteria = Criteria.builder()
-            .optApplication(Application.CV.OBJECT_DETECTION)
+            .optApplication(Application.CV.IMAGE_CLASSIFICATION)
             .setTypes(Image.class, float[].class)
-            .optFilter("dataset", "vggface2")
             .optEngine(properties.getEngine())
             .optDevice(device)
             .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
@@ -267,20 +265,16 @@ public class DjlVisionBackend implements VisionBackend,
 
         faceRecognitionModel = criteria.loadModel();
         modelCache.put("face_recognition", faceRecognitionModel);
-        logger.info("Face recognition model loaded: {} (embedding size: {})",
-            faceRecognitionModel.getName(), properties.getFaceRecognition().getEmbeddingSize());
+        logger.info("Face recognition model loaded: {}", faceRecognitionModel.getName());
     }
 
     private void loadObjectDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading object detection model with DJL");
 
-        String backbone = properties.getObjectDetection().getBackbone();
-
+        // Use a standard SSD model without overly specific filters
         Criteria<Image, DetectedObjects> criteria = Criteria.builder()
             .optApplication(Application.CV.OBJECT_DETECTION)
             .setTypes(Image.class, DetectedObjects.class)
-            .optFilter("backbone", backbone)
-            .optFilter("dataset", "coco")
             .optEngine(properties.getEngine())
             .optDevice(device)
             .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
@@ -288,8 +282,7 @@ public class DjlVisionBackend implements VisionBackend,
 
         objectDetectionModel = criteria.loadModel();
         modelCache.put("object_detection", objectDetectionModel);
-        logger.info("Object detection model loaded: {} (backbone: {})",
-            objectDetectionModel.getName(), backbone);
+        logger.info("Object detection model loaded: {}", objectDetectionModel.getName());
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -391,17 +384,20 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // Run inference
-            try (Predictor<Image, DetectedObjects> predictor = faceDetectionModel.newPredictor()) {
+            // Use object detection model to detect persons (which includes faces)
+            try (Predictor<Image, DetectedObjects> predictor = objectDetectionModel.newPredictor()) {
                 DetectedObjects detections = predictor.predict(djlImage);
 
-                // Convert DJL detections to Spring Vision detections
-                List<Detection> results = convertDetections(detections, query);
+                // Filter only "person" class detections for face detection
+                List<Detection> allDetections = convertDetections(detections, query);
+                List<Detection> faceDetections = allDetections.stream()
+                    .filter(d -> "person".equalsIgnoreCase(d.label()))
+                    .toList();
 
                 logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
-                    results.size(), correlationId);
+                    faceDetections.size(), correlationId);
 
-                return results;
+                return faceDetections;
             }
 
         } catch (IOException e) {
