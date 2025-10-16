@@ -629,10 +629,10 @@ public class VisionTool {
             }
 
             // Use the highest confidence face (first embedding)
-            float[] sourceEmbedding = sourceEmbeddings.get(0);
-            float[] targetEmbedding = targetEmbeddings.get(0);
+            float[] sourceEmbedding = sourceEmbeddings.getFirst();
+            float[] targetEmbedding = targetEmbeddings.getFirst();
 
-            // Delegate evaluation to shared helper to keep logic consistent with other methods
+            // Delegate evaluation to a shared helper to keep logic consistent with other methods
             return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
 
         } catch (Exception e) {
