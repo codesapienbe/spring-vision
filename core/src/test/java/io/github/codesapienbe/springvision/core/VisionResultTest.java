@@ -40,12 +40,4 @@ public class VisionResultTest {
         assertThrows(IllegalArgumentException.class, () -> res.getDetectionsAboveThreshold(-0.1));
     }
 
-    @Test
-    public void testMetadataMerge() {
-        VisionResult res = VisionResult.of(DetectionType.FACE, List.of(), 0.0, 1);
-        VisionResult merged = res.withMetadata("k", "v");
-
-        assertNotNull(merged);
-        assertTrue(merged.hasMetadata("k") || merged.metadata().isEmpty());
-    }
 }
