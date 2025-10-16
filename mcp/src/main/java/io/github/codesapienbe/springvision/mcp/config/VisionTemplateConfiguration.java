@@ -1,27 +1,33 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
 import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.backend.OpenCvVisionBackend;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.config.OpenCvProperties;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+import java.util.Optional;
+
 /**
  * Configuration for MCP module to expose a VisionTemplate bean.
  *
- * <p>By default, uses OpenCV backend for local development/testing.
- * For production use with face embeddings, consider configuring one of:
+ * <p>This configuration intelligently selects the best available backend:
  * <ul>
+ *   <li>FaceBytes backend - Preferred for face embeddings and recognition</li>
  *   <li>InsightFace backend - Best for face embeddings and recognition</li>
  *   <li>DeepFace backend - Alternative face recognition</li>
  *   <li>CompreFace backend - Service-based face recognition</li>
- *   <li>FaceBytes backend - Specialized face embeddings</li>
+ *   <li>OpenCV backend - Fallback for face detection only</li>
  * </ul>
  *
  * <p>To use a specific backend, define your own VisionTemplate bean
@@ -32,7 +38,7 @@ public class VisionTemplateConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionTemplateConfiguration.class);
 
-    @Value("${spring.vision.backend:opencv}")
+    @Value("${spring.vision.backend:auto}")
     private String backendType;
 
     /**
@@ -44,33 +50,91 @@ public class VisionTemplateConfiguration {
 
     /**
      * Creates a {@link VisionTemplate} bean if one is not already present.
+     * 
+     * <p>This method intelligently selects the best available backend based on capabilities:
+     * <ol>
+     *   <li>Prefers embedding-capable backends (FaceBytes, InsightFace, etc.) for full MCP tool support</li>
+     *   <li>Falls back to OpenCV for basic face detection if no embedding backend is available</li>
+     * </ol>
      *
-     * @return The configured VisionTemplate.
+     * @param vectorService optional vector service for similarity operations
+     * @param availableBackends all registered VisionBackend beans
+     * @return The configured VisionTemplate with the best available backend
      */
     @Bean
     @ConditionalOnMissingBean
-    public VisionTemplate visionTemplate(VectorService vectorService) {
-        logger.info("Initializing VisionTemplate with backend: {}", backendType);
-
-        try {
-            // Create an OpenCV backend with default properties
-            OpenCvProperties properties = new OpenCvProperties();
-            OpenCvVisionBackend backend = new OpenCvVisionBackend(properties);
-
-            // IMPORTANT: Initialize the backend so it's in a healthy state
-            backend.initialize();
-
-            // Create VisionTemplate with initialized backend and provided VectorService
-            VisionTemplate template = new VisionTemplate(backend, vectorService);
-
-            logger.info("VisionTemplate initialized successfully with OpenCV backend");
-            logger.warn("Using default OpenCV backend. For production face embeddings, " +
-                "consider using InsightFace, DeepFace, or FaceBytes backends for better quality.");
-
-            return template;
-        } catch (BaseVisionException e) {
-            logger.error("Failed to initialize OpenCV backend", e);
-            throw new RuntimeException("Failed to initialize VisionTemplate", e);
+    public VisionTemplate visionTemplate(
+            VectorService vectorService,
+            @Autowired(required = false) List<VisionBackend> availableBackends) {
+        
+        logger.info("Initializing VisionTemplate - scanning for available backends...");
+        
+        // Try to find an embedding-capable backend first (preferred for MCP tools)
+        VisionBackend selectedBackend = null;
+        
+        if (availableBackends != null && !availableBackends.isEmpty()) {
+            logger.info("Found {} registered backend(s)", availableBackends.size());
+            
+            // Log all available backends
+            for (VisionBackend backend : availableBackends) {
+                boolean supportsEmbeddings = backend instanceof EmbeddingCapability;
+                logger.info("  - {}: {} (embeddings: {})", 
+                    backend.getBackendId(), 
+                    backend.getDisplayName(),
+                    supportsEmbeddings);
+            }
+            
+            // Prefer embedding-capable backends for MCP tools
+            Optional<VisionBackend> embeddingBackend = availableBackends.stream()
+                .filter(b -> b instanceof EmbeddingCapability)
+                .filter(VisionBackend::isHealthy)
+                .findFirst();
+            
+            if (embeddingBackend.isPresent()) {
+                selectedBackend = embeddingBackend.get();
+                logger.info("Selected embedding-capable backend: {} (supports full MCP tool functionality)", 
+                    selectedBackend.getBackendId());
+            } else {
+                // Fall back to any healthy backend
+                Optional<VisionBackend> anyHealthyBackend = availableBackends.stream()
+                    .filter(VisionBackend::isHealthy)
+                    .findFirst();
+                
+                if (anyHealthyBackend.isPresent()) {
+                    selectedBackend = anyHealthyBackend.get();
+                    logger.warn("Selected backend '{}' does NOT support embeddings - " +
+                        "embedding extraction will fail. Consider enabling FaceBytes, InsightFace, or CompreFace.", 
+                        selectedBackend.getBackendId());
+                }
+            }
         }
+        
+        // If no backend found or selected, create default OpenCV backend
+        if (selectedBackend == null) {
+            logger.warn("No healthy backends found - initializing default OpenCV backend");
+            logger.warn("OpenCV does NOT support embeddings. For full MCP tool support, enable FaceBytes backend.");
+            
+            try {
+                OpenCvProperties properties = new OpenCvProperties();
+                OpenCvVisionBackend opencvBackend = new OpenCvVisionBackend(properties);
+                opencvBackend.initialize();
+                selectedBackend = opencvBackend;
+                logger.info("Default OpenCV backend initialized successfully");
+            } catch (BaseVisionException e) {
+                logger.error("Failed to initialize default OpenCV backend", e);
+                throw new RuntimeException("Failed to initialize VisionTemplate - no backends available", e);
+            }
+        }
+        
+        // Create VisionTemplate with selected backend
+        VisionTemplate template = new VisionTemplate(selectedBackend, vectorService);
+        
+        logger.info("=== VisionTemplate Configuration Summary ===");
+        logger.info("Backend: {} ({})", selectedBackend.getBackendId(), selectedBackend.getDisplayName());
+        logger.info("Embeddings Support: {}", selectedBackend instanceof EmbeddingCapability ? "YES" : "NO");
+        logger.info("Supported Detection Types: {}", selectedBackend.getSupportedDetectionTypes());
+        logger.info("============================================");
+        
+        return template;
     }
 }

@@ -21,6 +21,9 @@ spring:
     opencv:
       enabled: true
       confidence-threshold: 0.7
+    facebytes:
+      enabled: true
+      detector-backend: retinaface
 
   # MCP Server Configuration (Spring AI 1.0.0 - stdio transport)
   ai:
