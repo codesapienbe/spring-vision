@@ -9,10 +9,14 @@ SPRING_VISION_VERSION := $(shell cat VERSION)
 build:
 	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false;
-	mvn clean install -DskipTests;
+	mvn clean install -pl core,starter -DskipTests;
 	@echo "Tagging local image so run/deploy targets reference the same name";
-	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION) || true;
-	docker tag spring-vision:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision:latest || true;
+	docker tag spring-vision-base:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-base:$(SPRING_VISION_VERSION) || true;
+	docker tag spring-vision-base:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-base:latest || true;
+	@echo "Pushing Docker image spring-vision-base:$(SPRING_VISION_VERSION) to registry";
+	docker push docker.io/codesapienbe/spring-vision-base:$(SPRING_VISION_VERSION);
+	docker push docker.io/codesapienbe/spring-vision-base:latest;
+	mvn clean install -pl mcp -DskipTests;
 
 verify:
 	@echo "Testing project: Maven test";
@@ -20,15 +24,18 @@ verify:
 
 run:
 	@echo "Running MCP server on Docker..."
-	docker run -p "8081:8081" --name spring-vision-mcp --detach codesapienbe/spring-vision:$(SPRING_VISION_VERSION);
+	docker run -p "8081:8081" --name spring-vision-mcp --detach codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION);
 
 clean:
-	mvn clean -q && docker image rm spring-vision:$(SPRING_VISION_VERSION) spring-vision:latest || true
+	mvn clean -q && docker image rm spring-vision-mcp:$(SPRING_VISION_VERSION) spring-vision-mcp:latest || true
 
 deploy:
-	@echo "Pushing Docker image spring-vision:$(SPRING_VISION_VERSION) to registry...";
-	docker push docker.io/codesapienbe/spring-vision:latest;
-	docker push docker.io/codesapienbe/spring-vision:$(SPRING_VISION_VERSION)
+	@echo "Tagging local image so run/deploy targets reference the same name";
+	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION) || true;
+	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:latest || true;
+	@echo "Pushing Docker image spring-vision-mcp:$(SPRING_VISION_VERSION) to registry...";
+	docker push docker.io/codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION)
+	docker push docker.io/codesapienbe/spring-vision-mcp:latest
 
 release:
 	@echo "Releasing core,starter,mcp modules to Maven Central with version $(SPRING_VISION_VERSION)..."; \

@@ -17,7 +17,7 @@
 
   <properties>
     <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
-    <docker.image.name>spring-vision:${project.version}</docker.image.name>
+    <docker.image.name>spring-vision-mcp:${project.version}</docker.image.name>
     <spring-boot.version>3.1.3</spring-boot.version>
     <spring-ai.version>1.0.3</spring-ai.version>
     <!-- Allow skipping DJL prefetch in CI with -DskipDjlPrefetch=true -->

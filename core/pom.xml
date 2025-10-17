@@ -15,6 +15,10 @@
   <name>Spring Vision -> Core</name>
   <description>Core domain classes and interfaces for Spring Vision</description>
 
+  <properties>
+    <docker.image.name>spring-vision-base:${project.version}</docker.image.name>
+  </properties>
+
   <dependencies>
     <!-- Spring Boot Starter -->
     <dependency>
@@ -240,6 +244,7 @@
         <filtering>false</filtering>
       </resource>
     </resources>
+
     <plugins>
       <!-- Maven Compiler Plugin -->
       <plugin>
@@ -261,6 +266,41 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+      </plugin>
+
+      <!-- Build the module's Dockerfile (mcp/Dockerfile) with the fabric8 docker-maven-plugin -->
+      <plugin>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.40.1</version>
+        <configuration>
+          <images>
+            <image>
+              <name>${docker.image.name}</name>
+              <build>
+                <!-- Dockerfile is placed in the mcp module directory -->
+                <dockerFileDir>${project.basedir}</dockerFileDir>
+                <dockerFile>Dockerfile</dockerFile>
+                <tags>
+                  <tag>${project.version}</tag>
+                </tags>
+              </build>
+            </image>
+          </images>
+        </configuration>
+        <executions>
+          <execution>
+            <id>docker-build</id>
+            <phase>install</phase>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <!-- Allow skipping Docker build via -DskipDockerBuild=true -->
+              <skip>${skipDockerBuild}</skip>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
     </plugins>
