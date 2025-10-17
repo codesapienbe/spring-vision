@@ -87,25 +87,64 @@ public class VisionTool {
                 throw new IOException("Only HTTP and HTTPS protocols are allowed");
             }
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(uri)
-                .timeout(REQUEST_TIMEOUT)
-                .GET()
-                .build();
+            final int maxAttempts = 3;
+            long backoffMs = 500L; // initial backoff
 
-            HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            if (response.statusCode() != 200) throw new IOException("HTTP error " + response.statusCode());
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                log.debug("Download attempt {} for {}", attempt, sanitizeUrlForLogging(imageUrl));
 
-            try (InputStream inputStream = response.body()) {
-                byte[] imageBytes = inputStream.readNBytes(MAX_IMAGE_SIZE_BYTES + 1);
-                if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
-                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .timeout(REQUEST_TIMEOUT)
+                    // Provide a friendly User-Agent and accept header to improve compatibility with some hosts
+                    .header("User-Agent", "SpringVision/1.0 (+https://github.com/codesapienbe/spring-vision)")
+                    .header("Accept", "image/*, */*")
+                    .GET()
+                    .build();
+
+                try {
+                    HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                    int status = response.statusCode();
+
+                    // Successful
+                    if (status == 200) {
+                        try (InputStream inputStream = response.body()) {
+                            byte[] imageBytes = inputStream.readNBytes(MAX_IMAGE_SIZE_BYTES + 1);
+                            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                                throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                            }
+                            return imageBytes;
+                        }
+                    }
+
+                    // Retry on rate-limit or server errors
+                    if (status == 429 || (status >= 500 && status < 600)) {
+                        log.warn("Transient HTTP error while downloading image: {} - attempt {}/{}", sanitizeUrlForLogging(imageUrl), attempt, maxAttempts);
+                        if (attempt == maxAttempts) {
+                            throw new IOException("HTTP error " + status);
+                        }
+
+                        try {
+                            Thread.sleep(backoffMs + (long) (Math.random() * 200L));
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            throw new IOException("Download interrupted: " + ie.getMessage(), ie);
+                        }
+                        backoffMs *= 2L;
+                        continue;
+                    }
+
+                    // Non-retriable status
+                    throw new IOException("HTTP error " + status);
+
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Download interrupted: " + e.getMessage(), e);
                 }
-                return imageBytes;
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Download interrupted: " + e.getMessage(), e);
+
+            throw new IOException("Failed to download image after " + maxAttempts + " attempts");
+
         } catch (IllegalArgumentException e) {
             throw new IOException("Invalid URL format: " + e.getMessage(), e);
         } catch (Exception e) {
@@ -1055,6 +1094,120 @@ public class VisionTool {
             out[i * 4 + 3] = (byte) (bits & 0xFF);
         }
         return out;
+    }
+
+    @Tool(description = "Count faces from raw image bytes. Returns the number of faces detected.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {
+        log.info("countFacesFromBytes called",
+            StructuredArguments.keyValue("event", "count_faces_from_bytes_start"));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageBytes == null || imageBytes.length == 0) {
+                response.put("status", "error");
+                response.put("count", 0);
+                response.put("message", "Image bytes are required and cannot be empty");
+                return response;
+            }
+
+            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                response.put("status", "error");
+                response.put("count", 0);
+                response.put("message", "Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                return response;
+            }
+
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            VisionResult detections = visionTemplate.detectFaces(imgData);
+
+            int faceCount = detections.detections().size();
+            double avgConfidence = detections.averageConfidence();
+            long duration = System.currentTimeMillis() - startTime;
+
+            response.put("status", "success");
+            response.put("count", faceCount);
+            response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d faces", faceCount));
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("count", 0);
+            response.put("message", "Failed to count faces: " + e.getMessage());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to count faces from bytes", e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractEmbeddingsFromBytes(byte[] imageBytes) {
+        log.info("extractEmbeddingsFromBytes called",
+            StructuredArguments.keyValue("event", "extract_embeddings_from_bytes_start"));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageBytes == null || imageBytes.length == 0) {
+                response.put("status", "error");
+                response.put("message", "Image bytes are required and cannot be empty");
+                response.put("embeddings", List.of());
+                return response;
+            }
+
+            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                response.put("status", "error");
+                response.put("message", "Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                response.put("embeddings", List.of());
+                return response;
+            }
+
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData);
+            List<Map<String, Object>> out = new java.util.ArrayList<>();
+
+            int idx = 0;
+            for (float[] emb : rawEmbeddings) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", "face-" + idx);
+                item.put("embedding_base64", Base64.getEncoder().encodeToString(serializeEmbedding(emb)));
+                item.put("length", emb.length);
+                out.add(item);
+                idx++;
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("count", out.size());
+            response.put("embeddings", out);
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+
+            response.put("message", "Failed to extract embeddings: " + errorMsg);
+            response.put("embeddings", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to extract embeddings from bytes", e);
+            return response;
+        }
     }
 
 }
