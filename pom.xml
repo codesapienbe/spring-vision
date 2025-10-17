@@ -480,34 +480,5 @@
       </properties>
     </profile>
 
-    <!-- Legacy/backends profile: optionally activates legacy JavaCV/OpenCV/native artifacts
-         Activate with -Plegacy-backends when you need the old OpenCV/JavaCV native dependencies.
-    -->
-    <profile>
-      <id>legacy-backends</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <dependencyManagement>
-        <dependencies>
-          <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacv</artifactId>
-            <version>${javacv.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>opencv</artifactId>
-            <version>${opencv.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>openblas</artifactId>
-            <version>0.3.26-1.5.10</version>
-          </dependency>
-        </dependencies>
-      </dependencyManagement>
-    </profile>
-
   </profiles>
 </project>
