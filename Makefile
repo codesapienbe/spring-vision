@@ -1,12 +1,12 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build run clean deploy release docs default
+.PHONY: core run clean mcp release docs default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
 
-build:
+core:
 	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false;
 	mvn clean install -pl core,starter -DskipTests;
@@ -16,7 +16,6 @@ build:
 	@echo "Pushing Docker image spring-vision-base:$(SPRING_VISION_VERSION) to registry";
 	docker push docker.io/codesapienbe/spring-vision-base:$(SPRING_VISION_VERSION);
 	docker push docker.io/codesapienbe/spring-vision-base:latest;
-	mvn clean install -pl mcp -DskipTests;
 
 verify:
 	@echo "Testing project: Maven test";
@@ -29,7 +28,8 @@ run:
 clean:
 	mvn clean -q && docker image rm spring-vision-mcp:$(SPRING_VISION_VERSION) spring-vision-mcp:latest || true
 
-deploy:
+mcp:
+	mvn clean install -pl mcp -DskipTests;
 	@echo "Tagging local image so run/deploy targets reference the same name";
 	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION) || true;
 	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:latest || true;
