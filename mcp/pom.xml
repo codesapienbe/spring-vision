@@ -131,6 +131,14 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- MockWebServer for HTTP testing of downloadImageFromUrl -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
