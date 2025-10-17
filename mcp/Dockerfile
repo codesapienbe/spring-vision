@@ -1,65 +1,41 @@
-# Multi-stage Dockerfile: native-builder stage prepares native libs, final stage is minimal runtime
-# Build from project root: docker build -t spring-vision:latest -f mcp/Dockerfile .
+# 1. Start with the djl-serving base image
+FROM deepjavalibrary/djl-serving:0.35.0-cpu-full
 
-# --- Native builder stage ---
-FROM ubuntu:22.04 AS native-builder
+# 2. Switch to the root user to install software
+USER root
 
-# Install only what we need to fetch native libs and strip unnecessary files
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ca-certificates wget libglib2.0-0 && \
+# 3. Install JDK 21 using apt-get
+#    The `&& rm -rf /var/lib/apt/lists/*` cleans up the apt cache to keep the layer small.
+RUN apt-get update -y && \
+    apt-get install -y openjdk-21-jdk && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /native-libs
+# 4. Set the default Java version to JDK 21
+#    This command updates the system to point 'java' to your new installation.
+RUN update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1 && \
+    update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java
 
-# Download or install the specific native .so files we need (OpenCV libs). Using apt-get in this stage
-# keeps build-time tooling out of the final image. We install minimal packages and then copy only the
-# needed .so files into /native-libs for the runtime image.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libopencv-core4.5d libopencv-imgproc4.5d libopencv-imgcodecs4.5d libopencv-objdetect4.5d libopencv-dnn4.5d \
-    libopencv-highgui4.5d libopencv-videoio4.5d \
-    libglib2.0-0 && \
-    rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /native-libs/usr/lib && \
-    find /usr/lib/x86_64-linux-gnu -name 'libopencv*' -exec cp -L {} /native-libs/usr/lib/ \; && \
-    find /usr/lib/x86_64-linux-gnu -name 'libglib*' -exec cp -L {} /native-libs/usr/lib/ \; && \
-    ls -la /native-libs/usr/lib/
+# 5. Set the JAVA_HOME for the new JDK
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
-# Strip debug symbols to reduce size (if present)
-RUN apt-get update && apt-get install -y --no-install-recommends binutils && \
-    find /native-libs -type f -name '*.so*' -exec strip --strip-unneeded {} + 2>/dev/null || true && \
-    rm -rf /var/lib/apt/lists/*
+# Set DJL cache location inside the image. We'll copy the prefilled cache into this path.
+ENV AI_DJL_CACHE=/opt/djl-cache
+ENV JAVA_TOOL_OPTIONS="-Dai.djl.repository.cache.dir=${AI_DJL_CACHE}"
 
+# 6. Prepare application directory and copy artifacts as root
+RUN mkdir -p /app || true
+# Copy the repackaged Spring Boot jar from the module's target directory
+COPY target/mcp-*.jar /app/app.jar
 
-# --- Final runtime stage ---
-FROM eclipse-temurin:21-jre-jammy
+# Copy the prefilled DJL cache (populated during the package phase) into the image.
+# The build context is the mcp module directory, so target/djl-cache is available.
+COPY target/djl-cache ${AI_DJL_CACHE}
 
-# Create app directory
-WORKDIR /app
+# Ensure the non-root runtime user owns the application and cache directories
+RUN chown -R djl:djl /app ${AI_DJL_CACHE} || true
 
-# Copy only the built JAR into the final image
-COPY mcp/target/mcp-*.jar app.jar
+# 7. Switch back to the non-root user that djl-serving uses
+USER djl
 
-# Copy required native libraries from the native-builder stage
-COPY --from=native-builder /native-libs/usr/lib /usr/lib/x86_64-linux-gnu/
-
-# Install minimal runtime dependencies for OpenCV and JavaCV
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libgomp1 libglib2.0-0 libsm6 libxext6 libxrender1 libfontconfig1 \
-    libgtk2.0-0 libavcodec58 libavformat58 libswscale5 && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set environment variables for stdio transport
-# Note: JavaCV extracts its native libraries to a temp directory at runtime, so we don't need to specify java.library.path for JavaCV
-ENV JAVA_OPTS="--enable-native-access=ALL-UNNAMED -Xms512m -Xmx2g"
-ENV SPRING_PROFILES_ACTIVE=default
-
-# Create logs directory
-RUN mkdir -p logs
-
-# Run the application in stdio mode (no port exposure needed)
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
-
-
+# 8. Define the entrypoint to run your app
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

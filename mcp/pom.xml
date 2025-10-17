@@ -20,6 +20,10 @@
     <docker.image.name>spring-vision:${project.version}</docker.image.name>
     <spring-boot.version>3.1.3</spring-boot.version>
     <spring-ai.version>1.0.3</spring-ai.version>
+    <!-- Allow skipping DJL prefetch in CI with -DskipDjlPrefetch=true -->
+    <skipDjlPrefetch>false</skipDjlPrefetch>
+    <!-- Allow skipping Docker build with -DskipDockerBuild=true -->
+    <skipDockerBuild>false</skipDockerBuild>
   </properties>
 
   <pluginRepositories>
@@ -143,52 +147,66 @@
         </executions>
       </plugin>
 
-      <!-- Add Jib Maven Plugin (Google) so we can build container images without a Dockerfile -->
+      <!-- Build the module's Dockerfile (mcp/Dockerfile) with the fabric8 docker-maven-plugin -->
       <plugin>
-        <groupId>com.google.cloud.tools</groupId>
-        <artifactId>jib-maven-plugin</artifactId>
-        <version>${jib-maven-plugin.version}</version>
+        <groupId>io.fabric8</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.40.1</version>
         <configuration>
-          <!-- Base image must already contain OS-level runtime deps (OpenCV, libglib, etc.) if you need them.
-               If you rely on the project Dockerfile to assemble native .so files, continue using that Dockerfile.
-               Jib is ideal for fast, reproducible JVM images when a suitable base image is available. -->
-          <from>
-            <image>eclipse-temurin:21-jre-jammy</image>
-          </from>
-
-          <to>
-            <image>${docker.image.name}</image>
-          </to>
-
-          <!-- JVM flags and environment similar to the Dockerfile -->
-          <container>
-            <jvmFlags>
-              <jvmFlag>--enable-native-access=ALL-UNNAMED</jvmFlag>
-              <jvmFlag>-Xms512m</jvmFlag>
-              <jvmFlag>-Xmx2g</jvmFlag>
-            </jvmFlags>
-            <environment>
-              <SPRING_PROFILES_ACTIVE>default</SPRING_PROFILES_ACTIVE>
-            </environment>
-            <!-- For Spring Boot executable jars, Jib will detect and set an appropriate entrypoint (JarLauncher).
-                 You can override entrypoint if you prefer to run 'java -jar /app/app.jar'. -->
-            <appRoot>/app</appRoot>
-          </container>
-
-          <!-- Extra directory allows adding native libs or other files to the image if you place them under src/main/jib -->
-          <extraDirectories>
-            <paths>
-              <path>src/main/jib</path>
-            </paths>
-          </extraDirectories>
+          <images>
+            <image>
+              <name>${docker.image.name}</name>
+              <build>
+                <!-- Dockerfile is placed in the mcp module directory -->
+                <dockerFileDir>${project.basedir}</dockerFileDir>
+                <dockerFile>Dockerfile</dockerFile>
+                <tags>
+                  <tag>${project.version}</tag>
+                </tags>
+              </build>
+            </image>
+          </images>
         </configuration>
         <executions>
           <execution>
-            <id>docker-build-on-install</id>
+            <id>docker-build</id>
             <phase>install</phase>
             <goals>
-              <goal>dockerBuild</goal>
+              <goal>build</goal>
             </goals>
+            <configuration>
+              <!-- Allow skipping Docker build via -DskipDockerBuild=true -->
+              <skip>${skipDockerBuild}</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Exec plugin to run DJL prefetch to populate DJL cache during package phase -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>djl-prefetch</id>
+            <phase>package</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <skip>${skipDjlPrefetch}</skip>
+              <mainClass>io.github.codesapienbe.springvision.core.djl.DjlPrefetch</mainClass>
+              <arguments>
+                <argument>${project.build.directory}/djl-cache</argument>
+              </arguments>
+              <systemProperties>
+                <systemProperty>
+                  <key>ai.djl.repository.cache.dir</key>
+                  <value>${project.build.directory}/djl-cache</value>
+                </systemProperty>
+              </systemProperties>
+            </configuration>
           </execution>
         </executions>
       </plugin>
