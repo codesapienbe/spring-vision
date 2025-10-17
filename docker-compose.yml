@@ -11,6 +11,9 @@ services:
       - JAVA_TOOL_OPTIONS=-Xmx4g
       # Configure DJL concurrency via environment (Spring relaxed binding)
       - SPRING_VISION_DJL_MAX_CONCURRENT_INFERENCES=16
+      # Allow native libs (OpenMP / MKL) to use multiple threads. Tune to CPU cores.
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
     restart: unless-stopped
     networks:
       - spring-vision-network
