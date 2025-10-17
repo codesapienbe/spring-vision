@@ -38,21 +38,22 @@ spring:
       show-progress: false
 
       # Maximum concurrent inference threads (default: 4)
-      max-concurrent-inferences: 4
+      max-concurrent-inferences: 16
 
       # Face Detection Configuration
       face-detection:
-        # Model: retinaface (default), lightface
-        model: retinaface
-        confidence-threshold: 0.7
-        max-faces: 100
+        # Model options: retinaface (default), mtcnn, lightface
+        # Try mtcnn for improved multi-face detection in crowded/low-res photos
+        model: mtcnn
+        confidence-threshold: 0.35
+        max-faces: 200
 
       # Face Recognition Configuration
       face-recognition:
         # Model: inception_resnet_v1 (default), facenet
         model: inception_resnet_v1
         embedding-size: 512
-        similarity-threshold: 0.6
+        similarity-threshold: 0.5
 
       # Object Detection Configuration
       object-detection:

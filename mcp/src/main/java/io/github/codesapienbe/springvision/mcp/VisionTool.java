@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,6 +45,10 @@ public class VisionTool {
     private static final Logger log = LoggerFactory.getLogger(VisionTool.class);
 
     private final VisionTemplate visionTemplate;
+
+    // Read similarity threshold from application properties with sensible default
+    @Value("${spring.vision.djl.face-recognition.similarity-threshold:0.5}")
+    private double configuredSimilarityThreshold;
 
     private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
@@ -735,7 +740,7 @@ public class VisionTool {
         double manhattanSimilarity = ((Number) metrics.getOrDefault("manhattanSimilarity", 0.0)).doubleValue();
         double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
 
-        double matchThreshold = 0.6;
+        double matchThreshold = this.configuredSimilarityThreshold;
         boolean isMatch = combinedSimilarity >= matchThreshold;
 
         long duration = System.currentTimeMillis() - startTime;
@@ -817,7 +822,7 @@ public class VisionTool {
                         double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
 
                         // Only include matches above threshold
-                        double matchThreshold = 0.5;
+                        double matchThreshold = this.configuredSimilarityThreshold;
                         if (combinedSimilarity >= matchThreshold) {
                             Map<String, Object> match = new HashMap<>();
                             match.put("imageUrl", datasetUrl);
@@ -926,7 +931,7 @@ public class VisionTool {
                         Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, datasetEmbedding);
                         double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
 
-                        double matchThreshold = 0.5;
+                        double matchThreshold = this.configuredSimilarityThreshold;
                         if (combinedSimilarity >= matchThreshold) {
                             Map<String, Object> match = new HashMap<>();
                             match.put("imageBytes", datasetBytes); // retain raw bytes if caller needs them
