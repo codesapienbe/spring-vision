@@ -19,6 +19,7 @@ services:
       - spring-vision-network
     volumes:
       - ./logs:/app/logs  # Mount logs directory
+      - /var/lib/spring-vision-djl-cache:/home/djl/.springvision/djl:rw  # Persist DJL native and model cache across runs (maps to djl user's default)
 
 networks:
   spring-vision-network:

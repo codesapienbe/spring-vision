@@ -28,9 +28,6 @@ spring:
       # Device: cpu (default), gpu, gpu:0, gpu:1, etc.
       device: cpu
 
-      # Model cache directory (optional, defaults to ~/.djl/cache)
-      # model-cache-dir: ${user.home}/.djl/cache
-
       # Auto-download models from DJL Model Zoo (default: true)
       auto-download: true
 
@@ -42,16 +39,15 @@ spring:
 
       # Face Detection Configuration
       face-detection:
-        # Model options: retinaface (default), mtcnn, lightface
-        # Try mtcnn for improved multi-face detection in crowded/low-res photos
-        model: mtcnn
+        # Use an object-detection-style model that prefetch works with
+        model: ssd_300_resnet50
         confidence-threshold: 0.35
         max-faces: 200
 
       # Face Recognition Configuration
       face-recognition:
-        # Model: inception_resnet_v1 (default), facenet
-        model: inception_resnet_v1
+        # Prefer a model that prefetch resolves: resnet18_embedding
+        model: resnet18_embedding
         embedding-size: 512
         similarity-threshold: 0.5
 
@@ -66,13 +62,13 @@ spring:
 
       # Pose Estimation Configuration
       pose-estimation:
-        model: simple_pose
+        model: ""
         joints: 17  # COCO 17 keypoints
         confidence-threshold: 0.5
 
       # Action Recognition Configuration
       action-recognition:
-        model: action_recognition
+        model: ""
         confidence-threshold: 0.6
 
       # Segmentation Configuration

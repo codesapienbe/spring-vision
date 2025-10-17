@@ -44,6 +44,8 @@ import ai.djl.translate.Batchifier;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import ai.djl.ndarray.NDManager;
+import io.github.codesapienbe.springvision.core.djl.translator.YuNetFaceDetectionTranslator;
+import io.github.codesapienbe.springvision.core.djl.translator.RetinaFaceDetectionTranslator;
 
 /**
  * Enhanced DJL-based vision backend with comprehensive computer vision capabilities.
@@ -255,20 +257,26 @@ public class DjlVisionBackend implements VisionBackend,
             loadObjectDetectionModel();
 
             // Only load optional models if configured
-            if (properties.getPoseEstimation() != null) {
+            String poseModel = properties.getPoseEstimation() != null ? properties.getPoseEstimation().getModel() : null;
+            if (poseModel != null && !poseModel.isBlank()) {
                 try {
                     loadPoseEstimationModel();
                 } catch (Exception e) {
                     logger.warn("Failed to load pose estimation model: {}", e.getMessage());
                 }
+            } else {
+                logger.info("Pose estimation model not configured or blank; skipping pose model load.");
             }
 
-            if (properties.getActionRecognition() != null) {
+            String actionModel = properties.getActionRecognition() != null ? properties.getActionRecognition().getModel() : null;
+            if (actionModel != null && !actionModel.isBlank()) {
                 try {
                     loadActionRecognitionModel();
                 } catch (Exception e) {
                     logger.warn("Failed to load action recognition model: {}", e.getMessage());
                 }
+            } else {
+                logger.info("Action recognition model not configured or blank; skipping action recognition model load.");
             }
 
             if (properties.getSegmentation() != null) {
@@ -326,6 +334,24 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
+    // Overload to support creating a Predictor with a custom Translator
+    private <I, O, R> R withPredictor(ZooModel<I, O> model, Translator<I, O> translator, PredictorCallback<I, O, R> callback) throws Exception {
+        if (model == null) {
+            throw new VisionBackendException("Model not initialized", "model_not_initialized", null);
+        }
+        try {
+            inferenceSemaphore.acquire();
+            try (Predictor<I, O> predictor = model.newPredictor(translator)) {
+                return callback.apply(predictor);
+            } finally {
+                inferenceSemaphore.release();
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new VisionBackendException("Inference interrupted", "interrupted", null, ie);
+        }
+    }
+
     private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading face recognition model with DJL");
 
@@ -333,6 +359,7 @@ public class DjlVisionBackend implements VisionBackend,
         try {
             Criteria<Image, float[]> criteria = DjlModelLoader.faceRecognitionCriteria()
                 .optFilter("model", properties.getFaceRecognition().getModel())
+                .optEngine(properties.getEngine())
                 .optDevice(device)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
@@ -358,11 +385,34 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Loading dedicated face detection model with DJL (model={})", properties.getFaceDetection().getModel());
 
         try {
-            Criteria<Image, DetectedObjects> criteria = DjlModelLoader.faceDetectionCriteria()
-                .optFilter("model", properties.getFaceDetection().getModel())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+            String modelName = properties.getFaceDetection().getModel();
+            Translator<Image, DetectedObjects> translator = null;
+            if (modelName != null) {
+                String m = modelName.toLowerCase();
+                if (m.contains("retina")) {
+                    translator = new RetinaFaceDetectionTranslator();
+                } else if (m.contains("yunet") || m.contains("yu_net") || m.contains("yu-net")) {
+                    translator = new YuNetFaceDetectionTranslator();
+                }
+            }
+
+            Criteria<Image, DetectedObjects> criteria;
+            if (translator != null) {
+                criteria = DjlModelLoader.faceDetectionCriteria()
+                    .optFilter("model", modelName)
+                    .optEngine(properties.getEngine())
+                    .optTranslator(translator)
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
+            } else {
+                criteria = DjlModelLoader.faceDetectionCriteria()
+                    .optFilter("model", modelName)
+                    .optEngine(properties.getEngine())
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
+            }
 
             faceDetectionModel = criteria.loadModel();
         } catch (Exception firstEx) {
@@ -1120,14 +1170,11 @@ public class DjlVisionBackend implements VisionBackend,
 
                     Translator<Image, float[]> translator = createFaceEmbeddingTranslator(modelName);
 
-                    // Use the model with the translator for correct preprocessing
                     try {
-                        inferenceSemaphore.acquire();
-                        try (Predictor<Image, float[]> predictor = faceRecognitionModel.newPredictor(translator)) {
-                            float[] emb = predictor.predict(faceImage);
+                        // Use centralized helper that manages concurrency and predictor lifecycle
+                        float[] emb = withPredictor(faceRecognitionModel, translator, predictor -> predictor.predict(faceImage));
+                        if (emb != null) {
                             embeddings.add(l2Normalize(emb));
-                        } finally {
-                            inferenceSemaphore.release();
                         }
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
@@ -1222,7 +1269,7 @@ public class DjlVisionBackend implements VisionBackend,
 
             @Override
             public float[] processOutput(TranslatorContext ctx, NDList list) {
-                NDArray arr = list.get(0);
+                NDArray arr = list.getFirst();
                 // Flatten and return as float[]
                 NDArray flat = arr.flatten();
                 return flat.toFloatArray();
@@ -1272,6 +1319,7 @@ public class DjlVisionBackend implements VisionBackend,
                 .setTypes(Image.class, String.class)
                 .optEngine(properties.getEngine())
                 .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
             // Use try-with-resources for the model so it is closed when done
@@ -1387,6 +1435,7 @@ public class DjlVisionBackend implements VisionBackend,
                 .setTypes(Image.class, ai.djl.modality.Classifications.class)
                 .optEngine(properties.getEngine())
                 .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
             try (ZooModel<Image, ai.djl.modality.Classifications> classificationModel = criteria.loadModel()) {

@@ -98,8 +98,8 @@ public final class DjlModelLoader {
         return Criteria.builder()
             .setTypes(ai.djl.modality.cv.Image.class, ai.djl.modality.cv.output.DetectedObjects.class)
             .optApplication(Application.CV.OBJECT_DETECTION)
-            .optProgress(new ProgressBar())
-            .optEngine("PyTorch"); // Default to PyTorch
+            .optProgress(new ProgressBar());
+        // Engine is intentionally left unspecified here so callers can optEngine(...) based on configuration
     }
 
     /**
@@ -113,8 +113,8 @@ public final class DjlModelLoader {
         return Criteria.builder()
             .setTypes(ai.djl.modality.cv.Image.class, float[].class)
             .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-            .optProgress(new ProgressBar())
-            .optEngine("PyTorch");
+            .optProgress(new ProgressBar());
+        // Engine is intentionally left unspecified here so callers can optEngine(...) based on configuration
     }
 
     /**
@@ -128,8 +128,8 @@ public final class DjlModelLoader {
         return Criteria.builder()
             .setTypes(ai.djl.modality.cv.Image.class, ai.djl.modality.cv.output.DetectedObjects.class)
             .optApplication(Application.CV.OBJECT_DETECTION)
-            .optProgress(new ProgressBar())
-            .optEngine("PyTorch");
+            .optProgress(new ProgressBar());
+        // Engine is intentionally left unspecified here so callers can optEngine(...) based on configuration
     }
 
     /**
@@ -258,15 +258,17 @@ public final class DjlModelLoader {
     public static void clearCache() throws IOException {
         if (Files.exists(DEFAULT_CACHE_DIR)) {
             logger.info("Clearing DJL model cache: {}", DEFAULT_CACHE_DIR);
-            Files.walk(DEFAULT_CACHE_DIR)
-                .sorted((a, b) -> -a.compareTo(b)) // Reverse order to delete files before directories
-                .forEach(path -> {
-                    try {
-                        Files.deleteIfExists(path);
-                    } catch (IOException e) {
-                        logger.warn("Failed to delete cache file: {}", path, e);
-                    }
-                });
+            try (var stream = Files.walk(DEFAULT_CACHE_DIR)) {
+                stream
+                    .sorted((a, b) -> -a.compareTo(b)) // Reverse order to delete files before directories
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            logger.warn("Failed to delete cache file: {}", path, e);
+                        }
+                    });
+            }
         }
     }
 }

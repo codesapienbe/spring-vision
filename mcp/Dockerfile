@@ -1,14 +1,13 @@
 # 1. Start with the djl-serving base image
 FROM codesapienbe/spring-vision-base:latest
 
-# 2. Prepare application directory and copy artifacts as root
-RUN mkdir -p /app || true
+# Ensure application and per-user cache directories exist
+RUN mkdir -p /app /app/logs /home/djl/.springvision/djl || true
 COPY target/mcp-*.jar /app/app.jar
-COPY target/djl-cache ${AI_DJL_CACHE}
-RUN chown -R djl:djl /app ${AI_DJL_CACHE} || true
+RUN chown -R djl:djl /app /home/djl/.springvision || true
 
-# 3. Switch back to the non-root user that djl-serving uses
+# Switch to the non-root user that djl-serving uses
 USER djl
 
-# 4. Define the entrypoint to run your app
+# Start the application directly; DJL cache path is set from application.yml
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

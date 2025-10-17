@@ -801,7 +801,7 @@ public class VisionTool {
             }
 
             // Use the highest confidence face (first embedding)
-            float[] sourceEmbedding = sourceEmbeddings.get(0);
+            float[] sourceEmbedding = sourceEmbeddings.getFirst();
 
             // Process dataset images and calculate similarities
             List<Map<String, Object>> matches = new ArrayList<>();
@@ -815,7 +815,7 @@ public class VisionTool {
                     List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData);
 
                     if (!datasetEmbeddings.isEmpty()) {
-                        float[] datasetEmbedding = datasetEmbeddings.get(0);
+                        float[] datasetEmbedding = datasetEmbeddings.getFirst();
 
                         // Calculate similarity metrics using shared utilities
                         Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, datasetEmbedding);
