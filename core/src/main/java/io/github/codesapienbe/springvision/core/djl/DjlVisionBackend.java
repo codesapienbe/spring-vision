@@ -25,10 +25,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.types.DataType;
+import ai.djl.translate.Batchifier;
+import ai.djl.translate.Translator;
+import ai.djl.translate.TranslatorContext;
+import ai.djl.ndarray.NDManager;
 
 /**
  * Enhanced DJL-based vision backend with comprehensive computer vision capabilities.
@@ -87,16 +102,48 @@ public class DjlVisionBackend implements VisionBackend,
     // Model loading cache
     private final Map<String, Object> modelCache = new ConcurrentHashMap<>();
 
+    // Concurrency control
+    private final Semaphore inferenceSemaphore;
+    private final int maxConcurrentInferences;
+
+    // Functional callback for predictor usage
+    @FunctionalInterface
+    private interface PredictorCallback<I, O, R> {
+        R apply(Predictor<I, O> predictor) throws Exception;
+    }
+
     // Constructors
     public DjlVisionBackend() {
         this.properties = new DjlProperties();
         this.device = safeCreateDevice(this.properties.getDevice());
+
+        // Align concurrency with available hardware unless the user explicitly set a different value.
+        int cores = Math.max(1, Runtime.getRuntime().availableProcessors());
+        int configured = this.properties.getMaxConcurrentInferences();
+        if (configured == 4) { // heuristic: 4 is the default - treat as unspecified
+            this.maxConcurrentInferences = cores;
+        } else {
+            // respect user configuration but don't exceed cores
+            this.maxConcurrentInferences = Math.max(1, Math.min(configured, cores));
+        }
+        this.inferenceSemaphore = new Semaphore(this.maxConcurrentInferences);
+
         logBackendInfo();
     }
 
     public DjlVisionBackend(DjlProperties properties) {
         this.properties = properties != null ? properties : new DjlProperties();
         this.device = safeCreateDevice(this.properties.getDevice());
+
+        int cores = Math.max(1, Runtime.getRuntime().availableProcessors());
+        int configured = this.properties.getMaxConcurrentInferences();
+        if (configured == 4) {
+            this.maxConcurrentInferences = cores;
+        } else {
+            this.maxConcurrentInferences = Math.max(1, Math.min(configured, cores));
+        }
+        this.inferenceSemaphore = new Semaphore(this.maxConcurrentInferences);
+
         logBackendInfo();
     }
 
@@ -131,6 +178,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Initializing DJL Vision Backend - Engine: {}, Device: {}, Version: {}",
             configuredEngine, deviceName, VERSION);
         logger.info("DJL Engine (configured): {}, GPU Available: {}", configuredEngine, gpuAvailable);
+        logger.info("DJL concurrency: maxConcurrentInferences={}", this.maxConcurrentInferences);
     }
 
     @Override
@@ -178,6 +226,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
         details.put("gpuAvailable", gpuAvailable);
         details.put("modelsLoaded", modelCache.size());
+        details.put("maxConcurrentInferences", this.maxConcurrentInferences);
 
         if (healthStatus == BackendHealthInfo.HealthStatus.HEALTHY) {
             // Use the overload that accepts metrics so the details map is included
@@ -195,8 +244,14 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Initializing DJL vision backend with all capabilities");
 
         try {
-            // Load core models - use object detection for both faces and objects
-            // DJL's standard models can detect persons which we'll use for face detection
+            // Load face detector first for accurate face counts
+            try {
+                loadFaceDetectionModel();
+            } catch (Exception e) {
+                logger.warn("Failed to load dedicated face detection model: {}. Falling back to generic object detection.", e.getMessage());
+            }
+
+            // Load core models
             loadObjectDetectionModel();
 
             // Only load optional models if configured
@@ -253,21 +308,77 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
+    // New helper that centralizes predictor usage and enforces concurrency limits
+    private <I, O, R> R withPredictor(ZooModel<I, O> model, PredictorCallback<I, O, R> callback) throws Exception {
+        if (model == null) {
+            throw new VisionBackendException("Model not initialized", "model_not_initialized", null);
+        }
+        try {
+            inferenceSemaphore.acquire();
+            try (Predictor<I, O> predictor = model.newPredictor()) {
+                return callback.apply(predictor);
+            } finally {
+                inferenceSemaphore.release();
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new VisionBackendException("Inference interrupted", "interrupted", null, ie);
+        }
+    }
+
     private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading face recognition model with DJL");
 
-        // Use a simpler criteria without overly specific filters
-        Criteria<Image, float[]> criteria = Criteria.builder()
-            .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-            .setTypes(Image.class, float[].class)
-            .optEngine(properties.getEngine())
-            .optDevice(device)
-            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-            .build();
+        // Try model-zoo helper first, then fall back to a permissive criteria
+        try {
+            Criteria<Image, float[]> criteria = DjlModelLoader.faceRecognitionCriteria()
+                .optFilter("model", properties.getFaceRecognition().getModel())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
-        faceRecognitionModel = criteria.loadModel();
+            faceRecognitionModel = criteria.loadModel();
+        } catch (Exception firstEx) {
+            logger.warn("Primary face recognition model load failed: {}. Attempting permissive criteria.", firstEx.getMessage());
+            Criteria<Image, float[]> criteria = Criteria.builder()
+                .optApplication(Application.CV.IMAGE_CLASSIFICATION)
+                .setTypes(Image.class, float[].class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
+            faceRecognitionModel = criteria.loadModel();
+        }
+
         modelCache.put("face_recognition", faceRecognitionModel);
         logger.info("Face recognition model loaded: {}", faceRecognitionModel.getName());
+    }
+
+    private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading dedicated face detection model with DJL (model={})", properties.getFaceDetection().getModel());
+
+        try {
+            Criteria<Image, DetectedObjects> criteria = DjlModelLoader.faceDetectionCriteria()
+                .optFilter("model", properties.getFaceDetection().getModel())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
+
+            faceDetectionModel = criteria.loadModel();
+        } catch (Exception firstEx) {
+            logger.warn("Primary face detection model load failed: {}. Falling back to generic object detection criteria.", firstEx.getMessage());
+            Criteria<Image, DetectedObjects> criteria = Criteria.builder()
+                .optApplication(Application.CV.OBJECT_DETECTION)
+                .setTypes(Image.class, DetectedObjects.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
+            faceDetectionModel = criteria.loadModel();
+        }
+
+        modelCache.put("face_detection", faceDetectionModel);
+        logger.info("Face detection model loaded: {}", faceDetectionModel.getName());
     }
 
     private void loadObjectDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -288,17 +399,31 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading pose estimation model with DJL");
+        logger.info("Loading pose estimation model with DJL (model={})", properties.getPoseEstimation().getModel());
 
-        Criteria<Image, Joints> criteria = Criteria.builder()
-            .optApplication(Application.CV.POSE_ESTIMATION)
-            .setTypes(Image.class, Joints.class)
-            .optEngine(properties.getEngine())
-            .optDevice(device)
-            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-            .build();
+        try {
+            Criteria<Image, Joints> criteria = Criteria.builder()
+                .optApplication(Application.CV.POSE_ESTIMATION)
+                .setTypes(Image.class, Joints.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optFilter("model", properties.getPoseEstimation().getModel())
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
-        poseEstimationModel = criteria.loadModel();
+            poseEstimationModel = criteria.loadModel();
+        } catch (Exception firstEx) {
+            logger.warn("Primary pose estimation model load failed: {}. Attempting permissive criteria.", firstEx.getMessage());
+            Criteria<Image, Joints> criteria = Criteria.builder()
+                .optApplication(Application.CV.POSE_ESTIMATION)
+                .setTypes(Image.class, Joints.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
+            poseEstimationModel = criteria.loadModel();
+        }
+
         modelCache.put("pose_estimation", poseEstimationModel);
         logger.info("Pose estimation model loaded: {} ({} joints)",
             poseEstimationModel.getName(), properties.getPoseEstimation().getJoints());
@@ -357,8 +482,11 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public List<Detection> detectFaces(ImageData imageData) throws BaseVisionException {
+        // Use configured thresholds from properties by default
         DetectionQuery query = new DetectionQuery.Builder()
             .type(DetectionType.FACE)
+            .minConfidence(properties.getFaceDetection().getConfidenceThreshold())
+            .maxDetections(properties.getFaceDetection().getMaxFaces())
             .build();
         return detectFaces(imageData, query);
     }
@@ -386,21 +514,31 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // Use object detection model to detect persons (which includes faces)
-            try (Predictor<Image, DetectedObjects> predictor = objectDetectionModel.newPredictor()) {
+            // Prefer specialized face detection model when available, fall back to object detection
+            ZooModel<Image, DetectedObjects> modelToUse = (faceDetectionModel != null) ? faceDetectionModel : objectDetectionModel;
+
+            List<Detection> faceDetections = withPredictor(modelToUse, predictor -> {
                 DetectedObjects detections = predictor.predict(djlImage);
 
-                // Filter only "person" class detections for face detection
+                // If using object detector as fallback, filter 'person' or 'face' class labels; otherwise use all classes as faces
                 List<Detection> allDetections = convertDetections(detections, query);
-                List<Detection> faceDetections = allDetections.stream()
-                    .filter(d -> "person".equalsIgnoreCase(d.label()))
-                    .toList();
+                if (modelToUse == objectDetectionModel) {
+                    return allDetections.stream()
+                        .filter(d -> {
+                            String lbl = d.label() == null ? "" : d.label().toLowerCase();
+                            return lbl.contains("person") || lbl.contains("face") || lbl.contains("head") || lbl.contains("human");
+                        })
+                        .toList();
+                } else {
+                    // face detector returns face classes - return as-is
+                    return allDetections;
+                }
+            });
 
-                logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
-                    faceDetections.size(), correlationId);
+            logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
+                faceDetections.size(), correlationId);
 
-                return faceDetections;
-            }
+            return faceDetections;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -414,6 +552,15 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process image",
                 "inference_failed",
                 DetectionType.FACE.name(),
+                e
+            );
+        } catch (VisionBackendException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Face detection failed",
+                "detection_failed",
+                null,
                 e
             );
         }
@@ -462,15 +609,15 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, DetectedObjects> predictor = objectDetectionModel.newPredictor()) {
+            List<Detection> results = withPredictor(objectDetectionModel, predictor -> {
                 DetectedObjects detections = predictor.predict(djlImage);
-                List<Detection> results = convertDetections(detections, query);
+                return convertDetections(detections, query);
+            });
 
-                logger.info("DJL object detection completed: {} objects detected, correlationId={}, backend=djl",
-                    results.size(), correlationId);
+            logger.info("DJL object detection completed: {} objects detected, correlationId={}, backend=djl",
+                results.size(), correlationId);
 
-                return results;
-            }
+            return results;
         } catch (IOException e) {
             throw new VisionProcessingException(
                 "Failed to load image",
@@ -483,6 +630,13 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process image",
                 "inference_failed",
                 DetectionType.OBJECT.name(),
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Object detection failed",
+                "detection_failed",
+                null,
                 e
             );
         }
@@ -510,16 +664,15 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, Joints> predictor = poseEstimationModel.newPredictor()) {
+            List<Detection> results = withPredictor(poseEstimationModel, predictor -> {
                 Joints joints = predictor.predict(djlImage);
+                return convertJointsToDetections(joints);
+            });
 
-                List<Detection> results = convertJointsToDetections(joints);
+            logger.info("DJL pose estimation completed: {} poses detected, correlationId={}",
+                results.size(), correlationId);
 
-                logger.info("DJL pose estimation completed: {} poses detected, correlationId={}",
-                    results.size(), correlationId);
-
-                return results;
-            }
+            return results;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -533,6 +686,13 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process pose estimation",
                 "inference_failed",
                 "POSE",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Pose estimation failed",
+                "pose_failed",
+                null,
                 e
             );
         }
@@ -620,16 +780,14 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, float[]> predictor = actionRecognitionModel.newPredictor()) {
-                float[] predictions = predictor.predict(djlImage);
+            float[] predictions = withPredictor(actionRecognitionModel, predictor -> predictor.predict(djlImage));
 
-                List<Detection> results = convertActionPredictions(predictions);
+            List<Detection> results = convertActionPredictions(predictions);
 
-                logger.info("DJL action recognition completed: {} actions detected, correlationId={}",
-                    results.size(), correlationId);
+            logger.info("DJL action recognition completed: {} actions detected, correlationId={}",
+                results.size(), correlationId);
 
-                return results;
-            }
+            return results;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -643,6 +801,13 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process action recognition",
                 "inference_failed",
                 "ACTION",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Action recognition failed",
+                "action_failed",
+                null,
                 e
             );
         }
@@ -703,15 +868,13 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, CategoryMask> predictor = semanticSegmentationModel.newPredictor()) {
-                CategoryMask mask = predictor.predict(djlImage);
+            CategoryMask mask = withPredictor(semanticSegmentationModel, predictor -> predictor.predict(djlImage));
 
-                VisionResult result = convertSemanticMaskToResult(mask, correlationId);
+            VisionResult result = convertSemanticMaskToResult(mask, correlationId);
 
-                logger.info("DJL semantic segmentation completed: correlationId={}", correlationId);
+            logger.info("DJL semantic segmentation completed: correlationId={}", correlationId);
 
-                return result;
-            }
+            return result;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -725,6 +888,13 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process semantic segmentation",
                 "inference_failed",
                 "SEGMENTATION",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Semantic segmentation failed",
+                "segmentation_failed",
+                null,
                 e
             );
         }
@@ -748,16 +918,14 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, DetectedObjects> predictor = instanceSegmentationModel.newPredictor()) {
-                DetectedObjects detections = predictor.predict(djlImage);
+            DetectedObjects detections = withPredictor(instanceSegmentationModel, predictor -> predictor.predict(djlImage));
 
-                VisionResult result = convertInstanceDetectionsToResult(detections, correlationId);
+            VisionResult result = convertInstanceDetectionsToResult(detections, correlationId);
 
-                logger.info("DJL instance segmentation completed: {} instances, correlationId={}",
-                    detections.getNumberOfObjects(), correlationId);
+            logger.info("DJL instance segmentation completed: {} instances, correlationId={}",
+                detections.getNumberOfObjects(), correlationId);
 
-                return result;
-            }
+            return result;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -771,6 +939,13 @@ public class DjlVisionBackend implements VisionBackend,
                 "Failed to process instance segmentation",
                 "inference_failed",
                 "SEGMENTATION",
+                e
+            );
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Instance segmentation failed",
+                "segmentation_failed",
+                null,
                 e
             );
         }
@@ -806,12 +981,6 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("backend", BACKEND_ID);
             attributes.put("model", instanceSegmentationModel.getName());
             attributes.put("instanceId", i);
-
-            // Mask data check - safely handle if getMask() doesn't exist
-            // Commenting out problematic API call
-            // if (obj.getMask() != null) {
-            //     attributes.put("mask", obj.getMask());
-            // }
 
             io.github.codesapienbe.springvision.core.BoundingBox svBbox =
                 new io.github.codesapienbe.springvision.core.BoundingBox(
@@ -861,8 +1030,16 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private List<float[]> extractFaceEmbeddings(ImageData imageData) throws BaseVisionException {
-        if (!initialized || faceRecognitionModel == null) {
-            // Lazy load if not already loaded
+        if (!initialized) {
+            throw new VisionBackendException(
+                "Backend not initialized",
+                "not_initialized",
+                null
+            );
+        }
+
+        // Ensure face recognition model is loaded
+        if (faceRecognitionModel == null) {
             try {
                 loadFaceRecognitionModel();
             } catch (Exception e) {
@@ -883,14 +1060,89 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            try (Predictor<Image, float[]> predictor = faceRecognitionModel.newPredictor()) {
-                float[] embedding = predictor.predict(djlImage);
+            // First, detect faces to get bounding boxes. Use detectFaces which will prefer a face detector.
+            List<Detection> faceDetections = detectFaces(imageData);
 
-                logger.info("DJL face embedding extracted: size={}, correlationId={}",
-                    embedding.length, correlationId);
+            List<float[]> embeddings = new ArrayList<>();
 
-                return List.of(embedding);
+            if (faceDetections.isEmpty()) {
+                // No faces detected -- as last resort run recognition on full image
+                float[] fullEmbedding = withPredictor(faceRecognitionModel, predictor -> predictor.predict(djlImage));
+                embeddings.add(l2Normalize(fullEmbedding));
+                logger.info("No face boxes found - extracted embedding from full image, correlationId={}", correlationId);
+                return embeddings;
             }
+
+            // Convert DJL Image to BufferedImage for cropping. DJL's getWrappedImage() may return Object
+            // in some engine versions, so safely cast and fall back to reading the original bytes if needed.
+            java.awt.image.BufferedImage wrapped;
+            Object wrappedObj = djlImage.getWrappedImage();
+            if (wrappedObj instanceof BufferedImage) {
+                wrapped = (BufferedImage) wrappedObj;
+            } else {
+                // Fallback: decode from original image bytes
+                wrapped = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+                if (wrapped == null) {
+                    throw new IOException("Unable to obtain BufferedImage for embedding extraction");
+                }
+            }
+            int imgW = wrapped.getWidth();
+            int imgH = wrapped.getHeight();
+
+            for (int i = 0; i < faceDetections.size(); i++) {
+                Detection det = faceDetections.get(i);
+                io.github.codesapienbe.springvision.core.BoundingBox bbox = det.boundingBox();
+                if (bbox == null) continue;
+
+                // bbox values are normalized 0..1; compute pixel coordinates with small padding
+                int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+
+                // add padding ~10% around face box, up to image bounds
+                int padX = (int) (w * 0.1);
+                int padY = (int) (h * 0.1);
+                int sx = Math.max(0, x - padX);
+                int sy = Math.max(0, y - padY);
+                int sw = Math.min(imgW - sx, w + padX * 2);
+                int sh = Math.min(imgH - sy, h + padY * 2);
+
+                try {
+                    BufferedImage faceCrop = wrapped.getSubimage(sx, sy, sw, sh);
+
+                    // Model-aware preprocessing: resize and apply normalization via Translator
+                    String modelName = (properties.getFaceRecognition() != null ? properties.getFaceRecognition().getModel() : "");
+                    int targetSize = determineFaceRecognitionInputSize(modelName);
+
+                    BufferedImage resized = resizeImage(faceCrop, targetSize, targetSize);
+                    Image faceImage = ImageFactory.getInstance().fromImage(resized);
+
+                    Translator<Image, float[]> translator = createFaceEmbeddingTranslator(modelName);
+
+                    // Use the model with the translator for correct preprocessing
+                    try {
+                        inferenceSemaphore.acquire();
+                        try (Predictor<Image, float[]> predictor = faceRecognitionModel.newPredictor(translator)) {
+                            float[] emb = predictor.predict(faceImage);
+                            embeddings.add(l2Normalize(emb));
+                        } finally {
+                            inferenceSemaphore.release();
+                        }
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new VisionBackendException("Inference interrupted", "interrupted", null, ie);
+                    } catch (Exception ex) {
+                        // Log and continue with next face crop
+                        logger.warn("Failed to compute embedding for face {}: {}", i, ex.getMessage());
+                    }
+                } catch (RasterFormatException rfe) {
+                    logger.warn("Invalid crop for face {} - skipping: {}", i, rfe.getMessage());
+                }
+            }
+
+            logger.info("DJL face embeddings extracted: faces={}, correlationId={}", embeddings.size(), correlationId);
+            return embeddings;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
@@ -914,6 +1166,82 @@ public class DjlVisionBackend implements VisionBackend,
                 e
             );
         }
+    }
+
+    // Determine a reasonable input size for the face recognition model based on model name
+    private int determineFaceRecognitionInputSize(String modelName) {
+        if (modelName == null) return 160;
+        String m = modelName.toLowerCase();
+        if (m.contains("inception") || m.contains("facenet") || m.contains("resnet")) {
+            return 160; // common for FaceNet/ResNet-based face embeddings
+        }
+        if (m.contains("arcface") || m.contains("sphereface")) {
+            return 112; // some ArcFace models use 112x112
+        }
+        // default fallback
+        return 160;
+    }
+
+    // Create a translator that normalizes the image to the model's expected range.
+    private Translator<Image, float[]> createFaceEmbeddingTranslator(String modelName) {
+        // Choose normalization parameters based on known models
+        float[] mean;
+        float[] std;
+        String m = (modelName == null ? "" : modelName.toLowerCase());
+        if (m.contains("facenet") || m.contains("inception")) {
+            // FaceNet often expects inputs in [-1, 1]
+            mean = new float[]{0.5f, 0.5f, 0.5f};
+            std = new float[]{0.5f, 0.5f, 0.5f};
+        } else {
+            // Default to ImageNet normalization
+            mean = new float[]{0.485f, 0.456f, 0.406f};
+            std = new float[]{0.229f, 0.224f, 0.225f};
+        }
+
+        final float[] meanF = mean;
+        final float[] stdF = std;
+
+        return new Translator<>() {
+            @Override
+            public NDList processInput(TranslatorContext ctx, Image input) {
+                NDManager manager = ctx.getNDManager();
+                // Convert to NDArray (HWC)
+                NDArray array = input.toNDArray(manager);
+                // Convert to float and scale to [0,1]
+                array = array.toType(DataType.FLOAT32, false).div(255f);
+                // HWC -> CHW
+                array = array.transpose(2, 0, 1);
+                // normalize per-channel
+                NDArray mean = manager.create(meanF).reshape(3, 1, 1);
+                NDArray std = manager.create(stdF).reshape(3, 1, 1);
+                array = array.sub(mean).div(std);
+                // add batch dim
+                array = array.expandDims(0);
+                return new NDList(array);
+            }
+
+            @Override
+            public float[] processOutput(TranslatorContext ctx, NDList list) {
+                NDArray arr = list.get(0);
+                // Flatten and return as float[]
+                NDArray flat = arr.flatten();
+                return flat.toFloatArray();
+            }
+
+            @Override
+            public Batchifier getBatchifier() {
+                return null; // single prediction
+            }
+        };
+    }
+
+    private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resizedImage.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        g.dispose();
+        return resizedImage;
     }
 
     // ==========================
@@ -946,10 +1274,9 @@ public class DjlVisionBackend implements VisionBackend,
                 .optDevice(device)
                 .build();
 
-            try (ZooModel<Image, String> ocrModel = criteria.loadModel();
-                 Predictor<Image, String> predictor = ocrModel.newPredictor()) {
-
-                String extractedText = predictor.predict(djlImage);
+            // Use try-with-resources for the model so it is closed when done
+            try (ZooModel<Image, String> ocrModel = criteria.loadModel()) {
+                String extractedText = withPredictor(ocrModel, predictor -> predictor.predict(djlImage));
 
                 Map<String, Object> attributes = new HashMap<>();
                 attributes.put("backend", BACKEND_ID);
@@ -975,20 +1302,53 @@ public class DjlVisionBackend implements VisionBackend,
                 return List.of(textDetection);
             }
 
-        } catch (IOException e) {
-            throw new VisionProcessingException(
-                "Failed to load image for OCR",
-                "image_load_failed",
-                "OCR",
-                e
-            );
-        } catch (TranslateException e) {
-            throw new VisionProcessingException(
-                "Failed to perform OCR",
-                "inference_failed",
-                "OCR",
-                e
-            );
+        } catch (IOException | TranslateException e) {
+            // Try Tess4J as a fallback when DJL OCR failed
+            logger.warn("DJL OCR failed, attempting Tess4J fallback: {}", e.getMessage());
+            try {
+                Class<?> tesseractClass = Class.forName("net.sourceforge.tess4j.Tesseract");
+                Object tess = tesseractClass.getConstructor().newInstance();
+                BufferedImage buf = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+                Method doOCR = tesseractClass.getMethod("doOCR", BufferedImage.class);
+                String tessText = (String) doOCR.invoke(tess, buf);
+
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("model", "tess4j");
+                attributes.put("correlationId", correlationId);
+
+                Map<String, Object> bbox = new HashMap<>();
+                bbox.put("x", 0);
+                bbox.put("y", 0);
+                bbox.put("width", buf.getWidth());
+                bbox.put("height", buf.getHeight());
+
+                OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
+                    tessText,
+                    1.0,
+                    bbox,
+                    attributes
+                );
+
+                logger.info("Tess4J OCR completed: {} characters extracted, correlationId={}",
+                    tessText.length(), correlationId);
+
+                return List.of(textDetection);
+            } catch (ClassNotFoundException cnf) {
+                throw new VisionProcessingException(
+                    "OCR model not available and Tess4J not on classpath",
+                    "ocr_unavailable",
+                    "OCR",
+                    e
+                );
+            } catch (Exception ex) {
+                throw new VisionProcessingException(
+                    "Fallback OCR failed",
+                    "ocr_failed",
+                    "OCR",
+                    ex
+                );
+            }
         } catch (Exception e) {
             throw new VisionBackendException(
                 "OCR failed",
@@ -1029,10 +1389,8 @@ public class DjlVisionBackend implements VisionBackend,
                 .optDevice(device)
                 .build();
 
-            try (ZooModel<Image, ai.djl.modality.Classifications> classificationModel = criteria.loadModel();
-                 Predictor<Image, ai.djl.modality.Classifications> predictor = classificationModel.newPredictor()) {
-
-                ai.djl.modality.Classifications classifications = predictor.predict(djlImage);
+            try (ZooModel<Image, ai.djl.modality.Classifications> classificationModel = criteria.loadModel()) {
+                ai.djl.modality.Classifications classifications = withPredictor(classificationModel, predictor -> predictor.predict(djlImage));
 
                 List<ImageClassificationCapability.Classification> results = new ArrayList<>();
                 List<ai.djl.modality.Classifications.Classification> topKItems = classifications.topK(topK);
@@ -1190,4 +1548,17 @@ public class DjlVisionBackend implements VisionBackend,
         healthStatus = BackendHealthInfo.HealthStatus.UNKNOWN;
         logger.info("DJL vision backend cleanup completed");
     }
+
+    // L2-normalize a float vector; returns a new array (safe to call with null)
+    private float[] l2Normalize(float[] v) {
+        if (v == null) return new float[0];
+        double sum = 0.0;
+        for (float f : v) sum += f * f;
+        double norm = Math.sqrt(sum);
+        if (norm == 0.0) return v;
+        float[] out = new float[v.length];
+        for (int i = 0; i < v.length; i++) out[i] = (float) (v[i] / norm);
+        return out;
+    }
 }
+

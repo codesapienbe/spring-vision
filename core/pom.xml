@@ -200,6 +200,12 @@
       <artifactId>pytorch-engine</artifactId>
     </dependency>
 
+    <!-- DJL TensorFlow Engine (for object detection models) -->
+    <dependency>
+      <groupId>ai.djl.tensorflow</groupId>
+      <artifactId>tensorflow-engine</artifactId>
+    </dependency>
+
     <!-- DJL PyTorch Model Zoo -->
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
@@ -217,7 +223,7 @@
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-native-cpu</artifactId>
-      <version>1.9.1</version>
+      <version>${pytorch.version}</version>
       <classifier>linux-x86_64</classifier>
       <scope>runtime</scope>
     </dependency>
