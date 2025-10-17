@@ -24,15 +24,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Optional JPA module -->
-    <dependency>
-      <groupId>io.github.codesapienbe.springvision</groupId>
-      <artifactId>persistence</artifactId>
-      <version>${project.version}</version>
-      <optional>true</optional>
-    </dependency>
-
-
     <!-- Spring Boot Web Starter -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
