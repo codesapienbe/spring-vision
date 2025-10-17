@@ -20,10 +20,15 @@
     <docker.image.name>spring-vision-mcp:${project.version}</docker.image.name>
     <spring-boot.version>3.1.3</spring-boot.version>
     <spring-ai.version>1.0.3</spring-ai.version>
-    <!-- Allow skipping DJL prefetch in CI with -DskipDjlPrefetch=true -->
-    <skipDjlPrefetch>false</skipDjlPrefetch>
     <!-- Allow skipping Docker build with -DskipDockerBuild=true -->
     <skipDockerBuild>false</skipDockerBuild>
+
+    <!-- DJL model prefetch properties (download/unpack during generate-resources) -->
+    <djl.cache.dir>${project.build.directory}/djl-cache</djl.cache.dir>
+    <djl.model.retinaface.url>https://resources.djl.ai/test-models/pytorch/retinaface.zip</djl.model.retinaface.url>
+    <djl.model.ultranet.url>https://resources.djl.ai/test-models/pytorch/ultranet.zip</djl.model.ultranet.url>
+    <djl.model.face_feature.url>https://resources.djl.ai/test-models/pytorch/face_feature.zip
+    </djl.model.face_feature.url>
   </properties>
 
   <pluginRepositories>
@@ -182,34 +187,91 @@
         </executions>
       </plugin>
 
-      <!-- Exec plugin to run DJL prefetch to populate DJL cache during package phase -->
+      <!-- Download DJL model zips during generate-resources and unpack them; fail the build on error -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.1.0</version>
+        <groupId>com.googlecode.maven-download-plugin</groupId>
+        <artifactId>download-maven-plugin</artifactId>
+        <version>1.6.8</version>
         <executions>
           <execution>
-            <id>djl-prefetch</id>
-            <phase>package</phase>
+            <id>download-retinaface</id>
+            <phase>generate-resources</phase>
             <goals>
-              <goal>java</goal>
+              <goal>wget</goal>
             </goals>
             <configuration>
-              <skip>${skipDjlPrefetch}</skip>
-              <mainClass>io.github.codesapienbe.springvision.core.djl.DjlPrefetch</mainClass>
-              <arguments>
-                <argument>${project.build.directory}/djl-cache</argument>
-              </arguments>
-              <systemProperties>
-                <systemProperty>
-                  <key>ai.djl.repository.cache.dir</key>
-                  <value>${project.build.directory}/djl-cache</value>
-                </systemProperty>
-              </systemProperties>
+              <url>${djl.model.retinaface.url}</url>
+              <outputDirectory>${djl.cache.dir}</outputDirectory>
+              <outputFileName>retinaface.zip</outputFileName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-ultranet</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>${djl.model.ultranet.url}</url>
+              <outputDirectory>${djl.cache.dir}</outputDirectory>
+              <outputFileName>ultranet.zip</outputFileName>
+            </configuration>
+          </execution>
+          <execution>
+            <id>download-face-feature</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>wget</goal>
+            </goals>
+            <configuration>
+              <url>${djl.model.face_feature.url}</url>
+              <outputDirectory>${djl.cache.dir}</outputDirectory>
+              <outputFileName>face_feature.zip</outputFileName>
             </configuration>
           </execution>
         </executions>
       </plugin>
+
+      <!-- Unpack downloaded zips during generate-resources and fail build on error -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>unpack-djl-models</id>
+            <phase>generate-resources</phase>
+            <configuration>
+              <target>
+                <echo message="Unpacking DJL model zips to ${djl.cache.dir}"/>
+                <!-- Extract retinaface -->
+                <unzip src="${djl.cache.dir}/retinaface.zip" dest="${djl.cache.dir}/retinaface" overwrite="false"/>
+                <available file="${djl.cache.dir}/retinaface" type="dir" property="retinaface.extracted"/>
+                <fail unless="retinaface.extracted">Failed to unpack retinaface.zip into ${djl.cache.dir}/retinaface
+                </fail>
+
+                <!-- Extract ultranet -->
+                <unzip src="${djl.cache.dir}/ultranet.zip" dest="${djl.cache.dir}/ultranet" overwrite="false"/>
+                <available file="${djl.cache.dir}/ultranet" type="dir" property="ultranet.extracted"/>
+                <fail unless="ultranet.extracted">Failed to unpack ultranet.zip into ${djl.cache.dir}/ultranet</fail>
+
+                <!-- Extract face_feature -->
+                <unzip src="${djl.cache.dir}/face_feature.zip" dest="${djl.cache.dir}/face_feature" overwrite="false"/>
+                <available file="${djl.cache.dir}/face_feature" type="dir" property="face_feature.extracted"/>
+                <fail unless="face_feature.extracted">Failed to unpack face_feature.zip into
+                  ${djl.cache.dir}/face_feature
+                </fail>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Exec plugin to run DJL prefetch to populate DJL cache during package phase -->
+      <!-- exec-maven-plugin removed: prefetch is now handled by the download + antrun executions above -->
 
     </plugins>
   </build>

@@ -9,6 +9,22 @@ This document summarizes the critical fixes and improvements made to address iss
 
 ## Issues Fixed
 
+### 0. ✅ Removal of legacy DJL prefetch helper (MAINTENANCE)
+
+**Change:**
+
+- The runtime helper class `DjlPrefetch` and the deprecated placeholder script `prefetch_download_only.sh` have been removed from the repository. These ad-hoc prefetch mechanisms caused confusion and inconsistent behavior across builds.
+
+**Rationale:**
+
+- The project now supports exactly two model-fetch approaches (choose one):
+    1) Let DJL resolve models at runtime via the Model Zoo / Criteria API (djl:// or permissive Criteria). This is the default runtime behavior when network access is available.
+    2) Use the Maven download flow bound to `generate-resources` (download + unpack) so CI/offline builds obtain deterministic artifacts and fail the build if downloads/extraction fail.
+
+Please update any CI scripts or developer notes to use one of the two approaches above. Do not add new ad-hoc runtime prefetch scripts or helper classes.
+
+---
+
 ### 1. ✅ Haarcascade XML Loading from JAR (CRITICAL)
 
 **Problem:**
@@ -373,4 +389,3 @@ The project is now ready for:
 - CI/CD integration with reliable tests
 - Maven Central deployment with retry logic
 - Easy onboarding for new module developers
-
