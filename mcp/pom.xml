@@ -41,17 +41,9 @@
       <url>https://repo.maven.apache.org/maven2</url>
     </repository>
 
-    <repository>
-      <id>spring-releases</id>
-      <name>Spring Releases</name>
-      <url>https://repo.spring.io/release</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
+    <!-- Removed spring-releases repository to avoid authenticated requests to repo.spring.io during local builds.
+         Maven Central will be used for DJL and other public artifacts. If your environment requires Spring
+         repository artifacts, re-add this block and configure credentials in ~/.m2/settings.xml. -->
     <repository>
       <id>spring-milestones</id>
       <name>Spring Milestones</name>
@@ -133,6 +125,19 @@
       <artifactId>mockwebserver</artifactId>
       <version>4.11.0</version>
       <scope>test</scope>
+    </dependency>
+
+    <!-- DJL HuggingFace support: provides ModelZoo implementations for ONNX and PyTorch HF models -->
+    <dependency>
+      <groupId>ai.djl.huggingface</groupId>
+      <artifactId>onnx</artifactId>
+      <version>${djl.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>ai.djl.huggingface</groupId>
+      <artifactId>pytorch</artifactId>
+      <version>${djl.version}</version>
     </dependency>
   </dependencies>
 
