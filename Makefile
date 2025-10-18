@@ -35,9 +35,18 @@ deploy:
 
 release:
 	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \
-	# Create annotated git tag and push it to origin to trigger GitHub Actions publishing
-	git tag -a v$(SPRING_VISION_VERSION) -m "Release v$(SPRING_VISION_VERSION)" || true; \
-	git push origin v$(SPRING_VISION_VERSION) || ( echo "Failed to push tag to origin" && exit 1 );
+	# Delete local tag if it exists (to overwrite it)
+	git tag -d v$(SPRING_VISION_VERSION) 2>/dev/null || true; \
+	# Create annotated git tag
+	git tag -a v$(SPRING_VISION_VERSION) -m "Release v$(SPRING_VISION_VERSION)"; \
+	# Check if tag exists in remote and force push if needed
+	if git ls-remote --tags origin | grep -q "refs/tags/v$(SPRING_VISION_VERSION)"; then \
+		echo "Tag v$(SPRING_VISION_VERSION) exists in remote, force pushing..."; \
+		git push --force origin v$(SPRING_VISION_VERSION) || ( echo "Failed to force push tag to origin" && exit 1 ); \
+	else \
+		echo "Tag v$(SPRING_VISION_VERSION) does not exist in remote, pushing..."; \
+		git push origin v$(SPRING_VISION_VERSION) || ( echo "Failed to push tag to origin" && exit 1 ); \
+	fi
 
 docs:
 	@echo "Generating javadocs and creating report..."
