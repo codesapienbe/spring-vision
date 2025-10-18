@@ -17,7 +17,7 @@ jobs:
           java-version: 21
           server-id: github
           server-username: ${{ github.actor }}
-          server-password: ${{ secrets.GITHUB_TOKEN }}
+          server-password: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
 
       - name: Build and deploy to GitHub Packages
         env:
