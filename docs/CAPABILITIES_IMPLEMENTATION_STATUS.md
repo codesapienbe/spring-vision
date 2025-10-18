@@ -284,8 +284,8 @@ The current implementation provides:
 - ✅ 8 core capabilities fully implemented
 - ✅ 5 enhanced detection capabilities with unified API
 - ✅ 3 utility capabilities (Barcode, Metadata, Annotation)
-- ✅ 1 healthcare capability (Fall Detection)
-- ✅ **21 MCP tools fully functional** (9 core + 5 enhanced + 3 utility + 1 healthcare + 3 variants)
+- ✅ 3 healthcare capabilities (Fall Detection, Stress Analysis, Heart Rate) 🎉
+- ✅ **23 MCP tools fully functional** (9 core + 5 enhanced + 3 utility + 3 healthcare + 3 variants)
 - ✅ Unified response format using `List<Detection>`
 - 📚 20+ verified HuggingFace models documented and ready to integrate
 - 🏗️ Clear roadmap for specialized backends
