@@ -102,7 +102,9 @@ public class DjlVisionBackend implements VisionBackend,
     DeepfakeDetectionCapability,
     FallDetectionCapability,
     StressAnalysisCapability,
-    HeartRateCapability {
+    HeartRateCapability,
+    ThreatDetectionCapability,
+    AccessAuthenticationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -3010,6 +3012,352 @@ public class DjlVisionBackend implements VisionBackend,
         
         // Combined quality score
         return (consistencyScore * 0.6 + validFrameRatio * 0.4);
+    }
+
+    // ============================================================================
+    // Threat Detection Capability
+    // ============================================================================
+
+    /**
+     * Detects security threats including weapons, violence, and suspicious objects.
+     *
+     * <p>Implementation Strategy:</p>
+     * <ul>
+     *   <li><b>Weapons:</b> Use object detection to identify firearms, knives, weapons</li>
+     *   <li><b>Violence:</b> Use action recognition to detect aggressive behavior</li>
+     *   <li><b>Severity Assessment:</b> Classify threat level based on object type</li>
+     * </ul>
+     *
+     * <p>Current Implementation uses existing object detection with threat classification.
+     * Future enhancement: Load dedicated weapon detection model (e.g., YOLOv8-weapon).</p>
+     *
+     * @param imageDataList list of images to analyze for threats
+     * @return list of detections with threat metadata
+     */
+    @Override
+    public List<Detection> detectThreat(List<ImageData> imageDataList) {
+        logger.info("Detecting threats in {} images", imageDataList.size());
+        
+        List<Detection> allThreats = new ArrayList<>();
+        
+        for (ImageData imageData : imageDataList) {
+            try {
+                // Use object detection to find potential threats
+                List<Detection> objects = detectObjects(imageData);
+                
+                // Classify objects as threats and assess severity
+                for (Detection obj : objects) {
+                    ThreatClassification threat = classifyThreat(obj);
+                    
+                    if (threat != null) {
+                        // Create threat detection with rich metadata
+                        Map<String, Object> attributes = new java.util.HashMap<>();
+                        attributes.put("threatType", threat.threatType);
+                        attributes.put("severity", threat.severity);
+                        attributes.put("weaponClass", threat.weaponClass);
+                        attributes.put("description", threat.description);
+                        attributes.put("detectedClass", obj.label());
+                        attributes.put("originalConfidence", obj.confidence());
+                        attributes.put("type", DetectionType.THREAT);
+                        
+                        Detection threatDetection = new Detection(
+                            threat.weaponClass,
+                            obj.confidence(),
+                            obj.boundingBox(),
+                            attributes
+                        );
+                        
+                        allThreats.add(threatDetection);
+                        logger.info("Threat detected: {} (severity: {}, confidence: {})", 
+                            threat.weaponClass, threat.severity, obj.confidence());
+                    }
+                }
+                
+                // Check for violence/aggression using action recognition if available
+                if (actionRecognitionModel != null) {
+                    List<Detection> actions = recognizeActions(imageData);
+                    for (Detection action : actions) {
+                        ThreatClassification threat = classifyActionAsThreat(action);
+                        if (threat != null) {
+                            Map<String, Object> attributes = new java.util.HashMap<>();
+                            attributes.put("threatType", threat.threatType);
+                            attributes.put("severity", threat.severity);
+                            attributes.put("weaponClass", threat.weaponClass);
+                            attributes.put("description", threat.description);
+                            attributes.put("actionClass", action.label());
+                            attributes.put("type", DetectionType.THREAT);
+                            
+                            Detection threatDetection = new Detection(
+                                threat.weaponClass,
+                                action.confidence(),
+                                null, // No bounding box for actions
+                                attributes
+                            );
+                            allThreats.add(threatDetection);
+                        }
+                    }
+                }
+                
+            } catch (Exception e) {
+                logger.error("Failed to analyze image for threats: {}", e.getMessage(), e);
+            }
+        }
+        
+        logger.info("Threat detection complete. Found {} threats", allThreats.size());
+        return allThreats;
+    }
+    
+    /**
+     * Classifies detected object as a threat.
+     */
+    private ThreatClassification classifyThreat(Detection detection) {
+        String label = detection.label().toLowerCase();
+        
+        // Firearms - CRITICAL severity
+        if (label.contains("gun") || label.contains("pistol") || label.contains("rifle") || 
+            label.contains("firearm") || label.contains("weapon")) {
+            return new ThreatClassification(
+                "weapon",
+                "CRITICAL",
+                "firearm",
+                "Firearm detected with high threat level"
+            );
+        }
+        
+        // Knives and bladed weapons - HIGH severity
+        if (label.contains("knife") || label.contains("blade") || label.contains("sword") ||
+            label.contains("dagger") || label.contains("machete")) {
+            return new ThreatClassification(
+                "weapon",
+                "HIGH",
+                "knife",
+                "Bladed weapon detected"
+            );
+        }
+        
+        // Suspicious objects - MEDIUM severity
+        if (label.contains("backpack") || label.contains("suitcase") || 
+            label.contains("bag") || label.contains("box")) {
+            // Only flag as suspicious in certain contexts
+            // (In production, this would use context awareness)
+            if (detection.confidence() > 0.8) {
+                return new ThreatClassification(
+                    "suspicious_object",
+                    "LOW",
+                    "unattended_object",
+                    "Potentially unattended object detected"
+                );
+            }
+        }
+        
+        return null; // Not a threat
+    }
+    
+    /**
+     * Classifies detected action as a threat.
+     */
+    private ThreatClassification classifyActionAsThreat(Detection action) {
+        String label = action.label().toLowerCase();
+        
+        // Violence indicators - HIGH severity
+        if (label.contains("fight") || label.contains("punch") || label.contains("kick") ||
+            label.contains("attack") || label.contains("assault") || label.contains("violence")) {
+            return new ThreatClassification(
+                "violence",
+                "HIGH",
+                "physical_altercation",
+                "Violent behavior detected"
+            );
+        }
+        
+        // Aggressive behavior - MEDIUM severity
+        if (label.contains("aggressive") || label.contains("threatening") || 
+            label.contains("chase")) {
+            return new ThreatClassification(
+                "violence",
+                "MEDIUM",
+                "aggressive_behavior",
+                "Aggressive behavior detected"
+            );
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Helper class for threat classification.
+     */
+    private static class ThreatClassification {
+        final String threatType;
+        final String severity;
+        final String weaponClass;
+        final String description;
+        
+        ThreatClassification(String threatType, String severity, String weaponClass, String description) {
+            this.threatType = threatType;
+            this.severity = severity;
+            this.weaponClass = weaponClass;
+            this.description = description;
+        }
+    }
+
+    // ============================================================================
+    // Access Authentication Capability
+    // ============================================================================
+
+    /**
+     * Authenticates access using face recognition.
+     *
+     * <p>Authentication Flow:</p>
+     * <ol>
+     *   <li>Detect face in image</li>
+     *   <li>Extract face embedding</li>
+     *   <li>Match against authorized users (simulated)</li>
+     *   <li>Return authorization decision</li>
+     * </ol>
+     *
+     * <p><b>Note:</b> This implementation demonstrates the authentication flow.
+     * In production, integrate with a real user database and vector store for
+     * secure biometric template matching.</p>
+     *
+     * @param imageData image containing a face to authenticate
+     * @return authentication result with detailed metadata
+     */
+    @Override
+    public List<Detection> authenticateAccess(ImageData imageData) {
+        logger.info("Authenticating access from image");
+        
+        List<Detection> results = new ArrayList<>();
+        
+        try {
+            // Step 1: Detect faces
+            List<Detection> faces = detectFaces(imageData);
+            
+            if (faces.isEmpty()) {
+                logger.warn("Authentication failed: No face detected");
+                return createAuthResult(false, null, null, 0.0, 0.0, "NO_FACE_DETECTED");
+            }
+            
+            if (faces.size() > 1) {
+                logger.warn("Authentication failed: Multiple faces detected ({})", faces.size());
+                return createAuthResult(false, null, null, 0.0, 0.0, "MULTIPLE_FACES_DETECTED");
+            }
+            
+            Detection face = faces.get(0);
+            
+            // Step 2: Check face quality
+            if (face.confidence() < 0.7) {
+                logger.warn("Authentication failed: Low face detection confidence ({})", face.confidence());
+                return createAuthResult(false, null, null, face.confidence(), 0.0, "LOW_QUALITY_IMAGE");
+            }
+            
+            // Step 3: Extract face embedding
+            List<float[]> embeddingsList = extractFaceEmbeddings(imageData);
+            if (embeddingsList == null || embeddingsList.isEmpty()) {
+                logger.warn("Authentication failed: Could not extract face embedding");
+                return createAuthResult(false, null, null, face.confidence(), 0.0, "EMBEDDING_EXTRACTION_FAILED");
+            }
+            
+            float[] embedding = embeddingsList.get(0);
+            float[] normalizedEmbedding = l2Normalize(embedding);
+            
+            // Step 4: Match against authorized users
+            // In production, this would query a vector database of authorized users
+            AuthenticationMatch match = matchAgainstAuthorizedUsers(normalizedEmbedding);
+            
+            // Step 5: Make authorization decision
+            double similarityThreshold = properties.getFaceRecognition().getSimilarityThreshold();
+            boolean authorized = match.matchScore >= similarityThreshold;
+            
+            if (authorized) {
+                logger.info("Access AUTHORIZED for user: {} (match score: {}, confidence: {})",
+                    match.userName, match.matchScore, face.confidence());
+                return createAuthResult(true, match.userId, match.userName, 
+                    face.confidence(), match.matchScore, null);
+            } else {
+                logger.info("Access DENIED - No matching authorized user (best match score: {})", 
+                    match.matchScore);
+                return createAuthResult(false, null, null, face.confidence(), 
+                    match.matchScore, "UNAUTHORIZED_USER");
+            }
+            
+        } catch (Exception e) {
+            logger.error("Authentication failed with error: {}", e.getMessage(), e);
+            return createAuthResult(false, null, null, 0.0, 0.0, 
+                "AUTHENTICATION_ERROR: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Matches face embedding against authorized users.
+     * 
+     * <p><b>Note:</b> This is a simulated implementation. In production:
+     * <ul>
+     *   <li>Integrate with VectorStoreCapability for efficient similarity search</li>
+     *   <li>Use secure database of authorized biometric templates</li>
+     *   <li>Implement proper access control and audit logging</li>
+     *   <li>Consider liveness detection to prevent spoofing</li>
+     * </ul>
+     */
+    private AuthenticationMatch matchAgainstAuthorizedUsers(float[] embedding) {
+        // Simulated authorized user database
+        // In production, this would be a real database lookup
+        
+        // For demo purposes, return a simulated match
+        // Confidence threshold is configurable via spring.vision.djl.face-recognition.similarity-threshold
+        
+        return new AuthenticationMatch(
+            "user_demo",
+            "Demo User",
+            0.45  // Simulated low match score (below typical 0.5 threshold = unauthorized)
+        );
+    }
+    
+    /**
+     * Creates authentication result detection.
+     */
+    private List<Detection> createAuthResult(boolean authorized, String userId, 
+                                            String userName, double confidence, 
+                                            double matchScore, String reason) {
+        Map<String, Object> attributes = new java.util.HashMap<>();
+        attributes.put("authorized", authorized);
+        attributes.put("confidence", confidence);
+        attributes.put("matchScore", matchScore);
+        attributes.put("timestamp", java.time.Instant.now().toString());
+        attributes.put("type", DetectionType.ACCESS_AUTH);
+        
+        if (authorized && userId != null) {
+            attributes.put("userId", userId);
+            attributes.put("userName", userName);
+        }
+        
+        if (reason != null) {
+            attributes.put("reason", reason);
+        }
+        
+        Detection result = new Detection(
+            authorized ? "AUTHORIZED" : "UNAUTHORIZED",
+            confidence,
+            null, // No bounding box for authentication results
+            attributes
+        );
+        
+        return List.of(result);
+    }
+    
+    /**
+     * Helper class for authentication matching result.
+     */
+    private static class AuthenticationMatch {
+        final String userId;
+        final String userName;
+        final double matchScore;
+        
+        AuthenticationMatch(String userId, String userName, double matchScore) {
+            this.userId = userId;
+            this.userName = userName;
+            this.matchScore = matchScore;
+        }
     }
 
     @PreDestroy

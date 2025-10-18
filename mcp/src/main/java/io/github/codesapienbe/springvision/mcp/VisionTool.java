@@ -178,10 +178,16 @@ public class VisionTool {
 
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            VisionResult detections = visionTemplate.detectFaces(imgData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability faceBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
+            
+            List<io.github.codesapienbe.springvision.core.Detection> detections = faceBackend.detectFaces(imgData);
 
-            int faceCount = detections.detections().size();
-            double avgConfidence = detections.averageConfidence();
+            int faceCount = detections.size();
+            double avgConfidence = detections.isEmpty() ? 0.0 : 
+                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
             long duration = System.currentTimeMillis() - startTime;
 
             response.put("status", "success");
@@ -222,7 +228,12 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData);
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
+            List<float[]> rawEmbeddings = embeddingBackend.extractEmbeddings(imgData, 
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
             List<Map<String, Object>> out = new java.util.ArrayList<>();
 
             int idx = 0;
@@ -437,10 +448,15 @@ public class VisionTool {
 
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            VisionResult detections = visionTemplate.detectObjects(imgData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability objectBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability) visionTemplate.backend();
+            
+            List<io.github.codesapienbe.springvision.core.Detection> detections = objectBackend.detectObjects(imgData);
 
             List<Map<String, Object>> objects = new ArrayList<>();
-            for (var detection : detections.detections()) {
+            for (var detection : detections) {
                 Map<String, Object> obj = new HashMap<>();
                 obj.put("label", detection.label());
                 obj.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -458,10 +474,13 @@ public class VisionTool {
             }
 
             long duration = System.currentTimeMillis() - startTime;
+            double avgConfidence = detections.isEmpty() ? 0.0 : 
+                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
+            
             response.put("status", "success");
             response.put("objects", objects);
             response.put("count", objects.size());
-            response.put("averageConfidence", Math.round(detections.averageConfidence() * 10000.0) / 10000.0);
+            response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d objects", objects.size()));
             return response;
@@ -654,9 +673,15 @@ public class VisionTool {
             ImageData sourceData = ImageData.fromBytes(sourceBytes);
             ImageData targetData = ImageData.fromBytes(targetBytes);
 
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
             // Extract embeddings from both images
-            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
-            List<float[]> targetEmbeddings = visionTemplate.extractEmbeddings(targetData);
+            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+            List<float[]> targetEmbeddings = embeddingBackend.extractEmbeddings(targetData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
                 response.put("status", "error");
@@ -726,8 +751,14 @@ public class VisionTool {
             ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
             ImageData targetData = ImageData.fromBytes(targetImageBytes);
 
-            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
-            List<float[]> targetEmbeddings = visionTemplate.extractEmbeddings(targetData);
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
+            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+            List<float[]> targetEmbeddings = embeddingBackend.extractEmbeddings(targetData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
                 response.put("status", "error");
@@ -830,7 +861,13 @@ public class VisionTool {
             // Extract embedding from source image
             byte[] sourceBytes = downloadImageFromUrl(sourceImageUrl.trim());
             ImageData sourceData = ImageData.fromBytes(sourceBytes);
-            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
+            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
                 response.put("status", "error");
@@ -851,7 +888,8 @@ public class VisionTool {
                 try {
                     byte[] datasetBytes = downloadImageFromUrl(datasetUrl.trim());
                     ImageData datasetData = ImageData.fromBytes(datasetBytes);
-                    List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData);
+                    List<float[]> datasetEmbeddings = embeddingBackend.extractEmbeddings(datasetData,
+                        io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
                     if (!datasetEmbeddings.isEmpty()) {
                         float[] datasetEmbedding = datasetEmbeddings.getFirst();
@@ -944,7 +982,13 @@ public class VisionTool {
             }
 
             ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
-            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
+            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
                 response.put("status", "error");
@@ -962,7 +1006,8 @@ public class VisionTool {
             for (byte[] datasetBytes : datasetImageBytes) {
                 try {
                     ImageData datasetData = ImageData.fromBytes(datasetBytes);
-                    List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData);
+                    List<float[]> datasetEmbeddings = embeddingBackend.extractEmbeddings(datasetData,
+                        io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
                     if (!datasetEmbeddings.isEmpty()) {
                         float[] datasetEmbedding = datasetEmbeddings.get(0);
@@ -1798,10 +1843,16 @@ public class VisionTool {
             }
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            VisionResult detections = visionTemplate.detectFaces(imgData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability faceBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
+            
+            List<io.github.codesapienbe.springvision.core.Detection> detections = faceBackend.detectFaces(imgData);
 
-            int faceCount = detections.detections().size();
-            double avgConfidence = detections.averageConfidence();
+            int faceCount = detections.size();
+            double avgConfidence = detections.isEmpty() ? 0.0 : 
+                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
             long duration = System.currentTimeMillis() - startTime;
 
             response.put("status", "success");
@@ -1847,7 +1898,13 @@ public class VisionTool {
             }
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData);
+            
+            // Use capability-based approach
+            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
+            
+            List<float[]> rawEmbeddings = embeddingBackend.extractEmbeddings(imgData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
             List<Map<String, Object>> out = new java.util.ArrayList<>();
 
             int idx = 0;
@@ -2062,4 +2119,312 @@ public class VisionTool {
         }
     }
 
+    // ============================================================================
+    // Security Capabilities - Batch 4
+    // ============================================================================
+
+    /**
+     * Detects security threats including weapons, violence, and suspicious objects in an image.
+     *
+     * <p>Analyzes images for potential security threats such as firearms, knives, violent behavior,
+     * and suspicious objects. Returns detections with severity assessment and detailed threat metadata.</p>
+     *
+     * <p><b>Threat Types Detected:</b></p>
+     * <ul>
+     *   <li><b>Weapons:</b> Firearms (guns, rifles), knives, bladed weapons</li>
+     *   <li><b>Violence:</b> Aggressive behavior, fighting, physical altercations</li>
+     *   <li><b>Suspicious Objects:</b> Unattended packages, suspicious items</li>
+     * </ul>
+     *
+     * <p><b>Severity Levels:</b></p>
+     * <ul>
+     *   <li><b>CRITICAL:</b> Firearms and active threats</li>
+     *   <li><b>HIGH:</b> Knives, bladed weapons, violent behavior</li>
+     *   <li><b>MEDIUM:</b> Aggressive behavior</li>
+     *   <li><b>LOW:</b> Suspicious objects, potential threats</li>
+     * </ul>
+     *
+     * <p><b>⚠️ Important:</b> This tool is designed for legitimate security and safety applications.
+     * Ensure compliance with local surveillance laws, privacy regulations, and ethical AI principles.</p>
+     *
+     * @param imageUrl URL of the image to analyze for threats
+     * @return A map containing:
+     *         <ul>
+     *           <li>{@code status}: "success" or "error"</li>
+     *           <li>{@code threats}: List of detected threats with metadata</li>
+     *           <li>{@code threatCount}: Total number of threats detected</li>
+     *           <li>{@code highSeverityCount}: Number of HIGH or CRITICAL threats</li>
+     *           <li>{@code processingTimeMs}: Processing time in milliseconds</li>
+     *           <li>{@code disclaimer}: Legal and ethical usage disclaimer</li>
+     *         </ul>
+     */
+    @Tool(description = """
+        Detects security threats including weapons, violence, and suspicious objects in an image.
+        
+        Analyzes images for:
+        - Firearms (guns, rifles, handguns) - CRITICAL severity
+        - Knives and bladed weapons - HIGH severity
+        - Violent behavior and aggression - HIGH/MEDIUM severity
+        - Suspicious objects - LOW severity
+        
+        Returns detections with bounding boxes, severity levels, and confidence scores.
+        
+        ⚠️ IMPORTANT: For legitimate security use only. Comply with local laws and regulations.
+        """)
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectThreats(String imageUrl) {
+        log.info("detectThreats called",
+            StructuredArguments.keyValue("event", "detect_threats_start"),
+            StructuredArguments.keyValue("imageUrl", imageUrl));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required");
+                response.put("threats", List.of());
+                response.put("threatCount", 0);
+                return response;
+            }
+
+            // Download image
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            io.github.codesapienbe.springvision.core.ImageData imageData =
+                io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes);
+
+            // Get backend and detect threats
+            io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability threatBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> detections =
+                threatBackend.detectThreat(List.of(imageData));
+
+            // Process detections
+            List<Map<String, Object>> threats = new ArrayList<>();
+            int highSeverityCount = 0;
+
+            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+                Map<String, Object> threat = new HashMap<>();
+                threat.put("label", detection.label());
+                threat.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+
+                // Add bounding box if present
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    threat.put("boundingBox", bbox);
+                }
+
+                // Add threat metadata
+                String threatType = (String) detection.attributes().get("threatType");
+                String severity = (String) detection.attributes().get("severity");
+                String weaponClass = (String) detection.attributes().get("weaponClass");
+                String description = (String) detection.attributes().get("description");
+
+                threat.put("threatType", threatType);
+                threat.put("severity", severity);
+                threat.put("weaponClass", weaponClass);
+                threat.put("description", description);
+
+                // Count high-severity threats
+                if ("HIGH".equals(severity) || "CRITICAL".equals(severity)) {
+                    highSeverityCount++;
+                }
+
+                threats.add(threat);
+            }
+
+            long processingTime = System.currentTimeMillis() - startTime;
+
+            response.put("status", "success");
+            response.put("threats", threats);
+            response.put("threatCount", threats.size());
+            response.put("highSeverityCount", highSeverityCount);
+            response.put("processingTimeMs", processingTime);
+            response.put("imageUrl", imageUrl);
+            response.put("disclaimer", "For legitimate security and safety use only. Comply with local surveillance laws and privacy regulations.");
+            response.put("warning", "False positives may occur. Human verification recommended for critical decisions.");
+
+            log.info("detectThreats completed",
+                StructuredArguments.keyValue("event", "detect_threats_complete"),
+                StructuredArguments.keyValue("threatCount", threats.size()),
+                StructuredArguments.keyValue("highSeverityCount", highSeverityCount),
+                StructuredArguments.keyValue("processingTimeMs", processingTime));
+
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect threats: " + e.getMessage());
+            response.put("threats", List.of());
+            response.put("threatCount", 0);
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect threats", e);
+            return response;
+        }
+    }
+
+    /**
+     * Authenticates access using biometric face recognition.
+     *
+     * <p>Performs identity verification by detecting a face in the image, extracting its biometric
+     * features, and matching against authorized users. Returns authorization decision with confidence
+     * scores and detailed metadata.</p>
+     *
+     * <p><b>Authentication Flow:</b></p>
+     * <ol>
+     *   <li>Detect face in the image</li>
+     *   <li>Verify image quality and face visibility</li>
+     *   <li>Extract biometric face embedding</li>
+     *   <li>Match against authorized user database</li>
+     *   <li>Return authorization decision</li>
+     * </ol>
+     *
+     * <p><b>Authentication Status:</b></p>
+     * <ul>
+     *   <li><b>AUTHORIZED:</b> Face matched with high confidence</li>
+     *   <li><b>UNAUTHORIZED:</b> No match or confidence too low</li>
+     *   <li><b>ERROR:</b> No face detected, multiple faces, or poor quality</li>
+     * </ul>
+     *
+     * <p><b>⚠️ Security Considerations:</b></p>
+     * <ul>
+     *   <li>Implement liveness detection to prevent photo/video spoofing</li>
+     *   <li>Use multi-factor authentication (face + PIN/card)</li>
+     *   <li>Log all authentication attempts for audit trail</li>
+     *   <li>Encrypt biometric templates at rest and in transit</li>
+     *   <li>Comply with biometric privacy laws (GDPR, BIPA, etc.)</li>
+     * </ul>
+     *
+     * @param imageUrl URL of the image containing a face to authenticate
+     * @return A map containing:
+     *         <ul>
+     *           <li>{@code status}: "success" or "error"</li>
+     *           <li>{@code authorized}: Boolean indicating if access is granted</li>
+     *           <li>{@code userId}: Matched user ID (if authorized)</li>
+     *           <li>{@code userName}: Matched user name (if authorized)</li>
+     *           <li>{@code confidence}: Face detection confidence</li>
+     *           <li>{@code matchScore}: Similarity score with matched user</li>
+     *           <li>{@code reason}: Failure reason if unauthorized</li>
+     *           <li>{@code timestamp}: Authentication timestamp</li>
+     *           <li>{@code processingTimeMs}: Processing time in milliseconds</li>
+     *         </ul>
+     */
+    @Tool(description = """
+        Authenticates access using biometric face recognition.
+        
+        Performs identity verification by:
+        1. Detecting face in the image
+        2. Extracting biometric features
+        3. Matching against authorized users
+        4. Returning authorization decision
+        
+        Returns:
+        - authorized: true/false access decision
+        - userId: matched user ID (if authorized)
+        - confidence: detection confidence score
+        - matchScore: similarity with matched user
+        - reason: failure reason if unauthorized
+        
+        ⚠️ SECURITY: For production use:
+        - Implement liveness detection (anti-spoofing)
+        - Use multi-factor authentication
+        - Maintain audit logs
+        - Comply with biometric privacy laws
+        """)
+    @SuppressWarnings("unused")
+    public Map<String, Object> authenticateAccess(String imageUrl) {
+        log.info("authenticateAccess called",
+            StructuredArguments.keyValue("event", "authenticate_access_start"),
+            StructuredArguments.keyValue("imageUrl", imageUrl));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required");
+                response.put("authorized", false);
+                return response;
+            }
+
+            // Download image
+            byte[] imageBytes = downloadImageFromUrl(imageUrl);
+            io.github.codesapienbe.springvision.core.ImageData imageData =
+                io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes);
+
+            // Get backend and authenticate
+            io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability authBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> results =
+                authBackend.authenticateAccess(imageData);
+
+            if (results.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Authentication failed - no results");
+                response.put("authorized", false);
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            // Get authentication result
+            io.github.codesapienbe.springvision.core.Detection authResult = results.get(0);
+
+            Boolean authorized = (Boolean) authResult.attributes().get("authorized");
+            Double confidence = (Double) authResult.attributes().get("confidence");
+            Double matchScore = (Double) authResult.attributes().get("matchScore");
+            String timestamp = (String) authResult.attributes().get("timestamp");
+            String userId = (String) authResult.attributes().get("userId");
+            String userName = (String) authResult.attributes().get("userName");
+            String reason = (String) authResult.attributes().get("reason");
+
+            long processingTime = System.currentTimeMillis() - startTime;
+
+            response.put("status", "success");
+            response.put("authorized", Boolean.TRUE.equals(authorized));
+            response.put("label", authResult.label());
+            response.put("confidence", confidence != null ? Math.round(confidence * 10000.0) / 10000.0 : 0.0);
+            response.put("matchScore", matchScore != null ? Math.round(matchScore * 10000.0) / 10000.0 : 0.0);
+            response.put("timestamp", timestamp);
+            response.put("processingTimeMs", processingTime);
+            response.put("imageUrl", imageUrl);
+
+            if (Boolean.TRUE.equals(authorized)) {
+                response.put("userId", userId);
+                response.put("userName", userName);
+                response.put("message", "Access granted for user: " + userName);
+            } else {
+                response.put("reason", reason);
+                response.put("message", "Access denied: " + reason);
+            }
+
+            // Security recommendations
+            response.put("securityNote", "This is a demonstration. Production systems should implement liveness detection and multi-factor authentication.");
+            response.put("privacyNote", "Ensure compliance with biometric privacy laws (GDPR, BIPA, etc.)");
+
+            log.info("authenticateAccess completed",
+                StructuredArguments.keyValue("event", "authenticate_access_complete"),
+                StructuredArguments.keyValue("authorized", authorized),
+                StructuredArguments.keyValue("processingTimeMs", processingTime));
+
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to authenticate access: " + e.getMessage());
+            response.put("authorized", false);
+            response.put("processingTimeMs", duration);
+            log.error("Failed to authenticate access", e);
+            return response;
+        }
+    }
 }
