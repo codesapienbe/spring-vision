@@ -391,7 +391,79 @@ public class AsyncVisionProcessor {
                 }
             }
 
-            return visionTemplate.detect(task.getImageData(), task.getDetectionType());
+            // Execute capability-based detection
+            return executeCapabilityDetection(task.getImageData(), task.getDetectionType());
+        }
+
+        /**
+         * Executes capability-based detection for a given DetectionType.
+         * This replaces the deprecated visionTemplate.detect() pattern.
+         *
+         * @param imageData     the image data to process
+         * @param detectionType the type of detection to perform
+         * @return VisionResult containing detections
+         */
+        private io.github.codesapienbe.springvision.core.VisionResult executeCapabilityDetection(
+            io.github.codesapienbe.springvision.core.ImageData imageData,
+            io.github.codesapienbe.springvision.core.DetectionType detectionType) {
+
+            long startTime = System.currentTimeMillis();
+            java.util.List<io.github.codesapienbe.springvision.core.Detection> detections;
+
+            // Route to appropriate capability based on detection type
+            switch (detectionType) {
+                case FACE -> {
+                    io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability backend =
+                        (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
+                    detections = backend.detectFaces(imageData);
+                }
+                case OBJECT -> {
+                    io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability backend =
+                        (io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability) visionTemplate.backend();
+                    detections = backend.detectObjects(imageData);
+                }
+                case TEXT -> {
+                    io.github.codesapienbe.springvision.core.capabilities.OcrCapability backend =
+                        (io.github.codesapienbe.springvision.core.capabilities.OcrCapability) visionTemplate.backend();
+                    java.util.List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> textDetections = backend.extractText(imageData);
+                    // Convert TextDetection to Detection
+                    detections = textDetections.stream()
+                        .map(td -> new io.github.codesapienbe.springvision.core.Detection(
+                            td.text(),
+                            td.confidence(),
+                            td.boundingBox() != null ? convertToBox(td.boundingBox()) : null,
+                            java.util.Map.of("text", td.text(), "attributes", td.attributes())
+                        ))
+                        .toList();
+                }
+                case BARCODE -> {
+                    io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability backend =
+                        (io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability) visionTemplate.backend();
+                    detections = backend.detectBarcodes(imageData);
+                }
+                default -> throw new UnsupportedOperationException("Unsupported detection type: " + detectionType);
+            }
+
+            long processingTime = System.currentTimeMillis() - startTime;
+            double avgConfidence = detections.isEmpty() ? 0.0 :
+                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
+
+            return io.github.codesapienbe.springvision.core.VisionResult.of(detectionType, detections, avgConfidence, processingTime);
+        }
+
+        /**
+         * Helper to convert OCR bounding box map to BoundingBox.
+         */
+        private io.github.codesapienbe.springvision.core.BoundingBox convertToBox(java.util.Map<String, Object> bboxMap) {
+            try {
+                double x = ((Number) bboxMap.get("x")).doubleValue();
+                double y = ((Number) bboxMap.get("y")).doubleValue();
+                double width = ((Number) bboxMap.get("width")).doubleValue();
+                double height = ((Number) bboxMap.get("height")).doubleValue();
+                return new io.github.codesapienbe.springvision.core.BoundingBox(x, y, width, height);
+            } catch (Exception e) {
+                return new io.github.codesapienbe.springvision.core.BoundingBox(0, 0, 0, 0);
+            }
         }
     }
 }

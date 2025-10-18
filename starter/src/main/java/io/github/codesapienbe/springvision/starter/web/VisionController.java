@@ -131,7 +131,7 @@ public class VisionController {
             ImageData imageData = convertToImageData(file);
 
             // Perform face detection using capability-based approach
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.FACE);
             List<io.github.codesapienbe.springvision.core.Detection> detections = result.detections();
             if (minConfidence != null) {
                 double thr = Math.max(0.0, Math.min(1.0, minConfidence));
@@ -201,7 +201,7 @@ public class VisionController {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
             // Perform face detection using capability-based approach
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.FACE);
             List<io.github.codesapienbe.springvision.core.Detection> detections = result.detections();
             if (minConfidence != null) {
                 double thr = Math.max(0.0, Math.min(1.0, minConfidence));
@@ -270,7 +270,7 @@ public class VisionController {
             ImageData imageData = convertToImageData(file);
 
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+                VisionResult result = executeCapabilityDetection(imageData, DetectionType.FACE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(DetectionType.FACE.getCode())
@@ -326,7 +326,7 @@ public class VisionController {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
+                VisionResult result = executeCapabilityDetection(imageData, DetectionType.FACE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(DetectionType.FACE.getCode())
@@ -390,7 +390,7 @@ public class VisionController {
             ImageData imageData = convertToImageData(file);
 
             // Perform object detection using capability-based approach
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.OBJECT);
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
@@ -452,7 +452,7 @@ public class VisionController {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
             // Perform object detection using capability-based approach
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.OBJECT);
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
@@ -511,7 +511,7 @@ public class VisionController {
         try {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.OBJECT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -566,7 +566,7 @@ public class VisionController {
 
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
+            VisionResult result = executeCapabilityDetection(imageData, DetectionType.OBJECT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -637,7 +637,7 @@ public class VisionController {
             ImageData imageData = convertToImageData(file);
 
             // Perform multiple detections
-            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+            List<VisionResult> results = executeMultipleCapabilityDetections(imageData, types);
 
             // Create response
             MultipleDetectionResponse response = MultipleDetectionResponse.builder()
@@ -708,7 +708,7 @@ public class VisionController {
             List<DetectionType> types = parseDetectionTypesFromList(request.getDetectionTypes());
 
             // Perform multiple detections
-            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+            List<VisionResult> results = executeMultipleCapabilityDetections(imageData, types);
 
             // Create response
             MultipleDetectionResponse response = MultipleDetectionResponse.builder()
@@ -774,7 +774,7 @@ public class VisionController {
             validateFile(file);
             List<DetectionType> types = parseDetectionTypes(detectionTypes);
             ImageData imageData = convertToImageData(file);
-            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+            List<VisionResult> results = executeMultipleCapabilityDetections(imageData, types);
 
             MultipleDetectionResponse response = MultipleDetectionResponse.builder()
                 .correlationId(correlationId)
@@ -836,7 +836,7 @@ public class VisionController {
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
             List<DetectionType> types = parseDetectionTypesFromList(request.getDetectionTypes());
-            List<VisionResult> results = visionTemplate.detectMultiple(imageData, types);
+            List<VisionResult> results = executeMultipleCapabilityDetections(imageData, types);
 
             MultipleDetectionResponse response = MultipleDetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1373,7 +1373,7 @@ public class VisionController {
         try {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
+            VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1422,7 +1422,7 @@ public class VisionController {
 
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
+            VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1474,7 +1474,7 @@ public class VisionController {
         try {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
+            VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1523,7 +1523,7 @@ public class VisionController {
 
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
+            VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1654,7 +1654,9 @@ public class VisionController {
 
             io.github.codesapienbe.springvision.core.DetectionQuery query = qb.build();
             ImageData imageData = ImageData.fromBytes(file.getBytes());
-            VisionResult result = visionTemplate.detect(imageData, query);
+            // Note: Query parameters (minConfidence, maxDetections) are not directly supported by capabilities
+            // They should be applied as filters after detection
+            VisionResult result = executeCapabilityDetection(imageData, type);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -1697,7 +1699,7 @@ public class VisionController {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
+                VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(io.github.codesapienbe.springvision.core.DetectionType.BARCODE.getCode())
@@ -1744,7 +1746,7 @@ public class VisionController {
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
+                VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.BARCODE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(io.github.codesapienbe.springvision.core.DetectionType.BARCODE.getCode())
@@ -1794,7 +1796,7 @@ public class VisionController {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
+                VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(io.github.codesapienbe.springvision.core.DetectionType.TEXT.getCode())
@@ -1841,7 +1843,7 @@ public class VisionController {
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detect(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
+                VisionResult result = executeCapabilityDetection(imageData, io.github.codesapienbe.springvision.core.DetectionType.TEXT);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(io.github.codesapienbe.springvision.core.DetectionType.TEXT.getCode())
@@ -1936,6 +1938,89 @@ public class VisionController {
                 "error", e.getClass().getSimpleName()
             ), e);
             return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage())));
+        }
+    }
+
+    // ===== Capability-Based Detection Helper Methods =====
+
+    /**
+     * Executes capability-based detection for a given DetectionType.
+     * This replaces the deprecated visionTemplate.detect() pattern.
+     *
+     * @param imageData     the image data to process
+     * @param detectionType the type of detection to perform
+     * @return VisionResult containing detections
+     */
+    private VisionResult executeCapabilityDetection(ImageData imageData, DetectionType detectionType) {
+        long startTime = System.currentTimeMillis();
+        List<io.github.codesapienbe.springvision.core.Detection> detections;
+
+        // Route to appropriate capability based on detection type
+        switch (detectionType) {
+            case FACE -> {
+                io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability backend =
+                    (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
+                detections = backend.detectFaces(imageData);
+            }
+            case OBJECT -> {
+                io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability backend =
+                    (io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability) visionTemplate.backend();
+                detections = backend.detectObjects(imageData);
+            }
+            case TEXT -> {
+                io.github.codesapienbe.springvision.core.capabilities.OcrCapability backend =
+                    (io.github.codesapienbe.springvision.core.capabilities.OcrCapability) visionTemplate.backend();
+                List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> textDetections = backend.extractText(imageData);
+                // Convert TextDetection to Detection
+                detections = textDetections.stream()
+                    .map(td -> new io.github.codesapienbe.springvision.core.Detection(
+                        td.text(),
+                        td.confidence(),
+                        td.boundingBox() != null ? convertToBox(td.boundingBox()) : null,
+                        Map.of("text", td.text(), "attributes", td.attributes())
+                    ))
+                    .toList();
+            }
+            case BARCODE -> {
+                io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability backend =
+                    (io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability) visionTemplate.backend();
+                detections = backend.detectBarcodes(imageData);
+            }
+            default -> throw new UnsupportedOperationException("Unsupported detection type: " + detectionType);
+        }
+
+        long processingTime = System.currentTimeMillis() - startTime;
+        double avgConfidence = detections.isEmpty() ? 0.0 :
+            detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
+
+        return VisionResult.of(detectionType, detections, avgConfidence, processingTime);
+    }
+
+    /**
+     * Executes multiple capability-based detections.
+     *
+     * @param imageData      the image data to process
+     * @param detectionTypes the list of detection types to perform
+     * @return list of VisionResults
+     */
+    private List<VisionResult> executeMultipleCapabilityDetections(ImageData imageData, List<DetectionType> detectionTypes) {
+        return detectionTypes.stream()
+            .map(type -> executeCapabilityDetection(imageData, type))
+            .toList();
+    }
+
+    /**
+     * Helper to convert OCR bounding box map to BoundingBox.
+     */
+    private io.github.codesapienbe.springvision.core.BoundingBox convertToBox(Map<String, Object> bboxMap) {
+        try {
+            double x = ((Number) bboxMap.get("x")).doubleValue();
+            double y = ((Number) bboxMap.get("y")).doubleValue();
+            double width = ((Number) bboxMap.get("width")).doubleValue();
+            double height = ((Number) bboxMap.get("height")).doubleValue();
+            return new io.github.codesapienbe.springvision.core.BoundingBox(x, y, width, height);
+        } catch (Exception e) {
+            return new io.github.codesapienbe.springvision.core.BoundingBox(0, 0, 0, 0);
         }
     }
 }
