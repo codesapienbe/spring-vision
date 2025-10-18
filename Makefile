@@ -34,9 +34,11 @@ deploy:
 	docker push docker.io/codesapienbe/spring-vision-mcp:latest
 
 release:
-	@echo "Releasing all modules to Maven Central with version $(SPRING_VISION_VERSION)..."; \
+	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true; \
-	mvn -B deploy -X -DskipTests || ( echo "Maven deploy failed!" && exit 1 );
+	# Create annotated git tag and push it to origin to trigger GitHub Actions publishing
+	git tag -a v$(SPRING_VISION_VERSION) -m "Release v$(SPRING_VISION_VERSION)" || true; \
+	git push origin v$(SPRING_VISION_VERSION) || ( echo "Failed to push tag to origin" && exit 1 );
 
 release-local:
 	@echo "Simulating release to local repo: $(LOCAL_REPO) with version $(SPRING_VISION_VERSION) (gpg.skip=$(GPG_SKIP), skipDockerBuild=$(SKIP_DOCKER_BUILD))"; \

@@ -7,7 +7,7 @@
 
   <groupId>io.github.codesapienbe.springvision</groupId>
   <artifactId>spring-vision</artifactId>
-  <version>1.0.8</version>
+  <version>0.0.1</version>
   <packaging>pom</packaging>
 
   <name>Spring Vision</name>
@@ -87,9 +87,10 @@
 
   <distributionManagement>
     <repository>
-      <id>central</id>
-      <name>Central Portal</name>
-      <url>https://central.sonatype.com/api/v1/publisher/upload</url>
+      <!-- Publish artifacts to GitHub Packages for the project repository. -->
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/codesapienbe/spring-vision</url>
     </repository>
   </distributionManagement>
 
