@@ -55,7 +55,7 @@ Checkpoint: After the build, you should see the starter artifact installed to yo
 
 - groupId: io.github.codesapienbe.springvision
 - artifactId: starter
-- version: 1.0
+- version: 0.0.1
 
 (2) Install Spring CLI (if not already installed)
 
@@ -101,11 +101,10 @@ Narration cue: "Open the generated `pom.xml` and add the `spring-vision` starter
 Open `vision-demo/pom.xml` and add a dependency in the `<dependencies>` section. Use these exact coordinates from `starter/pom.xml`:
 
 ```xml
-
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>1.0</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 

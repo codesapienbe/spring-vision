@@ -764,7 +764,7 @@ curl -X GET "http://localhost:8080/api/vision/health"
   "correlationId": "req_1729286973333_20",
   "backendId": "opencv",
   "backendName": "Vision Backend",
-  "backendVersion": "1.0.8",
+  "backendVersion": "0.0.1",
   "status": "HEALTHY",
   "statusMessage": "Backend is operating normally",
   "responseTimeMs": 45,
@@ -792,7 +792,7 @@ curl -X GET "http://localhost:8080/api/vision/info"
     "responseTimeMs": 45,
     "supportedDetectionTypes": ["face", "object", "text", "barcode"]
   },
-  "version": "1.0.8",
+  "version": "0.0.1",
   "message": "Info retrieved successfully"
 }
 ```

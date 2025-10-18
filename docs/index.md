@@ -1,7 +1,7 @@
 # Spring Vision Documentation
 
 <div align="center">
-  <p><strong>🚀 Production-ready computer vision framework for Spring Boot applications</strong></p>
+  <p><strong>🚀 Computer vision framework for Spring Boot applications</strong></p>
 </div>
 
 Welcome to the Spring Vision documentation! This comprehensive guide is designed for developers, contributors, operators, and anyone interested in computer vision capabilities. Whether you're just getting started or looking to contribute, you'll find everything you need here.

@@ -1,103 +1,74 @@
-[Docs Home](./index.md) · [Architecture](./architecture.md) · [Config](./config.md) · [GPU](./gpu.md)
+[Docs Home](../index.md) · [Architecture](../architecture/architecture.md) · [Config](./config.md) · [GPU](./gpu.md)
 
-# Runtime & Operations Guide
+# Runtime Guide
 
-This page covers how to run Spring Vision reliably in production: configuration, health checks, metrics, threading, resource management, and troubleshooting.
+Basic runtime configuration and troubleshooting for Spring Vision 0.0.1.
 
 ## Overview
 
 - Java 21+, Spring Boot 3.2+
-- Virtual Threads for scalable concurrency
-- Clean lifecycle: proper resource shutdown, health monitoring, and metrics
+- DJL backend with automatic model management
+- Simple configuration for development and testing
 
-## Configuration Essentials
+## Basic Configuration
 
 application.yml:
 
 ```yaml
 spring:
   vision:
-    enabled: true
-    backend: opencv   # or mediapipe, yolo, facebytes, deepface, insightface
-    execution-provider: cpu  # or gpu (requires GPU build)
-    opencv:
+    djl:
       enabled: true
-      confidence-threshold: 0.7
+      engine: pytorch
+      device: cpu  # or gpu for GPU acceleration
 ```
 
-Environment variables:
+## Environment Variables
+
+You can also configure using environment variables:
 
 ```bash
-export VISION_ENABLED=true
-export VISION_BACKEND=opencv
-export VISION_EXECUTION_PROVIDER=cpu
+export SPRING_VISION_DJL_ENABLED=true
+export SPRING_VISION_DJL_ENGINE=pytorch
+export SPRING_VISION_DJL_DEVICE=cpu
 ```
 
-See also: [Config](./config.md) and [GPU](./gpu.md)
+## Health Check
 
-## Health & Readiness
+The application includes a basic health check endpoint:
 
-- `/actuator/health` – overall health
-- `/actuator/health/vision` – backend health and readiness
+- `GET /api/vision/health` - Check if the vision backend is working
 
-Typical readiness checks include:
+## Troubleshooting
 
-- Backend initialization status
-- Model availability
-- Thread and queue health
+### Common Issues
 
-## Metrics
+1. **Models not downloading**: Ensure internet connection for first run
+2. **GPU not detected**: Install CUDA drivers and rebuild with `-P gpu` profile
+3. **Out of memory**: Reduce concurrent requests or increase JVM heap size
 
-Key metrics to watch:
+### Logs
 
-- vision.detections.total – total detections
-- vision.processing.time – processing time histograms
-- vision.errors.total – error count
-- vision.backend.health – backend status gauge
+Check application logs for detailed error messages:
 
-Export via Micrometer to Prometheus/Grafana for dashboards.
+```bash
+tail -f logs/spring-vision.log
+```
 
-## Threading Model (Virtual Threads)
+## Development Tips
 
-Spring Vision uses Java 21 Virtual Threads where applicable to improve scalability:
-
-- Async execution: virtual-thread-per-task for high concurrency
-- Background tasks (health/metrics): lightweight virtual threads
-
-Benefits:
-
-- Lower memory overhead vs platform threads
-- Simplified concurrency (no complex pool tuning)
-
-## Resource Management
-
-- Models: Prefer classpath `classpath:/models` for portability; use external paths for large/custom models
-- Cleanup: All native resources and thread-locals are closed on shutdown
-- Timeouts: Configure sensible timeouts for long-running tasks
+- Start with CPU configuration for development
+- Use small test images to verify functionality
+- Enable debug logging for troubleshooting: `logging.level.io.github.codesapienbe.springvision=DEBUG`
 - Batching: Use batch processing for better throughput and GPU utilization
 
-See: [Models Guide](./models.md)
+## Getting Help
 
-## Docker & Kubernetes
+If you encounter issues:
 
-- Use GPU-enabled images only when GPU is required
-- Limit resources (CPU/memory) per environment
-- Add liveness/readiness probes to use `/actuator/health` endpoints
+1. Check the application logs for error messages
+2. Verify your configuration matches the examples above
+3. Ensure all dependencies are properly resolved
+4. Try with a simple test image first
 
-## Troubleshooting Quick Wins
-
-- Faces not detected: verify image size/quality, adjust thresholds
-- Slow performance: downscale images, enable GPU, batch operations
-- OOM: increase heap (`-Xmx`), reduce image sizes, limit concurrency
-- Model not found: confirm model path or bundling; see [Downloads](./downloads.md)
-
-## Validation Checklist
-
-- Health is UP and vision backend is healthy
-- Metrics visible and exported to your observability stack
-- Graceful shutdown completes without errors
-- Concurrency and timeouts validated under load
-
----
-
-See also: [Config](./config.md) · [GPU](./gpu.md) · [Models](./models.md) · [Downloads](./downloads.md) · [Start](./start.md)
+For more detailed troubleshooting, see [Configuration Guide](./config.md) and [Models Guide](./models.md).

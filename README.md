@@ -25,16 +25,15 @@
   </p>
 </div>
 
-**Spring Vision** is a production-ready computer vision framework that brings powerful AI capabilities to your Spring Boot applications. Detect faces, recognize objects, analyze emotions, and build intelligent applications with just a few lines of code.
+**Spring Vision** is a computer vision framework that brings AI capabilities to your Spring Boot applications. Built on the Deep Java Library (DJL), it provides a simple API for common computer vision tasks like face detection, object recognition, and image analysis.
 
-## ✨ Why Spring Vision?
+## ✨ Features
 
-- **🚀 Zero-Configuration Setup**: Get started in minutes with auto-configuration and sensible defaults.
-- **🎨 Production-Ready Features**: Enterprise security, real-time monitoring, and high performance for production workloads.
-- **🤖 DJL-Powered**: Built on Deep Java Library for modern AI model management and inference.
-- **🔌 Pluggable Backends**: DJL (default), OpenCV, FaceBytes, YOLO, MediaPipe support.
+- **🚀 Easy Setup**: Get started quickly with auto-configuration and sensible defaults.
+- **🤖 DJL-Powered**: Built on Deep Java Library for modern AI model management.
+- **🔌 Multiple Backends**: Support for DJL (PyTorch, ONNX), OpenCV, and other vision libraries.
 - **🌐 Cross-Platform**: Works on Linux, macOS, and Windows.
-- **🏗️ Spring Boot Native**: Health checks, metrics, and async support with virtual threads.
+- **🏗️ Spring Boot Integration**: Health checks, metrics, and Spring ecosystem compatibility.
 
 ## 🚀 Getting Started
 
@@ -44,7 +43,7 @@
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>1.0.5</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 
@@ -68,103 +67,72 @@ That's it! Your Spring Boot application now has state-of-the-art computer vision
 
 ## ⚙️ Configuration
 
-### Default Configuration (CPU)
+### Basic Setup
 
-Spring Vision works out of the box with DJL and PyTorch:
+Spring Vision works out of the box with minimal configuration:
 
 ```yaml
 spring:
   vision:
     djl:
       enabled: true
-      engine: PyTorch
-      confidence-threshold: 0.5
+      engine: pytorch  # or tensorflow, onnx
+      device: cpu      # or gpu for GPU acceleration
 ```
 
-### GPU Acceleration
+### GPU Support (Optional)
 
-For GPU acceleration, use the GPU profile:
-
-```yaml
-spring:
-  vision:
-    djl:
-      enabled: true
-      engine: PyTorch
-      confidence-threshold: 0.5
-      
-spring:
-  profiles:
-    active: gpu
-```
-
-### Legacy Backends
-
-You can still use legacy backends if needed:
+For GPU acceleration, use:
 
 ```yaml
 spring:
+  config:
+    activate:
+      on-profile: gpu
   vision:
     djl:
-      enabled: false
-    opencv:
-      enabled: true
-    facebytes:
-      enabled: true
+      device: gpu
 ```
 
 ## 🚀 DJL Backend Features
 
 - **Automatic Model Management**: DJL downloads and caches models automatically
 - **Multi-Engine Support**: PyTorch, ONNX Runtime, TensorFlow
-- **GPU Acceleration**: CUDA support for faster inference
+- **GPU Acceleration**: CUDA support for faster inference (optional)
 - **Model Zoo Integration**: Access to pre-trained models from DJL model zoo
-- **Memory Efficient**: Optimized memory usage and cleanup
 
-## Modules
+## Current Capabilities
 
-Spring Vision is a modular framework that allows you to plug in different computer vision backends and features.
+Spring Vision 0.0.1 provides these computer vision capabilities:
 
-### Face Recognition Modules
+- **Face Detection** - Detect and locate faces in images
+- **Object Detection** - Identify and classify objects
+- **Text Recognition** - Extract text using OCR
+- **Image Classification** - Classify images into categories
+- **Pose Estimation** - Detect human body poses
+- **Emotion Analysis** - Recognize facial emotions
 
-- **CompreFace**: Face detection, recognition, and analysis using the CompreFace REST API.
-- **DeepFace**: Face recognition and analysis using the DeepFace library.
-- **FaceBytes**: A lightweight, native face detection and recognition engine.
-- **InsightFace**: High-accuracy face recognition using the InsightFace library.
-
-### Computer Vision Modules
-
-- **MediaPipe**: A framework for building multimodal applied machine learning pipelines.
-- **YOLO**: Real-time object detection using the YOLO (You Only Look Once) model.
-- **Tesseract**: OCR (Optical Character Recognition) for extracting text from images.
-
-### Specialized Modules
-
-- **Cyber**: A module for detecting cyber threats, such as QR code phishing and shoulder surfing.
-- **Health**: A module for health-related computer vision tasks, such as fall detection and vital sign monitoring.
-
-### Infrastructure Modules
-
-- **Persistence**: A module for persisting computer vision data, such as face embeddings and detection results.
-- **Starter**: A starter module that provides auto-configuration and a unified API for all backends.
+More capabilities will be added in future releases.
 
 ## Architecture
 
-Spring Vision is designed with a layered architecture that separates the application layer from the computer vision backends.
+Spring Vision uses a simple, layered architecture:
 
-- **Application Layer**: This layer includes the REST API, web UI, and CLI.
-- **Framework Core**: This layer provides the core functionality of the framework, such as the `VisionTemplate`, configuration, and utilities.
-- **Backends**: This layer includes the different computer vision backends, such as OpenCV, YOLO, and MediaPipe.
-- **Integrations**: This layer includes integrations with other systems, such as persistence, health monitoring, and robotics.
+- **Application Layer**: REST API for computer vision operations
+- **Framework Core**: `VisionTemplate` provides unified API for all vision tasks
+- **DJL Backend**: Deep Java Library handles model management and inference
+- **Vision Capabilities**: Modular detection and analysis capabilities
 
-## GPU Acceleration
+## GPU Acceleration (Optional)
 
-Spring Vision supports GPU acceleration for faster inference. To enable GPU acceleration, you need to:
+For GPU acceleration, use the `gpu` profile:
 
-1.  **Build with the `gpu` profile**: `mvn clean install -P gpu`
-2.  **Configure the `execution-provider`**: `spring.vision.execution-provider=gpu`
+```bash
+mvn clean package -P gpu
+java -jar target/your-app.jar --spring.profiles.active=gpu
+```
 
-For more information, see the [GPU Acceleration](docs/gpu.md) documentation.
+**Note**: GPU support requires NVIDIA CUDA drivers and is optional for development.
 
 ## Contributing
 

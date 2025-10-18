@@ -1,77 +1,184 @@
-[Docs Home](./index.md) · [Getting Started](./start.md) · [Architecture](./architecture.md) · [Config](./config.md)
+[Docs Home](../index.md) · [Getting Started](../getting-started/start.md) · [Architecture](./architecture.md) · [Config](../configuration/config.md)
 
-# Spring Vision Module Alignment Guide
+# Spring Vision Architecture & Capabilities
 
-**Version**: 1.0  
-**Last Updated**: October 10, 2025
+**Version**: 0.0.1
+**Last Updated**: October 18, 2025
 
-## Purpose
+## Overview
 
-This guide ensures all Spring Vision modules follow a **consistent, predictable pattern** for maximum developer productivity and ease of use.
+Spring Vision uses a modern, capability-based architecture built on the Deep Java Library (DJL). Instead of separate modules, functionality is organized around **detection capabilities** that can be mixed and matched as needed.
 
-## The Golden Standard: 3-Step Integration
+## Current Architecture
 
-Every module in the Spring Vision ecosystem follows this exact pattern:
+Spring Vision 0.0.1 consists of these main components:
 
-### Step 1: Add Maven Dependency
+### Core Components
+
+1. **spring-vision-core** - Main framework with VisionTemplate and capabilities
+2. **spring-vision-starter** - Auto-configuration and REST API
+3. **spring-vision-mcp** - MCP server integration
+4. **spring-vision-model** - Model training utilities
+
+### Quick Start (Single Dependency)
 
 ```xml
-
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>{module}</artifactId>
-    <version>1.0</version>
+    <artifactId>starter</artifactId>
+    <version>0.0.1</version>
 </dependency>
 ```
 
-**Rules:**
+This gives you:
+- ✅ REST API endpoints (`/api/vision/*`)
+- ✅ Auto-configuration
+- ✅ All detection capabilities
+- ✅ DJL backend integration
 
-- GroupId MUST be `io.github.codesapienbe.springvision`
-- ArtifactId MUST follow pattern `{module}`
-- Version MUST be specified (no version ranges)
+### Configuration
 
-### Step 2: Configure via Properties
-
-```properties
-# Enable the module
-spring.vision.{module}.enabled=true
-# Core settings (common across modules)
-spring.vision.{module}.confidence-threshold=0.7
-spring.vision.{module}.max-detections=10
-# Module-specific settings
-spring.vision.{module}.{feature}.{property}=value
+```yaml
+spring:
+  vision:
+    djl:
+      enabled: true
+      engine: pytorch  # or tensorflow, onnx
+      device: cpu      # or gpu
+      confidence-threshold: 0.5
 ```
+## Detection Capabilities
 
-**Rules:**
+Spring Vision provides these built-in detection capabilities:
 
-- All properties MUST start with `spring.vision.{module}`
-- `enabled` property MUST exist (default: false)
-- `confidence-threshold` SHOULD exist for detection modules
-- Use kebab-case for property names
-- Group related settings with sub-prefixes
+### 🤖 **Computer Vision**
+- **Face Detection** - Detect faces in images (`detectFaces()`)
+- **Object Detection** - Detect objects (`detectObjects()`)
+- **Pose Estimation** - Detect human poses (`detectPoses()`)
+- **Hand Detection** - Detect hands (`detectHands()`)
+- **Text Detection (OCR)** - Extract text (`extractText()`)
+- **Barcode Scanning** - Scan barcodes (`scanBarcodes()`)
 
-### Step 3: Use VisionTemplate
+### 🧠 **AI Analysis**
+- **Image Classification** - Classify images (`classifyImage()`)
+- **Action Recognition** - Recognize actions (`recognizeActions()`)
+- **Emotion Detection** - Detect emotions (`detectEmotions()`)
+- **Demographics Analysis** - Age/gender estimation (`detectDemographics()`)
+
+### 🔒 **Security & Safety**
+- **NSFW Detection** - Detect inappropriate content (`detectNSFW()`)
+- **Deepfake Detection** - Detect manipulated media (`detectDeepfake()`)
+- **Threat Detection** - Detect weapons/objects (`detectThreats()`)
+- **Biometric Authentication** - Face-based auth (`authenticateAccess()`)
+
+### ❤️ **Health & Wellness**
+- **Fall Detection** - Detect falls (`detectFall()`)
+- **Stress Analysis** - Analyze stress levels (`analyzeStress()`)
+
+### 📊 **Utilities**
+- **Metadata Extraction** - Extract EXIF/GPS data (`extractMetadata()`)
+- **Face Embeddings** - Generate face vectors (`extractEmbeddings()`)
+- **Face Counting** - Count faces (`countFaces()`)
+
+## Usage Example
 
 ```java
+@RestController
+public class VisionController {
 
-@Autowired
-private VisionTemplate visionTemplate;
+    @Autowired
+    private VisionTemplate visionTemplate;
 
-List<Detection> results = visionTemplate.detectFaces(imageData);
+    @PostMapping("/analyze")
+    public ResponseEntity<Map<String, Object>> analyzeImage(@RequestParam("file") MultipartFile file) {
+        ImageData imageData = ImageData.fromBytes(file.getBytes());
+
+        // Use multiple capabilities
+        VisionResult faces = visionTemplate.detectFaces(imageData);
+        VisionResult objects = visionTemplate.detectObjects(imageData);
+        VisionResult emotions = visionTemplate.detectEmotions(imageData);
+
+        return ResponseEntity.ok(Map.of(
+            "faces", faces.detections(),
+            "objects", objects.detections(),
+            "emotions", emotions.detections()
+        ));
+    }
+}
 ```
 
-**Rules:**
+## Advanced Configuration
 
-- NO direct backend autowiring in examples
-- ALL examples MUST use VisionTemplate
-- Show autoconfiguration in action
-- Demonstrate the unified API
+Fine-tune individual capabilities:
 
-## Module Categories
+```yaml
+spring:
+  vision:
+    djl:
+      # Global settings
+      confidence-threshold: 0.5
+      max-concurrent-inferences: 16
 
-### Category 1: Face Recognition Modules
+      # Face detection settings
+      face-detection:
+        model: mtcnn  # retinaface, mtcnn, lightface
+        confidence-threshold: 0.7
+        max-faces: 200
 
-**Modules:** compreface, deepface, facebytes, insightface
+      # Object detection settings
+      object-detection:
+        model: ssd  # ssd, yolo
+        backbone: resnet50
+        confidence-threshold: 0.6
+        top-k: 10
+```
+```
+
+## Backend Compatibility
+
+Spring Vision maintains backward compatibility with legacy backends:
+
+### Legacy Backend Configuration
+
+```yaml
+spring:
+  vision:
+    djl:
+      enabled: false  # Disable DJL
+    opencv:
+      enabled: true
+    facebytes:
+      enabled: true
+```
+
+**Note:** Legacy backends are deprecated. DJL is recommended for all new projects.
+
+## Migration from Legacy Backends
+
+If you're migrating from legacy backends:
+
+1. **Update configuration** to use DJL settings
+2. **Replace backend-specific code** with VisionTemplate calls
+3. **Test thoroughly** - DJL models may have different behavior
+4. **Update dependencies** to latest versions
+
+See [Configuration Guide](../configuration/config.md) for detailed migration steps.
+
+---
+
+## Summary
+
+Spring Vision 0.0.1 provides a modern, capability-based architecture with:
+
+- **🎯 Single dependency** for all computer vision features
+- **🚀 Zero-configuration** setup with intelligent defaults
+- **🔧 Capability-based API** for maximum flexibility
+- **🤖 DJL-powered** AI models with automatic management
+- **🔄 Backward compatibility** with legacy backends
+
+**Ready to build?** → [Getting Started Guide](../getting-started/start.md)
+
+**Need the full API?** → [API Reference](../development/API_USAGE.md)
 
 **Common Capabilities:**
 

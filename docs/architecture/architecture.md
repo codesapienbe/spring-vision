@@ -1,34 +1,37 @@
 # Architecture
 
-[Docs Home](./index.md) · [Getting Started](./start.md) · [Modules](./modules.md)
+[Docs Home](../index.md) · [Getting Started](../getting-started/start.md) · [Modules](./modules.md)
 
-High-level view of Spring Vision.
+High-level view of Spring Vision's architecture.
 
 ## Layers
 
-- Application Layer: REST, Web UI, CLI
-- Framework Core: VisionTemplate, config, utilities
-- Backends: OpenCV, YOLO, MediaPipe, FaceBytes, DeepFace, InsightFace, Tesseract
-- Integrations: Persistence, Health, Cyber, Robotics (planned)
+- **Application Layer**: REST API for computer vision operations
+- **Framework Core**: VisionTemplate provides unified API for all vision tasks
+- **DJL Backend**: Deep Java Library handles model management and inference
+- **Vision Capabilities**: Modular detection and analysis capabilities
 
 ## Key Components
 
-- VisionTemplate: Unified API over multiple backends
-- Auto-Configuration: Spring Boot starters and properties
-- ModelResourceLoader: Unified model resolution (classpath, external path, cache, auto-download)
-- ONNX Runtime Config: CPU/GPU providers with graceful fallback
+- **VisionTemplate**: Simple API for computer vision operations
+- **Auto-Configuration**: Spring Boot integration with sensible defaults
+- **DJL Backend**: Deep Java Library for AI model management
+- **Detection Capabilities**: Face detection, object recognition, text extraction, etc.
 
-## Data Flow
+## How It Works
 
-1. Input image/frame bytes
-2. VisionTemplate orchestrates processing
-3. Selected backend performs detection/recognition
-4. Results returned as typed Detection objects
+1. Upload image via REST API
+2. VisionTemplate processes the request
+3. DJL backend runs AI models on the image
+4. Results returned as structured data
 
-## Extensibility
+## Supported Operations
 
-- Pluggable backends with consistent property conventions
-- Configuration via Spring Boot properties
-- Optional GPU execution provider
+- Face detection and analysis
+- Object detection and classification
+- Text recognition (OCR)
+- Image classification
+- Pose estimation
+- Emotion recognition
 
 See also: [Modules](./modules.md), [Models Guide](./models.md)
