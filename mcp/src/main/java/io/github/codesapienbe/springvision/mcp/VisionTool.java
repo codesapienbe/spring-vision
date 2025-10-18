@@ -179,22 +179,16 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability faceBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
-            
-            List<io.github.codesapienbe.springvision.core.Detection> detections = faceBackend.detectFaces(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectFaces(imgData);
 
-            int faceCount = detections.size();
-            double avgConfidence = detections.isEmpty() ? 0.0 : 
-                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
             long duration = System.currentTimeMillis() - startTime;
 
             response.put("status", "success");
-            response.put("count", faceCount);
-            response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
+            response.put("count", result.detectionCount());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
-            response.put("message", String.format("Detected %d faces", faceCount));
+            response.put("message", String.format("Detected %d faces", result.detectionCount()));
             return response;
 
         } catch (Exception e) {
@@ -228,13 +222,10 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
-            List<float[]> rawEmbeddings = embeddingBackend.extractEmbeddings(imgData, 
+            // Use VisionTemplate high-level API
+            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData, 
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-            List<Map<String, Object>> out = new java.util.ArrayList<>();
+            List<Map<String, Object>> out = new ArrayList<>();
 
             int idx = 0;
             for (float[] emb : rawEmbeddings) {
@@ -298,37 +289,34 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports OCR
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.OcrCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support OCR");
-                response.put("text", "");
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.OcrCapability ocrBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.OcrCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> textDetections =
-                ocrBackend.extractText(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.extractText(imgData);
 
             List<Map<String, Object>> detections = new ArrayList<>();
             StringBuilder fullText = new StringBuilder();
 
-            for (io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection detection : textDetections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("text", detection.text());
+                String text = (String) detection.attributes().get("text");
+                item.put("text", text);
                 item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                item.put("boundingBox", detection.boundingBox());
+                item.put("boundingBox", Map.of(
+                    "x", detection.boundingBox().x(),
+                    "y", detection.boundingBox().y(),
+                    "width", detection.boundingBox().width(),
+                    "height", detection.boundingBox().height()
+                ));
                 detections.add(item);
-                fullText.append(detection.text()).append(" ");
+                if (text != null) {
+                    fullText.append(text).append(" ");
+                }
             }
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("text", fullText.toString().trim());
             response.put("detections", detections);
-            response.put("count", detections.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -377,25 +365,14 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports image classification
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support image classification");
-                response.put("classifications", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
-
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
-                classificationBackend.classifyImage(imgData, topK);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.classifyImage(imgData, topK);
 
             List<Map<String, Object>> classifications = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.Classification classification : result.classifications()) {
+            for (var detection : result.detections()) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("label", classification.label());
-                item.put("confidence", Math.round(classification.confidence() * 10000.0) / 10000.0);
+                item.put("label", detection.label());
+                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
                 classifications.add(item);
             }
 
@@ -403,7 +380,7 @@ public class VisionTool {
             response.put("status", "success");
             response.put("classifications", classifications);
             response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
-            response.put("count", classifications.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -449,14 +426,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability objectBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability) visionTemplate.backend();
-            
-            List<io.github.codesapienbe.springvision.core.Detection> detections = objectBackend.detectObjects(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectObjects(imgData);
 
             List<Map<String, Object>> objects = new ArrayList<>();
-            for (var detection : detections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> obj = new HashMap<>();
                 obj.put("label", detection.label());
                 obj.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -474,15 +448,13 @@ public class VisionTool {
             }
 
             long duration = System.currentTimeMillis() - startTime;
-            double avgConfidence = detections.isEmpty() ? 0.0 : 
-                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
             
             response.put("status", "success");
             response.put("objects", objects);
-            response.put("count", objects.size());
-            response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
+            response.put("count", result.detectionCount());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
-            response.put("message", String.format("Detected %d objects", objects.size()));
+            response.put("message", String.format("Detected %d objects", result.detectionCount()));
             return response;
 
         } catch (Exception e) {
@@ -518,21 +490,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports pose estimation
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support pose estimation");
-                response.put("poses", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability poseBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> poseDetections = poseBackend.detectPoses(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectPoses(imgData);
 
             List<Map<String, Object>> poses = new ArrayList<>();
-            for (var detection : poseDetections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> pose = new HashMap<>();
                 pose.put("label", detection.label());
                 pose.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -543,9 +505,9 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("poses", poses);
-            response.put("count", poses.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
-            response.put("message", String.format("Detected %d poses", poses.size()));
+            response.put("message", String.format("Detected %d poses", result.detectionCount()));
             return response;
 
         } catch (Exception e) {
@@ -590,21 +552,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports action recognition
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support action recognition");
-                response.put("actions", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability actionBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> actionDetections = actionBackend.recognizeActions(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.recognizeActions(imgData);
 
             List<Map<String, Object>> actions = new ArrayList<>();
-            for (var detection : actionDetections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> action = new HashMap<>();
                 action.put("action", detection.label());
                 action.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -615,7 +567,7 @@ public class VisionTool {
             response.put("status", "success");
             response.put("actions", actions);
             response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
-            response.put("count", actions.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -673,14 +625,11 @@ public class VisionTool {
             ImageData sourceData = ImageData.fromBytes(sourceBytes);
             ImageData targetData = ImageData.fromBytes(targetBytes);
 
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
+            // Use VisionTemplate high-level API
             // Extract embeddings from both images
-            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-            List<float[]> targetEmbeddings = embeddingBackend.extractEmbeddings(targetData,
+            List<float[]> targetEmbeddings = visionTemplate.extractEmbeddings(targetData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
@@ -751,13 +700,10 @@ public class VisionTool {
             ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
             ImageData targetData = ImageData.fromBytes(targetImageBytes);
 
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
-            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+            // Use VisionTemplate high-level API
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-            List<float[]> targetEmbeddings = embeddingBackend.extractEmbeddings(targetData,
+            List<float[]> targetEmbeddings = visionTemplate.extractEmbeddings(targetData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
@@ -862,11 +808,8 @@ public class VisionTool {
             byte[] sourceBytes = downloadImageFromUrl(sourceImageUrl.trim());
             ImageData sourceData = ImageData.fromBytes(sourceBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
-            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+            // Use VisionTemplate high-level API
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
@@ -888,7 +831,7 @@ public class VisionTool {
                 try {
                     byte[] datasetBytes = downloadImageFromUrl(datasetUrl.trim());
                     ImageData datasetData = ImageData.fromBytes(datasetBytes);
-                    List<float[]> datasetEmbeddings = embeddingBackend.extractEmbeddings(datasetData,
+                    List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData,
                         io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
                     if (!datasetEmbeddings.isEmpty()) {
@@ -983,11 +926,8 @@ public class VisionTool {
 
             ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
-            List<float[]> sourceEmbeddings = embeddingBackend.extractEmbeddings(sourceData,
+            // Use VisionTemplate high-level API
+            List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
             if (sourceEmbeddings.isEmpty()) {
@@ -1006,7 +946,7 @@ public class VisionTool {
             for (byte[] datasetBytes : datasetImageBytes) {
                 try {
                     ImageData datasetData = ImageData.fromBytes(datasetBytes);
-                    List<float[]> datasetEmbeddings = embeddingBackend.extractEmbeddings(datasetData,
+                    List<float[]> datasetEmbeddings = visionTemplate.extractEmbeddings(datasetData,
                         io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
                     if (!datasetEmbeddings.isEmpty()) {
@@ -1162,20 +1102,10 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports NSFW detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support NSFW detection");
-                response.put("classification", "unknown");
-                return response;
-            }
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectNSFW(imgData);
 
-            io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability nsfwBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections = nsfwBackend.detectNSFW(imgData);
-
-            if (detections.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "success");
                 response.put("classification", "unknown");
                 response.put("confidence", 0.0);
@@ -1184,7 +1114,7 @@ public class VisionTool {
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            var detection = result.detections().get(0);
             boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
 
@@ -1228,21 +1158,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports emotion detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support emotion detection");
-                response.put("emotions", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability emotionBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections = emotionBackend.detectEmotions(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectEmotions(imgData);
 
             List<Map<String, Object>> emotions = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> emotion = new HashMap<>();
                 emotion.put("emotion", detection.label());
                 emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -1265,7 +1185,7 @@ public class VisionTool {
             response.put("status", "success");
             response.put("emotions", emotions);
             response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
-            response.put("count", emotions.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -1301,20 +1221,10 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports deepfake detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support deepfake detection");
-                response.put("classification", "unknown");
-                return response;
-            }
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectDeepfake(imgData);
 
-            io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability deepfakeBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections = deepfakeBackend.detectDeepfake(imgData);
-
-            if (detections.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "success");
                 response.put("classification", "unknown");
                 response.put("confidence", 0.0);
@@ -1323,7 +1233,7 @@ public class VisionTool {
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            var detection = result.detections().get(0);
             boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
             String manipulationType = (String) detection.attributes().get("manipulationType");
@@ -1371,21 +1281,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports hand detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support hand detection");
-                response.put("hands", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability handBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections = handBackend.detectHands(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectHands(imgData);
 
             List<Map<String, Object>> hands = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> hand = new HashMap<>();
                 hand.put("label", detection.label());
                 hand.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -1406,7 +1306,7 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("hands", hands);
-            response.put("count", hands.size());
+            response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -1442,21 +1342,11 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports demographics detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support demographics detection");
-                response.put("demographics", List.of());
-                return response;
-            }
-
-            io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability demographicsBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections = demographicsBackend.detectDemographics(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectDemographics(imgData);
 
             List<Map<String, Object>> demographics = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> demo = new HashMap<>();
                 demo.put("gender", detection.label());
                 demo.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -1482,7 +1372,7 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("demographics", demographics);
-            response.put("facesAnalyzed", demographics.size());
+            response.put("facesAnalyzed", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
 
@@ -1518,22 +1408,10 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports fall detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support fall detection");
-                response.put("fallDetected", false);
-                return response;
-            }
+            // Use VisionTemplate high-level API - For single image, wrap in list
+            VisionResult result = visionTemplate.detectFall(List.of(imgData));
 
-            io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability fallBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability) visionTemplate.backend();
-
-            // For single image, wrap in list
-            List<io.github.codesapienbe.springvision.core.Detection> detections = 
-                fallBackend.detectFall(List.of(imgData));
-
-            if (detections.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "success");
                 response.put("fallDetected", false);
                 response.put("bodyOrientation", "unknown");
@@ -1544,7 +1422,7 @@ public class VisionTool {
             }
 
             // Get the first/primary detection
-            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            var detection = result.detections().get(0);
             
             boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
             String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
@@ -1615,22 +1493,10 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports stress analysis
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support stress analysis");
-                response.put("stressLevel", "unknown");
-                return response;
-            }
+            // Use VisionTemplate high-level API - For single image, wrap in list
+            VisionResult result = visionTemplate.analyzeStress(List.of(imgData));
 
-            io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability stressBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability) visionTemplate.backend();
-
-            // For single image, wrap in list
-            List<io.github.codesapienbe.springvision.core.Detection> detections = 
-                stressBackend.detectStress(List.of(imgData));
-
-            if (detections.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "success");
                 response.put("stressLevel", "unknown");
                 response.put("stressScore", 0.0);
@@ -1640,7 +1506,7 @@ public class VisionTool {
             }
 
             // Get the first/primary detection
-            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            var detection = result.detections().get(0);
             
             String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
             Double stressScore = (Double) detection.attributes().get("stressScore");
@@ -1717,22 +1583,14 @@ public class VisionTool {
                 return response;
             }
 
-            // Check if backend supports heart rate detection
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability)) {
-                response.put("status", "error");
-                response.put("message", "Current backend does not support heart rate detection");
-                response.put("heartRate", 0.0);
-                return response;
-            }
-
             // Download all frames
-            List<io.github.codesapienbe.springvision.core.ImageData> frames = new ArrayList<>();
+            List<ImageData> frames = new ArrayList<>();
             int downloadedFrames = 0;
             
             for (String url : imageUrls) {
                 try {
                     byte[] imageBytes = downloadImageFromUrl(url.trim());
-                    frames.add(io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes));
+                    frames.add(ImageData.fromBytes(imageBytes));
                     downloadedFrames++;
                 } catch (Exception e) {
                     log.warn("Failed to download frame from URL: {}", sanitizeUrlForLogging(url), e);
@@ -1747,12 +1605,10 @@ public class VisionTool {
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability hrBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability) visionTemplate.backend();
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.estimateHeartRate(frames);
 
-            List<io.github.codesapienbe.springvision.core.Detection> detections = hrBackend.detectHeartRate(frames);
-
-            if (detections.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "error");
                 response.put("message", "Heart rate estimation failed - no results");
                 response.put("heartRate", 0.0);
@@ -1761,7 +1617,7 @@ public class VisionTool {
             }
 
             // Get the primary detection
-            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            var detection = result.detections().get(0);
             
             // Check for error detection
             if (detection.label().equals("insufficient_data")) {
@@ -1844,22 +1700,16 @@ public class VisionTool {
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability faceBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
-            
-            List<io.github.codesapienbe.springvision.core.Detection> detections = faceBackend.detectFaces(imgData);
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectFaces(imgData);
 
-            int faceCount = detections.size();
-            double avgConfidence = detections.isEmpty() ? 0.0 : 
-                detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
             long duration = System.currentTimeMillis() - startTime;
 
             response.put("status", "success");
-            response.put("count", faceCount);
-            response.put("averageConfidence", Math.round(avgConfidence * 10000.0) / 10000.0);
+            response.put("count", result.detectionCount());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
-            response.put("message", String.format("Detected %d faces", faceCount));
+            response.put("message", String.format("Detected %d faces", result.detectionCount()));
             return response;
 
         } catch (Exception e) {
@@ -1899,13 +1749,10 @@ public class VisionTool {
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
             
-            // Use capability-based approach
-            io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability embeddingBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability) visionTemplate.backend();
-            
-            List<float[]> rawEmbeddings = embeddingBackend.extractEmbeddings(imgData,
+            // Use VisionTemplate high-level API
+            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-            List<Map<String, Object>> out = new java.util.ArrayList<>();
+            List<Map<String, Object>> out = new ArrayList<>();
 
             int idx = 0;
             for (float[] emb : rawEmbeddings) {
@@ -1965,26 +1812,15 @@ public class VisionTool {
             byte[] imageData = downloadImageFromUrl(imageUrl);
             ImageData imgData = ImageData.fromBytes(imageData);
 
-            // Extract metadata using MetaDataExtractionCapability
-            io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability metadataBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability) visionTemplate.backend();
-            
-            List<io.github.codesapienbe.springvision.core.Detection> detections = metadataBackend.extractMetaData(imgData);
-            
-            // Build VisionResult for compatibility
-            VisionResult result = io.github.codesapienbe.springvision.core.VisionResult.of(
-                io.github.codesapienbe.springvision.core.DetectionType.METADATA_EXTRACTION,
-                detections,
-                detections.isEmpty() ? 0.0 : 1.0,
-                0
-            );
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.extractMetadata(imgData);
 
             long duration = System.currentTimeMillis() - startTime;
 
             // Convert detections to response format
             Map<String, Map<String, Object>> metadataGroups = new HashMap<>();
             
-            for (io.github.codesapienbe.springvision.core.Detection detection : result.detections()) {
+            for (var detection : result.detections()) {
                 String type = detection.label(); // "gps", "exif", or "metadata"
                 Map<String, Object> groupData = new HashMap<>(detection.attributes());
                 
@@ -2058,32 +1894,21 @@ public class VisionTool {
             byte[] imageData = downloadImageFromUrl(imageUrl);
             ImageData imgData = ImageData.fromBytes(imageData);
 
-            // Detect barcodes using BarcodeCapability
-            io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability barcodeBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability) visionTemplate.backend();
-            
-            List<io.github.codesapienbe.springvision.core.Detection> detections = barcodeBackend.detectBarcodes(imgData);
-            
-            // Build VisionResult for compatibility
-            VisionResult result = io.github.codesapienbe.springvision.core.VisionResult.of(
-                io.github.codesapienbe.springvision.core.DetectionType.BARCODE,
-                detections,
-                detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
-                0
-            );
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.scanBarcodes(imgData);
 
             long duration = System.currentTimeMillis() - startTime;
 
             // Convert detections to response format
             List<Map<String, Object>> barcodes = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.Detection detection : result.detections()) {
+            for (var detection : result.detections()) {
                 Map<String, Object> barcodeInfo = new HashMap<>();
                 barcodeInfo.put("format", detection.label());
                 barcodeInfo.put("content", detection.attributes().get("content"));
                 barcodeInfo.put("confidence", detection.confidence());
                 
                 // Add bounding box
-                io.github.codesapienbe.springvision.core.BoundingBox bbox = detection.boundingBox();
+                var bbox = detection.boundingBox();
                 Map<String, Double> location = new HashMap<>();
                 location.put("x", bbox.x());
                 location.put("y", bbox.y());
@@ -2100,7 +1925,7 @@ public class VisionTool {
             }
 
             response.put("status", "success");
-            response.put("count", barcodes.size());
+            response.put("count", result.detectionCount());
             response.put("barcodes", barcodes);
             response.put("processingTimeMs", duration);
             response.put("backend", result.metadata().get("backendId"));
@@ -2213,21 +2038,16 @@ public class VisionTool {
 
             // Download image
             byte[] imageBytes = downloadImageFromUrl(imageUrl);
-            io.github.codesapienbe.springvision.core.ImageData imageData =
-                io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes);
+            ImageData imageData = ImageData.fromBytes(imageBytes);
 
-            // Get backend and detect threats
-            io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability threatBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability) visionTemplate.backend();
-
-            List<io.github.codesapienbe.springvision.core.Detection> detections =
-                threatBackend.detectThreat(List.of(imageData));
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.detectThreats(List.of(imageData));
 
             // Process detections
             List<Map<String, Object>> threats = new ArrayList<>();
             int highSeverityCount = 0;
 
-            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+            for (var detection : result.detections()) {
                 Map<String, Object> threat = new HashMap<>();
                 threat.put("label", detection.label());
                 threat.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -2379,17 +2199,12 @@ public class VisionTool {
 
             // Download image
             byte[] imageBytes = downloadImageFromUrl(imageUrl);
-            io.github.codesapienbe.springvision.core.ImageData imageData =
-                io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes);
+            ImageData imageData = ImageData.fromBytes(imageBytes);
 
-            // Get backend and authenticate
-            io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability authBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability) visionTemplate.backend();
+            // Use VisionTemplate high-level API
+            VisionResult result = visionTemplate.authenticateAccess(imageData);
 
-            List<io.github.codesapienbe.springvision.core.Detection> results =
-                authBackend.authenticateAccess(imageData);
-
-            if (results.isEmpty()) {
+            if (!result.hasDetections()) {
                 response.put("status", "error");
                 response.put("message", "Authentication failed - no results");
                 response.put("authorized", false);
@@ -2398,7 +2213,7 @@ public class VisionTool {
             }
 
             // Get authentication result
-            io.github.codesapienbe.springvision.core.Detection authResult = results.get(0);
+            var authResult = result.detections().get(0);
 
             Boolean authorized = (Boolean) authResult.attributes().get("authorized");
             Double confidence = (Double) authResult.attributes().get("confidence");

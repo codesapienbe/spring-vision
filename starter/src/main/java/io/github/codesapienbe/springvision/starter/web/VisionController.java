@@ -25,7 +25,6 @@ import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.async.AsyncVisionProcessor;
 import io.github.codesapienbe.springvision.starter.web.dto.DetectionRequest;
 import io.github.codesapienbe.springvision.starter.web.dto.DetectionResponse;
 import io.github.codesapienbe.springvision.starter.web.dto.HealthResponse;
@@ -86,7 +85,6 @@ public class VisionController {
      * The vision template for processing operations.
      */
     private final VisionTemplate visionTemplate;
-    private final AsyncVisionProcessor asyncVisionProcessor; // used for task-tracking endpoints
 
     /**
      * Constructs a new vision controller.
@@ -95,7 +93,6 @@ public class VisionController {
      */
     public VisionController(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
-        this.asyncVisionProcessor = new AsyncVisionProcessor(visionTemplate);
     }
 
     /**

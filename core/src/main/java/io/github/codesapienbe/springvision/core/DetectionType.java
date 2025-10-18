@@ -199,7 +199,53 @@ public enum DetectionType {
      * <p>This detection type extracts various types of metadata embedded in images including
      * GPS coordinates, camera settings, timestamps, author information, and other EXIF/IPTC/XMP data.</p>
      */
-    METADATA_EXTRACTION("metadata-extraction", "Metadata Extraction", true, "Extracts metadata from images including GPS and EXIF data");
+    METADATA_EXTRACTION("metadata-extraction", "Metadata Extraction", true, "Extracts metadata from images including GPS and EXIF data"),
+
+    /**
+     * Image classification - classifies images into categories.
+     *
+     * <p>This detection type classifies the main subject or scene of an image into predefined categories
+     * with confidence scores for each classification.</p>
+     */
+    IMAGE_CLASSIFICATION("image-classification", "Image Classification", false, "Classifies images into categories"),
+
+    /**
+     * Action recognition - recognizes human actions in images or video.
+     *
+     * <p>This detection type identifies human actions and activities in images or video sequences.</p>
+     */
+    ACTION_RECOGNITION("action-recognition", "Action Recognition", false, "Recognizes human actions and activities"),
+
+    /**
+     * NSFW detection - detects not-safe-for-work content.
+     *
+     * <p>This detection type identifies potentially inappropriate or adult content in images.</p>
+     */
+    NSFW("nsfw", "NSFW Detection", false, "Detects not-safe-for-work content"),
+
+    /**
+     * Emotion detection - detects emotions from facial expressions.
+     *
+     * <p>This detection type analyzes facial expressions to determine emotional states such as
+     * happiness, sadness, anger, surprise, fear, disgust, and neutral.</p>
+     */
+    EMOTION("emotion", "Emotion Detection", false, "Detects emotions from facial expressions"),
+
+    /**
+     * Deepfake detection - detects manipulated or synthetic media.
+     *
+     * <p>This detection type identifies deepfakes, face swaps, and other AI-generated or
+     * manipulated media content.</p>
+     */
+    DEEPFAKE("deepfake", "Deepfake Detection", false, "Detects manipulated or synthetic media"),
+
+    /**
+     * Demographics detection - detects age and gender from faces.
+     *
+     * <p>This detection type estimates demographic attributes including age and gender
+     * from facial features.</p>
+     */
+    DEMOGRAPHICS("demographics", "Demographics Detection", false, "Detects age and gender from faces");
 
     private final String code;
     private final String displayName;

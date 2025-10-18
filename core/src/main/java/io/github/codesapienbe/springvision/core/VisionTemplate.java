@@ -265,5 +265,377 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         return UUID.randomUUID().toString();
     }
 
+    // ============================================================================
+    // High-Level Detection Methods - Return VisionResult
+    // ============================================================================
 
+    /**
+     * Detects faces in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing face detections
+     * @throws VisionUnsupportedException if backend doesn't support face detection
+     */
+    public VisionResult detectFaces(ImageData imageData) {
+        if (!(backend instanceof FaceDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Face detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectFaces(imageData);
+        return buildResult(DetectionType.FACE, detections, startTime);
+    }
+
+    /**
+     * Detects objects in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing object detections
+     * @throws VisionUnsupportedException if backend doesn't support object detection
+     */
+    public VisionResult detectObjects(ImageData imageData) {
+        if (!(backend instanceof ObjectDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Object detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectObjects(imageData);
+        return buildResult(DetectionType.OBJECT, detections, startTime);
+    }
+
+    /**
+     * Extracts text from an image using OCR.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing text detections
+     * @throws VisionUnsupportedException if backend doesn't support OCR
+     */
+    public VisionResult extractText(ImageData imageData) {
+        if (!(backend instanceof OcrCapability capability)) {
+            throw new VisionUnsupportedException("OCR not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<OcrCapability.TextDetection> textDetections = capability.extractText(imageData);
+        
+        // Convert TextDetection to Detection
+        List<Detection> detections = textDetections.stream()
+            .map(td -> new Detection(
+                td.text(),
+                td.confidence(),
+                td.boundingBox() != null ? convertBoundingBox(td.boundingBox()) : new BoundingBox(0, 0, 0, 0),
+                Map.of("text", td.text(), "attributes", td.attributes())
+            ))
+            .toList();
+        
+        return buildResult(DetectionType.TEXT, detections, startTime);
+    }
+
+    /**
+     * Classifies an image into categories.
+     *
+     * @param imageData the image data to process
+     * @param topK the number of top predictions to return
+     * @return VisionResult containing classification results
+     * @throws VisionUnsupportedException if backend doesn't support image classification
+     */
+    public VisionResult classifyImage(ImageData imageData, int topK) {
+        if (!(backend instanceof ImageClassificationCapability capability)) {
+            throw new VisionUnsupportedException("Image classification not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        ImageClassificationCapability.ClassificationResult result = capability.classifyImage(imageData, topK);
+        
+        // Convert Classifications to Detection
+        List<Detection> detections = result.classifications().stream()
+            .map(c -> new Detection(
+                c.label(),
+                c.confidence(),
+                new BoundingBox(0, 0, 0, 0), // No bounding box for classification
+                Map.of("classification", c.label())
+            ))
+            .toList();
+        
+        return buildResult(DetectionType.IMAGE_CLASSIFICATION, detections, startTime);
+    }
+
+    /**
+     * Detects poses in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing pose detections
+     * @throws VisionUnsupportedException if backend doesn't support pose estimation
+     */
+    public VisionResult detectPoses(ImageData imageData) {
+        if (!(backend instanceof PoseEstimationCapability capability)) {
+            throw new VisionUnsupportedException("Pose estimation not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectPoses(imageData);
+        return buildResult(DetectionType.POSE, detections, startTime);
+    }
+
+    /**
+     * Recognizes actions in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing action detections
+     * @throws VisionUnsupportedException if backend doesn't support action recognition
+     */
+    public VisionResult recognizeActions(ImageData imageData) {
+        if (!(backend instanceof ActionRecognitionCapability capability)) {
+            throw new VisionUnsupportedException("Action recognition not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.recognizeActions(imageData);
+        return buildResult(DetectionType.ACTION_RECOGNITION, detections, startTime);
+    }
+
+    /**
+     * Detects NSFW content in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing NSFW detection results
+     * @throws VisionUnsupportedException if backend doesn't support NSFW detection
+     */
+    public VisionResult detectNSFW(ImageData imageData) {
+        if (!(backend instanceof NSFWDetectionCapability capability)) {
+            throw new VisionUnsupportedException("NSFW detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectNSFW(imageData);
+        return buildResult(DetectionType.NSFW, detections, startTime);
+    }
+
+    /**
+     * Detects emotions in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing emotion detections
+     * @throws VisionUnsupportedException if backend doesn't support emotion detection
+     */
+    public VisionResult detectEmotions(ImageData imageData) {
+        if (!(backend instanceof EmotionDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Emotion detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectEmotions(imageData);
+        return buildResult(DetectionType.EMOTION, detections, startTime);
+    }
+
+    /**
+     * Detects deepfakes in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing deepfake detection results
+     * @throws VisionUnsupportedException if backend doesn't support deepfake detection
+     */
+    public VisionResult detectDeepfake(ImageData imageData) {
+        if (!(backend instanceof DeepfakeDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Deepfake detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectDeepfake(imageData);
+        return buildResult(DetectionType.DEEPFAKE, detections, startTime);
+    }
+
+    /**
+     * Detects hands in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing hand detections
+     * @throws VisionUnsupportedException if backend doesn't support hand detection
+     */
+    public VisionResult detectHands(ImageData imageData) {
+        if (!(backend instanceof HandDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Hand detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectHands(imageData);
+        return buildResult(DetectionType.HAND, detections, startTime);
+    }
+
+    /**
+     * Detects demographics (age, gender) in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing demographics detections
+     * @throws VisionUnsupportedException if backend doesn't support demographics detection
+     */
+    public VisionResult detectDemographics(ImageData imageData) {
+        if (!(backend instanceof DemographicsCapability capability)) {
+            throw new VisionUnsupportedException("Demographics detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectDemographics(imageData);
+        return buildResult(DetectionType.DEMOGRAPHICS, detections, startTime);
+    }
+
+    /**
+     * Detects falls in a sequence of images.
+     *
+     * @param imageSequence the sequence of images to analyze
+     * @return VisionResult containing fall detection results
+     * @throws VisionUnsupportedException if backend doesn't support fall detection
+     */
+    public VisionResult detectFall(List<ImageData> imageSequence) {
+        if (!(backend instanceof FallDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Fall detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectFall(imageSequence);
+        return buildResult(DetectionType.FALL, detections, startTime);
+    }
+
+    /**
+     * Analyzes stress levels in a sequence of images.
+     *
+     * @param imageSequence the sequence of images to analyze
+     * @return VisionResult containing stress analysis results
+     * @throws VisionUnsupportedException if backend doesn't support stress analysis
+     */
+    public VisionResult analyzeStress(List<ImageData> imageSequence) {
+        if (!(backend instanceof StressAnalysisCapability capability)) {
+            throw new VisionUnsupportedException("Stress analysis not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectStress(imageSequence);
+        return buildResult(DetectionType.STRESS, detections, startTime);
+    }
+
+    /**
+     * Estimates heart rate from a sequence of images.
+     *
+     * @param imageSequence the sequence of images to analyze
+     * @return VisionResult containing heart rate estimation
+     * @throws VisionUnsupportedException if backend doesn't support heart rate detection
+     */
+    public VisionResult estimateHeartRate(List<ImageData> imageSequence) {
+        if (!(backend instanceof HeartRateCapability capability)) {
+            throw new VisionUnsupportedException("Heart rate detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectHeartRate(imageSequence);
+        return buildResult(DetectionType.HEART_RATE, detections, startTime);
+    }
+
+    /**
+     * Scans and decodes barcodes in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing barcode detections
+     * @throws VisionUnsupportedException if backend doesn't support barcode detection
+     */
+    public VisionResult scanBarcodes(ImageData imageData) {
+        if (!(backend instanceof BarcodeCapability capability)) {
+            throw new VisionUnsupportedException("Barcode detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectBarcodes(imageData);
+        return buildResult(DetectionType.BARCODE, detections, startTime);
+    }
+
+    /**
+     * Extracts metadata from an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing metadata detections
+     * @throws VisionUnsupportedException if backend doesn't support metadata extraction
+     */
+    public VisionResult extractMetadata(ImageData imageData) {
+        if (!(backend instanceof MetaDataExtractionCapability capability)) {
+            throw new VisionUnsupportedException("Metadata extraction not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.extractMetaData(imageData);
+        return buildResult(DetectionType.METADATA_EXTRACTION, detections, startTime);
+    }
+
+    /**
+     * Detects security threats in a sequence of images.
+     *
+     * @param imageSequence the sequence of images to analyze
+     * @return VisionResult containing threat detections
+     * @throws VisionUnsupportedException if backend doesn't support threat detection
+     */
+    public VisionResult detectThreats(List<ImageData> imageSequence) {
+        if (!(backend instanceof ThreatDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Threat detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectThreat(imageSequence);
+        return buildResult(DetectionType.THREAT, detections, startTime);
+    }
+
+    /**
+     * Authenticates access using face recognition.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing authentication results
+     * @throws VisionUnsupportedException if backend doesn't support access authentication
+     */
+    public VisionResult authenticateAccess(ImageData imageData) {
+        if (!(backend instanceof AccessAuthenticationCapability capability)) {
+            throw new VisionUnsupportedException("Access authentication not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.authenticateAccess(imageData);
+        return buildResult(DetectionType.ACCESS_AUTH, detections, startTime);
+    }
+
+    /**
+     * Extracts embeddings from an image for a specific category.
+     *
+     * @param imageData the image data to process
+     * @param category the detection category (FACE, OBJECT, etc.)
+     * @return list of embedding vectors
+     * @throws VisionUnsupportedException if backend doesn't support embedding extraction
+     */
+    public List<float[]> extractEmbeddings(ImageData imageData, DetectionCategory category) {
+        if (!(backend instanceof EmbeddingCapability capability)) {
+            throw new VisionUnsupportedException("Embedding extraction not supported by backend: " + getBackendId());
+        }
+        return capability.extractEmbeddings(imageData, category);
+    }
+
+    // ============================================================================
+    // Helper Methods
+    // ============================================================================
+
+    /**
+     * Builds a VisionResult from detections.
+     *
+     * @param detectionType the type of detection
+     * @param detections the list of detections
+     * @param startTime the start time in milliseconds
+     * @return VisionResult instance
+     */
+    private VisionResult buildResult(DetectionType detectionType, List<Detection> detections, long startTime) {
+        long processingTime = System.currentTimeMillis() - startTime;
+        double avgConfidence = detections.isEmpty() ? 0.0 :
+            detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0);
+        
+        Map<String, Object> metadata = Map.of(
+            "backendId", getBackendId(),
+            "backendVersion", getBackendVersion()
+        );
+        
+        return VisionResult.of(detectionType, detections, avgConfidence, processingTime, metadata);
+    }
+
+    /**
+     * Converts OCR bounding box map to BoundingBox object.
+     *
+     * @param bboxMap the bounding box map
+     * @return BoundingBox instance
+     */
+    private BoundingBox convertBoundingBox(Map<String, Object> bboxMap) {
+        try {
+            double x = ((Number) bboxMap.get("x")).doubleValue();
+            double y = ((Number) bboxMap.get("y")).doubleValue();
+            double width = ((Number) bboxMap.get("width")).doubleValue();
+            double height = ((Number) bboxMap.get("height")).doubleValue();
+            return new BoundingBox(x, y, width, height);
+        } catch (Exception e) {
+            logger.warn("Failed to convert bounding box map: {}", e.getMessage());
+            return new BoundingBox(0, 0, 0, 0);
+        }
+    }
 }
