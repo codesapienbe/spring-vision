@@ -7,7 +7,7 @@
 
   <groupId>io.github.codesapienbe.springvision</groupId>
   <artifactId>spring-vision</artifactId>
-  <version>1.0.6</version>
+  <version>1.0.7</version>
   <packaging>pom</packaging>
 
   <name>Spring Vision</name>
@@ -338,6 +338,13 @@
           </executions>
           <configuration>
             <skip>${gpg.skip}</skip>
+            <!-- Use loopback pinentry so Maven can supply passphrase non-interactively -->
+            <useAgent>false</useAgent>
+            <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
+            <gpgArguments>
+              <arg>--pinentry-mode</arg>
+              <arg>loopback</arg>
+            </gpgArguments>
           </configuration>
         </plugin>
 
@@ -450,6 +457,13 @@
         </executions>
         <configuration>
           <skip>${gpg.skip}</skip>
+          <!-- Ensure non-interactive signing works by disabling agent and enabling loopback pinentry. -->
+          <useAgent>false</useAgent>
+          <passphraseEnvName>MAVEN_GPG_PASSPHRASE</passphraseEnvName>
+          <gpgArguments>
+            <arg>--pinentry-mode</arg>
+            <arg>loopback</arg>
+          </gpgArguments>
         </configuration>
       </plugin>
 
