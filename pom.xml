@@ -7,7 +7,7 @@
 
   <groupId>io.github.codesapienbe.springvision</groupId>
   <artifactId>spring-vision</artifactId>
-  <version>1.0.7</version>
+  <version>1.0.8</version>
   <packaging>pom</packaging>
 
   <name>Spring Vision</name>

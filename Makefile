@@ -11,7 +11,7 @@ clean:
 
 build:
 	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)";
-	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false;
+	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true;
 	mvn clean install -DskipTests || ( echo "Maven install failed!" && exit 1 );
 
 deploy:
@@ -29,9 +29,9 @@ deploy:
 	docker push docker.io/codesapienbe/spring-vision-mcp:latest
 
 release:
-	@echo "Releasing core,starter,mcp modules to Maven Central with version $(SPRING_VISION_VERSION)..."; \
-	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false; \
-	mvn -B -pl core,starter -am deploy -X -DskipTests || ( echo "Maven deploy failed!" && exit 1 );
+	@echo "Releasing all modules to Maven Central with version $(SPRING_VISION_VERSION)..."; \
+	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true; \
+	mvn -B deploy -X -DskipTests || ( echo "Maven deploy failed!" && exit 1 );
 
 docs:
 	@echo "Generating javadocs and creating report..."
