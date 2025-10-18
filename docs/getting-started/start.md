@@ -1,6 +1,6 @@
 # Getting Started
 
-[Docs Home](./index.md) · [Architecture](./architecture.md) · [Modules](./modules.md) · [Config](./config.md)
+[Docs Home](../index.md) · [Architecture](../architecture/architecture.md) · [Modules](../architecture/modules.md) · [Config](../configuration/config.md)
 
 This guide helps you go from zero to your first detection in minutes.
 
@@ -56,11 +56,11 @@ public class VisionController {
 
 - Build with GPU: `mvn clean install -P gpu`
 - Configure: `spring.vision.execution-provider=gpu`
-- Details: [GPU Acceleration](./gpu.md)
+- Details: [GPU Acceleration](../configuration/gpu.md)
 
 ## Next Steps
 
-- Explore backends and features: [Modules Overview](./modules.md)
-- Tune properties: [Configuration & Properties](./config.md)
-- Understand runtime ops: [Runtime & Operations](./runtime.md)
+- Explore backends and features: [Modules Overview](../architecture/modules.md)
+- Tune properties: [Configuration & Properties](../configuration/config.md)
+- Understand runtime ops: [Runtime & Operations](../configuration/runtime.md)
 

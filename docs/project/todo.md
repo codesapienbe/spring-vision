@@ -1,6 +1,6 @@
-[Docs Home](./index.md) · [Roadmap](./roadmap.md) · [Contributing](./contributing.md)
+[Docs Home](../index.md) · [Roadmap](./roadmap.md) · [Contributing](../development/contributing.md)
 
-# TODO
+# Project Roadmap
 
 This file tracks planned features and modules for the Spring Vision project.
 
@@ -33,4 +33,4 @@ This module will be dedicated to industrial automation and robotics.
 
 ---
 
-See also: [Roadmap](./roadmap.md) · [Modules](./modules.md) · [Architecture](./architecture.md) · [FAQ](./faq.md)
+See also: [Roadmap](./roadmap.md) · [Modules](../architecture/modules.md) · [Architecture](../architecture/architecture.md) · [FAQ](./faq.md)

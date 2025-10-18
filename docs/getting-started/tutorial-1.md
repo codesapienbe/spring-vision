@@ -42,13 +42,13 @@ The video will cover these steps:
 Here is the JSON configuration to add to your MCP config file:
 
 ```json
-"spring-vision": {
+"spring-vision-mcp": {
 "command": "docker",
 "args": [
 "run",
 "-i",
 "--rm",
-"codesapienbe/spring-vision:latest"
+"codesapienbe/spring-vision-mcp:latest"
 ]
 }
 ```
