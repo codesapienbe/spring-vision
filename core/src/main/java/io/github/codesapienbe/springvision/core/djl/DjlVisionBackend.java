@@ -99,7 +99,8 @@ public class DjlVisionBackend implements VisionBackend,
     DemographicsCapability,
     NSFWDetectionCapability,
     EmotionDetectionCapability,
-    DeepfakeDetectionCapability {
+    DeepfakeDetectionCapability,
+    FallDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -2363,6 +2364,196 @@ public class DjlVisionBackend implements VisionBackend,
             logger.error("Deepfake detection failed: {}", e.getMessage(), e);
             throw new VisionProcessingException("Deepfake detection failed", e);
         }
+    }
+
+    // ==================== FallDetectionCapability Implementation ====================
+
+    /**
+     * Detects falls from pose analysis of image sequence or single frame.
+     * 
+     * <p>Analyzes body orientation, keypoint positions, and aspect ratio to determine fall risk.</p>
+     * <p>Uses existing pose estimation to extract body keypoints.</p>
+     */
+    @Override
+    public List<Detection> detectFall(List<ImageData> imageDataList) throws BaseVisionException {
+        Objects.requireNonNull(imageDataList, "ImageDataList cannot be null");
+        if (imageDataList.isEmpty()) {
+            throw new IllegalArgumentException("ImageDataList cannot be empty");
+        }
+        
+        logger.debug("Starting fall detection for {} frame(s)", imageDataList.size());
+        
+        try {
+            List<Detection> fallDetections = new ArrayList<>();
+            
+            // Analyze each frame
+            for (int frameIndex = 0; frameIndex < imageDataList.size(); frameIndex++) {
+                ImageData imageData = imageDataList.get(frameIndex);
+                
+                // Detect pose using existing capability
+                List<Detection> poses = detectPoses(imageData);
+                
+                if (poses.isEmpty()) {
+                    // No person detected - no fall risk
+                    Map<String, Object> attributes = new HashMap<>();
+                    attributes.put("fallDetected", false);
+                    attributes.put("bodyOrientation", "unknown");
+                    attributes.put("riskLevel", "low");
+                    attributes.put("frameIndex", frameIndex);
+                    attributes.put("reason", "no_person_detected");
+                    attributes.put("backend", BACKEND_ID);
+                    
+                    BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+                    fallDetections.add(new Detection(
+                        "no_detection",
+                        0.0,
+                        emptyBbox,
+                        attributes
+                    ));
+                    continue;
+                }
+                
+                // Analyze the first/primary pose
+                Detection primaryPose = poses.get(0);
+                
+                // Extract pose data from attributes
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> joints = (List<Map<String, Object>>) 
+                    primaryPose.attributes().get("joints");
+                
+                if (joints == null || joints.isEmpty()) {
+                    logger.warn("No joints found in pose detection");
+                    continue;
+                }
+                
+                // Analyze body orientation and position
+                FallAnalysis analysis = analyzeFallRisk(joints, primaryPose.boundingBox());
+                
+                // Create detection with fall analysis
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("fallDetected", analysis.fallDetected);
+                attributes.put("bodyOrientation", analysis.bodyOrientation);
+                attributes.put("riskLevel", analysis.riskLevel);
+                attributes.put("confidence", analysis.confidence);
+                attributes.put("aspectRatio", analysis.aspectRatio);
+                attributes.put("headHeight", analysis.headHeight);
+                attributes.put("frameIndex", frameIndex);
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("analysisDetails", analysis.details);
+                
+                fallDetections.add(new Detection(
+                    analysis.bodyOrientation,
+                    analysis.confidence,
+                    primaryPose.boundingBox(),
+                    attributes
+                ));
+            }
+            
+            logger.info("Fall detection completed: {} frame(s) analyzed", fallDetections.size());
+            return fallDetections;
+            
+        } catch (Exception e) {
+            logger.error("Fall detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("Fall detection failed", e);
+        }
+    }
+    
+    /**
+     * Analyzes fall risk from pose keypoints and bounding box.
+     */
+    private FallAnalysis analyzeFallRisk(List<Map<String, Object>> joints, BoundingBox bbox) {
+        FallAnalysis analysis = new FallAnalysis();
+        
+        // Calculate body aspect ratio (width/height)
+        if (bbox != null) {
+            analysis.aspectRatio = bbox.width() / bbox.height();
+        }
+        
+        // Find key points: head (nose/eyes), hips, shoulders
+        Double headY = null;
+        Double hipY = null;
+        Double shoulderY = null;
+        
+        for (Map<String, Object> joint : joints) {
+            String label = (String) joint.get("label");
+            Object yObj = joint.get("y");
+            
+            if (yObj == null) continue;
+            double y = (yObj instanceof Double) ? (Double) yObj : ((Number) yObj).doubleValue();
+            
+            if (label != null) {
+                String lowerLabel = label.toLowerCase();
+                if (lowerLabel.contains("nose") || lowerLabel.contains("head") || lowerLabel.contains("eye")) {
+                    if (headY == null || y < headY) headY = y;  // Lowest Y (highest on screen)
+                } else if (lowerLabel.contains("hip")) {
+                    if (hipY == null) hipY = y;
+                } else if (lowerLabel.contains("shoulder")) {
+                    if (shoulderY == null) shoulderY = y;
+                }
+            }
+        }
+        
+        // Calculate normalized head height (0.0 = top, 1.0 = bottom)
+        if (headY != null) {
+            analysis.headHeight = headY;
+        }
+        
+        // Determine body orientation and fall risk
+        boolean isLying = false;
+        boolean isSitting = false;
+        boolean isFalling = false;
+        
+        // High aspect ratio suggests horizontal (lying down)
+        if (analysis.aspectRatio > 1.2) {
+            isLying = true;
+            analysis.bodyOrientation = "lying";
+            analysis.riskLevel = "high";
+            analysis.fallDetected = true;
+            analysis.confidence = 0.85;
+            analysis.details = "High aspect ratio indicates horizontal body position";
+        }
+        // Low head position suggests sitting or crouching
+        else if (headY != null && headY > 0.6) {
+            if (hipY != null && Math.abs(headY - hipY) < 0.2) {
+                // Head and hips at similar height - likely sitting or on ground
+                isLying = true;
+                analysis.bodyOrientation = "lying";
+                analysis.riskLevel = "high";
+                analysis.fallDetected = true;
+                analysis.confidence = 0.75;
+                analysis.details = "Head and hips at similar height indicates fall or lying position";
+            } else {
+                isSitting = true;
+                analysis.bodyOrientation = "sitting";
+                analysis.riskLevel = "medium";
+                analysis.fallDetected = false;
+                analysis.confidence = 0.70;
+                analysis.details = "Low head position suggests sitting";
+            }
+        }
+        // Normal standing/upright position
+        else {
+            analysis.bodyOrientation = "standing";
+            analysis.riskLevel = "low";
+            analysis.fallDetected = false;
+            analysis.confidence = 0.80;
+            analysis.details = "Normal standing position detected";
+        }
+        
+        return analysis;
+    }
+    
+    /**
+     * Internal class to hold fall analysis results.
+     */
+    private static class FallAnalysis {
+        boolean fallDetected = false;
+        String bodyOrientation = "unknown";
+        String riskLevel = "low";
+        double confidence = 0.5;
+        double aspectRatio = 1.0;
+        double headHeight = 0.0;
+        String details = "";
     }
 
     @PreDestroy

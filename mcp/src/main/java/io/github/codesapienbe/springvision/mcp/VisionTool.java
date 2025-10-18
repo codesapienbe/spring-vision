@@ -1452,6 +1452,103 @@ public class VisionTool {
         }
     }
 
+    @Tool(description = "Detect falls from body pose analysis. Returns fall risk assessment with body orientation and confidence scores. Useful for elderly care and safety monitoring.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectFall(String imageUrl) {
+        log.info("detectFall called",
+            StructuredArguments.keyValue("event", "detect_fall_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("fallDetected", false);
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports fall detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support fall detection");
+                response.put("fallDetected", false);
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability fallBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability) visionTemplate.backend();
+
+            // For single image, wrap in list
+            List<io.github.codesapienbe.springvision.core.Detection> detections = 
+                fallBackend.detectFall(List.of(imgData));
+
+            if (detections.isEmpty()) {
+                response.put("status", "success");
+                response.put("fallDetected", false);
+                response.put("bodyOrientation", "unknown");
+                response.put("riskLevel", "low");
+                response.put("message", "No person detected");
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            // Get the first/primary detection
+            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            
+            boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
+            String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
+            String riskLevel = (String) detection.attributes().getOrDefault("riskLevel", "low");
+            Double aspectRatio = (Double) detection.attributes().get("aspectRatio");
+            Double headHeight = (Double) detection.attributes().get("headHeight");
+            String analysisDetails = (String) detection.attributes().get("analysisDetails");
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("fallDetected", fallDetected);
+            response.put("bodyOrientation", bodyOrientation);
+            response.put("riskLevel", riskLevel);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            
+            if (aspectRatio != null) {
+                response.put("aspectRatio", Math.round(aspectRatio * 1000.0) / 1000.0);
+            }
+            if (headHeight != null) {
+                response.put("headHeight", Math.round(headHeight * 1000.0) / 1000.0);
+            }
+            if (analysisDetails != null) {
+                response.put("analysisDetails", analysisDetails);
+            }
+            
+            // Include bounding box if available
+            if (detection.boundingBox() != null) {
+                Map<String, Double> bbox = new HashMap<>();
+                bbox.put("x", detection.boundingBox().x());
+                bbox.put("y", detection.boundingBox().y());
+                bbox.put("width", detection.boundingBox().width());
+                bbox.put("height", detection.boundingBox().height());
+                response.put("boundingBox", bbox);
+            }
+            
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect fall: " + e.getMessage());
+            response.put("fallDetected", false);
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect fall from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
     @Tool(description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {

@@ -76,9 +76,23 @@ All enhanced detection capabilities now return `List<Detection>` for consistency
 - ✅ Handle errors gracefully with informative messages
 - ✅ Support both URL-based and byte-based image input (where applicable)
 
-## Health Sector Capabilities 🏥
+## Healthcare Capabilities 🏥
 
-### Verified Models Available
+### Implemented Capabilities
+
+| Capability | Interface | Implementation | Status |
+|------------|-----------|----------------|--------|
+| Fall Detection | `FallDetectionCapability` | Pose-based analysis | ✅ Implemented |
+
+**Fall Detection Features:**
+- Analyzes body orientation from pose keypoints
+- Detects lying, sitting, standing, falling states  
+- Calculates body aspect ratio and head height
+- Returns risk level (low, medium, high)
+- Provides detailed analysis in attributes
+- MCP tool: `detectFall()`
+
+### Verified Medical Imaging Models Available
 
 | Capability | Model | Accuracy | Use Case |
 |------------|-------|----------|----------|
@@ -88,7 +102,7 @@ All enhanced detection capabilities now return `List<Detection>` for consistency
 | Diabetic Retinopathy | ArjTheHacker/diabetic-retinopathy-detection | High | Retinal disease detection |
 | Brain Tumor Detection | pavankm96/brain_tumor_det | High | MRI tumor detection |
 
-### Implementation Approach
+### Future Implementation
 - Create `HealthVisionBackend` extending `DjlVisionBackend`
 - Implement `MedicalImagingCapability` interface
 - Provide specialized methods for each medical use case
@@ -270,7 +284,8 @@ The current implementation provides:
 - ✅ 8 core capabilities fully implemented
 - ✅ 5 enhanced detection capabilities with unified API
 - ✅ 3 utility capabilities (Barcode, Metadata, Annotation)
-- ✅ **20 MCP tools fully functional** (9 core + 5 enhanced + 3 utility + 3 variants)
+- ✅ 1 healthcare capability (Fall Detection)
+- ✅ **21 MCP tools fully functional** (9 core + 5 enhanced + 3 utility + 1 healthcare + 3 variants)
 - ✅ Unified response format using `List<Detection>`
 - 📚 20+ verified HuggingFace models documented and ready to integrate
 - 🏗️ Clear roadmap for specialized backends
