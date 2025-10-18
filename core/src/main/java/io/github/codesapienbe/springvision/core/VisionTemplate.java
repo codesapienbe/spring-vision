@@ -351,8 +351,48 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
                 }
             }
             case TEXT -> {
-                if (b instanceof TextOcrCapability cap) {
-                    detections = cap.detectText(imageData);
+                if (b instanceof io.github.codesapienbe.springvision.core.capabilities.OcrCapability cap) {
+                    List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> texts = cap.extractText(imageData);
+                    // Convert OCR TextDetection records into Detection instances so upstream APIs stay consistent
+                    detections = new ArrayList<>();
+                    if (texts != null) {
+                        for (io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection td : texts) {
+                            // Build a Detection where label is the detected text and confidence comes from the OCR detection
+                            // For OCR we use a bounding box converted into the framework BoundingBox when possible
+                            io.github.codesapienbe.springvision.core.BoundingBox bbox = new io.github.codesapienbe.springvision.core.BoundingBox(
+                                0.0, 0.0, 1.0, 1.0
+                            );
+                            try {
+                                if (td.boundingBox() != null) {
+                                    Object xObj = td.boundingBox().get("x");
+                                    Object yObj = td.boundingBox().get("y");
+                                    Object wObj = td.boundingBox().get("width");
+                                    Object hObj = td.boundingBox().get("height");
+                                    if (xObj instanceof Number && yObj instanceof Number && wObj instanceof Number && hObj instanceof Number) {
+                                        double x = ((Number) xObj).doubleValue();
+                                        double y = ((Number) yObj).doubleValue();
+                                        double w = ((Number) wObj).doubleValue();
+                                        double h = ((Number) hObj).doubleValue();
+                                        bbox = new io.github.codesapienbe.springvision.core.BoundingBox(x, y, w, h);
+                                    }
+                                }
+                            } catch (Exception ignored) {
+                                // keep fallback bbox
+                            }
+
+                            Map<String, Object> attrs = Map.of(
+                                "text", td.text(),
+                                "ocrAttributes", td.attributes()
+                            );
+
+                            detections.add(new io.github.codesapienbe.springvision.core.Detection(
+                                td.text() == null ? "" : td.text(),
+                                Math.max(0.0, Math.min(1.0, td.confidence())),
+                                bbox,
+                                attrs
+                            ));
+                        }
+                    }
                 } else {
                     throw new VisionUnsupportedException(
                         String.format("Text detection is not supported by backend '%s'", getBackendId()),
@@ -888,5 +928,126 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         throw new VisionUnsupportedException(
             String.format("Access authentication is not supported by backend '%s'", getBackendId()),
             "authenticateAccess", "cyber-auth");
+    }
+
+    /**
+     * Extracts metadata from an image including EXIF, GPS, and camera information.
+     *
+     * <p>This method extracts various types of metadata from images:
+     * <ul>
+     *   <li>GPS coordinates (latitude, longitude, altitude)</li>
+     *   <li>EXIF data (date/time, camera settings, ISO, focal length)</li>
+     *   <li>Camera information (make, model)</li>
+     *   <li>Image properties (dimensions, color space)</li>
+     *   <li>IPTC metadata (author, copyright, keywords)</li>
+     * </ul></p>
+     *
+     * @param imageData the image data to extract metadata from
+     * @return a VisionResult containing extracted metadata as detections
+     * @throws BaseVisionException if metadata extraction fails
+     * @throws VisionUnsupportedException if the backend does not support metadata extraction
+     */
+    public VisionResult extractMetadata(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "imageData must not be null");
+        
+        if (!(backend instanceof MetaDataExtractionCapability)) {
+            throw new VisionUnsupportedException(
+                String.format("Metadata extraction is not supported by backend '%s'", getBackendId()),
+                "extractMetadata", "metadata");
+        }
+        
+        long startTime = System.currentTimeMillis();
+        try {
+            logger.debug("Starting metadata extraction with backend: {}", getBackendId());
+            
+            List<Detection> detections = ((MetaDataExtractionCapability) backend).extractMetaData(imageData);
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Metadata extraction completed: {} metadata group(s) extracted in {}ms", 
+                detections.size(), duration);
+            
+            // Calculate average confidence (always 1.0 for metadata)
+            double avgConfidence = detections.isEmpty() ? 0.0 : 1.0;
+            
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("backendId", getBackendId());
+            metadata.put("metadataGroupCount", detections.size());
+            
+            return new VisionResult(
+                DetectionType.METADATA_EXTRACTION,
+                detections,
+                avgConfidence,
+                duration,
+                java.time.Instant.now(),
+                metadata
+            );
+            
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Metadata extraction failed after {}ms: {}", duration, e.getMessage(), e);
+            throw new VisionProcessingException("Metadata extraction failed", e);
+        }
+    }
+
+    /**
+     * Detects and decodes barcodes in an image using the barcode detection capability.
+     *
+     * <p>This method scans the provided image for various barcode formats including:
+     * <ul>
+     *   <li>QR Code</li>
+     *   <li>EAN-13 / EAN-8</li>
+     *   <li>Code-128 / Code-39</li>
+     *   <li>UPC-A / UPC-E</li>
+     *   <li>Data Matrix</li>
+     *   <li>Aztec</li>
+     *   <li>PDF-417</li>
+     * </ul></p>
+     *
+     * @param imageData the image data to scan for barcodes
+     * @return a VisionResult containing detected barcodes with format, content, and location
+     * @throws BaseVisionException if barcode detection fails
+     * @throws VisionUnsupportedException if the backend does not support barcode detection
+     */
+    public VisionResult detectBarcodes(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "imageData must not be null");
+        
+        if (!(backend instanceof BarcodeCapability)) {
+            throw new VisionUnsupportedException(
+                String.format("Barcode detection is not supported by backend '%s'", getBackendId()),
+                "detectBarcodes", "barcode");
+        }
+        
+        long startTime = System.currentTimeMillis();
+        try {
+            logger.debug("Starting barcode detection with backend: {}", getBackendId());
+            
+            List<Detection> detections = ((BarcodeCapability) backend).detectBarcodes(imageData);
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Barcode detection completed: {} barcode(s) detected in {}ms", 
+                detections.size(), duration);
+            
+            // Calculate average confidence
+            double avgConfidence = detections.isEmpty() ? 0.0 :
+                detections.stream().mapToDouble(Detection::confidence).average().orElse(0.0);
+            
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("backendId", getBackendId());
+            metadata.put("barcodeCount", detections.size());
+            
+            return new VisionResult(
+                DetectionType.BARCODE,
+                detections,
+                avgConfidence,
+                duration,
+                java.time.Instant.now(),
+                metadata
+            );
+            
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Barcode detection failed after {}ms: {}", duration, e.getMessage(), e);
+            throw new VisionProcessingException("Barcode detection failed", e);
+        }
     }
 }

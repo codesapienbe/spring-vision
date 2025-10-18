@@ -7,16 +7,16 @@
  *
  * <h2>Available Translators</h2>
  * <ul>
- *   <li>{@link YuNetFaceDetectionTranslator} - YuNet face detection model</li>
- *   <li>{@link SFaceFaceRecognitionTranslator} - SFace face recognition model</li>
+ *   <li>{@link YuNetFaceDetectionTranslator} - YuNet face detection model (opencv/face_detection_yunet)</li>
  * </ul>
  *
  * <h2>Usage Example</h2>
  * <pre>{@code
- * // Use custom translator with DJL
+ * // Use custom translator with HuggingFace model
  * Criteria<Image, DetectedObjects> criteria = Criteria.builder()
  *     .setTypes(Image.class, DetectedObjects.class)
- *     .optModelPath(Paths.get(modelPath))
+ *     .optModelUrls("djl://ai.djl.huggingface.onnx/opencv/face_detection_yunet")
+ *     .optEngine("OnnxRuntime")
  *     .optTranslator(new YuNetFaceDetectionTranslator())
  *     .build();
  *

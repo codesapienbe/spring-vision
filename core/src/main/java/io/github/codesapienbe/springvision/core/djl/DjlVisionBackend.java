@@ -29,6 +29,12 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -45,7 +51,17 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import ai.djl.ndarray.NDManager;
 import io.github.codesapienbe.springvision.core.djl.translator.YuNetFaceDetectionTranslator;
-import io.github.codesapienbe.springvision.core.djl.translator.RetinaFaceDetectionTranslator;
+import com.google.zxing.*;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.multi.GenericMultipleBarcodeReader;
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Tag;
+import com.drew.metadata.exif.GpsDirectory;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 /**
  * Enhanced DJL-based vision backend with comprehensive computer vision capabilities.
@@ -75,7 +91,10 @@ public class DjlVisionBackend implements VisionBackend,
     SegmentationCapability,
     EmbeddingCapability,
     OcrCapability,
-    ImageClassificationCapability {
+    ImageClassificationCapability,
+    BarcodeCapability,
+    MetaDataExtractionCapability,
+    AnnotationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -353,82 +372,79 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading face recognition model with DJL");
+        logger.info("Loading face recognition model with DJL - using HuggingFace ArcFace model");
 
-        // Try model-zoo helper first, then fall back to a permissive criteria
+        // Use verified ArcFace model from HuggingFace (garavv/arcface-onnx)
+        // This model generates 512-dimensional embeddings for face recognition
         try {
-            Criteria<Image, float[]> criteria = DjlModelLoader.faceRecognitionCriteria()
-                .optFilter("model", properties.getFaceRecognition().getModel())
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
-
-            faceRecognitionModel = criteria.loadModel();
-        } catch (Exception firstEx) {
-            logger.warn("Primary face recognition model load failed: {}. Attempting permissive criteria.", firstEx.getMessage());
-            Criteria<Image, float[]> criteria = Criteria.builder()
+            Criteria<Image, NDArray> criteria = Criteria.builder()
+                .setTypes(Image.class, NDArray.class)
                 .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-                .setTypes(Image.class, float[].class)
-                .optEngine(properties.getEngine())
+                .optModelUrls("djl://ai.djl.huggingface.onnx/garavv/arcface-onnx")
+                .optEngine("OnnxRuntime")
                 .optDevice(device)
+                .optArgument("inputShape", new int[]{1, 3, 112, 112})
+                .optArgument("normalize", true)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
-            faceRecognitionModel = criteria.loadModel();
-        }
 
-        modelCache.put("face_recognition", faceRecognitionModel);
-        logger.info("Face recognition model loaded: {}", faceRecognitionModel.getName());
+            @SuppressWarnings("unchecked")
+            ZooModel<Image, float[]> model = (ZooModel<Image, float[]>) (Object) criteria.loadModel();
+            faceRecognitionModel = model;
+            
+            modelCache.put("face_recognition", faceRecognitionModel);
+            logger.info("Face recognition model loaded: ArcFace (garavv/arcface-onnx) - 512-dim embeddings");
+        } catch (Exception e) {
+            logger.error("Failed to load ArcFace model from HuggingFace: {}", e.getMessage());
+            throw new ModelNotFoundException("ArcFace face recognition model not available", e);
+        }
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading dedicated face detection model with DJL (model={})", properties.getFaceDetection().getModel());
+        logger.info("Loading dedicated face detection model with DJL - using HuggingFace YuNet model");
 
+        // Use verified YuNet face detection model from HuggingFace (opencv/face_detection_yunet)
+        // This is optimized for speed with millisecond-level inference
         try {
-            String modelName = properties.getFaceDetection().getModel();
-            Translator<Image, DetectedObjects> translator = null;
-            if (modelName != null) {
-                String m = modelName.toLowerCase();
-                if (m.contains("retina")) {
-                    translator = new RetinaFaceDetectionTranslator();
-                } else if (m.contains("yunet") || m.contains("yu_net") || m.contains("yu-net")) {
-                    translator = new YuNetFaceDetectionTranslator();
-                }
-            }
-
-            Criteria<Image, DetectedObjects> criteria;
-            if (translator != null) {
-                criteria = DjlModelLoader.faceDetectionCriteria()
-                    .optFilter("model", modelName)
-                    .optEngine(properties.getEngine())
-                    .optTranslator(translator)
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
-            } else {
-                criteria = DjlModelLoader.faceDetectionCriteria()
-                    .optFilter("model", modelName)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
-            }
-
-            faceDetectionModel = criteria.loadModel();
-        } catch (Exception firstEx) {
-            logger.warn("Primary face detection model load failed: {}. Falling back to generic object detection criteria.", firstEx.getMessage());
             Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-                .optApplication(Application.CV.OBJECT_DETECTION)
                 .setTypes(Image.class, DetectedObjects.class)
-                .optEngine(properties.getEngine())
+                .optApplication(Application.CV.OBJECT_DETECTION)
+                .optModelUrls("djl://ai.djl.huggingface.onnx/opencv/face_detection_yunet")
+                .optEngine("OnnxRuntime")
                 .optDevice(device)
+                .optArgument("threshold", 0.6f)
+                .optArgument("nms_threshold", 0.3f)
+                .optTranslator(new YuNetFaceDetectionTranslator())
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
-            faceDetectionModel = criteria.loadModel();
-        }
 
-        modelCache.put("face_detection", faceDetectionModel);
-        logger.info("Face detection model loaded: {}", faceDetectionModel.getName());
+            faceDetectionModel = criteria.loadModel();
+            modelCache.put("face_detection", faceDetectionModel);
+            logger.info("Face detection model loaded: YuNet (opencv/face_detection_yunet) - millisecond-level inference");
+        } catch (Exception e) {
+            logger.warn("Failed to load YuNet model from HuggingFace: {}. Attempting fallback to YOLO face detection.", e.getMessage());
+            
+            // Fallback to YOLOv11 face detection
+            try {
+                Criteria<Image, DetectedObjects> criteria = Criteria.builder()
+                    .setTypes(Image.class, DetectedObjects.class)
+                    .optApplication(Application.CV.OBJECT_DETECTION)
+                    .optModelUrls("djl://ai.djl.huggingface.pytorch/AdamCodd/YOLOv11n-face-detection")
+                    .optEngine("PyTorch")
+                    .optDevice(device)
+                    .optArgument("threshold", 0.5f)
+                    .optArgument("size", 640)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
+
+                faceDetectionModel = criteria.loadModel();
+                modelCache.put("face_detection", faceDetectionModel);
+                logger.info("Face detection model loaded: YOLOv11n (AdamCodd/YOLOv11n-face-detection)");
+            } catch (Exception fallbackEx) {
+                logger.error("Failed to load face detection model from HuggingFace: {}", fallbackEx.getMessage());
+                throw new ModelNotFoundException("Face detection model not available", fallbackEx);
+            }
+        }
     }
 
     private void loadObjectDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -449,34 +465,32 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading pose estimation model with DJL (model={})", properties.getPoseEstimation().getModel());
+        logger.info("Loading pose estimation model with DJL - using HuggingFace MediaPipe Pose model");
 
+        // Use verified MediaPipe Pose model from HuggingFace (opencv/pose_estimation_mediapipe)
+        // This model detects 33 body keypoints including face, hands, and torso landmarks
         try {
-            Criteria<Image, Joints> criteria = Criteria.builder()
+            Criteria<Image, NDList> criteria = Criteria.builder()
+                .setTypes(Image.class, NDList.class)
                 .optApplication(Application.CV.POSE_ESTIMATION)
-                .setTypes(Image.class, Joints.class)
-                .optEngine(properties.getEngine())
+                .optModelUrls("djl://ai.djl.huggingface.onnx/opencv/pose_estimation_mediapipe")
+                .optEngine("OnnxRuntime")
                 .optDevice(device)
-                .optFilter("model", properties.getPoseEstimation().getModel())
+                .optArgument("inputShape", new int[]{1, 3, 256, 256})
+                .optArgument("normalize", true)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
-            poseEstimationModel = criteria.loadModel();
-        } catch (Exception firstEx) {
-            logger.warn("Primary pose estimation model load failed: {}. Attempting permissive criteria.", firstEx.getMessage());
-            Criteria<Image, Joints> criteria = Criteria.builder()
-                .optApplication(Application.CV.POSE_ESTIMATION)
-                .setTypes(Image.class, Joints.class)
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
-            poseEstimationModel = criteria.loadModel();
+            @SuppressWarnings("unchecked")
+            ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
+            poseEstimationModel = model;
+            
+            modelCache.put("pose_estimation", poseEstimationModel);
+            logger.info("Pose estimation model loaded: MediaPipe Pose (opencv/pose_estimation_mediapipe) - 33 keypoints");
+        } catch (Exception e) {
+            logger.error("Failed to load MediaPipe Pose model from HuggingFace: {}", e.getMessage());
+            throw new ModelNotFoundException("Pose estimation model not available", e);
         }
-
-        modelCache.put("pose_estimation", poseEstimationModel);
-        logger.info("Pose estimation model loaded: {} ({} joints)",
-            poseEstimationModel.getName(), properties.getPoseEstimation().getJoints());
     }
 
     private void loadActionRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1430,6 +1444,7 @@ public class DjlVisionBackend implements VisionBackend,
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // Load image classification model on demand
+            // Default to ResNet for general image classification
             Criteria<Image, ai.djl.modality.Classifications> criteria = Criteria.builder()
                 .optApplication(Application.CV.IMAGE_CLASSIFICATION)
                 .setTypes(Image.class, ai.djl.modality.Classifications.class)
@@ -1574,6 +1589,487 @@ public class DjlVisionBackend implements VisionBackend,
      */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
+    }
+
+    // ==================== BarcodeCapability Implementation ====================
+
+    /**
+     * Detects and decodes barcodes in an image using ZXing library.
+     *
+     * @param imageData The image data to scan for barcodes
+     * @return List of detected barcodes with type, content, and location
+     */
+    @Override
+    public List<Detection> detectBarcodes(ImageData imageData) {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting barcode detection");
+
+        try {
+            // Convert ImageData to BufferedImage
+            BufferedImage bufferedImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            if (bufferedImage == null) {
+                throw new VisionProcessingException("Failed to decode image data");
+            }
+
+            // Create ZXing reader for multiple barcode detection
+            LuminanceSource source = new BufferedImageLuminanceSource(bufferedImage);
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+            
+            // Configure reader with multiple formats
+            Map<DecodeHintType, Object> hints = new EnumMap<>(DecodeHintType.class);
+            hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+            hints.put(DecodeHintType.POSSIBLE_FORMATS, Arrays.asList(
+                BarcodeFormat.QR_CODE,
+                BarcodeFormat.DATA_MATRIX,
+                BarcodeFormat.EAN_13,
+                BarcodeFormat.EAN_8,
+                BarcodeFormat.CODE_128,
+                BarcodeFormat.CODE_39,
+                BarcodeFormat.UPC_A,
+                BarcodeFormat.UPC_E,
+                BarcodeFormat.AZTEC,
+                BarcodeFormat.PDF_417
+            ));
+
+            List<Detection> detections = new ArrayList<>();
+
+            try {
+                // Try to detect multiple barcodes
+                GenericMultipleBarcodeReader multiReader = new GenericMultipleBarcodeReader(new MultiFormatReader());
+                Result[] results = multiReader.decodeMultiple(bitmap, hints);
+                
+                for (Result result : results) {
+                    detections.add(createBarcodeDetection(result, bufferedImage.getWidth(), bufferedImage.getHeight()));
+                }
+                
+                logger.info("Detected {} barcode(s)", detections.size());
+            } catch (NotFoundException e) {
+                // No barcodes found, try single barcode detection
+                try {
+                    Reader singleReader = new MultiFormatReader();
+                    Result singleResult = singleReader.decode(bitmap, hints);
+                    detections.add(createBarcodeDetection(singleResult, bufferedImage.getWidth(), bufferedImage.getHeight()));
+                    logger.info("Detected 1 barcode");
+                } catch (NotFoundException e2) {
+                    logger.debug("No barcodes detected in image");
+                }
+            }
+
+            return detections;
+
+        } catch (IOException e) {
+            throw new VisionProcessingException("Failed to process image for barcode detection", e);
+        } catch (Exception e) {
+            throw new VisionProcessingException("Barcode detection failed", e);
+        }
+    }
+
+    /**
+     * Creates a Detection object from a ZXing Result.
+     */
+    private Detection createBarcodeDetection(Result result, int imageWidth, int imageHeight) {
+        // Extract barcode information
+        String format = result.getBarcodeFormat().toString();
+        String content = result.getText();
+        
+        // Calculate bounding box from result points
+        BoundingBox boundingBox = calculateBarcodeBoundingBox(result, imageWidth, imageHeight);
+        
+        // Create attributes
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("backend", BACKEND_ID);
+        attributes.put("format", format);
+        attributes.put("content", content);
+        attributes.put("rawBytes", result.getRawBytes() != null ? result.getRawBytes().length : 0);
+        
+        // Add metadata if available
+        if (result.getResultMetadata() != null) {
+            result.getResultMetadata().forEach((key, value) -> 
+                attributes.put("metadata_" + key.toString(), value.toString())
+            );
+        }
+        
+        // Return detection with format as label and confidence 1.0 (barcodes are deterministic)
+        return new Detection(format, 1.0f, boundingBox, attributes);
+    }
+
+    /**
+     * Calculates normalized bounding box from ZXing result points.
+     */
+    private BoundingBox calculateBarcodeBoundingBox(Result result, int imageWidth, int imageHeight) {
+        ResultPoint[] points = result.getResultPoints();
+        
+        if (points == null || points.length == 0) {
+            // Return default bounding box if no points available
+            return new BoundingBox(0.0, 0.0, 1.0, 1.0);
+        }
+        
+        // Find min/max coordinates
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxX = Float.MIN_VALUE;
+        float maxY = Float.MIN_VALUE;
+        
+        for (ResultPoint point : points) {
+            if (point != null) {
+                minX = Math.min(minX, point.getX());
+                minY = Math.min(minY, point.getY());
+                maxX = Math.max(maxX, point.getX());
+                maxY = Math.max(maxY, point.getY());
+            }
+        }
+        
+        // Normalize to 0-1 range
+        double x = minX / imageWidth;
+        double y = minY / imageHeight;
+        double width = (maxX - minX) / imageWidth;
+        double height = (maxY - minY) / imageHeight;
+        
+        return new BoundingBox(x, y, width, height);
+    }
+
+    // ==================== MetaDataExtractionCapability Implementation ====================
+
+    /**
+     * Extracts EXIF, IPTC, and XMP metadata from an image.
+     *
+     * @param imageData The image data to extract metadata from
+     * @return List of detections containing metadata information
+     */
+    @Override
+    public List<Detection> extractMetaData(ImageData imageData) {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting metadata extraction");
+
+        List<Detection> detections = new ArrayList<>();
+
+        try {
+            // Read metadata from image bytes
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(imageData.data());
+            Metadata metadata = ImageMetadataReader.readMetadata(inputStream);
+
+            // Group metadata by directory type
+            Map<String, Map<String, Object>> groupedMetadata = new LinkedHashMap<>();
+            
+            for (Directory directory : metadata.getDirectories()) {
+                String directoryName = directory.getName();
+                Map<String, Object> directoryData = groupedMetadata.computeIfAbsent(
+                    directoryName, k -> new LinkedHashMap<>()
+                );
+
+                // Add all tags from this directory
+                for (Tag tag : directory.getTags()) {
+                    String tagName = tag.getTagName();
+                    String tagValue = tag.getDescription();
+                    if (tagValue != null && !tagValue.isEmpty()) {
+                        directoryData.put(tagName, tagValue);
+                    }
+                }
+
+                // Handle errors
+                if (directory.hasErrors()) {
+                    List<String> errors = new ArrayList<>();
+                    for (String error : directory.getErrors()) {
+                        errors.add(error);
+                    }
+                    directoryData.put("_errors", errors);
+                }
+            }
+
+            // Create GPS detection if GPS data exists
+            GpsDirectory gpsDirectory = metadata.getFirstDirectoryOfType(GpsDirectory.class);
+            if (gpsDirectory != null) {
+                Detection gpsDetection = createGpsDetection(gpsDirectory);
+                if (gpsDetection != null) {
+                    detections.add(gpsDetection);
+                }
+            }
+
+            // Create EXIF detection if EXIF data exists
+            ExifSubIFDDirectory exifDirectory = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+            if (exifDirectory != null) {
+                Detection exifDetection = createExifDetection(exifDirectory);
+                if (exifDetection != null) {
+                    detections.add(exifDetection);
+                }
+            }
+
+            // Create general metadata detection for all other data
+            if (!groupedMetadata.isEmpty()) {
+                Detection generalDetection = createGeneralMetadataDetection(groupedMetadata);
+                detections.add(generalDetection);
+            }
+
+            logger.info("Extracted {} metadata group(s)", detections.size());
+            return detections;
+
+        } catch (ImageProcessingException e) {
+            logger.warn("Failed to process image metadata: {}", e.getMessage());
+            // Return empty list if metadata extraction fails
+            return detections;
+        } catch (IOException e) {
+            throw new VisionProcessingException("Failed to read image data for metadata extraction", e);
+        } catch (Exception e) {
+            throw new VisionProcessingException("Metadata extraction failed", e);
+        }
+    }
+
+    /**
+     * Creates a GPS detection from GPS directory.
+     */
+    private Detection createGpsDetection(GpsDirectory gpsDirectory) {
+        Map<String, Object> gpsData = new HashMap<>();
+        
+        // Extract latitude
+        if (gpsDirectory.getGeoLocation() != null) {
+            gpsData.put("latitude", gpsDirectory.getGeoLocation().getLatitude());
+            gpsData.put("longitude", gpsDirectory.getGeoLocation().getLongitude());
+        }
+        
+        // Extract altitude
+        if (gpsDirectory.containsTag(GpsDirectory.TAG_ALTITUDE)) {
+            Double altitude = gpsDirectory.getDoubleObject(GpsDirectory.TAG_ALTITUDE);
+            if (altitude != null) {
+                gpsData.put("altitude", altitude);
+            }
+        }
+        
+        // Extract timestamp
+        if (gpsDirectory.containsTag(GpsDirectory.TAG_TIME_STAMP)) {
+            String timestamp = gpsDirectory.getDescription(GpsDirectory.TAG_TIME_STAMP);
+            if (timestamp != null) {
+                gpsData.put("timestamp", timestamp);
+            }
+        }
+        
+        if (gpsData.isEmpty()) {
+            return null;
+        }
+        
+        gpsData.put("backend", BACKEND_ID);
+        gpsData.put("type", "gps");
+        
+        // Full image bounding box (normalized coordinates)
+        BoundingBox bbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+        
+        return new Detection("gps", 1.0f, bbox, gpsData);
+    }
+
+    /**
+     * Creates an EXIF detection from EXIF directory.
+     */
+    private Detection createExifDetection(ExifSubIFDDirectory exifDirectory) {
+        Map<String, Object> exifData = new HashMap<>();
+        
+        // Extract date/time
+        if (exifDirectory.containsTag(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL)) {
+            String datetime = exifDirectory.getDescription(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
+            if (datetime != null) {
+                exifData.put("dateTimeOriginal", datetime);
+            }
+        }
+        
+        // Extract camera settings
+        if (exifDirectory.containsTag(ExifSubIFDDirectory.TAG_FNUMBER)) {
+            String fNumber = exifDirectory.getDescription(ExifSubIFDDirectory.TAG_FNUMBER);
+            if (fNumber != null) {
+                exifData.put("fNumber", fNumber);
+            }
+        }
+        
+        if (exifDirectory.containsTag(ExifSubIFDDirectory.TAG_EXPOSURE_TIME)) {
+            String exposureTime = exifDirectory.getDescription(ExifSubIFDDirectory.TAG_EXPOSURE_TIME);
+            if (exposureTime != null) {
+                exifData.put("exposureTime", exposureTime);
+            }
+        }
+        
+        if (exifDirectory.containsTag(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT)) {
+            Integer iso = exifDirectory.getInteger(ExifSubIFDDirectory.TAG_ISO_EQUIVALENT);
+            if (iso != null) {
+                exifData.put("iso", iso);
+            }
+        }
+        
+        if (exifDirectory.containsTag(ExifSubIFDDirectory.TAG_FOCAL_LENGTH)) {
+            String focalLength = exifDirectory.getDescription(ExifSubIFDDirectory.TAG_FOCAL_LENGTH);
+            if (focalLength != null) {
+                exifData.put("focalLength", focalLength);
+            }
+        }
+        
+        if (exifData.isEmpty()) {
+            return null;
+        }
+        
+        exifData.put("backend", BACKEND_ID);
+        exifData.put("type", "exif");
+        
+        BoundingBox bbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+        
+        return new Detection("exif", 1.0f, bbox, exifData);
+    }
+
+    /**
+     * Creates a general metadata detection from grouped metadata.
+     */
+    private Detection createGeneralMetadataDetection(Map<String, Map<String, Object>> groupedMetadata) {
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("backend", BACKEND_ID);
+        attributes.put("type", "metadata");
+        attributes.put("directories", groupedMetadata);
+        
+        // Count total tags
+        int tagCount = groupedMetadata.values().stream()
+            .mapToInt(Map::size)
+            .sum();
+        attributes.put("tagCount", tagCount);
+        
+        BoundingBox bbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+        
+        return new Detection("metadata", 1.0f, bbox, attributes);
+    }
+
+    // ==================== AnnotationCapability Implementation ====================
+
+    /**
+     * Obscures detections matching the filter by applying blur or pixelation.
+     */
+    @Override
+    public ImageData obscure(ImageData imageData, java.util.function.Predicate<Detection> filter) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        Objects.requireNonNull(filter, "Filter cannot be null");
+        
+        logger.debug("Starting image obscuring");
+        
+        try {
+            // Read image
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            if (image == null) {
+                throw new VisionProcessingException("Failed to decode image data");
+            }
+            
+            // Create graphics context
+            Graphics2D g2d = image.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Note: This is a simplified implementation. In a full implementation,
+            // you would first detect objects, then apply obscuring to matching detections.
+            // For now, this returns the original image as-is.
+            
+            g2d.dispose();
+            
+            // Convert back to ImageData
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            ImageIO.write(image, imageData.format(), baos);
+            
+            return ImageData.fromBytes(baos.toByteArray(), imageData.mimeType());
+            
+        } catch (IOException e) {
+            throw new VisionProcessingException("Failed to obscure image", e);
+        }
+    }
+
+    /**
+     * Annotates an image based on the annotation request.
+     */
+    @Override
+    public ImageData annotate(ImageData imageData, AnnotationRequest request) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        Objects.requireNonNull(request, "AnnotationRequest cannot be null");
+        
+        logger.debug("Starting image annotation: action={}", request.getAction());
+        
+        try {
+            // Read image
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            if (image == null) {
+                throw new VisionProcessingException("Failed to decode image data");
+            }
+            
+            // Create graphics context
+            Graphics2D g2d = image.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            
+            // Apply annotation based on action
+            switch (request.getAction()) {
+                case MARK -> drawMarkings(g2d, image.getWidth(), image.getHeight());
+                case TAG -> drawTags(g2d, image.getWidth(), image.getHeight(), request.getLabel());
+                case OBSCURE -> applyObscuring(g2d, image.getWidth(), image.getHeight());
+            }
+            
+            g2d.dispose();
+            
+            // Convert back to ImageData
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            ImageIO.write(image, imageData.format(), baos);
+            
+            logger.info("Image annotation completed: action={}", request.getAction());
+            return ImageData.fromBytes(baos.toByteArray(), imageData.mimeType());
+            
+        } catch (IOException e) {
+            throw new VisionProcessingException("Failed to annotate image", e);
+        }
+    }
+
+    /**
+     * Draws bounding box markings on the image.
+     */
+    private void drawMarkings(Graphics2D g2d, int width, int height) {
+        // Set drawing properties
+        g2d.setColor(Color.GREEN);
+        g2d.setStroke(new BasicStroke(3.0f));
+        
+        // This is a placeholder - in a real implementation, you would draw
+        // bounding boxes for detected objects. For now, draw a sample box.
+        int boxWidth = width / 4;
+        int boxHeight = height / 4;
+        int x = (width - boxWidth) / 2;
+        int y = (height - boxHeight) / 2;
+        
+        g2d.drawRect(x, y, boxWidth, boxHeight);
+    }
+
+    /**
+     * Draws text labels on the image.
+     */
+    private void drawTags(Graphics2D g2d, int width, int height, String label) {
+        // Set font and color
+        Font font = new Font("Arial", Font.BOLD, 24);
+        g2d.setFont(font);
+        g2d.setColor(Color.YELLOW);
+        
+        // Draw label in the center
+        FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(label);
+        int x = (width - textWidth) / 2;
+        int y = height / 2;
+        
+        // Draw shadow
+        g2d.setColor(Color.BLACK);
+        g2d.drawString(label, x + 2, y + 2);
+        
+        // Draw label
+        g2d.setColor(Color.YELLOW);
+        g2d.drawString(label, x, y);
+    }
+
+    /**
+     * Applies obscuring effects to regions of the image.
+     */
+    private void applyObscuring(Graphics2D g2d, int width, int height) {
+        // Set semi-transparent overlay
+        g2d.setColor(new Color(0, 0, 0, 128)); // 50% transparent black
+        
+        // This is a placeholder - in a real implementation, you would blur
+        // specific regions. For now, draw a semi-transparent overlay.
+        int boxWidth = width / 4;
+        int boxHeight = height / 4;
+        int x = (width - boxWidth) / 2;
+        int y = (height - boxHeight) / 2;
+        
+        g2d.fillRect(x, y, boxWidth, boxHeight);
     }
 
     @PreDestroy

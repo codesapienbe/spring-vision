@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -427,8 +428,42 @@ public class BatchVisionProcessor {
                                 }
                                 break;
                             case TEXT:
-                                if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.TextOcrCapability cap) {
-                                    detections = cap.detectText(imageData);
+                                if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.OcrCapability cap) {
+                                    List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> texts = cap.extractText(imageData);
+                                    detections = new ArrayList<>();
+                                    if (texts != null) {
+                                        for (io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection td : texts) {
+                                            io.github.codesapienbe.springvision.core.BoundingBox bbox = new io.github.codesapienbe.springvision.core.BoundingBox(0.0, 0.0, 1.0, 1.0);
+                                            try {
+                                                if (td.boundingBox() != null) {
+                                                    Object xObj = td.boundingBox().get("x");
+                                                    Object yObj = td.boundingBox().get("y");
+                                                    Object wObj = td.boundingBox().get("width");
+                                                    Object hObj = td.boundingBox().get("height");
+                                                    if (xObj instanceof Number && yObj instanceof Number && wObj instanceof Number && hObj instanceof Number) {
+                                                        double x = ((Number) xObj).doubleValue();
+                                                        double y = ((Number) yObj).doubleValue();
+                                                        double w = ((Number) wObj).doubleValue();
+                                                        double h = ((Number) hObj).doubleValue();
+                                                        bbox = new io.github.codesapienbe.springvision.core.BoundingBox(x, y, w, h);
+                                                    }
+                                                }
+                                            } catch (Exception ignored) {
+                                            }
+
+                                            Map<String, Object> attrs = Map.of(
+                                                "text", td.text(),
+                                                "ocrAttributes", td.attributes()
+                                            );
+
+                                            detections.add(new io.github.codesapienbe.springvision.core.Detection(
+                                                td.text() == null ? "" : td.text(),
+                                                Math.max(0.0, Math.min(1.0, td.confidence())),
+                                                bbox,
+                                                attrs
+                                            ));
+                                        }
+                                    }
                                 } else {
                                     throw new IllegalArgumentException("Text detection not supported by backend");
                                 }

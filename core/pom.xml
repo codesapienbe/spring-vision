@@ -18,13 +18,7 @@
   <properties>
     <docker.image.name>spring-vision-base:${project.version}</docker.image.name>
 
-    <!-- DJL model prefetch configuration -->
-    <djl.cache.dir>${project.build.directory}/djl-cache</djl.cache.dir>
-    <djl.model.retinaface.url>https://resources.djl.ai/test-models/pytorch/retinaface.zip</djl.model.retinaface.url>
-    <djl.model.ultranet.url>https://resources.djl.ai/test-models/pytorch/ultranet.zip</djl.model.ultranet.url>
-    <djl.model.face_feature.url>https://resources.djl.ai/test-models/pytorch/face_feature.zip
-    </djl.model.face_feature.url>
-    <djl.prefetch.strict>true</djl.prefetch.strict>
+    <!-- DJL configuration - models now loaded directly from HuggingFace via djl:// URLs -->
     <pytorch.version>2.1.1</pytorch.version>
   </properties>
 
@@ -283,90 +277,10 @@
         <artifactId>maven-surefire-plugin</artifactId>
       </plugin>
 
-      <!-- Use download-maven-plugin to fetch DJL model zips during generate-resources and unzip them -->
-      <plugin>
-        <groupId>com.googlecode.maven-download-plugin</groupId>
-        <artifactId>download-maven-plugin</artifactId>
-        <version>1.6.8</version>
-        <executions>
-          <execution>
-            <id>download-retinaface</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>${djl.model.retinaface.url}</url>
-              <outputDirectory>${djl.cache.dir}</outputDirectory>
-              <outputFileName>retinaface.zip</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-ultranet</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>${djl.model.ultranet.url}</url>
-              <outputDirectory>${djl.cache.dir}</outputDirectory>
-              <outputFileName>ultranet.zip</outputFileName>
-            </configuration>
-          </execution>
-          <execution>
-            <id>download-face-feature</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>wget</goal>
-            </goals>
-            <configuration>
-              <url>${djl.model.face_feature.url}</url>
-              <outputDirectory>${djl.cache.dir}</outputDirectory>
-              <outputFileName>face_feature.zip</outputFileName>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+      <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
+      <!-- No manual download needed - DJL handles caching automatically -->
 
-      <!-- Unpack downloaded zips during generate-resources and fail build on error -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <execution>
-            <id>unpack-djl-models</id>
-            <phase>generate-resources</phase>
-            <configuration>
-              <target>
-                <echo message="Unpacking DJL model zips to ${djl.cache.dir}"/>
-                <!-- Extract retinaface -->
-                <unzip src="${djl.cache.dir}/retinaface.zip" dest="${djl.cache.dir}/retinaface" overwrite="false"/>
-                <available file="${djl.cache.dir}/retinaface" type="dir" property="retinaface.extracted"/>
-                <fail unless="retinaface.extracted">Failed to unpack retinaface.zip into ${djl.cache.dir}/retinaface
-                </fail>
-
-                <!-- Extract ultranet -->
-                <unzip src="${djl.cache.dir}/ultranet.zip" dest="${djl.cache.dir}/ultranet" overwrite="false"/>
-                <available file="${djl.cache.dir}/ultranet" type="dir" property="ultranet.extracted"/>
-                <fail unless="ultranet.extracted">Failed to unpack ultranet.zip into ${djl.cache.dir}/ultranet</fail>
-
-                <!-- Extract face_feature -->
-                <unzip src="${djl.cache.dir}/face_feature.zip" dest="${djl.cache.dir}/face_feature" overwrite="false"/>
-                <available file="${djl.cache.dir}/face_feature" type="dir" property="face_feature.extracted"/>
-                <fail unless="face_feature.extracted">Failed to unpack face_feature.zip into
-                  ${djl.cache.dir}/face_feature
-                </fail>
-              </target>
-            </configuration>
-            <goals>
-              <goal>run</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- Build the module's Dockerfile (mcp/Dockerfile) with the fabric8 docker-maven-plugin -->
+      <!-- Build the module's Dockerfile (core/Dockerfile) with the fabric8 docker-maven-plugin -->
       <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>

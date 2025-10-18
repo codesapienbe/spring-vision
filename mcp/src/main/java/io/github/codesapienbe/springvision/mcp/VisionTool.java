@@ -1096,6 +1096,182 @@ public class VisionTool {
         return out;
     }
 
+    @Tool(description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectNSFW(String imageUrl) {
+        log.info("detectNSFW called",
+            StructuredArguments.keyValue("event", "detect_nsfw_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("classification", "unknown");
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports image classification
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support image classification");
+                response.put("classification", "unknown");
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
+                classificationBackend.classifyImage(imgData, 2);
+
+            String topLabel = result.classifications().isEmpty() ? "unknown" : result.classifications().get(0).label();
+            double topConfidence = result.classifications().isEmpty() ? 0.0 : result.classifications().get(0).confidence();
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("classification", topLabel);
+            response.put("confidence", Math.round(topConfidence * 10000.0) / 10000.0);
+            response.put("isNSFW", topLabel.toLowerCase().contains("nsfw"));
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect NSFW content: " + e.getMessage());
+            response.put("classification", "unknown");
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect NSFW from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect emotions from faces in an image. Returns detected emotions with confidence scores (angry, disgust, fear, happy, sad, surprise, neutral).")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectEmotions(String imageUrl) {
+        log.info("detectEmotions called",
+            StructuredArguments.keyValue("event", "detect_emotions_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("emotions", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports image classification
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support image classification");
+                response.put("emotions", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
+                classificationBackend.classifyImage(imgData, 7);
+
+            List<Map<String, Object>> emotions = new ArrayList<>();
+            for (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.Classification classification : result.classifications()) {
+                Map<String, Object> emotion = new HashMap<>();
+                emotion.put("emotion", classification.label());
+                emotion.put("confidence", Math.round(classification.confidence() * 10000.0) / 10000.0);
+                emotions.add(emotion);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("emotions", emotions);
+            response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
+            response.put("count", emotions.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect emotions: " + e.getMessage());
+            response.put("emotions", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect emotions from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect deepfakes in an image. Returns classification as 'real' or 'fake' with confidence score.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectDeepfake(String imageUrl) {
+        log.info("detectDeepfake called",
+            StructuredArguments.keyValue("event", "detect_deepfake_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("classification", "unknown");
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports image classification
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support image classification");
+                response.put("classification", "unknown");
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+
+            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
+                classificationBackend.classifyImage(imgData, 2);
+
+            String topLabel = result.classifications().isEmpty() ? "unknown" : result.classifications().get(0).label();
+            double topConfidence = result.classifications().isEmpty() ? 0.0 : result.classifications().get(0).confidence();
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("classification", topLabel);
+            response.put("confidence", Math.round(topConfidence * 10000.0) / 10000.0);
+            response.put("isFake", topLabel.toLowerCase().contains("fake"));
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect deepfake: " + e.getMessage());
+            response.put("classification", "unknown");
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect deepfake from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
     @Tool(description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {
@@ -1206,6 +1382,181 @@ public class VisionTool {
             response.put("embeddings", List.of());
             response.put("processingTimeMs", duration);
             log.error("Failed to extract embeddings from bytes", e);
+            return response;
+        }
+    }
+
+    /**
+     * Extract metadata from an image including EXIF, GPS, and camera information.
+     *
+     * @param imageUrl URL of the image to extract metadata from
+     * @return Map containing extracted metadata grouped by type (GPS, EXIF, etc.)
+     */
+    @Tool(description = "Extract metadata from an image including GPS coordinates, EXIF data, camera settings, timestamps, and more. Returns comprehensive metadata grouped by type.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractImageMetadata(String imageUrl) {
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> response = new HashMap<>();
+
+        log.info("Metadata extraction requested",
+            StructuredArguments.keyValue("event", "metadata_extraction_start"),
+            StructuredArguments.keyValue("imageUrl", sanitizeUrlForLogging(imageUrl)));
+
+        try {
+            // Download image
+            byte[] imageData = downloadImageFromUrl(imageUrl);
+            ImageData imgData = ImageData.fromBytes(imageData);
+
+            // Extract metadata
+            VisionResult result = visionTemplate.extractMetadata(imgData);
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            // Convert detections to response format
+            Map<String, Map<String, Object>> metadataGroups = new HashMap<>();
+            
+            for (io.github.codesapienbe.springvision.core.Detection detection : result.detections()) {
+                String type = detection.label(); // "gps", "exif", or "metadata"
+                Map<String, Object> groupData = new HashMap<>(detection.attributes());
+                
+                // Remove internal fields
+                groupData.remove("backend");
+                groupData.remove("type");
+                
+                metadataGroups.put(type, groupData);
+            }
+
+            response.put("status", "success");
+            response.put("metadata", metadataGroups);
+            response.put("groupCount", metadataGroups.size());
+            response.put("processingTimeMs", duration);
+            response.put("backend", result.metadata().get("backendId"));
+
+            log.info("Metadata extraction completed",
+                StructuredArguments.keyValue("event", "metadata_extraction_complete"),
+                StructuredArguments.keyValue("groupCount", metadataGroups.size()),
+                StructuredArguments.keyValue("processingTimeMs", duration));
+
+            return response;
+
+        } catch (IOException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to download image: " + e.getMessage());
+            response.put("metadata", Map.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to download image for metadata extraction", e);
+            return response;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+            
+            response.put("message", "Failed to extract metadata: " + errorMsg);
+            response.put("metadata", Map.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to extract metadata", e);
+            return response;
+        }
+    }
+
+    /**
+     * Scan and decode barcodes/QR codes from an image.
+     *
+     * @param imageUrl URL of the image to scan
+     * @return Map containing detected barcodes with format, content, and location
+     */
+    @Tool(description = "Scan and decode barcodes and QR codes from an image. Supports QR_CODE, EAN-13, Code-128, Data Matrix, and more. Returns barcode format, content, and location.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> scanBarcode(String imageUrl) {
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> response = new HashMap<>();
+
+        log.info("Barcode scan requested",
+            StructuredArguments.keyValue("event", "barcode_scan_start"),
+            StructuredArguments.keyValue("imageUrl", sanitizeUrlForLogging(imageUrl)));
+
+        try {
+            // Download image
+            byte[] imageData = downloadImageFromUrl(imageUrl);
+            ImageData imgData = ImageData.fromBytes(imageData);
+
+            // Detect barcodes
+            VisionResult result = visionTemplate.detectBarcodes(imgData);
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            // Convert detections to response format
+            List<Map<String, Object>> barcodes = new ArrayList<>();
+            for (io.github.codesapienbe.springvision.core.Detection detection : result.detections()) {
+                Map<String, Object> barcodeInfo = new HashMap<>();
+                barcodeInfo.put("format", detection.label());
+                barcodeInfo.put("content", detection.attributes().get("content"));
+                barcodeInfo.put("confidence", detection.confidence());
+                
+                // Add bounding box
+                io.github.codesapienbe.springvision.core.BoundingBox bbox = detection.boundingBox();
+                Map<String, Double> location = new HashMap<>();
+                location.put("x", bbox.x());
+                location.put("y", bbox.y());
+                location.put("width", bbox.width());
+                location.put("height", bbox.height());
+                barcodeInfo.put("location", location);
+                
+                // Add metadata
+                if (detection.attributes().containsKey("rawBytes")) {
+                    barcodeInfo.put("rawBytesLength", detection.attributes().get("rawBytes"));
+                }
+                
+                barcodes.add(barcodeInfo);
+            }
+
+            response.put("status", "success");
+            response.put("count", barcodes.size());
+            response.put("barcodes", barcodes);
+            response.put("processingTimeMs", duration);
+            response.put("backend", result.metadata().get("backendId"));
+
+            log.info("Barcode scan completed",
+                StructuredArguments.keyValue("event", "barcode_scan_complete"),
+                StructuredArguments.keyValue("count", barcodes.size()),
+                StructuredArguments.keyValue("processingTimeMs", duration));
+
+            return response;
+
+        } catch (IOException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to download image: " + e.getMessage());
+            response.put("barcodes", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to download image for barcode scanning", e);
+            return response;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                Throwable cause = e.getCause();
+                if (cause != null && cause.getMessage() != null) {
+                    errorMsg += ": " + cause.getMessage();
+                }
+            }
+            
+            response.put("message", "Failed to scan barcode: " + errorMsg);
+            response.put("barcodes", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to scan barcode", e);
             return response;
         }
     }
