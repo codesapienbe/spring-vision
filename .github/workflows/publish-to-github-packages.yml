@@ -29,6 +29,6 @@ jobs:
             echo "$GPG_PRIVATE_KEY" | gpg --batch --import
             export MAVEN_GPG_PASSPHRASE="$GPG_PASSPHRASE"
           fi
-          mvn -B -DskipTests -Dgpg.skip=true deploy
+          mvn -B -DskipTests deploy
 
 
