@@ -7,7 +7,7 @@
 
   <parent>
     <groupId>io.github.codesapienbe.springvision</groupId>
-    <artifactId>spring-vision</artifactId>
+    <artifactId>parent</artifactId>
     <version>0.0.1</version>
   </parent>
 
@@ -16,8 +16,10 @@
   <description>Core domain classes and interfaces for Spring Vision</description>
 
   <properties>
-    <docker.image.name>spring-vision-base:${project.version}</docker.image.name>
-
+    <!-- Use the Maven project.version (set by the top-level Makefile from VERSION) as the image tag.
+         The image name is the repository path without tag; tags are added in the docker plugin configuration. -->
+    <docker.image.name>docker.io/codesapienbe/spring-vision-base</docker.image.name>
+    
     <!-- DJL configuration - models now loaded directly from HuggingFace via djl:// URLs -->
     <pytorch.version>2.1.1</pytorch.version>
   </properties>
@@ -270,6 +272,9 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.1</version>
       </plugin>
+
+      <!-- Read repository VERSION file into repo.version property -->
+      <!-- Image tagging handled via docker-maven-plugin tags; top-level Makefile sets project.version from VERSION. -->
 
       <!-- Maven Surefire Plugin for running tests -->
       <plugin>
