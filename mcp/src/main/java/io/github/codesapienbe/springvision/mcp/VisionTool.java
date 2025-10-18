@@ -1117,28 +1117,37 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports image classification
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+            // Check if backend supports NSFW detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability)) {
                 response.put("status", "error");
-                response.put("message", "Current backend does not support image classification");
+                response.put("message", "Current backend does not support NSFW detection");
                 response.put("classification", "unknown");
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+            io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability nsfwBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability) visionTemplate.backend();
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
-                classificationBackend.classifyImage(imgData, 2);
+            List<io.github.codesapienbe.springvision.core.Detection> detections = nsfwBackend.detectNSFW(imgData);
 
-            String topLabel = result.classifications().isEmpty() ? "unknown" : result.classifications().get(0).label();
-            double topConfidence = result.classifications().isEmpty() ? 0.0 : result.classifications().get(0).confidence();
+            if (detections.isEmpty()) {
+                response.put("status", "success");
+                response.put("classification", "unknown");
+                response.put("confidence", 0.0);
+                response.put("isNSFW", false);
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
+            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
-            response.put("classification", topLabel);
-            response.put("confidence", Math.round(topConfidence * 10000.0) / 10000.0);
-            response.put("isNSFW", topLabel.toLowerCase().contains("nsfw"));
+            response.put("classification", classification);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("isNSFW", isNSFW);
             response.put("processingTimeMs", duration);
             return response;
 
@@ -1174,25 +1183,36 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports image classification
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+            // Check if backend supports emotion detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability)) {
                 response.put("status", "error");
-                response.put("message", "Current backend does not support image classification");
+                response.put("message", "Current backend does not support emotion detection");
                 response.put("emotions", List.of());
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+            io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability emotionBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability) visionTemplate.backend();
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
-                classificationBackend.classifyImage(imgData, 7);
+            List<io.github.codesapienbe.springvision.core.Detection> detections = emotionBackend.detectEmotions(imgData);
 
             List<Map<String, Object>> emotions = new ArrayList<>();
-            for (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.Classification classification : result.classifications()) {
+            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
                 Map<String, Object> emotion = new HashMap<>();
-                emotion.put("emotion", classification.label());
-                emotion.put("confidence", Math.round(classification.confidence() * 10000.0) / 10000.0);
+                emotion.put("emotion", detection.label());
+                emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                emotion.put("faceIndex", detection.attributes().get("faceIndex"));
+                
+                // Include bounding box if available
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    emotion.put("boundingBox", bbox);
+                }
+                
                 emotions.add(emotion);
             }
 
@@ -1236,28 +1256,41 @@ public class VisionTool {
             byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
             ImageData imgData = ImageData.fromBytes(imageBytes);
 
-            // Check if backend supports image classification
-            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability)) {
+            // Check if backend supports deepfake detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability)) {
                 response.put("status", "error");
-                response.put("message", "Current backend does not support image classification");
+                response.put("message", "Current backend does not support deepfake detection");
                 response.put("classification", "unknown");
                 return response;
             }
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability classificationBackend =
-                (io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability) visionTemplate.backend();
+            io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability deepfakeBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability) visionTemplate.backend();
 
-            io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability.ClassificationResult result =
-                classificationBackend.classifyImage(imgData, 2);
+            List<io.github.codesapienbe.springvision.core.Detection> detections = deepfakeBackend.detectDeepfake(imgData);
 
-            String topLabel = result.classifications().isEmpty() ? "unknown" : result.classifications().get(0).label();
-            double topConfidence = result.classifications().isEmpty() ? 0.0 : result.classifications().get(0).confidence();
+            if (detections.isEmpty()) {
+                response.put("status", "success");
+                response.put("classification", "unknown");
+                response.put("confidence", 0.0);
+                response.put("isFake", false);
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
+            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
+            String manipulationType = (String) detection.attributes().get("manipulationType");
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
-            response.put("classification", topLabel);
-            response.put("confidence", Math.round(topConfidence * 10000.0) / 10000.0);
-            response.put("isFake", topLabel.toLowerCase().contains("fake"));
+            response.put("classification", classification);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("isFake", isFake);
+            if (manipulationType != null) {
+                response.put("manipulationType", manipulationType);
+            }
             response.put("processingTimeMs", duration);
             return response;
 
@@ -1268,6 +1301,153 @@ public class VisionTool {
             response.put("classification", "unknown");
             response.put("processingTimeMs", duration);
             log.error("Failed to detect deepfake from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect hands in an image. Returns detected hands with bounding boxes and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectHands(String imageUrl) {
+        log.info("detectHands called",
+            StructuredArguments.keyValue("event", "detect_hands_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("hands", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports hand detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support hand detection");
+                response.put("hands", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability handBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> detections = handBackend.detectHands(imgData);
+
+            List<Map<String, Object>> hands = new ArrayList<>();
+            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+                Map<String, Object> hand = new HashMap<>();
+                hand.put("label", detection.label());
+                hand.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                
+                // Include bounding box
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    hand.put("boundingBox", bbox);
+                }
+                
+                hands.add(hand);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("hands", hands);
+            response.put("count", hands.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect hands: " + e.getMessage());
+            response.put("hands", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect hands from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect demographics (age and gender) from faces in an image. Returns detected demographics with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectDemographics(String imageUrl) {
+        log.info("detectDemographics called",
+            StructuredArguments.keyValue("event", "detect_demographics_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("demographics", List.of());
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports demographics detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support demographics detection");
+                response.put("demographics", List.of());
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability demographicsBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> detections = demographicsBackend.detectDemographics(imgData);
+
+            List<Map<String, Object>> demographics = new ArrayList<>();
+            for (io.github.codesapienbe.springvision.core.Detection detection : detections) {
+                Map<String, Object> demo = new HashMap<>();
+                demo.put("gender", detection.label());
+                demo.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                demo.put("age", detection.attributes().get("age"));
+                demo.put("ageRange", detection.attributes().get("ageRange"));
+                demo.put("genderConfidence", detection.attributes().get("genderConfidence"));
+                demo.put("ageError", detection.attributes().get("ageError"));
+                demo.put("faceIndex", detection.attributes().get("faceIndex"));
+                
+                // Include bounding box if available
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    demo.put("boundingBox", bbox);
+                }
+                
+                demographics.add(demo);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("demographics", demographics);
+            response.put("facesAnalyzed", demographics.size());
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to detect demographics: " + e.getMessage());
+            response.put("demographics", List.of());
+            response.put("processingTimeMs", duration);
+            log.error("Failed to detect demographics from URL: {}", sanitizeUrlForLogging(imageUrl), e);
             return response;
         }
     }
