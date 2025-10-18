@@ -94,7 +94,12 @@ public class DjlVisionBackend implements VisionBackend,
     ImageClassificationCapability,
     BarcodeCapability,
     MetaDataExtractionCapability,
-    AnnotationCapability {
+    AnnotationCapability,
+    HandDetectionCapability,
+    DemographicsCapability,
+    NSFWDetectionCapability,
+    EmotionDetectionCapability,
+    DeepfakeDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -2070,6 +2075,294 @@ public class DjlVisionBackend implements VisionBackend,
         int y = (height - boxHeight) / 2;
         
         g2d.fillRect(x, y, boxWidth, boxHeight);
+    }
+
+    // ==================== HandDetectionCapability Implementation ====================
+
+    /**
+     * Detects hands in an image.
+     * 
+     * <p>Intended model: DamarJati/face-hand-YOLOv5 (PyTorch YOLO)</p>
+     * <p>Current implementation: Uses generic object detection as placeholder</p>
+     */
+    @Override
+    public List<Detection> detectHands(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting hand detection (placeholder using object detection)");
+        
+        try {
+            // Use object detection capability to detect hands
+            // In a full implementation, load dedicated hand detection model: DamarJati/face-hand-YOLOv5
+            List<Detection> allDetections = detectObjects(imageData);
+            
+            // Filter for hand-related detections
+            // Note: Generic object detection may not have 'hand' class
+            // This is a placeholder until dedicated hand model is loaded
+            List<Detection> handDetections = allDetections.stream()
+                .filter(d -> d.label().toLowerCase().contains("hand") || 
+                            d.label().toLowerCase().contains("person"))
+                .toList();
+            
+            logger.info("Hand detection completed: {} potential hands detected", handDetections.size());
+            return handDetections;
+            
+        } catch (Exception e) {
+            logger.error("Hand detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("Hand detection failed", e);
+        }
+    }
+
+    // ==================== DemographicsCapability Implementation ====================
+
+    /**
+     * Detects demographics (age and gender) from faces.
+     * 
+     * <p>Intended model: abhilash88/age-gender-prediction (Vision Transformer, 94.3% gender accuracy)</p>
+     * <p>Current implementation: Placeholder using face detection + mock demographics</p>
+     */
+    @Override
+    public List<Detection> detectDemographics(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting demographics detection (placeholder)");
+        
+        try {
+            // Detect faces first
+            List<Detection> faces = detectFaces(imageData);
+            
+            // Create Detection for each face with demographic attributes
+            // In full implementation, use dedicated age-gender model: abhilash88/age-gender-prediction
+            List<Detection> demographics = new ArrayList<>();
+            
+            for (int i = 0; i < faces.size(); i++) {
+                Detection face = faces.get(i);
+                
+                // Placeholder values - would come from actual model
+                int estimatedAge = 25 + (i * 5); // Mock ages
+                String gender = (i % 2 == 0) ? "Male" : "Female";
+                double genderConfidence = 0.75 + (Math.random() * 0.20);
+                double ageError = 4.5; // MAE from model spec
+                
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("age", estimatedAge);
+                attributes.put("ageRange", getAgeRange(estimatedAge));
+                attributes.put("gender", gender);
+                attributes.put("genderConfidence", genderConfidence);
+                attributes.put("ageError", ageError);
+                attributes.put("faceIndex", i);
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("model", "placeholder");
+                attributes.put("note", "Using placeholder demographics until dedicated model loaded: abhilash88/age-gender-prediction");
+                
+                demographics.add(new Detection(
+                    gender,  // label is the gender
+                    genderConfidence,
+                    face.boundingBox(),
+                    attributes
+                ));
+            }
+            
+            logger.info("Demographics detection completed: {} face(s) analyzed", faces.size());
+            return demographics;
+            
+        } catch (Exception e) {
+            logger.error("Demographics detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("Demographics detection failed", e);
+        }
+    }
+
+    private String getAgeRange(int age) {
+        if (age < 18) return "0-17";
+        if (age < 25) return "18-24";
+        if (age < 35) return "25-34";
+        if (age < 45) return "35-44";
+        if (age < 55) return "45-54";
+        if (age < 65) return "55-64";
+        return "65+";
+    }
+
+    // ==================== NSFWDetectionCapability Implementation ====================
+
+    /**
+     * Detects NSFW content in images.
+     * 
+     * <p>Intended model: Falconsai/nsfw_image_detection (Vision Transformer, ~98% accuracy)</p>
+     * <p>Current implementation: Uses generic image classification</p>
+     */
+    @Override
+    public List<Detection> detectNSFW(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting NSFW detection (placeholder)");
+        
+        try {
+            // Use generic image classification
+            // In full implementation, load dedicated NSFW detection model: Falconsai/nsfw_image_detection
+            ImageClassificationCapability.ClassificationResult classificationResult = classifyImage(imageData, 2);
+            
+            // Parse classification results
+            boolean isNSFW = false;
+            double confidence = 0.5;
+            String classification = "normal";
+            
+            if (!classificationResult.classifications().isEmpty()) {
+                ImageClassificationCapability.Classification topResult = classificationResult.classifications().get(0);
+                String label = topResult.label().toLowerCase();
+                
+                // Check if label indicates NSFW content
+                if (label.contains("nsfw") || label.contains("adult") || 
+                    label.contains("explicit") || label.contains("inappropriate")) {
+                    isNSFW = true;
+                    classification = "nsfw";
+                    confidence = topResult.confidence();
+                } else {
+                    classification = "normal";
+                    confidence = 1.0 - topResult.confidence();
+                }
+            }
+            
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("isNSFW", isNSFW);
+            attributes.put("classification", classification);
+            attributes.put("backend", BACKEND_ID);
+            attributes.put("model", "generic-classifier");
+            attributes.put("note", "Using generic classification until dedicated NSFW model loaded: Falconsai/nsfw_image_detection");
+            
+            logger.info("NSFW detection completed: classification={}, confidence={}", classification, confidence);
+            
+            // Return single detection with classification result
+            // Use empty bounding box for whole-image classification
+            BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+            return List.of(new Detection(
+                classification,  // label is "normal" or "nsfw"
+                confidence,
+                wholeBbox,  // whole image bounding box
+                attributes
+            ));
+            
+        } catch (Exception e) {
+            logger.error("NSFW detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("NSFW detection failed", e);
+        }
+    }
+
+    // ==================== EmotionDetectionCapability Implementation ====================
+
+    /**
+     * Detects emotions from facial expressions.
+     * 
+     * <p>Intended model: abhilash88/face-emotion-detection (Vision Transformer, 71.55% on FER2013)</p>
+     * <p>Current implementation: Placeholder using face detection + mock emotions</p>
+     */
+    @Override
+    public List<Detection> detectEmotions(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting emotion detection (placeholder)");
+        
+        try {
+            // Detect faces first
+            List<Detection> faces = detectFaces(imageData);
+            
+            // Create Detection for each face with emotion
+            // In full implementation, use dedicated emotion detection model: abhilash88/face-emotion-detection
+            String[] emotionLabels = {"happy", "sad", "angry", "neutral", "surprise", "fear", "disgust"};
+            List<Detection> emotions = new ArrayList<>();
+            
+            for (int i = 0; i < faces.size(); i++) {
+                Detection face = faces.get(i);
+                
+                // Assign placeholder emotion (would come from model)
+                String emotion = emotionLabels[i % emotionLabels.length];
+                double confidence = 0.60 + (Math.random() * 0.30);
+                
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("emotion", emotion);
+                attributes.put("faceIndex", i);
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("model", "placeholder");
+                attributes.put("emotionClasses", Arrays.asList(emotionLabels));
+                attributes.put("note", "Using placeholder emotions until dedicated model loaded: abhilash88/face-emotion-detection");
+                
+                emotions.add(new Detection(
+                    emotion,  // label is the emotion
+                    confidence,
+                    face.boundingBox(),
+                    attributes
+                ));
+            }
+            
+            logger.info("Emotion detection completed: {} face(s) analyzed", faces.size());
+            return emotions;
+            
+        } catch (Exception e) {
+            logger.error("Emotion detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("Emotion detection failed", e);
+        }
+    }
+
+    // ==================== DeepfakeDetectionCapability Implementation ====================
+
+    /**
+     * Detects deepfake/manipulated images.
+     * 
+     * <p>Intended model: prithivMLmods/deepfake-detector-model-v1 (SigLIP, 94.44% accuracy)</p>
+     * <p>Current implementation: Uses generic image classification</p>
+     */
+    @Override
+    public List<Detection> detectDeepfake(ImageData imageData) throws BaseVisionException {
+        Objects.requireNonNull(imageData, "ImageData cannot be null");
+        logger.debug("Starting deepfake detection (placeholder)");
+        
+        try {
+            // Use generic image classification
+            // In full implementation, load dedicated deepfake detection model: prithivMLmods/deepfake-detector-model-v1
+            ImageClassificationCapability.ClassificationResult classificationResult = classifyImage(imageData, 2);
+            
+            // Parse classification results
+            boolean isFake = false;
+            double confidence = 0.5;
+            String classification = "real";
+            String manipulationType = null;
+            
+            if (!classificationResult.classifications().isEmpty()) {
+                ImageClassificationCapability.Classification topResult = classificationResult.classifications().get(0);
+                String label = topResult.label().toLowerCase();
+                
+                // Check if label indicates fake content
+                if (label.contains("fake") || label.contains("synthetic") || 
+                    label.contains("generated") || label.contains("deepfake")) {
+                    isFake = true;
+                    classification = "fake";
+                    confidence = topResult.confidence();
+                    manipulationType = "unknown";
+                } else {
+                    classification = "real";
+                    confidence = 1.0 - topResult.confidence();
+                }
+            }
+            
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("isFake", isFake);
+            attributes.put("classification", classification);
+            attributes.put("manipulationType", manipulationType);
+            attributes.put("backend", BACKEND_ID);
+            attributes.put("model", "generic-classifier");
+            attributes.put("note", "Using generic classification until dedicated deepfake model loaded: prithivMLmods/deepfake-detector-model-v1");
+            
+            logger.info("Deepfake detection completed: classification={}, confidence={}", classification, confidence);
+            
+            // Return single detection with classification result
+            // Use empty bounding box for whole-image classification
+            BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
+            return List.of(new Detection(
+                classification,  // label is "real" or "fake"
+                confidence,
+                wholeBbox,  // whole image bounding box
+                attributes
+            ));
+            
+        } catch (Exception e) {
+            logger.error("Deepfake detection failed: {}", e.getMessage(), e);
+            throw new VisionProcessingException("Deepfake detection failed", e);
+        }
     }
 
     @PreDestroy

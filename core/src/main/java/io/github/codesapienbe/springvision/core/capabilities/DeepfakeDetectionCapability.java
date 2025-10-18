@@ -1,9 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * Capability for detecting deepfake/manipulated images.
@@ -27,6 +28,14 @@ import java.util.Map;
  *   <li><b>Naman712/Deep-fake-detection</b> - Alternative detection model</li>
  * </ul>
  *
+ * <h2>Detection Attributes</h2>
+ * <p>The returned Detection contains:</p>
+ * <ul>
+ *   <li><b>isFake</b> (Boolean) - Whether image is deepfake</li>
+ *   <li><b>classification</b> (String) - Classification label ("real" or "fake")</li>
+ *   <li><b>manipulationType</b> (String) - Type of manipulation if detected</li>
+ * </ul>
+ *
  * @author Spring Vision Team
  * @see FaceDetectionCapability
  * @since 1.0.8
@@ -36,28 +45,14 @@ public interface DeepfakeDetectionCapability {
     /**
      * Detects whether an image is a deepfake or authentic.
      *
+     * <p>Returns a single Detection with label matching the classification ("real" or "fake")
+     * and confidence score. The detection attributes contain isFake boolean, classification
+     * string, and manipulationType if applicable.</p>
+     *
      * @param imageData the image to analyze
-     * @return deepfake detection result with classification and confidence
+     * @return list with single detection containing deepfake classification
      * @throws BaseVisionException if detection fails
      */
-    DeepfakeResult detectDeepfake(ImageData imageData) throws BaseVisionException;
-
-    /**
-     * Result of deepfake detection.
-     *
-     * @param isFake         whether the image is detected as a deepfake
-     * @param confidence     confidence score (0.0 to 1.0)
-     * @param classification the classification label (e.g., "real", "fake")
-     * @param manipulationType type of manipulation detected, if applicable
-     * @param attributes     additional attributes like model name, detection details, etc.
-     */
-    record DeepfakeResult(
-        boolean isFake,
-        double confidence,
-        String classification,
-        String manipulationType,
-        Map<String, Object> attributes
-    ) {
-    }
+    List<Detection> detectDeepfake(ImageData imageData) throws BaseVisionException;
 }
 

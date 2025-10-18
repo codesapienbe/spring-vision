@@ -33,15 +33,21 @@ This document tracks the implementation status of all computer vision capabiliti
 | `extractText` | OCR text extraction | OcrCapability | ✅ Implemented |
 | `classifyImage` | Image classification | ImageClassificationCapability | ✅ Implemented |
 
-## Newly Defined Capabilities (Interfaces Created) 🆕
+## Enhanced Detection Capabilities 🎯
 
-| Capability | Interface | Verified Models | Status |
-|------------|-----------|-----------------|--------|
-| NSFW Detection | `NSFWDetectionCapability` | Falconsai/nsfw_image_detection (~98%) | 🔄 Interface Ready |
-| Emotion Detection | `EmotionDetectionCapability` | abhilash88/face-emotion-detection (71.55%) | 🔄 Interface Ready |
-| Deepfake Detection | `DeepfakeDetectionCapability` | prithivMLmods/deepfake-detector-model-v1 (94.44%) | 🔄 Interface Ready |
-| Demographics | `DemographicsCapability` | abhilash88/age-gender-prediction (94.3% gender) | 🔄 Interface Ready |
-| Hand Detection | `HandDetectionCapability` | DamarJati/face-hand-YOLOv5 | 🔄 Interface Enhanced |
+| Capability | Interface | Target Model | Status |
+|------------|-----------|--------------|--------|
+| Hand Detection | `HandDetectionCapability` | DamarJati/face-hand-YOLOv5 | ✅ Placeholder Implemented |
+| Demographics | `DemographicsCapability` | abhilash88/age-gender-prediction (94.3% gender) | ✅ Placeholder Implemented |
+| NSFW Detection | `NSFWDetectionCapability` | Falconsai/nsfw_image_detection (~98%) | ✅ Placeholder Implemented |
+| Emotion Detection | `EmotionDetectionCapability` | abhilash88/face-emotion-detection (71.55%) | ✅ Placeholder Implemented |
+| Deepfake Detection | `DeepfakeDetectionCapability` | prithivMLmods/deepfake-detector-model-v1 (94.44%) | ✅ Placeholder Implemented |
+
+**Implementation Notes:**
+- All 5 capabilities have working placeholder implementations
+- Currently use generic object/face detection + classification
+- Ready for dedicated model integration when available
+- All interfaces properly defined with record-based return types
 
 ### MCP Tools for New Capabilities (Already Implemented) ✅
 

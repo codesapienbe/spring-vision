@@ -1,10 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Capability for detecting emotions from facial expressions in images.
@@ -35,6 +35,13 @@ import java.util.Map;
  *   <li><b>prithivMLmods/Facial-Emotion-Detection-SigLIP2</b> - SigLIP-based emotion detector</li>
  * </ul>
  *
+ * <h2>Detection Attributes</h2>
+ * <p>Each Detection contains:</p>
+ * <ul>
+ *   <li><b>emotion</b> (String) - The emotion label</li>
+ *   <li><b>faceIndex</b> (Integer) - Index of the face</li>
+ * </ul>
+ *
  * @author Spring Vision Team
  * @see FaceDetectionCapability
  * @since 1.0.8
@@ -44,40 +51,14 @@ public interface EmotionDetectionCapability {
     /**
      * Detects emotions from faces in an image.
      *
+     * <p>Returns one Detection per face with label being the detected emotion
+     * (e.g., "happy", "sad") and confidence score. The detection attributes contain
+     * the emotion string and faceIndex.</p>
+     *
      * @param imageData the image to analyze
-     * @return emotion detection result with detected emotions and confidence scores
+     * @return list of detections, one per face, with emotion as label
      * @throws BaseVisionException if detection fails
      */
-    EmotionResult detectEmotions(ImageData imageData) throws BaseVisionException;
-
-    /**
-     * Result of emotion detection.
-     *
-     * @param emotions      list of detected emotions with confidence scores
-     * @param topEmotion    the highest confidence emotion
-     * @param facesAnalyzed number of faces analyzed
-     * @param attributes    additional attributes like model name, threshold used, etc.
-     */
-    record EmotionResult(
-        List<EmotionClassification> emotions,
-        String topEmotion,
-        int facesAnalyzed,
-        Map<String, Object> attributes
-    ) {
-    }
-
-    /**
-     * Individual emotion classification.
-     *
-     * @param emotion    the emotion label (e.g., "happy", "sad", "angry")
-     * @param confidence confidence score (0.0 to 1.0)
-     * @param faceIndex  index of the face this emotion applies to (if multiple faces)
-     */
-    record EmotionClassification(
-        String emotion,
-        double confidence,
-        int faceIndex
-    ) {
-    }
+    List<Detection> detectEmotions(ImageData imageData) throws BaseVisionException;
 }
 
