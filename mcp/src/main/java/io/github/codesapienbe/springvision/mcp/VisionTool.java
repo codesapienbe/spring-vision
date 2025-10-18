@@ -1965,8 +1965,19 @@ public class VisionTool {
             byte[] imageData = downloadImageFromUrl(imageUrl);
             ImageData imgData = ImageData.fromBytes(imageData);
 
-            // Extract metadata
-            VisionResult result = visionTemplate.extractMetadata(imgData);
+            // Extract metadata using MetaDataExtractionCapability
+            io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability metadataBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability) visionTemplate.backend();
+            
+            List<io.github.codesapienbe.springvision.core.Detection> detections = metadataBackend.extractMetaData(imgData);
+            
+            // Build VisionResult for compatibility
+            VisionResult result = io.github.codesapienbe.springvision.core.VisionResult.of(
+                io.github.codesapienbe.springvision.core.DetectionType.METADATA_EXTRACTION,
+                detections,
+                detections.isEmpty() ? 0.0 : 1.0,
+                0
+            );
 
             long duration = System.currentTimeMillis() - startTime;
 
@@ -2047,8 +2058,19 @@ public class VisionTool {
             byte[] imageData = downloadImageFromUrl(imageUrl);
             ImageData imgData = ImageData.fromBytes(imageData);
 
-            // Detect barcodes
-            VisionResult result = visionTemplate.detectBarcodes(imgData);
+            // Detect barcodes using BarcodeCapability
+            io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability barcodeBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability) visionTemplate.backend();
+            
+            List<io.github.codesapienbe.springvision.core.Detection> detections = barcodeBackend.detectBarcodes(imgData);
+            
+            // Build VisionResult for compatibility
+            VisionResult result = io.github.codesapienbe.springvision.core.VisionResult.of(
+                io.github.codesapienbe.springvision.core.DetectionType.BARCODE,
+                detections,
+                detections.isEmpty() ? 0.0 : detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
+                0
+            );
 
             long duration = System.currentTimeMillis() - startTime;
 
