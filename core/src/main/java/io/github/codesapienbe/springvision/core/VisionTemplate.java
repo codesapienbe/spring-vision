@@ -154,17 +154,6 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
     }
 
     /**
-     * Detects faces in the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the vision result
-     * @throws BaseVisionException if detection fails
-     */
-    public VisionResult detectFaces(ImageData imageData) throws BaseVisionException {
-        return detect(imageData, DetectionType.FACE);
-    }
-
-    /**
      * Store an embedding using the configured VectorService (if available).
      *
      * @param personId   the person ID
@@ -195,41 +184,6 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
     public List<Map<String, Object>> lookupFaces(float[] queryEmbedding, String modelName, String metric, Double threshold, Integer limit, Set<String> includePersonIds, Set<String> excludePersonIds) {
         if (vectorService == null) throw new UnsupportedOperationException("No VectorService configured");
         return vectorService.findSimilarFaces(queryEmbedding, modelName, metric, threshold, limit, includePersonIds, excludePersonIds);
-    }
-
-    /**
-     * Detects faces in the provided byte array.
-     *
-     * @param imageBytes the image data to process
-     * @return the vision result
-     * @throws BaseVisionException if detection fails
-     */
-    public VisionResult detectFaces(byte[] imageBytes) throws BaseVisionException {
-        ImageData imageData = ImageData.fromBytes(imageBytes);
-        return detectFaces(imageData);
-    }
-
-    /**
-     * Detects objects in the provided image data.
-     *
-     * @param imageData the image data to process
-     * @return the vision result
-     * @throws BaseVisionException if detection fails
-     */
-    public VisionResult detectObjects(ImageData imageData) throws BaseVisionException {
-        return detect(imageData, DetectionType.OBJECT);
-    }
-
-    /**
-     * Detects objects in the provided byte array.
-     *
-     * @param imageBytes the image data to process
-     * @return the vision result
-     * @throws BaseVisionException if detection fails
-     */
-    public VisionResult detectObjects(byte[] imageBytes) throws BaseVisionException {
-        ImageData imageData = ImageData.fromBytes(imageBytes);
-        return detectObjects(imageData);
     }
 
     /**
@@ -607,110 +561,6 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         }
     }
 
-    /**
-     * Extracts face embeddings using the backend's implementation or default support.
-     *
-     * @param imageData the image data to process
-     * @return a list of face embeddings
-     * @throws BaseVisionException if embedding extraction fails
-     */
-    public List<float[]> extractEmbeddings(ImageData imageData) throws BaseVisionException {
-        if (imageData == null) {
-            throw new IllegalArgumentException("Image data must not be null");
-        }
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-        logger.info("Starting embedding extraction", Map.of(
-            "correlationId", correlationId,
-            "imageSize", imageData.getSizeInBytes(),
-            "imageFormat", imageData.format(),
-            "backendId", getBackendId()
-        ));
-
-        // Require backend to implement EmbeddingCapability. Do not fall back to a central EmbeddingSupport.
-        List<float[]> embeddings;
-        if (backend instanceof EmbeddingCapability cap) {
-            embeddings = cap.extractEmbeddings(imageData, DetectionCategory.FACE);
-        } else {
-            throw new VisionUnsupportedException(
-                String.format("Embedding extraction is not supported by backend '%s'", getBackendId()),
-                "extractEmbeddings",
-                null
-            );
-        }
-
-        // Validate embeddings result to prevent null pointer exceptions
-        if (embeddings == null) {
-            logger.warn("Embedding extraction returned null result", Map.of(
-                "correlationId", correlationId,
-                "backendId", getBackendId()
-            ));
-            embeddings = List.of();
-        } else if (embeddings.isEmpty()) {
-            logger.debug("No embeddings extracted from image", Map.of(
-                "correlationId", correlationId,
-                "reason", "No faces detected or face detection failed",
-                "backendId", getBackendId()
-            ));
-        }
-
-        long processingTime = System.currentTimeMillis() - startTime;
-        logger.info("Embedding extraction completed", Map.of(
-            "correlationId", correlationId,
-            "embeddingsCount", embeddings.size(),
-            "processingTimeMs", processingTime,
-            "backendId", getBackendId()
-        ));
-        return embeddings;
-    }
-
-    /**
-     * Verifies whether two images belong to the same identity.
-     *
-     * @param a         the first image
-     * @param b         the second image
-     * @param metric    the distance metric
-     * @param threshold the similarity threshold
-     * @return true if the images are a match, false otherwise
-     * @throws BaseVisionException if verification fails
-     */
-    public boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException {
-        if (a == null) {
-            throw new IllegalArgumentException("First image must not be null");
-        }
-        if (b == null) {
-            throw new IllegalArgumentException("Second image must not be null");
-        }
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-        logger.info("Starting verification", Map.of(
-            "correlationId", correlationId,
-            "metric", metric,
-            "threshold", threshold,
-            "backendId", getBackendId()
-        ));
-
-        // Require backend to implement FaceVerificationCapability. Do not fall back to EmbeddingSupport.
-        boolean result;
-        if (backend instanceof FaceVerificationCapability cap) {
-            result = cap.verify(a, b, metric, threshold);
-        } else {
-            throw new VisionUnsupportedException(
-                String.format("Face verification is not supported by backend '%s'", getBackendId()),
-                "verify",
-                null
-            );
-        }
-
-        long processingTime = System.currentTimeMillis() - startTime;
-        logger.info("Verification completed", Map.of(
-            "correlationId", correlationId,
-            "isMatch", result,
-            "processingTimeMs", processingTime,
-            "backendId", getBackendId()
-        ));
-        return result;
-    }
 
     /**
      * Obscures faces in the provided image data.

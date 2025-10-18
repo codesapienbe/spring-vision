@@ -130,8 +130,8 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = convertToImageData(file);
 
-            // Perform face detection
-            VisionResult result = visionTemplate.detectFaces(imageData);
+            // Perform face detection using capability-based approach
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
             List<io.github.codesapienbe.springvision.core.Detection> detections = result.detections();
             if (minConfidence != null) {
                 double thr = Math.max(0.0, Math.min(1.0, minConfidence));
@@ -200,8 +200,8 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
-            // Perform face detection
-            VisionResult result = visionTemplate.detectFaces(imageData);
+            // Perform face detection using capability-based approach
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
             List<io.github.codesapienbe.springvision.core.Detection> detections = result.detections();
             if (minConfidence != null) {
                 double thr = Math.max(0.0, Math.min(1.0, minConfidence));
@@ -270,7 +270,7 @@ public class VisionController {
             ImageData imageData = convertToImageData(file);
 
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detectFaces(imageData);
+                VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(DetectionType.FACE.getCode())
@@ -326,7 +326,7 @@ public class VisionController {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
             return CompletableFuture.supplyAsync(() -> {
-                VisionResult result = visionTemplate.detectFaces(imageData);
+                VisionResult result = visionTemplate.detect(imageData, DetectionType.FACE);
                 DetectionResponse response = DetectionResponse.builder()
                     .correlationId(correlationId)
                     .detectionType(DetectionType.FACE.getCode())
@@ -389,8 +389,8 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = convertToImageData(file);
 
-            // Perform object detection
-            VisionResult result = visionTemplate.detectObjects(imageData);
+            // Perform object detection using capability-based approach
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
@@ -451,8 +451,8 @@ public class VisionController {
             // Convert to ImageData
             ImageData imageData = ImageData.fromBytes(request.getImageData());
 
-            // Perform object detection
-            VisionResult result = visionTemplate.detectObjects(imageData);
+            // Perform object detection using capability-based approach
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
 
             // Create response
             DetectionResponse response = DetectionResponse.builder()
@@ -511,7 +511,7 @@ public class VisionController {
         try {
             validateFile(file);
             ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectObjects(imageData);
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
@@ -566,7 +566,7 @@ public class VisionController {
 
         try {
             ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detectObjects(imageData);
+            VisionResult result = visionTemplate.detect(imageData, DetectionType.OBJECT);
 
             DetectionResponse response = DetectionResponse.builder()
                 .correlationId(correlationId)
