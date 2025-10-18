@@ -1549,6 +1549,230 @@ public class VisionTool {
         }
     }
 
+    @Tool(description = "Analyze stress levels from facial expressions. Returns stress assessment with level, score, and indicators. For research and wellness monitoring only - not for medical diagnosis.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> analyzeStress(String imageUrl) {
+        log.info("analyzeStress called",
+            StructuredArguments.keyValue("event", "analyze_stress_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required and cannot be empty");
+                response.put("stressLevel", "unknown");
+                return response;
+            }
+
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            ImageData imgData = ImageData.fromBytes(imageBytes);
+
+            // Check if backend supports stress analysis
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support stress analysis");
+                response.put("stressLevel", "unknown");
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability stressBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability) visionTemplate.backend();
+
+            // For single image, wrap in list
+            List<io.github.codesapienbe.springvision.core.Detection> detections = 
+                stressBackend.detectStress(List.of(imgData));
+
+            if (detections.isEmpty()) {
+                response.put("status", "success");
+                response.put("stressLevel", "unknown");
+                response.put("stressScore", 0.0);
+                response.put("message", "No face detected");
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            // Get the first/primary detection
+            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            
+            String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
+            Double stressScore = (Double) detection.attributes().get("stressScore");
+            String dominantEmotion = (String) detection.attributes().get("dominantEmotion");
+            Double emotionIntensity = (Double) detection.attributes().get("emotionIntensity");
+            @SuppressWarnings("unchecked")
+            List<String> indicators = (List<String>) detection.attributes().get("indicators");
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("stressLevel", stressLevel);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            
+            if (stressScore != null) {
+                response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
+            }
+            if (dominantEmotion != null) {
+                response.put("dominantEmotion", dominantEmotion);
+            }
+            if (emotionIntensity != null) {
+                response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
+            }
+            if (indicators != null && !indicators.isEmpty()) {
+                response.put("indicators", indicators);
+            }
+            
+            // Include bounding box if available
+            if (detection.boundingBox() != null) {
+                Map<String, Double> bbox = new HashMap<>();
+                bbox.put("x", detection.boundingBox().x());
+                bbox.put("y", detection.boundingBox().y());
+                bbox.put("width", detection.boundingBox().width());
+                bbox.put("height", detection.boundingBox().height());
+                response.put("boundingBox", bbox);
+            }
+            
+            response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
+            response.put("processingTimeMs", duration);
+            return response;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to analyze stress: " + e.getMessage());
+            response.put("stressLevel", "unknown");
+            response.put("processingTimeMs", duration);
+            log.error("Failed to analyze stress from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            return response;
+        }
+    }
+
+    @Tool(description = "Estimate heart rate from video sequence using remote photoplethysmography (rPPG). Requires minimum 100 frames (5+ seconds). NOT A MEDICAL DEVICE - research/wellness only.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> estimateHeartRate(java.util.Collection<String> imageUrls) {
+        log.info("estimateHeartRate called",
+            StructuredArguments.keyValue("event", "estimate_heartrate_start"),
+            StructuredArguments.keyValue("frameCount", imageUrls == null ? 0 : imageUrls.size()));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrls == null || imageUrls.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URLs are required (minimum 100 frames)");
+                response.put("heartRate", 0.0);
+                return response;
+            }
+
+            if (imageUrls.size() < 100) {
+                response.put("status", "error");
+                response.put("message", "Insufficient frames. Need minimum 100 (5+ seconds). Got: " + imageUrls.size());
+                response.put("heartRate", 0.0);
+                return response;
+            }
+
+            // Check if backend supports heart rate detection
+            if (!(visionTemplate.backend() instanceof io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability)) {
+                response.put("status", "error");
+                response.put("message", "Current backend does not support heart rate detection");
+                response.put("heartRate", 0.0);
+                return response;
+            }
+
+            // Download all frames
+            List<io.github.codesapienbe.springvision.core.ImageData> frames = new ArrayList<>();
+            int downloadedFrames = 0;
+            
+            for (String url : imageUrls) {
+                try {
+                    byte[] imageBytes = downloadImageFromUrl(url.trim());
+                    frames.add(io.github.codesapienbe.springvision.core.ImageData.fromBytes(imageBytes));
+                    downloadedFrames++;
+                } catch (Exception e) {
+                    log.warn("Failed to download frame from URL: {}", sanitizeUrlForLogging(url), e);
+                    // Continue with other frames
+                }
+            }
+
+            if (frames.size() < 100) {
+                response.put("status", "error");
+                response.put("message", "Failed to download enough frames. Downloaded: " + frames.size() + ", needed: 100");
+                response.put("heartRate", 0.0);
+                return response;
+            }
+
+            io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability hrBackend =
+                (io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability) visionTemplate.backend();
+
+            List<io.github.codesapienbe.springvision.core.Detection> detections = hrBackend.detectHeartRate(frames);
+
+            if (detections.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Heart rate estimation failed - no results");
+                response.put("heartRate", 0.0);
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            // Get the primary detection
+            io.github.codesapienbe.springvision.core.Detection detection = detections.get(0);
+            
+            // Check for error detection
+            if (detection.label().equals("insufficient_data")) {
+                String errorMsg = (String) detection.attributes().getOrDefault("message", "Insufficient data");
+                response.put("status", "error");
+                response.put("message", errorMsg);
+                response.put("heartRate", 0.0);
+                response.put("validFrames", detection.attributes().get("validFrames"));
+                response.put("totalFrames", detection.attributes().get("totalFrames"));
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
+            Double heartRate = (Double) detection.attributes().get("heartRate");
+            String signalQuality = (String) detection.attributes().get("signalQuality");
+            String bpmRange = (String) detection.attributes().get("bpmRange");
+            Integer framesAnalyzed = (Integer) detection.attributes().get("framesAnalyzed");
+            Integer validFrames = (Integer) detection.attributes().get("validFrames");
+            Double duration = (Double) detection.attributes().get("duration");
+            String method = (String) detection.attributes().get("method");
+
+            long processingTime = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("heartRate", heartRate);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("signalQuality", signalQuality);
+            response.put("bpmRange", bpmRange);
+            response.put("framesAnalyzed", framesAnalyzed);
+            response.put("validFrames", validFrames);
+            response.put("duration", Math.round((duration != null ? duration : 0.0) * 100.0) / 100.0);
+            response.put("method", method);
+            response.put("processingTimeMs", processingTime);
+            response.put("disclaimer", "NOT A MEDICAL DEVICE - Research/wellness use only");
+            response.put("warning", "Accuracy varies with lighting, motion, and individual factors");
+            
+            return response;
+
+        } catch (IllegalArgumentException e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            response.put("heartRate", 0.0);
+            response.put("processingTimeMs", duration);
+            log.error("Heart rate estimation validation error: {}", e.getMessage());
+            return response;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "error");
+            response.put("message", "Failed to estimate heart rate: " + e.getMessage());
+            response.put("heartRate", 0.0);
+            response.put("processingTimeMs", duration);
+            log.error("Failed to estimate heart rate", e);
+            return response;
+        }
+    }
+
     @Tool(description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {
