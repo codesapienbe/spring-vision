@@ -53,7 +53,7 @@ public class VisionTool {
 
     // Read similarity threshold from application properties with sensible default
     @Value("${spring.vision.djl.face-recognition.similarity-threshold:0.6}")
-    private double configuredSimilarityThreshold;
+    private double configuredSimilarityThreshold = 0.6; // default for direct construction (tests)
 
     private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
