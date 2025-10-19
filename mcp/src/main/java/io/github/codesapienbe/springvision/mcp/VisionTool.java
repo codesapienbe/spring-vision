@@ -23,6 +23,10 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Minimal MCP tool exposing only face counting and embedding extraction.
@@ -80,70 +84,120 @@ public class VisionTool {
             StructuredArguments.keyValue("event", "image_download_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
 
-        try {
-            URI uri = URI.create(imageUrl);
-            String scheme = uri.getScheme();
-            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
-                throw new IOException("Only HTTP and HTTPS protocols are allowed");
-            }
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            throw new IOException("Image URL is required");
+        }
 
-            final int maxAttempts = 3;
-            long backoffMs = 500L; // initial backoff
+        String trimmed = imageUrl.trim();
 
-            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-                log.debug("Download attempt {} for {}", attempt, sanitizeUrlForLogging(imageUrl));
-
-                HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .timeout(REQUEST_TIMEOUT)
-                    // Provide a friendly User-Agent and accept header to improve compatibility with some hosts
-                    .header("User-Agent", "SpringVision/1.0 (+https://github.com/codesapienbe/spring-vision)")
-                    .header("Accept", "image/*, */*")
-                    .GET()
-                    .build();
-
-                try {
-                    HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-                    int status = response.statusCode();
-
-                    // Successful
-                    if (status == 200) {
-                        try (InputStream inputStream = response.body()) {
-                            byte[] imageBytes = inputStream.readNBytes(MAX_IMAGE_SIZE_BYTES + 1);
-                            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
-                                throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
-                            }
-                            return imageBytes;
-                        }
-                    }
-
-                    // Retry on rate-limit or server errors
-                    if (status == 429 || (status >= 500 && status < 600)) {
-                        log.warn("Transient HTTP error while downloading image: {} - attempt {}/{}", sanitizeUrlForLogging(imageUrl), attempt, maxAttempts);
-                        if (attempt == maxAttempts) {
-                            throw new IOException("HTTP error " + status);
-                        }
-
-                        try {
-                            Thread.sleep(backoffMs + (long) (Math.random() * 200L));
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new IOException("Download interrupted: " + ie.getMessage(), ie);
-                        }
-                        backoffMs *= 2L;
-                        continue;
-                    }
-
-                    // Non-retriable status
-                    throw new IOException("HTTP error " + status);
-
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Download interrupted: " + e.getMessage(), e);
+        // Support data: URIs (data:image/png;base64,....)
+        if (trimmed.startsWith("data:")) {
+            int comma = trimmed.indexOf(',');
+            if (comma < 0) throw new IOException("Invalid data URI format");
+            String metadata = trimmed.substring(5, comma);
+            String dataPart = trimmed.substring(comma + 1);
+            try {
+                byte[] imageBytes;
+                if (metadata.contains(";base64")) {
+                    imageBytes = Base64.getDecoder().decode(dataPart);
+                } else {
+                    // Percent-decoded text data (rare for images)
+                    String decoded = java.net.URLDecoder.decode(dataPart, StandardCharsets.UTF_8);
+                    imageBytes = decoded.getBytes(StandardCharsets.UTF_8);
                 }
+                if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                }
+                return imageBytes;
+            } catch (IllegalArgumentException e) {
+                throw new IOException("Invalid base64 data in data URI", e);
+            }
+        }
+
+        // Try to parse as URI; if no scheme or file:// treat as local file path
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
+
+            // Local file path (no scheme) or file://
+            if (scheme == null || scheme.isEmpty() || "file".equalsIgnoreCase(scheme)) {
+                Path path;
+                if ("file".equalsIgnoreCase(scheme)) {
+                    path = Paths.get(uri);
+                } else {
+                    path = Paths.get(trimmed);
+                }
+
+                if (!Files.exists(path)) {
+                    throw new IOException("File not found: " + path.toString());
+                }
+
+                long size = Files.size(path);
+                if (size > MAX_IMAGE_SIZE_BYTES) {
+                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                }
+
+                return Files.readAllBytes(path);
             }
 
-            throw new IOException("Failed to download image after " + maxAttempts + " attempts");
+            // HTTP/HTTPS download
+            if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
+                final int maxAttempts = 3;
+                long backoffMs = 500L;
+
+                for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                    log.debug("Download attempt {} for {}", attempt, sanitizeUrlForLogging(imageUrl));
+
+                    HttpRequest request = HttpRequest.newBuilder()
+                        .uri(uri)
+                        .timeout(REQUEST_TIMEOUT)
+                        .header("User-Agent", "SpringVision/1.0 (+https://github.com/codesapienbe/spring-vision)")
+                        .header("Accept", "image/*, */*")
+                        .GET()
+                        .build();
+
+                    try {
+                        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                        int status = response.statusCode();
+
+                        if (status == 200) {
+                            try (InputStream inputStream = response.body()) {
+                                byte[] imageBytes = inputStream.readNBytes(MAX_IMAGE_SIZE_BYTES + 1);
+                                if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                                }
+                                return imageBytes;
+                            }
+                        }
+
+                        if (status == 429 || (status >= 500 && status < 600)) {
+                            log.warn("Transient HTTP error while downloading image: {} - attempt {}/{}", sanitizeUrlForLogging(imageUrl), attempt, maxAttempts);
+                            if (attempt == maxAttempts) {
+                                throw new IOException("HTTP error " + status);
+                            }
+
+                            try {
+                                Thread.sleep(backoffMs + (long) (Math.random() * 200L));
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                throw new IOException("Download interrupted: " + ie.getMessage(), ie);
+                            }
+                            backoffMs *= 2L;
+                            continue;
+                        }
+
+                        throw new IOException("HTTP error " + status);
+
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Download interrupted: " + e.getMessage(), e);
+                    }
+                }
+
+                throw new IOException("Failed to download image after " + maxAttempts + " attempts");
+            }
+
+            throw new IOException("Unsupported URI scheme: " + scheme);
 
         } catch (IllegalArgumentException e) {
             throw new IOException("Invalid URL format: " + e.getMessage(), e);
@@ -156,6 +210,795 @@ public class VisionTool {
         if (url == null) return "null";
         int queryIndex = url.indexOf('?');
         return queryIndex > 0 ? url.substring(0, queryIndex) + "?..." : url;
+    }
+
+    // Overloads: accept raw image bytes (uploaded files) and delegate to existing URL-based methods
+    @Tool(description = "Count faces from raw image bytes. Returns the number of faces detected.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> countFaces(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectFaces(img);
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0; // caller computes timing; keep simple here
+            response.put("status", "success");
+            response.put("count", result.detectionCount());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d faces", result.detectionCount()));
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("count", 0);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(img,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+            List<Map<String, Object>> out = new ArrayList<>();
+            int idx = 0;
+            for (float[] emb : rawEmbeddings) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", "face-" + idx);
+                item.put("embedding_base64", Base64.getEncoder().encodeToString(serializeEmbedding(emb)));
+                item.put("length", emb.length);
+                out.add(item);
+                idx++;
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("count", out.size());
+            response.put("embeddings", out);
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("embeddings", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Extract text from uploaded image bytes using OCR. Returns detected text with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractText(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.extractText(img);
+
+            List<Map<String, Object>> detections = new ArrayList<>();
+            StringBuilder fullText = new StringBuilder();
+            for (var detection : result.detections()) {
+                Map<String, Object> item = new HashMap<>();
+                String text = (String) detection.attributes().get("text");
+                item.put("text", text);
+                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                item.put("boundingBox", Map.of(
+                    "x", detection.boundingBox().x(),
+                    "y", detection.boundingBox().y(),
+                    "width", detection.boundingBox().width(),
+                    "height", detection.boundingBox().height()
+                ));
+                detections.add(item);
+                if (text != null) fullText.append(text).append(" ");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("text", fullText.toString().trim());
+            response.put("detections", detections);
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("text", "");
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Classify an uploaded image into categories. Returns top predictions with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> classifyImage(byte[] imageBytes, Integer topK) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.classifyImage(img, topK == null ? 5 : topK);
+
+            List<Map<String, Object>> classifications = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("label", detection.label());
+                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                classifications.add(item);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("classifications", classifications);
+            response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("classifications", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect objects from uploaded image bytes. Returns detected objects with bounding boxes and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectObjects(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectObjects(img);
+
+            List<Map<String, Object>> objects = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> obj = new HashMap<>();
+                obj.put("label", detection.label());
+                obj.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    obj.put("boundingBox", bbox);
+                }
+
+                objects.add(obj);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("objects", objects);
+            response.put("count", result.detectionCount());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d objects", result.detectionCount()));
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("objects", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect poses from uploaded image bytes. Returns detected poses with joint positions and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectPoses(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectPoses(img);
+
+            List<Map<String, Object>> poses = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> pose = new HashMap<>();
+                pose.put("label", detection.label());
+                pose.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                pose.put("attributes", detection.attributes());
+                poses.add(pose);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("poses", poses);
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            response.put("message", String.format("Detected %d poses", result.detectionCount()));
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("poses", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Recognize actions from uploaded image bytes. Returns recognized actions with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeActions(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.recognizeActions(img);
+
+            List<Map<String, Object>> actions = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> action = new HashMap<>();
+                action.put("action", detection.label());
+                action.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                actions.add(action);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("actions", actions);
+            response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("actions", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect NSFW from uploaded image bytes. Returns classification as 'normal' or 'nsfw' with confidence score.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectNSFW(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectNSFW(img);
+
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("classification", "unknown");
+                response.put("confidence", 0.0);
+                response.put("isNSFW", false);
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var detection = result.detections().get(0);
+            boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
+            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("classification", classification);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("isNSFW", isNSFW);
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("classification", "unknown");
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect emotions from uploaded image bytes. Returns detected emotions with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectEmotions(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectEmotions(img);
+
+            List<Map<String, Object>> emotions = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> emotion = new HashMap<>();
+                emotion.put("emotion", detection.label());
+                emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                emotion.put("faceIndex", detection.attributes().get("faceIndex"));
+
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    emotion.put("boundingBox", bbox);
+                }
+
+                emotions.add(emotion);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("emotions", emotions);
+            response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("emotions", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect deepfakes from uploaded image bytes. Returns classification as 'real' or 'fake' with confidence score.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectDeepfake(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectDeepfake(img);
+
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("classification", "unknown");
+                response.put("confidence", 0.0);
+                response.put("isFake", false);
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var detection = result.detections().get(0);
+            boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
+            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
+            String manipulationType = (String) detection.attributes().get("manipulationType");
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("classification", classification);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("isFake", isFake);
+            if (manipulationType != null) response.put("manipulationType", manipulationType);
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("classification", "unknown");
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect hands from uploaded image bytes. Returns detected hands with bounding boxes and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectHands(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectHands(img);
+
+            List<Map<String, Object>> hands = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> hand = new HashMap<>();
+                hand.put("label", detection.label());
+                hand.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    hand.put("boundingBox", bbox);
+                }
+
+                hands.add(hand);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("hands", hands);
+            response.put("count", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("hands", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect demographics from uploaded image bytes. Returns detected demographics with confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectDemographics(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectDemographics(img);
+
+            List<Map<String, Object>> demographics = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> demo = new HashMap<>();
+                demo.put("gender", detection.label());
+                demo.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                demo.put("age", detection.attributes().get("age"));
+                demo.put("ageRange", detection.attributes().get("ageRange"));
+                demo.put("genderConfidence", detection.attributes().get("genderConfidence"));
+                demo.put("ageError", detection.attributes().get("ageError"));
+                demo.put("faceIndex", detection.attributes().get("faceIndex"));
+
+                if (detection.boundingBox() != null) {
+                    Map<String, Double> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    demo.put("boundingBox", bbox);
+                }
+
+                demographics.add(demo);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("demographics", demographics);
+            response.put("facesAnalyzed", result.detectionCount());
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("demographics", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect falls from uploaded image bytes. Returns fall risk assessment with body orientation and confidence scores.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectFall(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectFall(List.of(img));
+
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("fallDetected", false);
+                response.put("bodyOrientation", "unknown");
+                response.put("riskLevel", "low");
+                response.put("message", "No person detected");
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var detection = result.detections().get(0);
+            boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
+            String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
+            String riskLevel = (String) detection.attributes().getOrDefault("riskLevel", "low");
+            Double aspectRatio = (Double) detection.attributes().get("aspectRatio");
+            Double headHeight = (Double) detection.attributes().get("headHeight");
+            String analysisDetails = (String) detection.attributes().get("analysisDetails");
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("fallDetected", fallDetected);
+            response.put("bodyOrientation", bodyOrientation);
+            response.put("riskLevel", riskLevel);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            if (aspectRatio != null) response.put("aspectRatio", Math.round(aspectRatio * 1000.0) / 1000.0);
+            if (headHeight != null) response.put("headHeight", Math.round(headHeight * 1000.0) / 1000.0);
+            if (analysisDetails != null) response.put("analysisDetails", analysisDetails);
+            if (detection.boundingBox() != null) {
+                Map<String, Double> bbox = new HashMap<>();
+                bbox.put("x", detection.boundingBox().x());
+                bbox.put("y", detection.boundingBox().y());
+                bbox.put("width", detection.boundingBox().width());
+                bbox.put("height", detection.boundingBox().height());
+                response.put("boundingBox", bbox);
+            }
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("fallDetected", false);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Analyze stress from uploaded image bytes. Returns stress assessment with level, score, and indicators.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> analyzeStress(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.analyzeStress(List.of(img));
+
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("stressLevel", "unknown");
+                response.put("stressScore", 0.0);
+                response.put("message", "No face detected");
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var detection = result.detections().get(0);
+            String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
+            Double stressScore = (Double) detection.attributes().get("stressScore");
+            String dominantEmotion = (String) detection.attributes().get("dominantEmotion");
+            Double emotionIntensity = (Double) detection.attributes().get("emotionIntensity");
+            @SuppressWarnings("unchecked")
+            List<String> indicators = (List<String>) detection.attributes().get("indicators");
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("stressLevel", stressLevel);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            if (stressScore != null) response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
+            if (dominantEmotion != null) response.put("dominantEmotion", dominantEmotion);
+            if (emotionIntensity != null) response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
+            if (indicators != null && !indicators.isEmpty()) response.put("indicators", indicators);
+            if (detection.boundingBox() != null) {
+                Map<String, Double> bbox = new HashMap<>();
+                bbox.put("x", detection.boundingBox().x());
+                bbox.put("y", detection.boundingBox().y());
+                bbox.put("width", detection.boundingBox().width());
+                bbox.put("height", detection.boundingBox().height());
+                response.put("boundingBox", bbox);
+            }
+            response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
+            response.put("processingTimeMs", duration);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("stressLevel", "unknown");
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Extract metadata from uploaded image bytes including EXIF, GPS, and camera information.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> extractImageMetadata(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.extractMetadata(img);
+
+            Map<String, Map<String, Object>> metadataGroups = new HashMap<>();
+            for (var detection : result.detections()) {
+                String type = detection.label();
+                Map<String, Object> groupData = new HashMap<>(detection.attributes());
+                groupData.remove("backend");
+                groupData.remove("type");
+                metadataGroups.put(type, groupData);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long duration = 0;
+            response.put("status", "success");
+            response.put("metadata", metadataGroups);
+            response.put("groupCount", metadataGroups.size());
+            response.put("processingTimeMs", duration);
+            response.put("backend", result.metadata().get("backendId"));
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("metadata", Map.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Scan and decode barcodes from uploaded image bytes. Returns barcode format, content, and location.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> scanBarcode(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.scanBarcodes(img);
+
+            List<Map<String, Object>> barcodes = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> barcodeInfo = new HashMap<>();
+                barcodeInfo.put("format", detection.label());
+                barcodeInfo.put("content", detection.attributes().get("content"));
+                barcodeInfo.put("confidence", detection.confidence());
+                var bbox = detection.boundingBox();
+                Map<String, Double> location = new HashMap<>();
+                location.put("x", bbox.x());
+                location.put("y", bbox.y());
+                location.put("width", bbox.width());
+                location.put("height", bbox.height());
+                barcodeInfo.put("location", location);
+                if (detection.attributes().containsKey("rawBytes")) {
+                    barcodeInfo.put("rawBytesLength", detection.attributes().get("rawBytes"));
+                }
+                barcodes.add(barcodeInfo);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("count", result.detectionCount());
+            response.put("barcodes", barcodes);
+            response.put("processingTimeMs", 0);
+            response.put("backend", result.metadata().get("backendId"));
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("barcodes", List.of());
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Detect security threats from uploaded image bytes. Returns detections with severity assessment and metadata.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectThreats(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectThreats(List.of(img));
+
+            List<Map<String, Object>> threats = new ArrayList<>();
+            int highSeverityCount = 0;
+            for (var detection : result.detections()) {
+                Map<String, Object> threat = new HashMap<>();
+                threat.put("label", detection.label());
+                threat.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    threat.put("boundingBox", bbox);
+                }
+                String threatType = (String) detection.attributes().get("threatType");
+                String severity = (String) detection.attributes().get("severity");
+                String weaponClass = (String) detection.attributes().get("weaponClass");
+                String description = (String) detection.attributes().get("description");
+                threat.put("threatType", threatType);
+                threat.put("severity", severity);
+                threat.put("weaponClass", weaponClass);
+                threat.put("description", description);
+                if ("HIGH".equals(severity) || "CRITICAL".equals(severity)) highSeverityCount++;
+                threats.add(threat);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            long processingTime = 0;
+            response.put("status", "success");
+            response.put("threats", threats);
+            response.put("threatCount", threats.size());
+            response.put("highSeverityCount", highSeverityCount);
+            response.put("processingTimeMs", processingTime);
+            response.put("disclaimer", "For legitimate security and safety use only. Comply with local surveillance laws and privacy regulations.");
+            response.put("warning", "False positives may occur. Human verification recommended for critical decisions.");
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("threats", List.of());
+            response.put("threatCount", 0);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Authenticate access using raw uploaded image bytes. Returns authorization decision.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> authenticateAccess(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.authenticateAccess(img);
+
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Authentication failed - no results");
+                response.put("authorized", false);
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var authResult = result.detections().get(0);
+            Boolean authorized = (Boolean) authResult.attributes().get("authorized");
+            Double confidence = (Double) authResult.attributes().get("confidence");
+            Double matchScore = (Double) authResult.attributes().get("matchScore");
+            String timestamp = (String) authResult.attributes().get("timestamp");
+            String userId = (String) authResult.attributes().get("userId");
+            String userName = (String) authResult.attributes().get("userName");
+            String reason = (String) authResult.attributes().get("reason");
+
+            Map<String, Object> response = new HashMap<>();
+            long processingTime = 0;
+            response.put("status", "success");
+            response.put("authorized", Boolean.TRUE.equals(authorized));
+            response.put("label", authResult.label());
+            response.put("confidence", confidence != null ? Math.round(confidence * 10000.0) / 10000.0 : 0.0);
+            response.put("matchScore", matchScore != null ? Math.round(matchScore * 10000.0) / 10000.0 : 0.0);
+            response.put("timestamp", timestamp);
+            response.put("processingTimeMs", processingTime);
+
+            if (Boolean.TRUE.equals(authorized)) {
+                response.put("userId", userId);
+                response.put("userName", userName);
+                response.put("message", "Access granted for user: " + userName);
+            } else {
+                response.put("reason", reason);
+                response.put("message", "Access denied: " + reason);
+            }
+
+            response.put("securityNote", "This is a demonstration. Production systems should implement liveness detection and multi-factor authentication.");
+            response.put("privacyNote", "Ensure compliance with biometric privacy laws (GDPR, BIPA, etc.)");
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("authorized", false);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(description = "Estimate heart rate from uploaded frames provided as raw image bytes.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> estimateHeartRateFromBytes(java.util.Collection<byte[]> frames) {
+        try {
+            List<ImageData> imageFrames = new ArrayList<>();
+            for (byte[] b : frames) {
+                try {
+                    imageFrames.add(resolveImage(b));
+                } catch (Exception ex) {
+                    log.warn("Failed to decode frame bytes", ex);
+                }
+            }
+            if (imageFrames.size() < 100) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Failed to decode enough frames. Decoded: " + imageFrames.size() + ", needed: 100");
+                response.put("heartRate", 0.0);
+                return response;
+            }
+
+            VisionResult result = visionTemplate.estimateHeartRate(imageFrames);
+            // reuse existing HTTP-based method's response mapping
+            if (!result.hasDetections()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("status", "error");
+                response.put("message", "Heart rate estimation failed - no results");
+                response.put("heartRate", 0.0);
+                response.put("processingTimeMs", 0);
+                return response;
+            }
+
+            var detection = result.detections().get(0);
+            Map<String, Object> response = new HashMap<>();
+            Double heartRate = (Double) detection.attributes().get("heartRate");
+            response.put("status", "success");
+            response.put("heartRate", heartRate);
+            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", 0);
+            return response;
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", "Failed to process uploaded frames: " + e.getMessage());
+            response.put("heartRate", 0.0);
+            return response;
+        }
     }
 
     @Tool(description = "Count faces in an image from a URL. Returns the number of faces detected.")
@@ -176,7 +1019,13 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            byte[] imageBytes;
+            if (imageUrl.startsWith("data:") || imageUrl.startsWith("file:") || Files.exists(Paths.get(imageUrl))) {
+                // Treat as local or data URI
+                imageBytes = downloadImageFromUrl(imageUrl.trim());
+            } else {
+                imageBytes = downloadImageFromUrl(imageUrl.trim());
+            }
             ImageData imgData = ImageData.fromBytes(imageBytes);
             
             // Use VisionTemplate high-level API
@@ -219,8 +1068,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             List<float[]> rawEmbeddings = visionTemplate.extractEmbeddings(imgData, 
@@ -286,8 +1134,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.extractText(imgData);
@@ -362,8 +1209,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.classifyImage(imgData, topK);
@@ -423,8 +1269,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
             
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectObjects(imgData);
@@ -487,8 +1332,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectPoses(imgData);
@@ -549,8 +1393,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.recognizeActions(imgData);
@@ -1081,6 +1924,21 @@ public class VisionTool {
         return out;
     }
 
+    // Helper: create ImageData directly from bytes (no temp files)
+    private ImageData resolveImage(byte[] imageBytes) throws IOException {
+        if (imageBytes == null || imageBytes.length == 0) throw new IOException("Image bytes are required and cannot be empty");
+        if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+        return ImageData.fromBytes(imageBytes);
+    }
+
+    // Helper: resolve a string reference (http(s)/data/file/local path) into ImageData
+    private ImageData resolveImage(String imageRef) throws IOException {
+        byte[] bytes = downloadImageFromUrl(imageRef);
+        return ImageData.fromBytes(bytes);
+    }
+
+    
+
     @Tool(description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectNSFW(String imageUrl) {
@@ -1099,8 +1957,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectNSFW(imgData);
@@ -1155,8 +2012,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectEmotions(imgData);
@@ -1218,8 +2074,7 @@ public class VisionTool {
                 return response;
             }
 
-            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectDeepfake(imgData);

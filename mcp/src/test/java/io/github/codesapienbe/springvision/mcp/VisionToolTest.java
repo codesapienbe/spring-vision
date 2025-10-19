@@ -3,10 +3,9 @@ package io.github.codesapienbe.springvision.mcp;
 import io.github.codesapienbe.springvision.core.BoundingBox;
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.DetectionCategory;
-import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.VisionBackend;
-import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import org.junit.jupiter.api.Test;
@@ -31,14 +30,15 @@ public class VisionToolTest {
     @Test
     void countFaces_success_singleFace() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        FaceDetectionCapability mockBackend = Mockito.mock(FaceDetectionCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(FaceDetectionCapability.class));
+        FaceDetectionCapability backendCap = (FaceDetectionCapability) mockBackend;
 
         Detection d = Detection.of("face", 0.85, new BoundingBox(0.1, 0.1, 0.2, 0.2));
         
         // Mock the backend() call to return our mock backend
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.detectFaces(Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class)))
-            .thenReturn(List.of(d));
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(mockTemplate.detectFaces(Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class)))
+            .thenReturn(VisionResult.of(io.github.codesapienbe.springvision.core.DetectionType.FACE, List.of(d), d.confidence(), 0, Map.of()));
 
         VisionTool tool = new VisionTool(mockTemplate) {
             @Override
@@ -77,14 +77,15 @@ public class VisionToolTest {
     @Test
     void verifyFaces_matchingFaces_returnsMatch() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         // Create identical embeddings for matching faces
         float[] embedding1 = createNormalizedEmbedding(128);
         float[] embedding2 = createNormalizedEmbedding(128); // Same embedding
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(mockTemplate.extractEmbeddings(Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(embedding1))
             .thenReturn(List.of(embedding2));
@@ -108,14 +109,15 @@ public class VisionToolTest {
     @Test
     void verifyFaces_differentFaces_returnsNoMatch() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         // Create different embeddings for non-matching faces
         float[] embedding1 = createNormalizedEmbedding(128);
         float[] embedding2 = createDifferentEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(embedding1))
@@ -138,11 +140,12 @@ public class VisionToolTest {
     @Test
     void verifyFaces_noFaceInSource_returnsError() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         // No faces detected in source
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of());
@@ -178,15 +181,16 @@ public class VisionToolTest {
     @Test
     void lookupFaces_findsMatches_returnsMatchesSortedBySimilarity() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] sourceEmbedding = createNormalizedEmbedding(128);
         float[] matchingEmbedding1 = createNormalizedEmbedding(128); // High similarity
         float[] matchingEmbedding2 = createSlightlyDifferentEmbedding(128); // Medium similarity
         float[] nonMatchingEmbedding = createDifferentEmbedding(128); // Low similarity
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(sourceEmbedding))
@@ -230,10 +234,11 @@ public class VisionToolTest {
     @Test
     void lookupFaces_noFacesInSource_returnsError() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of()); // No faces
@@ -269,13 +274,14 @@ public class VisionToolTest {
     @Test
     void lookupFaces_handlesDatasetErrors_continuesProcessing() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] sourceEmbedding = createNormalizedEmbedding(128);
         float[] matchingEmbedding = createNormalizedEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(sourceEmbedding))
@@ -307,13 +313,14 @@ public class VisionToolTest {
     @Test
     void verifyFacesFromBytes_matchingFaces_returnsMatch() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] embedding1 = createNormalizedEmbedding(128);
         float[] embedding2 = createNormalizedEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(embedding1))
@@ -331,13 +338,14 @@ public class VisionToolTest {
     @Test
     void verifyFacesFromBytes_differentFaces_returnsNoMatch() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] embedding1 = createNormalizedEmbedding(128);
         float[] embedding2 = createDifferentEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(embedding1))
@@ -354,15 +362,16 @@ public class VisionToolTest {
     @Test
     void lookupFacesFromBytes_findsMatches_returnsMatchesSortedBySimilarity() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] sourceEmbedding = createNormalizedEmbedding(128);
         float[] matchingEmbedding1 = createNormalizedEmbedding(128);
         float[] matchingEmbedding2 = createSlightlyDifferentEmbedding(128);
         float[] nonMatchingEmbedding = createDifferentEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(sourceEmbedding))
@@ -394,13 +403,14 @@ public class VisionToolTest {
     @Test
     void lookupFacesFromBytes_handlesDatasetErrors_continuesProcessing() {
         VisionTemplate mockTemplate = Mockito.mock(VisionTemplate.class);
-        EmbeddingCapability mockBackend = Mockito.mock(EmbeddingCapability.class);
+        VisionBackend mockBackend = Mockito.mock(VisionBackend.class, Mockito.withSettings().extraInterfaces(EmbeddingCapability.class));
+        EmbeddingCapability backendCap = (EmbeddingCapability) mockBackend;
 
         float[] sourceEmbedding = createNormalizedEmbedding(128);
         float[] matchingEmbedding = createNormalizedEmbedding(128);
 
-        Mockito.when(mockTemplate.backend()).thenReturn((VisionBackend) mockBackend);
-        Mockito.when(mockBackend.extractEmbeddings(
+        Mockito.when(mockTemplate.backend()).thenReturn(mockBackend);
+        Mockito.when(backendCap.extractEmbeddings(
             Mockito.any(io.github.codesapienbe.springvision.core.ImageData.class), 
             Mockito.eq(DetectionCategory.FACE)))
             .thenReturn(List.of(sourceEmbedding))

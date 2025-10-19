@@ -127,18 +127,6 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- DJL HuggingFace support: provides ModelZoo implementations for ONNX and PyTorch HF models -->
-    <dependency>
-      <groupId>ai.djl.huggingface</groupId>
-      <artifactId>onnx</artifactId>
-      <version>${djl.version}</version>
-    </dependency>
-    
-    <dependency>
-      <groupId>ai.djl.huggingface</groupId>
-      <artifactId>pytorch</artifactId>
-      <version>${djl.version}</version>
-    </dependency>
   </dependencies>
 
   <build>
@@ -158,6 +146,12 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
       </plugin>
 
       <!-- Build the module's Dockerfile (mcp/Dockerfile) with the fabric8 docker-maven-plugin -->
