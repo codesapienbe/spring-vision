@@ -56,6 +56,7 @@ docs:
 
 # Run only the DjlVisionBackend integration test
 test:
-	@echo "Running DjlVisionBackend integration test..."
-	mvn -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest test || \
-	( echo "Integration test failed" && exit 1 )
+	@echo "Running DjlVisionBackend integration tests (core module)..."
+	# Run only in the core module to avoid failing other modules that don't contain these tests
+	mvn -pl core -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest test || \
+	( echo "Integration tests failed" && exit 1 )
