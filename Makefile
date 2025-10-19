@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean deploy release docs default
+.PHONY: build clean deploy release docs test default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -53,3 +53,9 @@ docs:
 	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
 	echo "Javadocs report generated successfully in javadocs.txt" || \
 	echo "Javadocs generation completed with warnings/errors - see javadocs.txt for details"
+
+# Run only the DjlVisionBackend integration test
+test:
+	@echo "Running DjlVisionBackend integration test..."
+	mvn -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest test || \
+	( echo "Integration test failed" && exit 1 )

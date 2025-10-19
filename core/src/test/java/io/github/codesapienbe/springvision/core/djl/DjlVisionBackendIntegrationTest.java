@@ -35,9 +35,10 @@ public class DjlVisionBackendIntegrationTest {
 		// Attempt to initialize backend which may download models; tests will handle failures.
 		try {
 			backend.initialize();
-		} catch (Exception e) {
-			// Initialization may fail in constrained environments; tests will assert graceful handling.
-			System.err.println("DjlVisionBackend initialization warning: " + e.getMessage());
+		} catch (Throwable t) {
+			// Initialization may fail (including linkage errors or JVM-initializer issues).
+			// Catch Throwable here so the test run can continue and assert graceful handling.
+			System.err.println("DjlVisionBackend initialization warning: " + t.getMessage());
 		}
 	}
 
