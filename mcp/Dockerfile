@@ -1,17 +1,55 @@
-# 1. Start with the djl-serving base image
-FROM codesapienbe/spring-vision-base:latest
+# Multi-stage build for optimized Spring Vision MCP Server
 
-# Switch to root to create directories and set permissions
-USER root
+# ===== BUILD STAGE =====
+FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
-# Ensure application and per-user cache directories exist
-RUN mkdir -p /app /app/logs /home/djl/.springvision/djl || true
-COPY target/mcp-*.jar /app/app.jar
-# Set proper ownership
-RUN chown -R djl:djl /app /home/djl/.springvision || true
+# Set working directory
+WORKDIR /app
 
-# Switch to the non-root user that djl-serving uses
-USER djl
+# Copy pom files first for better caching
+COPY pom.xml ./
 
-# Start the application directly; DJL cache path is set from application.yml
+# Copy all module pom.xml files for dependency resolution
+COPY core/pom.xml core/
+COPY starter/pom.xml starter/
+COPY model/pom.xml model/
+COPY mcp/pom.xml mcp/
+
+# Download dependencies (cached if pom.xml hasn't changed)
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY core/src core/src
+COPY starter/src starter/src
+COPY model/src model/src
+COPY mcp/src mcp/src
+
+# Build the application (skip tests for faster builds)
+RUN mvn clean package -DskipTests -pl mcp -am
+
+# ===== RUNTIME STAGE =====
+FROM eclipse-temurin:21-jre-jammy
+
+# Create non-root user
+RUN groupadd -r springvision && useradd -r -g springvision springvision
+
+# Set working directory
+WORKDIR /app
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R springvision:springvision /app
+
+# Copy the built JAR from builder stage
+COPY --from=builder /app/mcp/target/mcp-*.jar /app/app.jar
+
+# Change ownership to non-root user
+RUN chown springvision:springvision /app/app.jar
+
+# Switch to non-root user
+USER springvision
+
+# Expose port
+EXPOSE 8080
+
+# Start the application
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
