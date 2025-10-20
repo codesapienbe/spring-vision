@@ -20,18 +20,15 @@ build:
 	mvn clean install -DskipTests || ( echo "Maven install failed!" && exit 1 );
 
 deploy:
-	@echo "Tagging local image so run/deploy targets reference the same name";
-	docker tag spring-vision-base:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-base:$(SPRING_VISION_VERSION) || true;
-	docker tag spring-vision-base:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-base:latest || true;
-	@echo "Pushing Docker image spring-vision-base:$(SPRING_VISION_VERSION) to registry";
-	docker push docker.io/codesapienbe/spring-vision-base:$(SPRING_VISION_VERSION);
-	docker push docker.io/codesapienbe/spring-vision-base:latest;
-	@echo "Tagging local image so run/deploy targets reference the same name";
-	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION) || true;
-	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) docker.io/codesapienbe/spring-vision-mcp:latest || true;
-	@echo "Pushing Docker image spring-vision-mcp:$(SPRING_VISION_VERSION) to registry...";
-	docker push docker.io/codesapienbe/spring-vision-mcp:$(SPRING_VISION_VERSION)
-	docker push docker.io/codesapienbe/spring-vision-mcp:latest
+	@echo "Building locally and tagging images as :latest for local use (no remote pushes)";
+	# Ensure images are built by running the build target
+	$(MAKE) build || ( echo "Build failed" && exit 1 );
+	# Tag images locally to have :latest tag
+	docker tag spring-vision-base:$(SPRING_VISION_VERSION) spring-vision-base:latest || true;
+	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) spring-vision-mcp:latest || true;
+	echo "Local images available:";
+	docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}' | grep spring-vision || true;
+	echo "You can run the MCP server locally using: docker run --rm -p 8080:8080 spring-vision-mcp:latest";
 
 release:
 	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \
