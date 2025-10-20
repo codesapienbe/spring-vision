@@ -164,9 +164,9 @@
             <image>
               <name>${docker.image.name}</name>
               <build>
-                <!-- Dockerfile is placed in the mcp module directory -->
-                <dockerFileDir>${project.basedir}</dockerFileDir>
-                <dockerFile>Dockerfile</dockerFile>
+                <!-- Dockerfile is placed in the mcp module directory but needs project root context -->
+                <contextDir>${project.parent.basedir}</contextDir>
+                <dockerFile>${project.basedir}/Dockerfile</dockerFile>
                 <tags>
                   <tag>${project.version}</tag>
                 </tags>
