@@ -1,8 +1,8 @@
 # Runtime stage - copy pre-built artifact
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:21-jre-alpine
 
-# Create non-root user
-RUN groupadd -r springvision && useradd -r -g springvision springvision
+# Create non-root user (Alpine uses addgroup/adduser)
+RUN addgroup -g 1001 -S springvision && adduser -S springvision -u 1001
 
 # Set working directory
 WORKDIR /app
