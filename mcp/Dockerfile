@@ -4,7 +4,8 @@ FROM codesapienbe/spring-vision-base:latest
 # Ensure application and per-user cache directories exist
 RUN mkdir -p /app /app/logs /home/djl/.springvision/djl || true
 COPY target/mcp-*.jar /app/app.jar
-RUN chown -R djl:djl /app /home/djl/.springvision || true
+# Note: chown may fail in some environments, but files will still work
+RUN chown -R djl:djl /app /home/djl/.springvision 2>/dev/null || true
 
 # Switch to the non-root user that djl-serving uses
 USER djl

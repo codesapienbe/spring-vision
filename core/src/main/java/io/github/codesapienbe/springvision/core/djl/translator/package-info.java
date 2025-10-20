@@ -7,6 +7,7 @@
  *
  * <h2>Available Translators</h2>
  * <ul>
+ *   <li>{@link FaceDetectionTranslator} - RetinaFace face detection model (high accuracy with 5 landmarks)</li>
  *   <li>{@link YuNetFaceDetectionTranslator} - YuNet face detection model (opencv/face_detection_yunet)</li>
  * </ul>
  *
