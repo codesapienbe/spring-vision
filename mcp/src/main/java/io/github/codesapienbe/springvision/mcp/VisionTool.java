@@ -214,7 +214,7 @@ public class VisionTool {
     }
 
     // Overloads: accept raw image bytes (uploaded files) and delegate to existing URL-based methods
-    @Tool(name = "count_faces_from_bytes", description = "Count faces from raw image bytes. Returns the number of faces detected.")
+    @Tool(name = "count_faces_b", description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFaces(byte[] imageBytes) {
         try {
@@ -238,7 +238,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_face_embeddings_from_bytes", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
+    @Tool(name = "extract_face_embeddings_b", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
         try {
@@ -272,7 +272,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_text_from_bytes", description = "Extract text from uploaded image bytes using OCR. Returns detected text with confidence scores.")
+    @Tool(name = "extract_text_b", description = "Extract text from uploaded image bytes using OCR. Returns detected text with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractText(byte[] imageBytes) {
         try {
@@ -313,7 +313,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "classify_image_from_bytes", description = "Classify an uploaded image into categories. Returns top predictions with confidence scores.")
+    @Tool(name = "classify_image_b", description = "Classify an uploaded image into categories. Returns top predictions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> classifyImage(byte[] imageBytes, Integer topK) {
         try {
@@ -345,7 +345,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_objects_from_bytes", description = "Detect objects from uploaded image bytes. Returns detected objects with bounding boxes and confidence scores.")
+    @Tool(name = "detect_objects_b", description = "Detect objects from uploaded image bytes. Returns detected objects with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectObjects(byte[] imageBytes) {
         try {
@@ -388,7 +388,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_poses_from_bytes", description = "Detect poses from uploaded image bytes. Returns detected poses with joint positions and confidence scores.")
+    @Tool(name = "detect_poses_b", description = "Detect poses from uploaded image bytes. Returns detected poses with joint positions and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectPoses(byte[] imageBytes) {
         try {
@@ -421,7 +421,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "recognize_actions_from_bytes", description = "Recognize actions from uploaded image bytes. Returns recognized actions with confidence scores.")
+    @Tool(name = "recognize_actions_b", description = "Recognize actions from uploaded image bytes. Returns recognized actions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeActions(byte[] imageBytes) {
         try {
@@ -453,7 +453,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_nsfw_from_bytes", description = "Detect NSFW from uploaded image bytes. Returns classification as 'normal' or 'nsfw' with confidence score.")
+    @Tool(name = "detect_nsfw_b", description = "Detect NSFW from uploaded image bytes. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectNSFW(byte[] imageBytes) {
         try {
@@ -491,7 +491,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_emotions_from_bytes", description = "Detect emotions from uploaded image bytes. Returns detected emotions with confidence scores.")
+    @Tool(name = "detect_emotions_b", description = "Detect emotions from uploaded image bytes. Returns detected emotions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectEmotions(byte[] imageBytes) {
         try {
@@ -534,7 +534,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_deepfake_from_bytes", description = "Detect deepfakes from uploaded image bytes. Returns classification as 'real' or 'fake' with confidence score.")
+    @Tool(name = "detect_deepfake_b", description = "Detect deepfakes from uploaded image bytes. Returns classification as 'real' or 'fake' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDeepfake(byte[] imageBytes) {
         try {
@@ -574,7 +574,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_hands_from_bytes", description = "Detect hands from uploaded image bytes. Returns detected hands with bounding boxes and confidence scores.")
+    @Tool(name = "detect_hands_b", description = "Detect hands from uploaded image bytes. Returns detected hands with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectHands(byte[] imageBytes) {
         try {
@@ -615,7 +615,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_demographics_from_bytes", description = "Detect demographics from uploaded image bytes. Returns detected demographics with confidence scores.")
+    @Tool(name = "detect_demographics_b", description = "Detect demographics from uploaded image bytes. Returns detected demographics with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDemographics(byte[] imageBytes) {
         try {
@@ -661,7 +661,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_fall_from_bytes", description = "Detect falls from uploaded image bytes. Returns fall risk assessment with body orientation and confidence scores.")
+    @Tool(name = "detect_fall_b", description = "Detect falls from uploaded image bytes. Returns fall risk assessment with body orientation and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectFall(byte[] imageBytes) {
         try {
@@ -716,7 +716,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "analyze_stress_from_bytes", description = "Analyze stress from uploaded image bytes. Returns stress assessment with level, score, and indicators.")
+    @Tool(name = "analyze_stress_b", description = "Analyze stress from uploaded image bytes. Returns stress assessment with level, score, and indicators.")
     @SuppressWarnings("unused")
     public Map<String, Object> analyzeStress(byte[] imageBytes) {
         try {
@@ -770,7 +770,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_image_metadata_from_bytes", description = "Extract metadata from uploaded image bytes including EXIF, GPS, and camera information.")
+    @Tool(name = "extract_image_metadata_b", description = "Extract metadata from uploaded image bytes including EXIF, GPS, and camera information.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractImageMetadata(byte[] imageBytes) {
         try {
@@ -803,7 +803,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "scan_barcode_from_bytes", description = "Scan and decode barcodes from uploaded image bytes. Returns barcode format, content, and location.")
+    @Tool(name = "scan_barcode_b", description = "Scan and decode barcodes from uploaded image bytes. Returns barcode format, content, and location.")
     @SuppressWarnings("unused")
     public Map<String, Object> scanBarcode(byte[] imageBytes) {
         try {
@@ -845,7 +845,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_threats_from_bytes", description = "Detect security threats from uploaded image bytes. Returns detections with severity assessment and metadata.")
+    @Tool(name = "detect_threats_b", description = "Detect security threats from uploaded image bytes. Returns detections with severity assessment and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectThreats(byte[] imageBytes) {
         try {
@@ -898,7 +898,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "authenticate_access_from_bytes", description = "Authenticate access using raw uploaded image bytes. Returns authorization decision.")
+    @Tool(name = "authenticate_access_b", description = "Authenticate access using raw uploaded image bytes. Returns authorization decision.")
     @SuppressWarnings("unused")
     public Map<String, Object> authenticateAccess(byte[] imageBytes) {
         try {
@@ -954,7 +954,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "estimate_heart_rate_from_frames", description = "Estimate heart rate from uploaded frames provided as raw image bytes.")
+    @Tool(name = "estimate_heart_rate_f", description = "Estimate heart rate from uploaded frames provided as raw image bytes.")
     @SuppressWarnings("unused")
     public Map<String, Object> estimateHeartRateFromBytes(java.util.Collection<byte[]> frames) {
         try {
@@ -1002,7 +1002,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "count_faces_from_url", description = "Count faces in an image from a URL. Returns the number of faces detected.")
+    @Tool(name = "count_faces_u", description = "Count faces in an image from a URL. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFaces(String imageUrl) {
         log.info("countFaces called",
@@ -1051,7 +1051,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_face_embeddings_from_url", description = "Extract face embeddings from an image URL. Returns list of embeddings and metadata.")
+    @Tool(name = "extract_face_embeddings_u", description = "Extract face embeddings from an image URL. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddings(String imageUrl) {
         log.info("extractEmbeddings called",
@@ -1117,7 +1117,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_text_from_url", description = "Extract text from an image using OCR. Returns detected text with confidence scores.")
+    @Tool(name = "extract_text_u", description = "Extract text from an image using OCR. Returns detected text with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractText(String imageUrl) {
         log.info("extractText called",
@@ -1189,7 +1189,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "classify_image_from_url", description = "Classify an image into categories. Returns top predictions with confidence scores.")
+    @Tool(name = "classify_image_u", description = "Classify an image into categories. Returns top predictions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> classifyImage(String imageUrl, Integer topK) {
         if (topK == null) topK = 5;
@@ -1252,7 +1252,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_objects_from_url", description = "Detect objects in an image. Returns detected objects with bounding boxes and confidence scores.")
+    @Tool(name = "detect_objects_u", description = "Detect objects in an image. Returns detected objects with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectObjects(String imageUrl) {
         log.info("detectObjects called",
@@ -1315,7 +1315,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_poses_from_url", description = "Detect human poses in an image. Returns detected poses with joint positions and confidence scores.")
+    @Tool(name = "detect_poses_u", description = "Detect human poses in an image. Returns detected poses with joint positions and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectPoses(String imageUrl) {
         log.info("detectPoses called",
@@ -1376,7 +1376,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "recognize_actions_from_url", description = "Detect and recognize actions in an image. Returns recognized actions with confidence scores.")
+    @Tool(name = "recognize_actions_u", description = "Detect and recognize actions in an image. Returns recognized actions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeActions(String imageUrl) {
         log.info("recognizeActions called",
@@ -1622,7 +1622,7 @@ public class VisionTool {
         return response;
     }
 
-    @Tool(name = "lookup_faces_in_dataset_from_url", description = "Lookup matching faces in a dataset. Returns URLs of images containing matching faces sorted by similarity.")
+    @Tool(name = "lookup_faces_in_dataset_u", description = "Lookup matching faces in a dataset. Returns URLs of images containing matching faces sorted by similarity.")
     @SuppressWarnings("unused")
     public Map<String, Object> lookupFaces(String sourceImageUrl, java.util.Set<String> datasetImageUrls) {
         log.info("lookupFaces called",
@@ -1747,7 +1747,7 @@ public class VisionTool {
     }
 
     // New: support file uploads (raw bytes) for lookup
-    @Tool(name = "lookup_faces_in_dataset_from_bytes", description = "Lookup matching faces in a dataset where images are provided as raw bytes (file uploads). Returns matches sorted by similarity.")
+    @Tool(name = "lookup_faces_in_dataset_b", description = "Lookup matching faces in a dataset where images are provided as raw bytes (file uploads). Returns matches sorted by similarity.")
     @SuppressWarnings("unused")
     public Map<String, Object> lookupFacesFromBytes(byte[] sourceImageBytes, java.util.Collection<byte[]> datasetImageBytes) {
         Map<String, Object> response = new HashMap<>();
@@ -1977,7 +1977,7 @@ public class VisionTool {
 
     
 
-    @Tool(name = "detect_nsfw_from_url", description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
+    @Tool(name = "detect_nsfw_u", description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectNSFW(String imageUrl) {
         log.info("detectNSFW called",
@@ -2032,7 +2032,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_emotions_from_url", description = "Detect emotions from faces in an image. Returns detected emotions with confidence scores (angry, disgust, fear, happy, sad, surprise, neutral).")
+    @Tool(name = "detect_emotions_u", description = "Detect emotions from faces in an image. Returns detected emotions with confidence scores (angry, disgust, fear, happy, sad, surprise, neutral).")
     @SuppressWarnings("unused")
     public Map<String, Object> detectEmotions(String imageUrl) {
         log.info("detectEmotions called",
@@ -2094,7 +2094,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_deepfake_from_url", description = "Detect deepfakes in an image. Returns classification as 'real' or 'fake' with confidence score.")
+    @Tool(name = "detect_deepfake_u", description = "Detect deepfakes in an image. Returns classification as 'real' or 'fake' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDeepfake(String imageUrl) {
         log.info("detectDeepfake called",
@@ -2153,7 +2153,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_hands_from_url", description = "Detect hands in an image. Returns detected hands with bounding boxes and confidence scores.")
+    @Tool(name = "detect_hands_u", description = "Detect hands in an image. Returns detected hands with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectHands(String imageUrl) {
         log.info("detectHands called",
@@ -2214,7 +2214,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_demographics_from_url", description = "Detect demographics (age and gender) from faces in an image. Returns detected demographics with confidence scores.")
+    @Tool(name = "detect_demographics_u", description = "Detect demographics (age and gender) from faces in an image. Returns detected demographics with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDemographics(String imageUrl) {
         log.info("detectDemographics called",
@@ -2280,7 +2280,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "detect_fall_from_url", description = "Detect falls from body pose analysis. Returns fall risk assessment with body orientation and confidence scores. Useful for elderly care and safety monitoring.")
+    @Tool(name = "detect_fall_u", description = "Detect falls from body pose analysis. Returns fall risk assessment with body orientation and confidence scores. Useful for elderly care and safety monitoring.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectFall(String imageUrl) {
         log.info("detectFall called",
@@ -2365,7 +2365,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "analyze_stress_from_url", description = "Analyze stress levels from facial expressions. Returns stress assessment with level, score, and indicators. For research and wellness monitoring only - not for medical diagnosis.")
+    @Tool(name = "analyze_stress_u", description = "Analyze stress levels from facial expressions. Returns stress assessment with level, score, and indicators. For research and wellness monitoring only - not for medical diagnosis.")
     @SuppressWarnings("unused")
     public Map<String, Object> analyzeStress(String imageUrl) {
         log.info("analyzeStress called",
@@ -2451,7 +2451,7 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "estimate_heart_rate_from_image_urls", description = "Estimate heart rate from video sequence using remote photoplethysmography (rPPG). Requires minimum 100 frames (5+ seconds). NOT A MEDICAL DEVICE - research/wellness only.")
+    @Tool(name = "estimate_heart_rate_u", description = "Estimate heart rate from video sequence using remote photoplethysmography (rPPG). Requires minimum 100 frames (5+ seconds). NOT A MEDICAL DEVICE - research/wellness only.")
     @SuppressWarnings("unused")
     public Map<String, Object> estimateHeartRate(java.util.Collection<String> imageUrls) {
         log.info("estimateHeartRate called",
@@ -2567,11 +2567,11 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "count_faces_from_bytes_validated", description = "Count faces from raw image bytes. Returns the number of faces detected.")
+    @Tool(name = "count_faces_b_validated", description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
     public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {
         log.info("countFacesFromBytes called",
-            StructuredArguments.keyValue("event", "count_faces_from_bytes_start"));
+            StructuredArguments.keyValue("event", "count_faces_b_start"));
 
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
@@ -2616,11 +2616,11 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_face_embeddings_from_bytes_validated", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
+    @Tool(name = "extract_face_embeddings_b_validated", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddingsFromBytes(byte[] imageBytes) {
         log.info("extractEmbeddingsFromBytes called",
-            StructuredArguments.keyValue("event", "extract_embeddings_from_bytes_start"));
+            StructuredArguments.keyValue("event", "extract_embeddings_b_start"));
 
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
@@ -2690,7 +2690,7 @@ public class VisionTool {
      * @param imageUrl URL of the image to extract metadata from
      * @return Map containing extracted metadata grouped by type (GPS, EXIF, etc.)
      */
-    @Tool(name = "extract_image_metadata_from_url", description = "Extract metadata from an image including GPS coordinates, EXIF data, camera settings, timestamps, and more. Returns comprehensive metadata grouped by type.")
+    @Tool(name = "extract_image_metadata_u", description = "Extract metadata from an image including GPS coordinates, EXIF data, camera settings, timestamps, and more. Returns comprehensive metadata grouped by type.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractImageMetadata(String imageUrl) {
         long startTime = System.currentTimeMillis();
@@ -2772,7 +2772,7 @@ public class VisionTool {
      * @param imageUrl URL of the image to scan
      * @return Map containing detected barcodes with format, content, and location
      */
-    @Tool(name = "scan_barcode_from_url", description = "Scan and decode barcodes and QR codes from an image. Supports QR_CODE, EAN-13, Code-128, Data Matrix, and more. Returns barcode format, content, and location.")
+    @Tool(name = "scan_barcode_u", description = "Scan and decode barcodes and QR codes from an image. Supports QR_CODE, EAN-13, Code-128, Data Matrix, and more. Returns barcode format, content, and location.")
     @SuppressWarnings("unused")
     public Map<String, Object> scanBarcode(String imageUrl) {
         long startTime = System.currentTimeMillis();
