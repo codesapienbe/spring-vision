@@ -83,6 +83,16 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+
+    <!-- DJL Repository for AI/ML dependencies -->
+    <repository>
+      <id>djl</id>
+      <name>DJL Repository</name>
+      <url>https://publish.djl.ai/</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
   </repositories>
 
   <distributionManagement>

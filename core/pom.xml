@@ -245,6 +245,13 @@
       <artifactId>onnxruntime-engine</artifactId>
       <optional>true</optional>
     </dependency>
+
+    <!-- DJL HuggingFace Tokenizers (for HuggingFace model support) -->
+    <dependency>
+      <groupId>ai.djl.huggingface</groupId>
+      <artifactId>tokenizers</artifactId>
+      <version>${djl.version}</version>
+    </dependency>
   </dependencies>
 
   <build>

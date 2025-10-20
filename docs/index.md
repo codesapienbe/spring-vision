@@ -16,6 +16,7 @@ Our documentation is organized into logical sections for easy navigation:
 New to Spring Vision? Start here!
 - **[Quick Start](./getting-started/start.md)** - Basic setup and first steps
 - **[Spring CLI Guide](./getting-started/quickstart.md)** - Generate projects with Spring CLI
+- **[MCP Tools Testing](./getting-started/mcp-tools-testing.md)** - Test all MCP tools with examples
 - **[Video Tutorial](./getting-started/tutorial.md)** - Video tutorial script and guide
 - **[MCP Configuration](./getting-started/tutorial-1.md)** - Configure MCP server tools
 

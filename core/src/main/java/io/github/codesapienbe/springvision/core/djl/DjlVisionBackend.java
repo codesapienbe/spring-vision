@@ -50,6 +50,7 @@ import ai.djl.translate.Batchifier;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import ai.djl.ndarray.NDManager;
+import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
 import io.github.codesapienbe.springvision.core.djl.translator.YuNetFaceDetectionTranslator;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
@@ -395,76 +396,75 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading face recognition model with DJL - using HuggingFace ArcFace model");
+        logger.info("Loading face recognition model with DJL");
 
-        // Use verified ArcFace model from HuggingFace (garavv/arcface-onnx)
-        // This model generates 512-dimensional embeddings for face recognition
+        // Use generic face recognition application type - DJL will select appropriate model
         try {
             Criteria<Image, NDArray> criteria = Criteria.builder()
                 .setTypes(Image.class, NDArray.class)
                 .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-                .optModelUrls("djl://ai.djl.huggingface.onnx/garavv/arcface-onnx")
-                .optEngine("OnnxRuntime")
+                .optEngine(properties.getEngine())
                 .optDevice(device)
-                .optArgument("inputShape", new int[]{1, 3, 112, 112})
-                .optArgument("normalize", true)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
             @SuppressWarnings("unchecked")
             ZooModel<Image, float[]> model = (ZooModel<Image, float[]>) (Object) criteria.loadModel();
             faceRecognitionModel = model;
-            
+
             modelCache.put("face_recognition", faceRecognitionModel);
-            logger.info("Face recognition model loaded: ArcFace (garavv/arcface-onnx) - 512-dim embeddings");
+            logger.info("Face recognition model loaded: {} - generic face recognition", faceRecognitionModel.getName());
         } catch (Exception e) {
-            logger.error("Failed to load ArcFace model from HuggingFace: {}", e.getMessage());
-            throw new ModelNotFoundException("ArcFace face recognition model not available", e);
+            logger.error("Failed to load face recognition model: {}", e.getMessage());
+            throw new ModelNotFoundException("Face recognition model not available", e);
         }
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading dedicated face detection model with DJL - using HuggingFace YuNet model");
+        logger.info("Loading RetinaFace face detection model with DJL - high accuracy face detector");
 
-        // Use verified YuNet face detection model from HuggingFace (opencv/face_detection_yunet)
-        // This is optimized for speed with millisecond-level inference
+        // Use RetinaFace - production-ready face detection model
+        // Based on the working DJL example with optimized parameters
         try {
+            // RetinaFace configuration parameters (from working DJL example)
+            double confThresh = 0.85f;
+            double nmsThresh = 0.45f;
+            double[] variance = {0.1f, 0.2f};
+            int topK = 5000;
+            int[][] scales = {{16, 32}, {64, 128}, {256, 512}};
+            int[] steps = {8, 16, 32};
+
             Criteria<Image, DetectedObjects> criteria = Criteria.builder()
                 .setTypes(Image.class, DetectedObjects.class)
-                .optApplication(Application.CV.OBJECT_DETECTION)
-                .optModelUrls("djl://ai.djl.huggingface.onnx/opencv/face_detection_yunet")
-                .optEngine("OnnxRuntime")
+                .optModelUrls("https://resources.djl.ai/test-models/pytorch/retinaface.zip")
+                .optModelName("retinaface")
+                .optTranslator(new FaceDetectionTranslator(confThresh, nmsThresh, variance, topK, scales, steps))
+                .optEngine("PyTorch")
                 .optDevice(device)
-                .optArgument("threshold", 0.6f)
-                .optArgument("nms_threshold", 0.3f)
-                .optTranslator(new YuNetFaceDetectionTranslator())
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
             faceDetectionModel = criteria.loadModel();
             modelCache.put("face_detection", faceDetectionModel);
-            logger.info("Face detection model loaded: YuNet (opencv/face_detection_yunet) - millisecond-level inference");
+            logger.info("RetinaFace face detection model loaded: {} - high accuracy with landmark detection", faceDetectionModel.getName());
         } catch (Exception e) {
-            logger.warn("Failed to load YuNet model from HuggingFace: {}. Attempting fallback to YOLO face detection.", e.getMessage());
-            
-            // Fallback to YOLOv11 face detection
+            logger.warn("Failed to load RetinaFace model: {}. Falling back to object detection.", e.getMessage());
+
+            // Fallback to generic object detection
             try {
                 Criteria<Image, DetectedObjects> criteria = Criteria.builder()
                     .setTypes(Image.class, DetectedObjects.class)
                     .optApplication(Application.CV.OBJECT_DETECTION)
-                    .optModelUrls("djl://ai.djl.huggingface.pytorch/AdamCodd/YOLOv11n-face-detection")
-                    .optEngine("PyTorch")
+                    .optEngine(properties.getEngine())
                     .optDevice(device)
-                    .optArgument("threshold", 0.5f)
-                    .optArgument("size", 640)
                     .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                     .build();
 
                 faceDetectionModel = criteria.loadModel();
                 modelCache.put("face_detection", faceDetectionModel);
-                logger.info("Face detection model loaded: YOLOv11n (AdamCodd/YOLOv11n-face-detection)");
+                logger.info("Face detection model loaded: {} - fallback to generic object detection", faceDetectionModel.getName());
             } catch (Exception fallbackEx) {
-                logger.error("Failed to load face detection model from HuggingFace: {}", fallbackEx.getMessage());
+                logger.error("Failed to load face detection model: {}", fallbackEx.getMessage());
                 throw new ModelNotFoundException("Face detection model not available", fallbackEx);
             }
         }
@@ -488,30 +488,27 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading pose estimation model with DJL - using HuggingFace MediaPipe Pose model");
+        logger.info("Loading pose estimation model with DJL");
 
-        // Use verified MediaPipe Pose model from HuggingFace (opencv/pose_estimation_mediapipe)
-        // This model detects 33 body keypoints including face, hands, and torso landmarks
+        // Try to load pose estimation model - DJL will select the best available
+        // If MediaPipe pose estimation is available, it will be preferred for its 33 keypoints
         try {
             Criteria<Image, NDList> criteria = Criteria.builder()
                 .setTypes(Image.class, NDList.class)
                 .optApplication(Application.CV.POSE_ESTIMATION)
-                .optModelUrls("djl://ai.djl.huggingface.onnx/opencv/pose_estimation_mediapipe")
-                .optEngine("OnnxRuntime")
+                .optEngine("OnnxRuntime")  // Prefer ONNX models like MediaPipe
                 .optDevice(device)
-                .optArgument("inputShape", new int[]{1, 3, 256, 256})
-                .optArgument("normalize", true)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
 
             @SuppressWarnings("unchecked")
             ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
             poseEstimationModel = model;
-            
+
             modelCache.put("pose_estimation", poseEstimationModel);
-            logger.info("Pose estimation model loaded: MediaPipe Pose (opencv/pose_estimation_mediapipe) - 33 keypoints");
+            logger.info("Pose estimation model loaded: {} - optimized for pose detection", poseEstimationModel.getName());
         } catch (Exception e) {
-            logger.error("Failed to load MediaPipe Pose model from HuggingFace: {}", e.getMessage());
+            logger.error("Failed to load pose estimation model: {}", e.getMessage());
             throw new ModelNotFoundException("Pose estimation model not available", e);
         }
     }
