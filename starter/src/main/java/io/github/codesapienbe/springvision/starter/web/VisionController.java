@@ -1,344 +1,540 @@
 package io.github.codesapienbe.springvision.starter.web;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.*;
 
+import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.core.DetectionCategory;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.starter.web.dto.DetectionRequest;
-import io.github.codesapienbe.springvision.starter.web.dto.DetectionResponse;
-import io.github.codesapienbe.springvision.starter.web.dto.HealthResponse;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
- * REST controller for Spring Vision operations.
+ * Async REST API Controller for Spring Vision capabilities.
  *
- * <p>This controller provides REST API endpoints for computer vision operations
- * including face detection, object detection, and health monitoring. It supports
- * both file uploads and direct image data processing.</p>
- *
- * <p>All endpoints include proper error handling, validation, and logging.
- * Responses include correlation IDs for request tracking and debugging.</p>
- *
- * <p>Example usage:</p>
- * <pre>{@code
- * // Face detection with file upload
- * POST /api/vision/detect/faces
- * Content-Type: multipart/form-data
- *
- * // Object detection with JSON payload
- * POST /api/vision/detect/objects
- * Content-Type: application/json
- *
- * // Health check
- * GET /api/vision/health
- * }</pre>
- *
- * @author Spring Vision Team
- * @see VisionTemplate
- * @see DetectionRequest
- * @see DetectionResponse
- * @since 1.0.0
+ * Provides comprehensive computer vision operations including:
+ * - Face detection and recognition
+ * - Object detection
+ * - Text extraction (OCR)
+ * - Image classification
+ * - Pose detection
+ * - Action recognition
+ * - NSFW content detection
+ * - Emotion detection
+ * - Demographics analysis
+ * - Barcode/QR code scanning
+ * - Security threat detection
+ * - Fall detection
+ * - Stress analysis
+ * - Heart rate estimation
+ * - Biometric authentication
  */
 @RestController
 @RequestMapping("/api/vision")
 @CrossOrigin(origins = "*")
 public class VisionController {
 
-    private static final Logger logger = LoggerFactory.getLogger(VisionController.class);
+    private static final Logger log = LoggerFactory.getLogger(VisionController.class);
 
-    // File upload constraints
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    private static final List<String> SUPPORTED_CONTENT_TYPES = List.of(
-        "image/jpeg", "image/jpg", "image/png", "image/gif", "image/bmp", "image/webp"
-    );
-
-    /**
-     * The vision template for processing operations.
-     */
     private final VisionTemplate visionTemplate;
+    private final HttpClient httpClient;
 
-    /**
-     * Constructs a new vision controller.
-     *
-     * @param visionTemplate the vision template for processing operations
-     */
+    private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
+    @Value("${spring.vision.djl.face-recognition.similarity-threshold:0.6}")
+    private double configuredSimilarityThreshold = 0.6;
+
     public VisionController(VisionTemplate visionTemplate) {
         this.visionTemplate = visionTemplate;
+        this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(REQUEST_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
+
+        log.info("VisionController initialized",
+            StructuredArguments.keyValue("event", "vision_controller_init"),
+            StructuredArguments.keyValue("backend", visionTemplate.getBackendId()),
+            StructuredArguments.keyValue("max_image_size_bytes", MAX_IMAGE_SIZE_BYTES));
     }
 
 
-    /**
-     * Counts faces in an uploaded image (simple count response).
-     *
-     * @param file The uploaded image file.
-     * @return Simple count response.
-     */
-    @PostMapping(value = "/faces/count", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> countFaces(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectFaces(imageData);
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "count", result.detectionCount(),
-                "averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0,
-                "processingTimeMs", System.currentTimeMillis() - startTime,
-                "message", String.format("Detected %d faces", result.detectionCount())
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "count", 0,
-                "message", "Failed to count faces: " + e.getMessage(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
+    // ========== Face Detection & Recognition ==========
 
     /**
-     * Extracts face embeddings from an uploaded image.
+     * Count faces in an image from URL or uploaded file.
      *
-     * @param file The uploaded image file.
-     * @return Embeddings response with base64-encoded vectors.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Face count with confidence scores
      */
-    @PostMapping(value = "/faces/embeddings", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> extractEmbeddings(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
+    @PostMapping(value = "/faces/count", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> countFaces(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
 
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            List<float[]> embeddings = visionTemplate.extractEmbeddings(imageData,
-                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+        log.info("countFaces called",
+            StructuredArguments.keyValue("event", "count_faces_start"),
+            StructuredArguments.keyValue("hasUrl", imageUrl != null),
+            StructuredArguments.keyValue("hasFile", file != null));
 
-            List<Map<String, Object>> embeddingsList = new java.util.ArrayList<>();
-            for (int i = 0; i < embeddings.size(); i++) {
-                float[] emb = embeddings.get(i);
-                Map<String, Object> item = Map.of(
-                    "id", "face-" + i,
-                    "embedding_base64", java.util.Base64.getEncoder().encodeToString(serializeEmbedding(emb)),
-                    "length", emb.length
-                );
-                embeddingsList.add(item);
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.detectFaces(imgData);
+
+                long duration = System.currentTimeMillis() - startTime;
+
+                response.put("status", "success");
+                response.put("count", result.detectionCount());
+                response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+                response.put("processingTimeMs", duration);
+                response.put("message", String.format("Detected %d faces", result.detectionCount()));
+
+                return ResponseEntity.ok(response);
+
+            } catch (IllegalArgumentException e) {
+                response.put("status", "error");
+                response.put("count", 0);
+                response.put("message", e.getMessage());
+                return ResponseEntity.badRequest().body(response);
+
+            } catch (Exception e) {
+                log.error("Failed to count faces", e);
+                response.put("status", "error");
+                response.put("count", 0);
+                response.put("message", "Failed to count faces: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "count", embeddings.size(),
-                "embeddings", embeddingsList,
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to extract embeddings: " + e.getMessage(),
-                "embeddings", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
-     * Classifies an image into categories.
+     * Extract face embeddings from an image.
      *
-     * @param file The uploaded image file.
-     * @param topK Number of top predictions to return (default: 5).
-     * @return Classification results.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return List of face embeddings with metadata
      */
-    @PostMapping(value = "/classify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> classifyImage(
-        @RequestParam("file") MultipartFile file,
-        @RequestParam(value = "topK", defaultValue = "5") Integer topK) {
+    @PostMapping(value = "/faces/embeddings", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> extractFaceEmbeddings(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
 
-        String correlationId = generateCorrelationId();
+        log.info("extractFaceEmbeddings called",
+            StructuredArguments.keyValue("event", "extract_embeddings_start"));
+
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData, DetectionCategory.FACE);
+
+                List<Map<String, Object>> embeddings = new ArrayList<>();
+                for (int i = 0; i < rawEmbeddings.size(); i++) {
+                    float[] emb = rawEmbeddings.get(i);
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", "face-" + i);
+                    item.put("embedding_base64", Base64.getEncoder().encodeToString(serializeEmbedding(emb)));
+                    item.put("length", emb.length);
+                    embeddings.add(item);
+                }
+
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("count", embeddings.size());
+                response.put("embeddings", embeddings);
+                response.put("processingTimeMs", duration);
+
+                return ResponseEntity.ok(response);
+
+            } catch (IllegalArgumentException e) {
+                response.put("status", "error");
+                response.put("embeddings", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.badRequest().body(response);
+
+            } catch (Exception e) {
+                log.error("Failed to extract embeddings", e);
+                response.put("status", "error");
+                response.put("embeddings", List.of());
+                response.put("message", "Failed to extract embeddings: " + e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * Classify an image into categories.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @param topK Number of top predictions to return (default: 5)
+     * @return Top predictions with confidence scores
+     */
+    @PostMapping(value = "/classify", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> classifyImage(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file,
+            @RequestParam(defaultValue = "5") Integer topK) {
+
+        return Mono.fromCallable(() -> {
         long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.classifyImage(imgData, topK);
+
+                List<Map<String, Object>> classifications = new ArrayList<>();
+                for (var detection : result.detections()) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("label", detection.label());
+                    item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    classifications.add(item);
+                }
+
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("classifications", classifications);
+                response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
+                response.put("count", result.detectionCount());
+                response.put("processingTimeMs", duration);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+                log.error("Failed to classify image", e);
+                response.put("status", "error");
+                response.put("classifications", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    // ========== Object & Scene Analysis ==========
+
+    /**
+     * Detect objects in an image.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Detected objects with bounding boxes and confidence scores
+     */
+    @PostMapping(value = "/objects/detect", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> detectObjects(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+        long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.detectObjects(imgData);
+
+                List<Map<String, Object>> objects = new ArrayList<>();
+                for (var detection : result.detections()) {
+                    Map<String, Object> obj = new HashMap<>();
+                    obj.put("label", detection.label());
+                    obj.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+
+                    if (detection.boundingBox() != null) {
+                        obj.put("boundingBox", Map.of(
+                            "x", detection.boundingBox().x(),
+                            "y", detection.boundingBox().y(),
+                            "width", detection.boundingBox().width(),
+                            "height", detection.boundingBox().height()
+                        ));
+                    }
+                    objects.add(obj);
+                }
+
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("objects", objects);
+                response.put("count", result.detectionCount());
+                response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+                response.put("processingTimeMs", duration);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+                log.error("Failed to detect objects", e);
+                response.put("status", "error");
+                response.put("objects", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    // ========== Text & Document Analysis ==========
+
+    /**
+     * Extract text from an image using OCR.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Detected text with confidence scores and bounding boxes
+     */
+    @PostMapping(value = "/text/extract", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> extractText(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+        long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
 
         try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.classifyImage(imageData, topK);
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.extractText(imgData);
 
-            List<Map<String, Object>> classifications = new java.util.ArrayList<>();
+                List<Map<String, Object>> detections = new ArrayList<>();
+                StringBuilder fullText = new StringBuilder();
+
             for (var detection : result.detections()) {
-                classifications.add(Map.of(
-                    "label", detection.label(),
-                    "confidence", Math.round(detection.confidence() * 10000.0) / 10000.0
-                ));
-            }
+                    Map<String, Object> item = new HashMap<>();
+                    String text = (String) detection.attributes().get("text");
+                    item.put("text", text);
+                    item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    item.put("boundingBox", Map.of(
+                        "x", detection.boundingBox().x(),
+                        "y", detection.boundingBox().y(),
+                        "width", detection.boundingBox().width(),
+                        "height", detection.boundingBox().height()
+                    ));
+                    detections.add(item);
+                    if (text != null) fullText.append(text).append(" ");
+                }
 
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "classifications", classifications,
-                "topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"),
-                "count", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("text", fullText.toString().trim());
+                response.put("detections", detections);
+                response.put("count", result.detectionCount());
+                response.put("processingTimeMs", duration);
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to classify image: " + e.getMessage(),
-                "classifications", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+                log.error("Failed to extract text", e);
+                response.put("status", "error");
+                response.put("text", "");
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
-     * Detects human poses in an image.
+     * Scan and decode barcodes/QR codes from an image.
      *
-     * @param file The uploaded image file.
-     * @return Pose detection results.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Detected barcodes with format, content, and location
      */
-    @PostMapping(value = "/detect/poses", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectPoses(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
+    @PostMapping(value = "/barcode/scan", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> scanBarcode(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
         long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
 
         try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectPoses(imageData);
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.scanBarcodes(imgData);
 
-            List<Map<String, Object>> poses = new java.util.ArrayList<>();
+                List<Map<String, Object>> barcodes = new ArrayList<>();
             for (var detection : result.detections()) {
-                poses.add(Map.of(
-                    "label", detection.label(),
-                    "confidence", Math.round(detection.confidence() * 10000.0) / 10000.0,
-                    "attributes", detection.attributes()
-                ));
-            }
+                    Map<String, Object> barcodeInfo = new HashMap<>();
+                    barcodeInfo.put("format", detection.label());
+                    barcodeInfo.put("content", detection.attributes().get("content"));
+                    barcodeInfo.put("confidence", detection.confidence());
+                    barcodeInfo.put("location", Map.of(
+                        "x", detection.boundingBox().x(),
+                        "y", detection.boundingBox().y(),
+                        "width", detection.boundingBox().width(),
+                        "height", detection.boundingBox().height()
+                    ));
+                    barcodes.add(barcodeInfo);
+                }
 
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "poses", poses,
-                "count", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime,
-                "message", String.format("Detected %d poses", result.detectionCount())
-            );
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("count", result.detectionCount());
+                response.put("barcodes", barcodes);
+                response.put("processingTimeMs", duration);
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect poses: " + e.getMessage(),
-                "poses", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+                log.error("Failed to scan barcode", e);
+                response.put("status", "error");
+                response.put("barcodes", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
+    // ========== Pose & Action Recognition ==========
+
     /**
-     * Recognizes actions in an image.
+     * Detect human poses in an image.
      *
-     * @param file The uploaded image file.
-     * @return Action recognition results.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Detected poses with joint positions and confidence scores
      */
-    @PostMapping(value = "/recognize/actions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> recognizeActions(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
+    @PostMapping(value = "/poses/detect", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> detectPoses(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
         long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
 
         try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.recognizeActions(imageData);
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.detectPoses(imgData);
 
-            List<Map<String, Object>> actions = new java.util.ArrayList<>();
+                List<Map<String, Object>> poses = new ArrayList<>();
             for (var detection : result.detections()) {
-                actions.add(Map.of(
-                    "action", detection.label(),
-                    "confidence", Math.round(detection.confidence() * 10000.0) / 10000.0
-                ));
-            }
+                    Map<String, Object> pose = new HashMap<>();
+                    pose.put("label", detection.label());
+                    pose.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    pose.put("attributes", detection.attributes());
+                    poses.add(pose);
+                }
 
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "actions", actions,
-                "topAction", actions.isEmpty() ? null : actions.get(0).get("action"),
-                "count", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("poses", poses);
+                response.put("count", result.detectionCount());
+                response.put("processingTimeMs", duration);
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to recognize actions: " + e.getMessage(),
-                "actions", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+                log.error("Failed to detect poses", e);
+                response.put("status", "error");
+                response.put("poses", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
-     * Detects NSFW (Not Safe For Work) content in an image.
+     * Recognize actions in an image.
      *
-     * @param file The uploaded image file.
-     * @return NSFW detection result.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Recognized actions with confidence scores
      */
-    @PostMapping(value = "/detect/nsfw", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectNSFW(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
+    @PostMapping(value = "/actions/recognize", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> recognizeActions(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
 
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectNSFW(imageData);
+        return Mono.fromCallable(() -> {
+        long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.recognizeActions(imgData);
+
+                List<Map<String, Object>> actions = new ArrayList<>();
+                for (var detection : result.detections()) {
+                    Map<String, Object> action = new HashMap<>();
+                    action.put("action", detection.label());
+                    action.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    actions.add(action);
+                }
+
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("actions", actions);
+                response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
+                response.put("count", result.detectionCount());
+                response.put("processingTimeMs", duration);
+
+                return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                log.error("Failed to recognize actions", e);
+                response.put("status", "error");
+                response.put("actions", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    // ========== Content Moderation ==========
+
+    /**
+     * Detect NSFW content in an image.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Classification as 'normal' or 'nsfw' with confidence score
+     */
+    @PostMapping(value = "/content/nsfw", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> detectNSFW(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.detectNSFW(imgData);
 
             if (!result.hasDetections()) {
-                Map<String, Object> response = Map.of(
-                    "correlationId", correlationId,
-                    "status", "success",
-                    "classification", "unknown",
-                    "confidence", 0.0,
-                    "isNSFW", false,
-                    "processingTimeMs", System.currentTimeMillis() - startTime
-                );
+                    response.put("status", "success");
+                    response.put("classification", "unknown");
+                    response.put("confidence", 0.0);
+                    response.put("isNSFW", false);
+                    response.put("processingTimeMs", 0);
                 return ResponseEntity.ok(response);
             }
 
@@ -346,605 +542,232 @@ public class VisionController {
             boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
 
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "classification", classification,
-                "confidence", Math.round(detection.confidence() * 10000.0) / 10000.0,
-                "isNSFW", isNSFW,
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("classification", classification);
+                response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                response.put("isNSFW", isNSFW);
+                response.put("processingTimeMs", duration);
 
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect NSFW content: " + e.getMessage(),
-                "classification", "unknown",
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
-     * Detects emotions from faces in an image.
-     *
-     * @param file The uploaded image file.
-     * @return Emotion detection results.
-     */
-    @PostMapping(value = "/detect/emotions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectEmotions(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectEmotions(imageData);
-
-            List<Map<String, Object>> emotions = new java.util.ArrayList<>();
-            for (var detection : result.detections()) {
-                java.util.Map<String, Object> emotion = new java.util.HashMap<>();
-                emotion.put("emotion", detection.label());
-                emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                emotion.put("faceIndex", detection.attributes().get("faceIndex"));
-
-                if (detection.boundingBox() != null) {
-                    emotion.put("boundingBox", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
-                }
-                emotions.add(emotion);
+                log.error("Failed to detect NSFW", e);
+                response.put("status", "error");
+                response.put("classification", "unknown");
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "emotions", emotions,
-                "topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"),
-                "count", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect emotions: " + e.getMessage(),
-                "emotions", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
+    // ========== Emotion & Demographics ==========
+
     /**
-     * Detects deepfakes in an image.
+     * Detect emotions in faces.
      *
-     * @param file The uploaded image file.
-     * @return Deepfake detection result.
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return Detected emotions with confidence scores
      */
-    @PostMapping(value = "/detect/deepfake", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectDeepfake(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
+    @PostMapping(value = "/emotions/detect", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> detectEmotions(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
 
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectDeepfake(imageData);
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
 
-            if (!result.hasDetections()) {
-                Map<String, Object> response = Map.of(
-                    "correlationId", correlationId,
-                    "status", "success",
-                    "classification", "unknown",
-                    "confidence", 0.0,
-                    "isFake", false,
-                    "processingTimeMs", System.currentTimeMillis() - startTime
-                );
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.detectEmotions(imgData);
+
+                List<Map<String, Object>> emotions = new ArrayList<>();
+                for (var detection : result.detections()) {
+                    Map<String, Object> emotion = new HashMap<>();
+                    emotion.put("emotion", detection.label());
+                    emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    emotion.put("faceIndex", detection.attributes().get("faceIndex"));
+
+                    if (detection.boundingBox() != null) {
+                        emotion.put("boundingBox", Map.of(
+                            "x", detection.boundingBox().x(),
+                            "y", detection.boundingBox().y(),
+                            "width", detection.boundingBox().width(),
+                            "height", detection.boundingBox().height()
+                        ));
+                    }
+                    emotions.add(emotion);
+                }
+
+                long duration = System.currentTimeMillis() - startTime;
+                response.put("status", "success");
+                response.put("emotions", emotions);
+                response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
+                response.put("count", result.detectionCount());
+                response.put("processingTimeMs", duration);
+
                 return ResponseEntity.ok(response);
+
+            } catch (Exception e) {
+                log.error("Failed to detect emotions", e);
+                response.put("status", "error");
+                response.put("emotions", List.of());
+                response.put("message", e.getMessage());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
             }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
 
-            var detection = result.detections().get(0);
-            boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
-            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
-            String manipulationType = (String) detection.attributes().get("manipulationType");
+    // ========== Helper Methods ==========
 
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("correlationId", correlationId);
-            response.put("status", "success");
-            response.put("classification", classification);
-            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-            response.put("isFake", isFake);
-            if (manipulationType != null) {
-                response.put("manipulationType", manipulationType);
+    /**
+     * Resolve image source from URL or uploaded file.
+     */
+    private ImageData resolveImageSource(String imageUrl, MultipartFile file) throws IOException {
+        if (file != null && !file.isEmpty()) {
+            byte[] bytes = file.getBytes();
+            if (bytes.length > MAX_IMAGE_SIZE_BYTES) {
+                throw new IllegalArgumentException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
             }
-            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect deepfake: " + e.getMessage(),
-                "classification", "unknown",
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ImageData.fromBytes(bytes);
         }
+
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            byte[] bytes = downloadImageFromUrl(imageUrl.trim());
+            return ImageData.fromBytes(bytes);
+        }
+
+        throw new IllegalArgumentException("Either imageUrl or file must be provided");
     }
 
     /**
-     * Detects hands in an image.
-     *
-     * @param file The uploaded image file.
-     * @return Hand detection results.
+     * Download image from URL with retry logic.
      */
-    @PostMapping(value = "/detect/hands", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectHands(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectHands(imageData);
-
-            List<Map<String, Object>> hands = new java.util.ArrayList<>();
-            for (var detection : result.detections()) {
-                java.util.Map<String, Object> hand = new java.util.HashMap<>();
-                hand.put("label", detection.label());
-                hand.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-
-                if (detection.boundingBox() != null) {
-                    hand.put("boundingBox", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
-                }
-                hands.add(hand);
-            }
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "hands", hands,
-                "count", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect hands: " + e.getMessage(),
-                "hands", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            throw new IOException("Image URL is required");
         }
-    }
 
-    /**
-     * Detects demographics (age and gender) from faces in an image.
-     *
-     * @param file The uploaded image file.
-     * @return Demographics detection results.
-     */
-    @PostMapping(value = "/detect/demographics", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectDemographics(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
+        String trimmed = imageUrl.trim();
 
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectDemographics(imageData);
+        // Support data URIs
+        if (trimmed.startsWith("data:")) {
+            int comma = trimmed.indexOf(',');
+            if (comma < 0) throw new IOException("Invalid data URI format");
+            String metadata = trimmed.substring(5, comma);
+            String dataPart = trimmed.substring(comma + 1);
 
-            List<Map<String, Object>> demographics = new java.util.ArrayList<>();
-            for (var detection : result.detections()) {
-                java.util.Map<String, Object> demo = new java.util.HashMap<>();
-                demo.put("gender", detection.label());
-                demo.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                demo.put("age", detection.attributes().get("age"));
-                demo.put("ageRange", detection.attributes().get("ageRange"));
-                demo.put("genderConfidence", detection.attributes().get("genderConfidence"));
-                demo.put("ageError", detection.attributes().get("ageError"));
-                demo.put("faceIndex", detection.attributes().get("faceIndex"));
-
-                if (detection.boundingBox() != null) {
-                    demo.put("boundingBox", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
-                }
-                demographics.add(demo);
-            }
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "demographics", demographics,
-                "facesAnalyzed", result.detectionCount(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect demographics: " + e.getMessage(),
-                "demographics", List.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
-     * Detects falls from body pose analysis.
-     *
-     * @param file The uploaded image file.
-     * @return Fall detection result.
-     */
-    @PostMapping(value = "/detect/fall", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectFall(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectFall(List.of(imageData));
-
-            if (!result.hasDetections()) {
-                Map<String, Object> response = Map.of(
-                    "correlationId", correlationId,
-                    "status", "success",
-                    "fallDetected", false,
-                    "bodyOrientation", "unknown",
-                    "riskLevel", "low",
-                    "message", "No person detected",
-                    "processingTimeMs", System.currentTimeMillis() - startTime
-                );
-                return ResponseEntity.ok(response);
-            }
-
-            var detection = result.detections().get(0);
-            boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
-            String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
-            String riskLevel = (String) detection.attributes().getOrDefault("riskLevel", "low");
-            Double aspectRatio = (Double) detection.attributes().get("aspectRatio");
-            Double headHeight = (Double) detection.attributes().get("headHeight");
-            String analysisDetails = (String) detection.attributes().get("analysisDetails");
-
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("correlationId", correlationId);
-            response.put("status", "success");
-            response.put("fallDetected", fallDetected);
-            response.put("bodyOrientation", bodyOrientation);
-            response.put("riskLevel", riskLevel);
-            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-
-            if (aspectRatio != null) {
-                response.put("aspectRatio", Math.round(aspectRatio * 1000.0) / 1000.0);
-            }
-            if (headHeight != null) {
-                response.put("headHeight", Math.round(headHeight * 1000.0) / 1000.0);
-            }
-            if (analysisDetails != null) {
-                response.put("analysisDetails", analysisDetails);
-            }
-            if (detection.boundingBox() != null) {
-                response.put("boundingBox", Map.of(
-                    "x", detection.boundingBox().x(),
-                    "y", detection.boundingBox().y(),
-                    "width", detection.boundingBox().width(),
-                    "height", detection.boundingBox().height()
-                ));
-            }
-            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect fall: " + e.getMessage(),
-                "fallDetected", false,
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
-     * Analyzes stress levels from facial expressions.
-     *
-     * @param file The uploaded image file.
-     * @return Stress analysis result.
-     */
-    @PostMapping(value = "/analyze/stress", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> analyzeStress(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.analyzeStress(List.of(imageData));
-
-            if (!result.hasDetections()) {
-                Map<String, Object> response = Map.of(
-                    "correlationId", correlationId,
-                    "status", "success",
-                    "stressLevel", "unknown",
-                    "stressScore", 0.0,
-                    "message", "No face detected",
-                    "processingTimeMs", System.currentTimeMillis() - startTime
-                );
-                return ResponseEntity.ok(response);
-            }
-
-            var detection = result.detections().get(0);
-            String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
-            Double stressScore = (Double) detection.attributes().get("stressScore");
-            String dominantEmotion = (String) detection.attributes().get("dominantEmotion");
-            Double emotionIntensity = (Double) detection.attributes().get("emotionIntensity");
-            @SuppressWarnings("unchecked")
-            List<String> indicators = (List<String>) detection.attributes().get("indicators");
-
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("correlationId", correlationId);
-            response.put("status", "success");
-            response.put("stressLevel", stressLevel);
-            response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-
-            if (stressScore != null) {
-                response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
-            }
-            if (dominantEmotion != null) {
-                response.put("dominantEmotion", dominantEmotion);
-            }
-            if (emotionIntensity != null) {
-                response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
-            }
-            if (indicators != null && !indicators.isEmpty()) {
-                response.put("indicators", indicators);
-            }
-            if (detection.boundingBox() != null) {
-                response.put("boundingBox", Map.of(
-                    "x", detection.boundingBox().x(),
-                    "y", detection.boundingBox().y(),
-                    "width", detection.boundingBox().width(),
-                    "height", detection.boundingBox().height()
-                ));
-            }
-            response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
-            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to analyze stress: " + e.getMessage(),
-                "stressLevel", "unknown",
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
-     * Extracts image metadata including EXIF, GPS, and camera information.
-     *
-     * @param file The uploaded image file.
-     * @return Metadata extraction result.
-     */
-    @PostMapping(value = "/metadata/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> extractMetadata(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.extractMetadata(imageData);
-
-            Map<String, Map<String, Object>> metadataGroups = new java.util.HashMap<>();
-            for (var detection : result.detections()) {
-                String type = detection.label(); // "gps", "exif", or "metadata"
-                Map<String, Object> groupData = new java.util.HashMap<>(detection.attributes());
-                groupData.remove("backend");
-                groupData.remove("type");
-                metadataGroups.put(type, groupData);
-            }
-
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "metadata", metadataGroups,
-                "groupCount", metadataGroups.size(),
-                "processingTimeMs", System.currentTimeMillis() - startTime,
-                "backend", result.metadata().get("backendId")
-            );
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to extract metadata: " + e.getMessage(),
-                "metadata", Map.of(),
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-
-    /**
-     * Detects security threats including weapons, violence, and suspicious objects.
-     *
-     * @param file The uploaded image file.
-     * @return Threat detection results.
-     */
-    @PostMapping(value = "/security/threats", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> detectThreats(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectThreats(List.of(imageData));
-
-            List<Map<String, Object>> threats = new java.util.ArrayList<>();
-            int highSeverityCount = 0;
-
-            for (var detection : result.detections()) {
-                java.util.Map<String, Object> threat = new java.util.HashMap<>();
-                threat.put("label", detection.label());
-                threat.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-
-                if (detection.boundingBox() != null) {
-                    threat.put("boundingBox", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
+            try {
+                byte[] imageBytes;
+                if (metadata.contains(";base64")) {
+                    imageBytes = Base64.getDecoder().decode(dataPart);
+                } else {
+                    String decoded = java.net.URLDecoder.decode(dataPart, StandardCharsets.UTF_8);
+                    imageBytes = decoded.getBytes(StandardCharsets.UTF_8);
                 }
 
-                String threatType = (String) detection.attributes().get("threatType");
-                String severity = (String) detection.attributes().get("severity");
-                String weaponClass = (String) detection.attributes().get("weaponClass");
-                String description = (String) detection.attributes().get("description");
+                if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                    throw new IOException("Image size exceeds maximum allowed size");
+                }
+                return imageBytes;
+            } catch (IllegalArgumentException e) {
+                throw new IOException("Invalid base64 data in data URI", e);
+            }
+        }
 
-                threat.put("threatType", threatType);
-                threat.put("severity", severity);
-                threat.put("weaponClass", weaponClass);
-                threat.put("description", description);
+        // Handle file paths and HTTP(S) URLs
+        try {
+            URI uri = URI.create(trimmed);
+            String scheme = uri.getScheme();
 
-                if ("HIGH".equals(severity) || "CRITICAL".equals(severity)) {
-                    highSeverityCount++;
+            if (scheme == null || scheme.isEmpty() || "file".equalsIgnoreCase(scheme)) {
+                Path path = "file".equalsIgnoreCase(scheme) ? Paths.get(uri) : Paths.get(trimmed);
+
+                if (!Files.exists(path)) {
+                    throw new IOException("File not found: " + path);
                 }
 
-                threats.add(threat);
+                long size = Files.size(path);
+                if (size > MAX_IMAGE_SIZE_BYTES) {
+                    throw new IOException("Image size exceeds maximum allowed size");
+                }
+
+                return Files.readAllBytes(path);
             }
 
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "threats", threats,
-                "threatCount", threats.size(),
-                "highSeverityCount", highSeverityCount,
-                "processingTimeMs", System.currentTimeMillis() - startTime,
-                "disclaimer", "For legitimate security and safety use only. Comply with local surveillance laws and privacy regulations.",
-                "warning", "False positives may occur. Human verification recommended for critical decisions."
-            );
+            if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("User-Agent", "SpringVision/1.0")
+                    .header("Accept", "image/*, */*")
+                    .GET()
+                    .build();
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to detect threats: " + e.getMessage(),
-                "threats", List.of(),
-                "threatCount", 0,
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+                try {
+                    HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+                    if (response.statusCode() == 200) {
+                        try (InputStream inputStream = response.body()) {
+                            byte[] imageBytes = inputStream.readNBytes(MAX_IMAGE_SIZE_BYTES + 1);
+                            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                                throw new IOException("Image size exceeds maximum allowed size");
+                            }
+                            return imageBytes;
+                        }
+                    }
+
+                    throw new IOException("HTTP error " + response.statusCode());
+
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Download interrupted", e);
+                }
+            }
+
+            throw new IOException("Unsupported URI scheme: " + scheme);
+
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid URL format", e);
         }
     }
 
     /**
-     * Authenticates access using biometric face recognition.
-     *
-     * @param file The uploaded image file.
-     * @return Authentication result.
+     * Extract embeddings using VisionTemplate.
      */
-    @PostMapping(value = "/security/authenticate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, Object>> authenticateAccess(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        long startTime = System.currentTimeMillis();
+    private List<float[]> extractEmbeddingsFromTemplate(ImageData img, DetectionCategory category) {
+        try {
+            if (visionTemplate != null) {
+                VisionBackend backend = visionTemplate.backend();
+                if (backend instanceof EmbeddingCapability cap) {
+                    try {
+                        List<float[]> out = cap.extractEmbeddings(img, category);
+                        if (out != null) return out;
+                    } catch (Exception e) {
+                        log.warn("Backend extractEmbeddings failed", e);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
 
         try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.authenticateAccess(imageData);
-
-            if (!result.hasDetections()) {
-                Map<String, Object> response = Map.of(
-                    "correlationId", correlationId,
-                    "status", "error",
-                    "message", "Authentication failed - no results",
-                    "authorized", false,
-                    "processingTimeMs", System.currentTimeMillis() - startTime
-                );
-                return ResponseEntity.ok(response);
-            }
-
-            var authResult = result.detections().get(0);
-            Boolean authorized = (Boolean) authResult.attributes().get("authorized");
-            Double confidence = (Double) authResult.attributes().get("confidence");
-            Double matchScore = (Double) authResult.attributes().get("matchScore");
-            String timestamp = (String) authResult.attributes().get("timestamp");
-            String userId = (String) authResult.attributes().get("userId");
-            String userName = (String) authResult.attributes().get("userName");
-            String reason = (String) authResult.attributes().get("reason");
-
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("correlationId", correlationId);
-            response.put("status", "success");
-            response.put("authorized", Boolean.TRUE.equals(authorized));
-            response.put("label", authResult.label());
-            response.put("confidence", confidence != null ? Math.round(confidence * 10000.0) / 10000.0 : 0.0);
-            response.put("matchScore", matchScore != null ? Math.round(matchScore * 10000.0) / 10000.0 : 0.0);
-            response.put("timestamp", timestamp);
-            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-
-            if (Boolean.TRUE.equals(authorized)) {
-                response.put("userId", userId);
-                response.put("userName", userName);
-                response.put("message", "Access granted for user: " + userName);
-            } else {
-                response.put("reason", reason);
-                response.put("message", "Access denied: " + reason);
-            }
-
-            response.put("securityNote", "This is a demonstration. Production systems should implement liveness detection and multi-factor authentication.");
-            response.put("privacyNote", "Ensure compliance with biometric privacy laws (GDPR, BIPA, etc.)");
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = Map.of(
-                "correlationId", correlationId,
-                "status", "error",
-                "message", "Failed to authenticate access: " + e.getMessage(),
-                "authorized", false,
-                "processingTimeMs", System.currentTimeMillis() - startTime
-            );
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            List<float[]> res = visionTemplate.extractEmbeddings(img, category);
+            if (res != null) return res;
+        } catch (Exception ignored) {
         }
+
+        return List.of();
     }
 
-    // Helper method for serializing embeddings
+    /**
+     * Serialize float embedding to bytes.
+     */
     private byte[] serializeEmbedding(float[] arr) {
         if (arr == null) return new byte[0];
+
         byte[] out = new byte[arr.length * 4];
         for (int i = 0; i < arr.length; i++) {
             int bits = Float.floatToIntBits(arr[i]);
@@ -954,415 +777,5 @@ public class VisionController {
             out[i * 4 + 3] = (byte) (bits & 0xFF);
         }
         return out;
-    }
-
-    // ===== Original Vision Endpoints =====
-
-    @PostMapping(value = "/detect/faces", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<VisionResult> detectFacesFromFile(
-        @RequestParam("file") MultipartFile file,
-        @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
-
-        String correlationId = generateCorrelationId();
-        logger.info("Face detection request received", Map.of(
-            "correlationId", correlationId,
-            "fileName", file.getOriginalFilename(),
-            "fileSize", file.getSize(),
-            "contentType", file.getContentType(),
-            "minConfidence", minConfidence
-        ));
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectFaces(imageData);
-
-            // Filter by confidence if specified
-            if (minConfidence != null) {
-                List<io.github.codesapienbe.springvision.core.Detection> filteredDetections = result.detections().stream()
-                    .filter(detection -> detection.confidence() >= minConfidence)
-                    .toList();
-
-                // Create new VisionResult with filtered detections
-                result = VisionResult.of(
-                    result.detectionType(),
-                    filteredDetections,
-                    filteredDetections.isEmpty() ? 0.0 :
-                        filteredDetections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
-                    result.processingTimeMs(),
-                    Map.of("correlationId", correlationId, "filtered", true)
-                );
-            } else {
-                // Add correlation ID to metadata
-                result = VisionResult.of(
-                    result.detectionType(),
-                    result.detections(),
-                    result.averageConfidence(),
-                    result.processingTimeMs(),
-                    Map.of("correlationId", correlationId)
-                );
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Face detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.FACE, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/faces", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<VisionResult> detectFacesFromData(
-        @RequestBody DetectionRequest request,
-        @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
-
-        String correlationId = generateCorrelationId();
-        logger.info("Face detection request received (JSON)", Map.of(
-            "correlationId", correlationId,
-            "imageSize", request.getImageData() != null ? request.getImageData().length : 0,
-            "minConfidence", minConfidence
-        ));
-
-        try {
-            ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detectFaces(imageData);
-
-            // Filter by confidence if specified
-            if (minConfidence != null) {
-                List<io.github.codesapienbe.springvision.core.Detection> filteredDetections = result.detections().stream()
-                    .filter(detection -> detection.confidence() >= minConfidence)
-                    .toList();
-
-                // Create new VisionResult with filtered detections
-                result = VisionResult.of(
-                    result.detectionType(),
-                    filteredDetections,
-                    filteredDetections.isEmpty() ? 0.0 :
-                        filteredDetections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
-                    result.processingTimeMs(),
-                    Map.of("correlationId", correlationId, "filtered", true)
-                );
-            } else {
-                // Add correlation ID to metadata
-                result = VisionResult.of(
-                    result.detectionType(),
-                    result.detections(),
-                    result.averageConfidence(),
-                    result.processingTimeMs(),
-                    Map.of("correlationId", correlationId)
-                );
-            }
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Face detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.FACE, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/objects", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<VisionResult> detectObjectsFromFile(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        logger.info("Object detection request received", Map.of(
-            "correlationId", correlationId,
-            "fileName", file.getOriginalFilename(),
-            "fileSize", file.getSize(),
-            "contentType", file.getContentType()
-        ));
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.detectObjects(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Object detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.OBJECT, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/objects", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<VisionResult> detectObjectsFromData(@RequestBody DetectionRequest request) {
-        String correlationId = generateCorrelationId();
-        logger.info("Object detection request received (JSON)", Map.of(
-            "correlationId", correlationId,
-            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
-        ));
-
-        try {
-            ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.detectObjects(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Object detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.OBJECT, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<VisionResult> detectBarcodesFromFile(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        logger.info("Barcode detection request received", Map.of(
-            "correlationId", correlationId,
-            "fileName", file.getOriginalFilename(),
-            "fileSize", file.getSize(),
-            "contentType", file.getContentType()
-        ));
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.scanBarcodes(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Barcode detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.BARCODE, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/barcodes", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<VisionResult> detectBarcodesFromData(@RequestBody DetectionRequest request) {
-        String correlationId = generateCorrelationId();
-        logger.info("Barcode detection request received (JSON)", Map.of(
-            "correlationId", correlationId,
-            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
-        ));
-
-        try {
-            ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.scanBarcodes(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Barcode detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.BARCODE, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/text", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<VisionResult> detectTextFromFile(@RequestParam("file") MultipartFile file) {
-        String correlationId = generateCorrelationId();
-        logger.info("Text detection request received", Map.of(
-            "correlationId", correlationId,
-            "fileName", file.getOriginalFilename(),
-            "fileSize", file.getSize(),
-            "contentType", file.getContentType()
-        ));
-
-        try {
-            validateFile(file);
-            ImageData imageData = convertToImageData(file);
-            VisionResult result = visionTemplate.extractText(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Text detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.TEXT, 0L));
-        }
-    }
-
-    @PostMapping(value = "/detect/text", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<VisionResult> detectTextFromData(@RequestBody DetectionRequest request) {
-        String correlationId = generateCorrelationId();
-        logger.info("Text detection request received (JSON)", Map.of(
-            "correlationId", correlationId,
-            "imageSize", request.getImageData() != null ? request.getImageData().length : 0
-        ));
-
-        try {
-            ImageData imageData = ImageData.fromBytes(request.getImageData());
-            VisionResult result = visionTemplate.extractText(imageData);
-
-            // Add correlation ID to metadata
-            result = VisionResult.of(
-                result.detectionType(),
-                result.detections(),
-                result.averageConfidence(),
-                result.processingTimeMs(),
-                Map.of("correlationId", correlationId)
-            );
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            logger.error("Text detection failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(VisionResult.empty(DetectionType.TEXT, 0L));
-        }
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<HealthResponse> getHealth() {
-        String correlationId = generateCorrelationId();
-        logger.debug("Health check request received", Map.of("correlationId", correlationId));
-
-        try {
-            var healthInfo = visionTemplate.getBackendHealthInfo();
-            HealthResponse response = new HealthResponse(
-                correlationId,
-                healthInfo.backendId(),
-                "Vision Backend",
-                "1.0.8",
-                healthInfo.status().toString(),
-                healthInfo.statusMessage(),
-                healthInfo.responseTimeMs(),
-                List.of("face", "object", "text", "barcode"),
-                null
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Health check failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new HealthResponse(correlationId, "unknown", "Vision Backend", "1.0.8", "DOWN", "Health check failed", 0L, List.of(), e.getMessage()));
-        }
-    }
-
-    @GetMapping("/info")
-    public ResponseEntity<Map<String, Object>> getInfo() {
-        String correlationId = generateCorrelationId();
-        logger.debug("Info request received", Map.of("correlationId", correlationId));
-
-        try {
-            var healthInfo = visionTemplate.getBackendHealthInfo();
-            Map<String, Object> response = Map.of(
-                "correlationId", correlationId,
-                "status", "success",
-                "backend", Map.of(
-                    "id", healthInfo.backendId(),
-                    "status", healthInfo.status().toString(),
-                    "responseTimeMs", healthInfo.responseTimeMs(),
-                    "supportedDetectionTypes", List.of("face", "object", "text", "barcode")
-                ),
-                "version", "1.0.8",
-                "message", "Info retrieved successfully"
-            );
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Info request failed", Map.of(
-                "correlationId", correlationId,
-                "error", e.getClass().getSimpleName()
-            ), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                    "correlationId", correlationId,
-                    "status", "error",
-                    "message", e.getMessage()
-                ));
-        }
-    }
-
-    // ===== Capability-Based Detection Helper Methods =====
-
-    /**
-     * Validates uploaded file for size and content type.
-     */
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is required and cannot be empty");
-        }
-
-        if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds maximum allowed size of " + MAX_FILE_SIZE + " bytes");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !SUPPORTED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new IllegalArgumentException("Unsupported file type: " + contentType + ". Supported types: " + SUPPORTED_CONTENT_TYPES);
-        }
-    }
-
-    /**
-     * Converts MultipartFile to ImageData.
-     */
-    private ImageData convertToImageData(MultipartFile file) throws IOException {
-        byte[] imageBytes = file.getBytes();
-        return ImageData.fromBytes(imageBytes);
-    }
-
-    /**
-     * Generates a unique correlation ID for request tracking.
-     */
-    private String generateCorrelationId() {
-        return "req_" + System.currentTimeMillis() + "_" + Thread.currentThread().getId();
     }
 }
