@@ -9,6 +9,7 @@
  * <ul>
  *   <li>{@link FaceDetectionTranslator} - RetinaFace face detection model (high accuracy with 5 landmarks)</li>
  *   <li>{@link YuNetFaceDetectionTranslator} - YuNet face detection model (opencv/face_detection_yunet)</li>
+ *   <li>{@link YoloDetectionTranslator} - YOLOv8 object detection model (COCO dataset)</li>
  * </ul>
  *
  * <h2>Usage Example</h2>

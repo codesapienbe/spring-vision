@@ -113,7 +113,7 @@ public class DjlProperties {
     }
 
     public static class ObjectDetection {
-        private String model = "yolo"; // or "ssd"
+        private String model = "ssd"; // or "yolo" (yolo models need proper TorchScript format)
         private String backbone = "resnet50";
         private float confidenceThreshold = 0.5f;
         private int topK = 10;

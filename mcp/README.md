@@ -29,7 +29,7 @@ This architecture ensures:
 **Run Spring Vision MCP Server with a single command - no installation required!**
 
 ```bash
-jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.3/mcp-0.0.3.jar
 ```
 
 This downloads and runs the latest JAR directly, no local build required. Ready for MCP client connections!
@@ -52,7 +52,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
     "spring-vision": {
       "command": "jbang",
       "args": [
-        "https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar"
+        "https://github.com/codesapienbe/spring-vision/releases/download/v0.0.3/mcp-0.0.3.jar"
       ]
     }
   }

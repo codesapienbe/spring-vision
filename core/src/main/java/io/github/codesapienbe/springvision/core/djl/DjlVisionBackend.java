@@ -441,8 +441,9 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Check if RetinaFace model is available locally (downloaded and extracted during build)
             String retinaFaceUrl = "https://resources.djl.ai/test-models/pytorch/retinaface.zip"; // Fallback
-            if (isModelAvailable("retinaface/retinaface.pt")) {
-                retinaFaceUrl = "classpath:/models/retinaface/retinaface.pt";
+            String localRetinaFaceUrl = YoloLoader.getModelUrl("retinaface/retinaface.pt");
+            if (localRetinaFaceUrl != null) {
+                retinaFaceUrl = localRetinaFaceUrl;
                 logger.info("Using locally downloaded and extracted RetinaFace model");
             } else {
                 logger.warn("RetinaFace model not found in classpath, downloading from DJL Model Zoo");

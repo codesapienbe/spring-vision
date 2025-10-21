@@ -1,11 +1,18 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import ai.djl.inference.Predictor;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.output.DetectedObjects;
 import ai.djl.modality.cv.output.Joints;
 import ai.djl.repository.zoo.Criteria;
-import ai.djl.translate.TranslateException;
+import io.github.codesapienbe.springvision.core.djl.translator.YoloDetectionTranslator;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class for loading YOLOv8 models with pre-configured Criteria.
@@ -29,7 +36,41 @@ import ai.djl.translate.TranslateException;
  */
 public class YoloLoader {
 
-    private static final String CLASSPATH_PREFIX = "classpath:/models/";
+    private static final String CLASSPATH_PREFIX = "models/";
+
+    // Cache for extracted temporary model files to avoid re-extraction
+    private static final Map<String, Path> tempModelCache = new ConcurrentHashMap<>();
+
+    /**
+     * Extracts a classpath resource to a temporary file and returns its file:// URL.
+     * Uses caching to avoid re-extraction of the same model.
+     *
+     * @param modelPath Relative path to the model file (e.g., "yolov8/yolov8n.pt")
+     * @return file:// URL to the extracted temporary file
+     * @throws IOException if extraction fails
+     */
+    private static String extractToTempFile(String modelPath) throws IOException {
+        return tempModelCache.computeIfAbsent(modelPath, path -> {
+            try {
+                var resource = YoloLoader.class.getClassLoader().getResource(CLASSPATH_PREFIX + path);
+                if (resource == null) {
+                    throw new IOException("Model not found in classpath: " + CLASSPATH_PREFIX + path);
+                }
+
+                // Create temporary file with same name
+                var tempFile = Files.createTempFile("spring-vision-", "-" + Path.of(path).getFileName().toString());
+
+                // Extract resource to temporary file
+                try (InputStream input = resource.openStream()) {
+                    Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                return tempFile;
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to extract model to temporary file: " + path, e);
+            }
+        }).toUri().toString();
+    }
 
     /**
      * Creates Criteria for YOLOv8 object detection models.
@@ -38,12 +79,19 @@ public class YoloLoader {
      * @return Criteria configured for object detection
      */
     public static Criteria<Image, DetectedObjects> createDetectionCriteria(String modelSize) {
-        return Criteria.builder()
-            .setTypes(Image.class, DetectedObjects.class)
-            .optModelUrls(CLASSPATH_PREFIX + "yolov8/yolov8" + modelSize + ".pt")
-            .optEngine("PyTorch")
-            .optOption("mapLocation", "true")  // Load to CPU
-            .build();
+        try {
+            String modelPath = "yolov8/yolov8" + modelSize + ".pt";
+            String modelUrl = extractToTempFile(modelPath);
+            return Criteria.builder()
+                .setTypes(Image.class, DetectedObjects.class)
+                .optModelUrls(modelUrl)
+                .optEngine("PyTorch")
+                .optOption("mapLocation", "true")  // Load to CPU
+                .optTranslator(new YoloDetectionTranslator())
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load YOLOv8 detection model: " + modelSize, e);
+        }
     }
 
     /**
@@ -62,11 +110,17 @@ public class YoloLoader {
      * @return Criteria configured for image segmentation
      */
     public static Criteria<Image, Image> createSegmentationCriteria(String modelSize) {
-        return Criteria.builder()
-            .setTypes(Image.class, Image.class)
-            .optModelUrls(CLASSPATH_PREFIX + "yolov8-seg/yolov8" + modelSize + "-seg.pt")
-            .optEngine("PyTorch")
-            .build();
+        try {
+            String modelPath = "yolov8-seg/yolov8" + modelSize + "-seg.pt";
+            String modelUrl = extractToTempFile(modelPath);
+            return Criteria.builder()
+                .setTypes(Image.class, Image.class)
+                .optModelUrls(modelUrl)
+                .optEngine("PyTorch")
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load YOLOv8 segmentation model: " + modelSize, e);
+        }
     }
 
     /**
@@ -85,11 +139,17 @@ public class YoloLoader {
      * @return Criteria configured for pose estimation
      */
     public static Criteria<Image, Joints> createPoseCriteria(String modelSize) {
-        return Criteria.builder()
-            .setTypes(Image.class, Joints.class)
-            .optModelUrls(CLASSPATH_PREFIX + "yolov8-pose/yolov8" + modelSize + "-pose.pt")
-            .optEngine("PyTorch")
-            .build();
+        try {
+            String modelPath = "yolov8-pose/yolov8" + modelSize + "-pose.pt";
+            String modelUrl = extractToTempFile(modelPath);
+            return Criteria.builder()
+                .setTypes(Image.class, Joints.class)
+                .optModelUrls(modelUrl)
+                .optEngine("PyTorch")
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load YOLOv8 pose model: " + modelSize, e);
+        }
     }
 
     /**
@@ -107,11 +167,17 @@ public class YoloLoader {
      * @return Criteria configured for image classification using yolov8n-cls.pt
      */
     public static Criteria<Image, ai.djl.modality.Classifications> createClassificationCriteria() {
-        return Criteria.builder()
-            .setTypes(Image.class, ai.djl.modality.Classifications.class)
-            .optModelUrls(CLASSPATH_PREFIX + "yolov8-cls/yolov8n-cls.pt")
-            .optEngine("PyTorch")
-            .build();
+        try {
+            String modelPath = "yolov8-cls/yolov8n-cls.pt";
+            String modelUrl = extractToTempFile(modelPath);
+            return Criteria.builder()
+                .setTypes(Image.class, ai.djl.modality.Classifications.class)
+                .optModelUrls(modelUrl)
+                .optEngine("PyTorch")
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load YOLOv8 classification model", e);
+        }
     }
 
     /**
@@ -120,12 +186,18 @@ public class YoloLoader {
      * @return Criteria configured for oriented bounding box detection using yolov8n-obb.pt
      */
     public static Criteria<Image, DetectedObjects> createObbCriteria() {
-        return Criteria.builder()
-            .setTypes(Image.class, DetectedObjects.class)
-            .optModelUrls(CLASSPATH_PREFIX + "yolov8-obb/yolov8n-obb.pt")
-            .optEngine("PyTorch")
-            .optOption("mapLocation", "true")  // Load to CPU
-            .build();
+        try {
+            String modelPath = "yolov8-obb/yolov8n-obb.pt";
+            String modelUrl = extractToTempFile(modelPath);
+            return Criteria.builder()
+                .setTypes(Image.class, DetectedObjects.class)
+                .optModelUrls(modelUrl)
+                .optEngine("PyTorch")
+                .optOption("mapLocation", "true")  // Load to CPU
+                .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load YOLOv8 OBB model", e);
+        }
     }
 
     /**
@@ -149,7 +221,10 @@ public class YoloLoader {
      * @return Full classpath URL or null if not found
      */
     public static String getModelUrl(String modelPath) {
-        var resource = YoloLoader.class.getClassLoader().getResource("models/" + modelPath);
-        return resource != null ? CLASSPATH_PREFIX + modelPath : null;
+        try {
+            return extractToTempFile(modelPath);
+        } catch (IOException e) {
+            return null;
+        }
     }
 }

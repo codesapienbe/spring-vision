@@ -44,8 +44,8 @@
 For the easiest installation experience, run our CLI setup tool directly with JBang:
 
 ```bash
-# Run the setup tool directly from GitHub releases
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
+# Run the CLI setup tool to automatically download and configure everything
+jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.3/cli-0.0.3.jar
 ```
 
 That's it! The CLI tool will automatically:
