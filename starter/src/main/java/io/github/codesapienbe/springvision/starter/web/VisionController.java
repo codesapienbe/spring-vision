@@ -1,19 +1,14 @@
 package io.github.codesapienbe.springvision.starter.web;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,9 +25,6 @@ import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.starter.web.dto.DetectionRequest;
 import io.github.codesapienbe.springvision.starter.web.dto.DetectionResponse;
 import io.github.codesapienbe.springvision.starter.web.dto.HealthResponse;
-import io.github.codesapienbe.springvision.starter.web.dto.MultipleDetectionRequest;
-import io.github.codesapienbe.springvision.starter.web.dto.MultipleDetectionResponse;
-import io.github.codesapienbe.springvision.starter.web.dto.TaskSubmissionResponse;
 
 /**
  * REST controller for Spring Vision operations.
@@ -70,7 +62,7 @@ import io.github.codesapienbe.springvision.starter.web.dto.TaskSubmissionRespons
 public class VisionController {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionController.class);
-    
+
     // File upload constraints
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     private static final List<String> SUPPORTED_CONTENT_TYPES = List.of(
@@ -94,6 +86,7 @@ public class VisionController {
 
     /**
      * Counts faces in an uploaded image (simple count response).
+     *
      * @param file The uploaded image file.
      * @return Simple count response.
      */
@@ -131,6 +124,7 @@ public class VisionController {
 
     /**
      * Extracts face embeddings from an uploaded image.
+     *
      * @param file The uploaded image file.
      * @return Embeddings response with base64-encoded vectors.
      */
@@ -179,6 +173,7 @@ public class VisionController {
 
     /**
      * Classifies an image into categories.
+     *
      * @param file The uploaded image file.
      * @param topK Number of top predictions to return (default: 5).
      * @return Classification results.
@@ -228,6 +223,7 @@ public class VisionController {
 
     /**
      * Detects human poses in an image.
+     *
      * @param file The uploaded image file.
      * @return Pose detection results.
      */
@@ -274,6 +270,7 @@ public class VisionController {
 
     /**
      * Recognizes actions in an image.
+     *
      * @param file The uploaded image file.
      * @return Action recognition results.
      */
@@ -319,6 +316,7 @@ public class VisionController {
 
     /**
      * Detects NSFW (Not Safe For Work) content in an image.
+     *
      * @param file The uploaded image file.
      * @return NSFW detection result.
      */
@@ -372,6 +370,7 @@ public class VisionController {
 
     /**
      * Detects emotions from faces in an image.
+     *
      * @param file The uploaded image file.
      * @return Emotion detection results.
      */
@@ -427,6 +426,7 @@ public class VisionController {
 
     /**
      * Detects deepfakes in an image.
+     *
      * @param file The uploaded image file.
      * @return Deepfake detection result.
      */
@@ -483,6 +483,7 @@ public class VisionController {
 
     /**
      * Detects hands in an image.
+     *
      * @param file The uploaded image file.
      * @return Hand detection results.
      */
@@ -536,6 +537,7 @@ public class VisionController {
 
     /**
      * Detects demographics (age and gender) from faces in an image.
+     *
      * @param file The uploaded image file.
      * @return Demographics detection results.
      */
@@ -594,6 +596,7 @@ public class VisionController {
 
     /**
      * Detects falls from body pose analysis.
+     *
      * @param file The uploaded image file.
      * @return Fall detection result.
      */
@@ -670,6 +673,7 @@ public class VisionController {
 
     /**
      * Analyzes stress levels from facial expressions.
+     *
      * @param file The uploaded image file.
      * @return Stress analysis result.
      */
@@ -747,6 +751,7 @@ public class VisionController {
 
     /**
      * Extracts image metadata including EXIF, GPS, and camera information.
+     *
      * @param file The uploaded image file.
      * @return Metadata extraction result.
      */
@@ -793,6 +798,7 @@ public class VisionController {
 
     /**
      * Detects security threats including weapons, violence, and suspicious objects.
+     *
      * @param file The uploaded image file.
      * @return Threat detection results.
      */
@@ -867,6 +873,7 @@ public class VisionController {
 
     /**
      * Authenticates access using biometric face recognition.
+     *
      * @param file The uploaded image file.
      * @return Authentication result.
      */
@@ -955,7 +962,7 @@ public class VisionController {
     public ResponseEntity<VisionResult> detectFacesFromFile(
         @RequestParam("file") MultipartFile file,
         @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
-        
+
         String correlationId = generateCorrelationId();
         logger.info("Face detection request received", Map.of(
             "correlationId", correlationId,
@@ -975,12 +982,12 @@ public class VisionController {
                 List<io.github.codesapienbe.springvision.core.Detection> filteredDetections = result.detections().stream()
                     .filter(detection -> detection.confidence() >= minConfidence)
                     .toList();
-                
+
                 // Create new VisionResult with filtered detections
                 result = VisionResult.of(
                     result.detectionType(),
                     filteredDetections,
-                    filteredDetections.isEmpty() ? 0.0 : 
+                    filteredDetections.isEmpty() ? 0.0 :
                         filteredDetections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
                     result.processingTimeMs(),
                     Map.of("correlationId", correlationId, "filtered", true)
@@ -1011,7 +1018,7 @@ public class VisionController {
     public ResponseEntity<VisionResult> detectFacesFromData(
         @RequestBody DetectionRequest request,
         @RequestParam(name = "minConfidence", required = false) Double minConfidence) {
-        
+
         String correlationId = generateCorrelationId();
         logger.info("Face detection request received (JSON)", Map.of(
             "correlationId", correlationId,
@@ -1028,12 +1035,12 @@ public class VisionController {
                 List<io.github.codesapienbe.springvision.core.Detection> filteredDetections = result.detections().stream()
                     .filter(detection -> detection.confidence() >= minConfidence)
                     .toList();
-                
+
                 // Create new VisionResult with filtered detections
                 result = VisionResult.of(
                     result.detectionType(),
                     filteredDetections,
-                    filteredDetections.isEmpty() ? 0.0 : 
+                    filteredDetections.isEmpty() ? 0.0 :
                         filteredDetections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0),
                     result.processingTimeMs(),
                     Map.of("correlationId", correlationId, "filtered", true)
@@ -1327,87 +1334,6 @@ public class VisionController {
     // ===== Capability-Based Detection Helper Methods =====
 
     /**
-     * Executes capability-based detection for a given DetectionType.
-     * This replaces the deprecated visionTemplate.detect() pattern.
-     *
-     * @param imageData     the image data to process
-     * @param detectionType the type of detection to perform
-     * @return VisionResult containing detections
-     */
-    private VisionResult executeCapabilityDetection(ImageData imageData, DetectionType detectionType) {
-        long startTime = System.currentTimeMillis();
-        List<io.github.codesapienbe.springvision.core.Detection> detections;
-
-        // Route to appropriate capability based on detection type
-        switch (detectionType) {
-            case FACE -> {
-                io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability backend =
-                    (io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) visionTemplate.backend();
-                detections = backend.detectFaces(imageData);
-            }
-            case OBJECT -> {
-                io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability backend =
-                    (io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability) visionTemplate.backend();
-                detections = backend.detectObjects(imageData);
-            }
-            case TEXT -> {
-                io.github.codesapienbe.springvision.core.capabilities.OcrCapability backend =
-                    (io.github.codesapienbe.springvision.core.capabilities.OcrCapability) visionTemplate.backend();
-                List<io.github.codesapienbe.springvision.core.capabilities.OcrCapability.TextDetection> textDetections = backend.extractText(imageData);
-                // Convert TextDetection to Detection
-                detections = textDetections.stream()
-                    .map(td -> new io.github.codesapienbe.springvision.core.Detection(
-                        td.text(),
-                        td.confidence(),
-                        td.boundingBox() != null ? convertToBox(td.boundingBox()) : null,
-                        Map.of("text", td.text(), "attributes", td.attributes())
-                    ))
-                    .toList();
-            }
-            case BARCODE -> {
-                io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability backend =
-                    (io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability) visionTemplate.backend();
-                detections = backend.detectBarcodes(imageData);
-            }
-            default -> throw new UnsupportedOperationException("Unsupported detection type: " + detectionType);
-        }
-
-        long processingTime = System.currentTimeMillis() - startTime;
-        double avgConfidence = detections.isEmpty() ? 0.0 :
-            detections.stream().mapToDouble(io.github.codesapienbe.springvision.core.Detection::confidence).average().orElse(0.0);
-
-        return VisionResult.of(detectionType, detections, avgConfidence, processingTime);
-    }
-
-    /**
-     * Executes multiple capability-based detections.
-     *
-     * @param imageData      the image data to process
-     * @param detectionTypes the list of detection types to perform
-     * @return list of VisionResults
-     */
-    private List<VisionResult> executeMultipleCapabilityDetections(ImageData imageData, List<DetectionType> detectionTypes) {
-        return detectionTypes.stream()
-            .map(type -> executeCapabilityDetection(imageData, type))
-            .toList();
-    }
-
-    /**
-     * Helper to convert OCR bounding box map to BoundingBox.
-     */
-    private io.github.codesapienbe.springvision.core.BoundingBox convertToBox(Map<String, Object> bboxMap) {
-        try {
-            double x = ((Number) bboxMap.get("x")).doubleValue();
-            double y = ((Number) bboxMap.get("y")).doubleValue();
-            double width = ((Number) bboxMap.get("width")).doubleValue();
-            double height = ((Number) bboxMap.get("height")).doubleValue();
-            return new io.github.codesapienbe.springvision.core.BoundingBox(x, y, width, height);
-        } catch (Exception e) {
-            return new io.github.codesapienbe.springvision.core.BoundingBox(0, 0, 0, 0);
-        }
-    }
-
-    /**
      * Validates uploaded file for size and content type.
      */
     private void validateFile(MultipartFile file) {
@@ -1431,39 +1357,6 @@ public class VisionController {
     private ImageData convertToImageData(MultipartFile file) throws IOException {
         byte[] imageBytes = file.getBytes();
         return ImageData.fromBytes(imageBytes);
-    }
-
-    /**
-     * Parses detection types from comma-separated string.
-     */
-    private List<DetectionType> parseDetectionTypes(String detectionTypes) {
-        if (detectionTypes == null || detectionTypes.trim().isEmpty()) {
-            return List.of(DetectionType.FACE, DetectionType.OBJECT);
-        }
-
-        return Arrays.stream(detectionTypes.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .map(String::toUpperCase)
-            .map(DetectionType::valueOf)
-            .toList();
-    }
-
-    /**
-     * Parses detection types from list of strings.
-     */
-    private List<DetectionType> parseDetectionTypesFromList(List<String> detectionTypes) {
-        if (detectionTypes == null || detectionTypes.isEmpty()) {
-            return List.of(DetectionType.FACE, DetectionType.OBJECT);
-        }
-
-        return detectionTypes.stream()
-            .filter(Objects::nonNull)
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .map(String::toUpperCase)
-            .map(DetectionType::valueOf)
-            .toList();
     }
 
     /**

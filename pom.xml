@@ -108,7 +108,6 @@
     <module>core</module>
     <module>starter</module>
     <module>mcp</module>
-    <module>model</module>
   </modules>
 
   <dependencyManagement>

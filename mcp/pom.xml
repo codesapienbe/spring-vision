@@ -20,6 +20,9 @@
     <spring-ai.version>1.0.3</spring-ai.version>
 
     <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
+    <!-- Directory where build-time downloaded models are stored -->
+    <models.directory>${project.basedir}/models</models.directory>
+    <yolo.version>v8.3.0</yolo.version>
   </properties>
 
   <pluginRepositories>
@@ -123,6 +126,41 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- DJL PyTorch Engine for .pt files -->
+    <dependency>
+        <groupId>ai.djl.pytorch</groupId>
+        <artifactId>pytorch-engine</artifactId>
+        <version>0.27.0</version>
+        <scope>runtime</scope>
+    </dependency>
+
+    <!-- DJL PyTorch Native Library (CPU) -->
+    <dependency>
+        <groupId>ai.djl.pytorch</groupId>
+        <artifactId>pytorch-native-cpu</artifactId>
+        <version>2.1.2</version>
+        <classifier>linux-x86_64</classifier>
+        <scope>runtime</scope>
+    </dependency>
+
+    <!-- Or use GPU version -->
+    <!--
+    <dependency>
+        <groupId>ai.djl.pytorch</groupId>
+        <artifactId>pytorch-native-cu121</artifactId>
+        <version>2.1.2</version>
+        <classifier>linux-x86_64</classifier>
+        <scope>runtime</scope>
+    </dependency>
+    -->
+
+    <!-- DJL ONNX Runtime (if you also want ONNX support) -->
+    <dependency>
+        <groupId>ai.djl.onnxruntime</groupId>
+        <artifactId>onnxruntime-engine</artifactId>
+        <version>0.27.0</version>
+        <scope>runtime</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -150,13 +188,262 @@
         <version>3.2.5</version>
       </plugin>
 
+      <!-- 2. Copy models to target/classes (will be included in JAR) -->
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.3.1</version>
+          <executions>
+              <execution>
+                  <id>copy-models-to-jar</id>
+                  <phase>process-resources</phase>
+                  <goals>
+                      <goal>copy-resources</goal>
+                  </goals>
+                  <configuration>
+                      <outputDirectory>${project.build.outputDirectory}/models</outputDirectory>
+                      <resources>
+                          <resource>
+                              <directory>${models.directory}</directory>
+                              <filtering>false</filtering>
+                              <includes>
+                                  <include>**/*.pt</include>
+                                  <include>**/*.onnx</include>
+                                  <include>**/*.torchscript</include>
+                                  <include>**/*.json</include>
+                              </includes>
+                          </resource>
+                      </resources>
+                  </configuration>
+              </execution>
+          </executions>
+      </plugin>
 
-      <!-- 
-        Models are now loaded automatically from HuggingFace via DJL's Criteria API.
-        DJL handles model downloading and caching automatically when models are first used.
-        No manual download or prefetch needed during build.
-      -->
-
+      <!-- 3. Ensure models are included in final JAR -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
     </plugins>
+
+    <!-- Exclude models from default resource processing (we copy them explicitly) -->
+    <resources>
+        <resource>
+            <directory>src/main/resources</directory>
+            <excludes>
+                <exclude>models/**</exclude>
+            </excludes>
+        </resource>
+    </resources>
   </build>
+
+  <profiles>
+    <!-- Ensure generated resources are included in packaged artifact by default -->
+    <profile>
+      <id>include-generated-models</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <resources>
+          <resource>
+            <directory>${project.build.directory}/generated-resources/models</directory>
+            <filtering>false</filtering>
+          </resource>
+        </resources>
+      </build>
+    </profile>
+
+    <!-- Optional profile to download ONNX models at build time. Activate with -DdownloadModels=true or -Pdownload-models -->
+    <profile>
+      <id>download-models</id>
+      <activation>
+        <property>
+          <name>downloadModels</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+              <groupId>io.github.download-maven-plugin</groupId>
+              <artifactId>download-maven-plugin</artifactId>
+              <version>2.0.0</version>
+              <executions>
+                  <!-- YOLOv8 Object Detection Models (PyTorch) -->
+                  <execution>
+                      <id>download-yolov8n-pt</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n.pt</url>
+                          <outputDirectory>${models.directory}/yolov8</outputDirectory>
+                          <outputFileName>yolov8n.pt</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8s-pt</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s.pt</url>
+                          <outputDirectory>${models.directory}/yolov8</outputDirectory>
+                          <outputFileName>yolov8s.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8m-pt</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m.pt</url>
+                          <outputDirectory>${models.directory}/yolov8</outputDirectory>
+                          <outputFileName>yolov8m.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8l-pt</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8l.pt</url>
+                          <outputDirectory>${models.directory}/yolov8</outputDirectory>
+                          <outputFileName>yolov8l.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8x-pt</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8x.pt</url>
+                          <outputDirectory>${models.directory}/yolov8</outputDirectory>
+                          <outputFileName>yolov8x.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <!-- YOLOv8 Segmentation Models -->
+                  <execution>
+                      <id>download-yolov8n-seg</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-seg.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
+                          <outputFileName>yolov8n-seg.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8s-seg</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s-seg.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
+                          <outputFileName>yolov8s-seg.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8m-seg</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m-seg.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
+                          <outputFileName>yolov8m-seg.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <!-- YOLOv8 Pose Estimation Models -->
+                  <execution>
+                      <id>download-yolov8n-pose</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-pose.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
+                          <outputFileName>yolov8n-pose.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8s-pose</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s-pose.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
+                          <outputFileName>yolov8s-pose.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>download-yolov8m-pose</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m-pose.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
+                          <outputFileName>yolov8m-pose.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <!-- YOLOv8 Oriented Bounding Box (OBB) -->
+                  <execution>
+                      <id>download-yolov8n-obb</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-obb.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-obb</outputDirectory>
+                          <outputFileName>yolov8n-obb.pt</outputFileName>
+                      </configuration>
+                  </execution>
+                  <!-- YOLOv8 Classification -->
+                  <execution>
+                      <id>download-yolov8n-cls</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-cls.pt</url>
+                          <outputDirectory>${models.directory}/yolov8-cls</outputDirectory>
+                          <outputFileName>yolov8n-cls.pt</outputFileName>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>

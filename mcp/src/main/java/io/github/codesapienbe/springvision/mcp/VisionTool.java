@@ -130,7 +130,7 @@ public class VisionTool {
                 }
 
                 if (!Files.exists(path)) {
-                    throw new IOException("File not found: " + path.toString());
+                    throw new IOException("File not found: " + path);
                 }
 
                 long size = Files.size(path);
@@ -332,7 +332,7 @@ public class VisionTool {
             long duration = 0;
             response.put("status", "success");
             response.put("classifications", classifications);
-            response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
+            response.put("topPrediction", classifications.isEmpty() ? null : classifications.getFirst().get("label"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -440,7 +440,7 @@ public class VisionTool {
             long duration = 0;
             response.put("status", "success");
             response.put("actions", actions);
-            response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
+            response.put("topAction", actions.isEmpty() ? null : actions.getFirst().get("action"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -470,7 +470,7 @@ public class VisionTool {
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
 
@@ -521,7 +521,7 @@ public class VisionTool {
             long duration = 0;
             response.put("status", "success");
             response.put("emotions", emotions);
-            response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
+            response.put("topEmotion", emotions.isEmpty() ? null : emotions.getFirst().get("emotion"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -551,7 +551,7 @@ public class VisionTool {
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
             String manipulationType = (String) detection.attributes().get("manipulationType");
@@ -679,7 +679,7 @@ public class VisionTool {
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
             String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
             String riskLevel = (String) detection.attributes().getOrDefault("riskLevel", "low");
@@ -733,7 +733,7 @@ public class VisionTool {
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
             Double stressScore = (Double) detection.attributes().get("stressScore");
             String dominantEmotion = (String) detection.attributes().get("dominantEmotion");
@@ -748,7 +748,8 @@ public class VisionTool {
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
             if (stressScore != null) response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
             if (dominantEmotion != null) response.put("dominantEmotion", dominantEmotion);
-            if (emotionIntensity != null) response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
+            if (emotionIntensity != null)
+                response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
             if (indicators != null && !indicators.isEmpty()) response.put("indicators", indicators);
             if (detection.boundingBox() != null) {
                 Map<String, Double> bbox = new HashMap<>();
@@ -914,7 +915,7 @@ public class VisionTool {
                 return response;
             }
 
-            var authResult = result.detections().get(0);
+            var authResult = result.detections().getFirst();
             Boolean authorized = (Boolean) authResult.attributes().get("authorized");
             Double confidence = (Double) authResult.attributes().get("confidence");
             Double matchScore = (Double) authResult.attributes().get("matchScore");
@@ -985,7 +986,7 @@ public class VisionTool {
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             Map<String, Object> response = new HashMap<>();
             Double heartRate = (Double) detection.attributes().get("heartRate");
             response.put("status", "success");
@@ -1028,7 +1029,7 @@ public class VisionTool {
                 imageBytes = downloadImageFromUrl(imageUrl.trim());
             }
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            
+
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectFaces(imgData);
 
@@ -1039,6 +1040,11 @@ public class VisionTool {
             response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d faces", result.detectionCount()));
+            log.info("countFaces completed successfully",
+                StructuredArguments.keyValue("event", "count_faces_success"),
+                StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
+                StructuredArguments.keyValue("count", result.detectionCount()),
+                StructuredArguments.keyValue("duration_ms", duration));
             return response;
 
         } catch (Exception e) {
@@ -1072,7 +1078,7 @@ public class VisionTool {
             ImageData imgData = resolveImage(imageUrl.trim());
 
             // Use VisionTemplate high-level API
-            List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData, 
+            List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
             List<Map<String, Object>> out = new ArrayList<>();
 
@@ -1226,7 +1232,7 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("classifications", classifications);
-            response.put("topPrediction", classifications.isEmpty() ? null : classifications.get(0).get("label"));
+            response.put("topPrediction", classifications.isEmpty() ? null : classifications.getFirst().get("label"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -1271,7 +1277,7 @@ public class VisionTool {
             }
 
             ImageData imgData = resolveImage(imageUrl.trim());
-            
+
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectObjects(imgData);
 
@@ -1294,7 +1300,7 @@ public class VisionTool {
             }
 
             long duration = System.currentTimeMillis() - startTime;
-            
+
             response.put("status", "success");
             response.put("objects", objects);
             response.put("count", result.detectionCount());
@@ -1410,7 +1416,7 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("actions", actions);
-            response.put("topAction", actions.isEmpty() ? null : actions.get(0).get("action"));
+            response.put("topAction", actions.isEmpty() ? null : actions.getFirst().get("action"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -1491,8 +1497,8 @@ public class VisionTool {
             }
 
             // Use the highest confidence face (first embedding)
-            float[] sourceEmbedding = sourceEmbeddings.get(0);
-            float[] targetEmbedding = targetEmbeddings.get(0);
+            float[] sourceEmbedding = sourceEmbeddings.getFirst();
+            float[] targetEmbedding = targetEmbeddings.getFirst();
 
             // Delegate evaluation to a shared helper to keep logic consistent with other methods
             return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
@@ -1564,8 +1570,8 @@ public class VisionTool {
                 return response;
             }
 
-            float[] sourceEmbedding = sourceEmbeddings.get(0);
-            float[] targetEmbedding = targetEmbeddings.get(0);
+            float[] sourceEmbedding = sourceEmbeddings.getFirst();
+            float[] targetEmbedding = targetEmbeddings.getFirst();
 
             return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
 
@@ -1651,7 +1657,7 @@ public class VisionTool {
             // Extract embedding from source image
             byte[] sourceBytes = downloadImageFromUrl(sourceImageUrl.trim());
             ImageData sourceData = ImageData.fromBytes(sourceBytes);
-            
+
             // Use VisionTemplate high-level API
             List<float[]> sourceEmbeddings = visionTemplate.extractEmbeddings(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
@@ -1769,7 +1775,7 @@ public class VisionTool {
             }
 
             ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
-            
+
             // Use VisionTemplate high-level API
             List<float[]> sourceEmbeddings = extractEmbeddingsFromTemplate(sourceData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
@@ -1781,7 +1787,7 @@ public class VisionTool {
                 return response;
             }
 
-            float[] sourceEmbedding = sourceEmbeddings.get(0);
+            float[] sourceEmbedding = sourceEmbeddings.getFirst();
 
             List<Map<String, Object>> matches = new ArrayList<>();
             int processedCount = 0;
@@ -1794,7 +1800,7 @@ public class VisionTool {
                         io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
                     if (!datasetEmbeddings.isEmpty()) {
-                        float[] datasetEmbedding = datasetEmbeddings.get(0);
+                        float[] datasetEmbedding = datasetEmbeddings.getFirst();
 
                         Map<String, Object> metrics = computeSimilarityMetrics(sourceEmbedding, datasetEmbedding);
                         double combinedSimilarity = ((Number) metrics.getOrDefault("combinedSimilarity", 0.0)).doubleValue();
@@ -1927,8 +1933,10 @@ public class VisionTool {
 
     // Helper: create ImageData directly from bytes (no temp files)
     private ImageData resolveImage(byte[] imageBytes) throws IOException {
-        if (imageBytes == null || imageBytes.length == 0) throw new IOException("Image bytes are required and cannot be empty");
-        if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+        if (imageBytes == null || imageBytes.length == 0)
+            throw new IOException("Image bytes are required and cannot be empty");
+        if (imageBytes.length > MAX_IMAGE_SIZE_BYTES)
+            throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
         return ImageData.fromBytes(imageBytes);
     }
 
@@ -1975,7 +1983,6 @@ public class VisionTool {
         return List.of();
     }
 
-    
 
     @Tool(name = "detect_nsfw_u", description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
@@ -2005,29 +2012,24 @@ public class VisionTool {
                 response.put("classification", "unknown");
                 response.put("confidence", 0.0);
                 response.put("isNSFW", false);
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
 
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("classification", classification);
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
             response.put("isNSFW", isNSFW);
-            response.put("processingTimeMs", duration);
+            response.put("processingTimeMs", 0);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            response.put("message", "Failed to detect NSFW content: " + e.getMessage());
             response.put("classification", "unknown");
-            response.put("processingTimeMs", duration);
-            log.error("Failed to detect NSFW from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
     }
@@ -2061,7 +2063,7 @@ public class VisionTool {
                 emotion.put("emotion", detection.label());
                 emotion.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
                 emotion.put("faceIndex", detection.attributes().get("faceIndex"));
-                
+
                 // Include bounding box if available
                 if (detection.boundingBox() != null) {
                     Map<String, Double> bbox = new HashMap<>();
@@ -2071,14 +2073,14 @@ public class VisionTool {
                     bbox.put("height", detection.boundingBox().height());
                     emotion.put("boundingBox", bbox);
                 }
-                
+
                 emotions.add(emotion);
             }
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
             response.put("emotions", emotions);
-            response.put("topEmotion", emotions.isEmpty() ? null : emotions.get(0).get("emotion"));
+            response.put("topEmotion", emotions.isEmpty() ? null : emotions.getFirst().get("emotion"));
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
@@ -2122,33 +2124,27 @@ public class VisionTool {
                 response.put("classification", "unknown");
                 response.put("confidence", 0.0);
                 response.put("isFake", false);
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
-            var detection = result.detections().get(0);
+            var detection = result.detections().getFirst();
             boolean isFake = (Boolean) detection.attributes().getOrDefault("isFake", false);
             String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
             String manipulationType = (String) detection.attributes().get("manipulationType");
 
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = 0;
             response.put("status", "success");
             response.put("classification", classification);
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
             response.put("isFake", isFake);
-            if (manipulationType != null) {
-                response.put("manipulationType", manipulationType);
-            }
+            if (manipulationType != null) response.put("manipulationType", manipulationType);
             response.put("processingTimeMs", duration);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            response.put("message", "Failed to detect deepfake: " + e.getMessage());
             response.put("classification", "unknown");
-            response.put("processingTimeMs", duration);
-            log.error("Failed to detect deepfake from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
     }
@@ -2182,7 +2178,7 @@ public class VisionTool {
                 Map<String, Object> hand = new HashMap<>();
                 hand.put("label", detection.label());
                 hand.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                
+
                 // Include bounding box
                 if (detection.boundingBox() != null) {
                     Map<String, Double> bbox = new HashMap<>();
@@ -2192,7 +2188,7 @@ public class VisionTool {
                     bbox.put("height", detection.boundingBox().height());
                     hand.put("boundingBox", bbox);
                 }
-                
+
                 hands.add(hand);
             }
 
@@ -2202,14 +2198,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            response.put("message", "Failed to detect hands: " + e.getMessage());
             response.put("hands", List.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to detect hands from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
     }
@@ -2248,7 +2240,7 @@ public class VisionTool {
                 demo.put("genderConfidence", detection.attributes().get("genderConfidence"));
                 demo.put("ageError", detection.attributes().get("ageError"));
                 demo.put("faceIndex", detection.attributes().get("faceIndex"));
-                
+
                 // Include bounding box if available
                 if (detection.boundingBox() != null) {
                     Map<String, Double> bbox = new HashMap<>();
@@ -2258,7 +2250,7 @@ public class VisionTool {
                     bbox.put("height", detection.boundingBox().height());
                     demo.put("boundingBox", bbox);
                 }
-                
+
                 demographics.add(demo);
             }
 
@@ -2268,14 +2260,10 @@ public class VisionTool {
             response.put("facesAnalyzed", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            response.put("message", "Failed to detect demographics: " + e.getMessage());
             response.put("demographics", List.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to detect demographics from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
     }
@@ -2310,13 +2298,13 @@ public class VisionTool {
                 response.put("bodyOrientation", "unknown");
                 response.put("riskLevel", "low");
                 response.put("message", "No person detected");
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
             // Get the first/primary detection
-            var detection = result.detections().get(0);
-            
+            var detection = result.detections().getFirst();
+
             boolean fallDetected = (Boolean) detection.attributes().getOrDefault("fallDetected", false);
             String bodyOrientation = (String) detection.attributes().getOrDefault("bodyOrientation", "unknown");
             String riskLevel = (String) detection.attributes().getOrDefault("riskLevel", "low");
@@ -2324,13 +2312,13 @@ public class VisionTool {
             Double headHeight = (Double) detection.attributes().get("headHeight");
             String analysisDetails = (String) detection.attributes().get("analysisDetails");
 
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = 0;
             response.put("status", "success");
             response.put("fallDetected", fallDetected);
             response.put("bodyOrientation", bodyOrientation);
             response.put("riskLevel", riskLevel);
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-            
+
             if (aspectRatio != null) {
                 response.put("aspectRatio", Math.round(aspectRatio * 1000.0) / 1000.0);
             }
@@ -2340,7 +2328,7 @@ public class VisionTool {
             if (analysisDetails != null) {
                 response.put("analysisDetails", analysisDetails);
             }
-            
+
             // Include bounding box if available
             if (detection.boundingBox() != null) {
                 Map<String, Double> bbox = new HashMap<>();
@@ -2350,17 +2338,13 @@ public class VisionTool {
                 bbox.put("height", detection.boundingBox().height());
                 response.put("boundingBox", bbox);
             }
-            
+
             response.put("processingTimeMs", duration);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
             response.put("message", "Failed to detect fall: " + e.getMessage());
             response.put("fallDetected", false);
-            response.put("processingTimeMs", duration);
-            log.error("Failed to detect fall from URL: {}", sanitizeUrlForLogging(imageUrl), e);
             return response;
         }
     }
@@ -2394,13 +2378,13 @@ public class VisionTool {
                 response.put("stressLevel", "unknown");
                 response.put("stressScore", 0.0);
                 response.put("message", "No face detected");
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
             // Get the first/primary detection
-            var detection = result.detections().get(0);
-            
+            var detection = result.detections().getFirst();
+
             String stressLevel = (String) detection.attributes().getOrDefault("stressLevel", "unknown");
             Double stressScore = (Double) detection.attributes().get("stressScore");
             String dominantEmotion = (String) detection.attributes().get("dominantEmotion");
@@ -2408,25 +2392,15 @@ public class VisionTool {
             @SuppressWarnings("unchecked")
             List<String> indicators = (List<String>) detection.attributes().get("indicators");
 
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = 0;
             response.put("status", "success");
             response.put("stressLevel", stressLevel);
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-            
-            if (stressScore != null) {
-                response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
-            }
-            if (dominantEmotion != null) {
-                response.put("dominantEmotion", dominantEmotion);
-            }
-            if (emotionIntensity != null) {
+            if (stressScore != null) response.put("stressScore", Math.round(stressScore * 1000.0) / 1000.0);
+            if (dominantEmotion != null) response.put("dominantEmotion", dominantEmotion);
+            if (emotionIntensity != null)
                 response.put("emotionIntensity", Math.round(emotionIntensity * 1000.0) / 1000.0);
-            }
-            if (indicators != null && !indicators.isEmpty()) {
-                response.put("indicators", indicators);
-            }
-            
-            // Include bounding box if available
+            if (indicators != null && !indicators.isEmpty()) response.put("indicators", indicators);
             if (detection.boundingBox() != null) {
                 Map<String, Double> bbox = new HashMap<>();
                 bbox.put("x", detection.boundingBox().x());
@@ -2435,18 +2409,13 @@ public class VisionTool {
                 bbox.put("height", detection.boundingBox().height());
                 response.put("boundingBox", bbox);
             }
-            
             response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
             response.put("processingTimeMs", duration);
             return response;
-
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
             response.put("message", "Failed to analyze stress: " + e.getMessage());
             response.put("stressLevel", "unknown");
-            response.put("processingTimeMs", duration);
-            log.error("Failed to analyze stress from URL: {}", sanitizeUrlForLogging(imageUrl), e);
             return response;
         }
     }
@@ -2479,7 +2448,7 @@ public class VisionTool {
             // Download all frames
             List<ImageData> frames = new ArrayList<>();
             int downloadedFrames = 0;
-            
+
             for (String url : imageUrls) {
                 try {
                     byte[] imageBytes = downloadImageFromUrl(url.trim());
@@ -2505,13 +2474,13 @@ public class VisionTool {
                 response.put("status", "error");
                 response.put("message", "Heart rate estimation failed - no results");
                 response.put("heartRate", 0.0);
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
             // Get the primary detection
-            var detection = result.detections().get(0);
-            
+            var detection = result.detections().getFirst();
+
             // Check for error detection
             if (detection.label().equals("insufficient_data")) {
                 String errorMsg = (String) detection.attributes().getOrDefault("message", "Insufficient data");
@@ -2520,7 +2489,7 @@ public class VisionTool {
                 response.put("heartRate", 0.0);
                 response.put("validFrames", detection.attributes().get("validFrames"));
                 response.put("totalFrames", detection.attributes().get("totalFrames"));
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
@@ -2545,7 +2514,7 @@ public class VisionTool {
             response.put("processingTimeMs", processingTime);
             response.put("disclaimer", "NOT A MEDICAL DEVICE - Research/wellness use only");
             response.put("warning", "Accuracy varies with lighting, motion, and individual factors");
-            
+
             return response;
 
         } catch (IllegalArgumentException e) {
@@ -2592,7 +2561,7 @@ public class VisionTool {
             }
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            
+
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectFaces(imgData);
 
@@ -2603,6 +2572,11 @@ public class VisionTool {
             response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d faces", result.detectionCount()));
+            log.info("countFaces completed successfully",
+                StructuredArguments.keyValue("event", "count_faces_success"),
+                StructuredArguments.keyValue("bytes", imageBytes.length),
+                StructuredArguments.keyValue("count", result.detectionCount()),
+                StructuredArguments.keyValue("duration_ms", duration));
             return response;
 
         } catch (Exception e) {
@@ -2641,7 +2615,7 @@ public class VisionTool {
             }
 
             ImageData imgData = ImageData.fromBytes(imageBytes);
-            
+
             // Use VisionTemplate high-level API
             List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
@@ -2712,15 +2686,15 @@ public class VisionTool {
 
             // Convert detections to response format
             Map<String, Map<String, Object>> metadataGroups = new HashMap<>();
-            
+
             for (var detection : result.detections()) {
                 String type = detection.label(); // "gps", "exif", or "metadata"
                 Map<String, Object> groupData = new HashMap<>(detection.attributes());
-                
+
                 // Remove internal fields
                 groupData.remove("backend");
                 groupData.remove("type");
-                
+
                 metadataGroups.put(type, groupData);
             }
 
@@ -2748,7 +2722,7 @@ public class VisionTool {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            
+
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.isBlank()) {
                 errorMsg = e.getClass().getSimpleName();
@@ -2757,7 +2731,7 @@ public class VisionTool {
                     errorMsg += ": " + cause.getMessage();
                 }
             }
-            
+
             response.put("message", "Failed to extract metadata: " + errorMsg);
             response.put("metadata", Map.of());
             response.put("processingTimeMs", duration);
@@ -2799,7 +2773,7 @@ public class VisionTool {
                 barcodeInfo.put("format", detection.label());
                 barcodeInfo.put("content", detection.attributes().get("content"));
                 barcodeInfo.put("confidence", detection.confidence());
-                
+
                 // Add bounding box
                 var bbox = detection.boundingBox();
                 Map<String, Double> location = new HashMap<>();
@@ -2808,12 +2782,12 @@ public class VisionTool {
                 location.put("width", bbox.width());
                 location.put("height", bbox.height());
                 barcodeInfo.put("location", location);
-                
+
                 // Add metadata
                 if (detection.attributes().containsKey("rawBytes")) {
                     barcodeInfo.put("rawBytesLength", detection.attributes().get("rawBytes"));
                 }
-                
+
                 barcodes.add(barcodeInfo);
             }
 
@@ -2841,7 +2815,7 @@ public class VisionTool {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
-            
+
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.isBlank()) {
                 errorMsg = e.getClass().getSimpleName();
@@ -2850,7 +2824,7 @@ public class VisionTool {
                     errorMsg += ": " + cause.getMessage();
                 }
             }
-            
+
             response.put("message", "Failed to scan barcode: " + errorMsg);
             response.put("barcodes", List.of());
             response.put("processingTimeMs", duration);
@@ -2889,26 +2863,26 @@ public class VisionTool {
      *
      * @param imageUrl URL of the image to analyze for threats
      * @return A map containing:
-     *         <ul>
-     *           <li>{@code status}: "success" or "error"</li>
-     *           <li>{@code threats}: List of detected threats with metadata</li>
-     *           <li>{@code threatCount}: Total number of threats detected</li>
-     *           <li>{@code highSeverityCount}: Number of HIGH or CRITICAL threats</li>
-     *           <li>{@code processingTimeMs}: Processing time in milliseconds</li>
-     *           <li>{@code disclaimer}: Legal and ethical usage disclaimer</li>
-     *         </ul>
+     * <ul>
+     *   <li>{@code status}: "success" or "error"</li>
+     *   <li>{@code threats}: List of detected threats with metadata</li>
+     *   <li>{@code threatCount}: Total number of threats detected</li>
+     *   <li>{@code highSeverityCount}: Number of HIGH or CRITICAL threats</li>
+     *   <li>{@code processingTimeMs}: Processing time in milliseconds</li>
+     *   <li>{@code disclaimer}: Legal and ethical usage disclaimer</li>
+     * </ul>
      */
     @Tool(description = """
         Detects security threats including weapons, violence, and suspicious objects in an image.
-        
+
         Analyzes images for:
         - Firearms (guns, rifles, handguns) - CRITICAL severity
         - Knives and bladed weapons - HIGH severity
         - Violent behavior and aggression - HIGH/MEDIUM severity
         - Suspicious objects - LOW severity
-        
+
         Returns detections with bounding boxes, severity levels, and confidence scores.
-        
+
         ⚠️ IMPORTANT: For legitimate security use only. Comply with local laws and regulations.
         """)
     @SuppressWarnings("unused")
@@ -3039,34 +3013,34 @@ public class VisionTool {
      *
      * @param imageUrl URL of the image containing a face to authenticate
      * @return A map containing:
-     *         <ul>
-     *           <li>{@code status}: "success" or "error"</li>
-     *           <li>{@code authorized}: Boolean indicating if access is granted</li>
-     *           <li>{@code userId}: Matched user ID (if authorized)</li>
-     *           <li>{@code userName}: Matched user name (if authorized)</li>
-     *           <li>{@code confidence}: Face detection confidence</li>
-     *           <li>{@code matchScore}: Similarity score with matched user</li>
-     *           <li>{@code reason}: Failure reason if unauthorized</li>
-     *           <li>{@code timestamp}: Authentication timestamp</li>
-     *           <li>{@code processingTimeMs}: Processing time in milliseconds</li>
-     *         </ul>
+     * <ul>
+     *   <li>{@code status}: "success" or "error"</li>
+     *   <li>{@code authorized}: Boolean indicating if access is granted</li>
+     *   <li>{@code userId}: Matched user ID (if authorized)</li>
+     *   <li>{@code userName}: Matched user name (if authorized)</li>
+     *   <li>{@code confidence}: Face detection confidence</li>
+     *   <li>{@code matchScore}: Similarity score with matched user</li>
+     *   <li>{@code reason}: Failure reason if unauthorized</li>
+     *   <li>{@code timestamp}: Authentication timestamp</li>
+     *   <li>{@code processingTimeMs}: Processing time in milliseconds</li>
+     * </ul>
      */
     @Tool(description = """
         Authenticates access using biometric face recognition.
-        
+
         Performs identity verification by:
         1. Detecting face in the image
         2. Extracting biometric features
         3. Matching against authorized users
         4. Returning authorization decision
-        
+
         Returns:
         - authorized: true/false access decision
         - userId: matched user ID (if authorized)
         - confidence: detection confidence score
         - matchScore: similarity with matched user
         - reason: failure reason if unauthorized
-        
+
         ⚠️ SECURITY: For production use:
         - Implement liveness detection (anti-spoofing)
         - Use multi-factor authentication
@@ -3101,12 +3075,12 @@ public class VisionTool {
                 response.put("status", "error");
                 response.put("message", "Authentication failed - no results");
                 response.put("authorized", false);
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                response.put("processingTimeMs", 0);
                 return response;
             }
 
             // Get authentication result
-            var authResult = result.detections().get(0);
+            var authResult = result.detections().getFirst();
 
             Boolean authorized = (Boolean) authResult.attributes().get("authorized");
             Double confidence = (Double) authResult.attributes().get("confidence");
