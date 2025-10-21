@@ -24,6 +24,24 @@ This architecture ensures:
 
 ---
 
+## ⚡ Quick Start (Easiest Way)
+
+**Run Spring Vision MCP Server with a single command - no installation required!**
+
+```bash
+curl -s https://raw.githubusercontent.com/codesapienbe/spring-vision/main/run.sh | bash
+```
+
+This will:
+
+- Download the latest Spring Vision MCP Server JAR automatically
+- Start the server and keep it running
+- Ready for MCP client connections
+
+**That's it!** Your MCP server is now running and can be configured in Claude Desktop, Cline, or any MCP client.
+
+---
+
 ## 🚀 Quick Start with JBang
 
 **The easiest way to run Spring Vision MCP Server:**
@@ -187,17 +205,16 @@ All logs follow this JSON structure:
 }
 ```
 
-
 ## Example Prompts
 
->> Count faces in https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg
+> > Count faces in https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg
 
 ### Key Features
 
 ✅ **No parsing issues**: Every log is valid JSON  
 ✅ **Structured data**: Easy to filter, search, and analyze  
 ✅ **Event-based**: All logs include an `event` field for categorization  
-✅ **Production-ready**: Automatic rotation and retention policies  
+✅ **Production-ready**: Automatic rotation and retention policies
 
 For detailed logging documentation, see [LOGGING.md](LOGGING.md).
 

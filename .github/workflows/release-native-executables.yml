@@ -1,4 +1,4 @@
-name: Release Native Executables
+name: Release JAR
 on:
   push:
     tags:
@@ -6,81 +6,41 @@ on:
       - '!v*-native'
 
 jobs:
-  build-native:
-    name: Build Native Executable (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact-name: spring-vision-linux-x64
-            executable-name: spring-vision
-          - os: macos-latest
-            artifact-name: spring-vision-macos-x64
-            executable-name: spring-vision
-          - os: macos-latest
-            artifact-name: spring-vision-macos-arm64
-            executable-name: spring-vision
-            target: aarch64-apple-darwin
-          - os: windows-latest
-            artifact-name: spring-vision-windows-x64
-            executable-name: spring-vision.exe
-
+  build-mcp:
+    name: Build MCP JAR
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up GraalVM (Ubuntu)
-        if: runner.os == 'Linux'
-        uses: graalvm/setup-graalvm@v1
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
         with:
-          version: 'latest'
-          java-version: '21'
-          components: 'native-image'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up GraalVM (macOS)
-        if: runner.os == 'macOS'
-        uses: graalvm/setup-graalvm@v1
-        with:
-          version: 'latest'
-          java-version: '21'
-          components: 'native-image'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up GraalVM (Windows)
-        if: runner.os == 'Windows'
-        uses: graalvm/setup-graalvm@v1
-        with:
-          version: 'latest'
-          java-version: '21'
-          components: 'native-image'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: temurin
+          java-version: 21
 
       - name: Cache Maven dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ubuntu-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-maven-
+            ubuntu-maven-
 
-      - name: Build native executable
+      - name: Build MCP JAR
         run: |
-          cd cli
-          mvn -B -Pnative native:compile
+          mvn -B -pl mcp -am clean package -DskipTests
 
-      - name: Upload executable artifact
+      - name: Upload MCP JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact-name }}
-          path: cli/target/native/spring-vision${{ runner.os == 'Windows' && '.exe' || '' }}
+          name: mcp-jar
+          path: mcp/target/mcp-*.jar
           if-no-files-found: error
 
   create-release:
     name: Create GitHub Release
-    needs: build-native
+    needs: build-mcp
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -94,22 +54,11 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create release archives
+      - name: Set VERSION
         run: |
-          cd artifacts
-          for dir in */; do
-            if [ -d "$dir" ]; then
-              executable="${dir%/}"
-              cd "$dir"
-              if [[ "$executable" == *"windows"* ]]; then
-                zip "../../${executable}.zip" *
-              else
-                tar -czf "../../${executable}.tar.gz" *
-              fi
-              cd ..
-            fi
-          done
-          cd ..
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         id: create_release
@@ -122,62 +71,29 @@ jobs:
           body: |
             ## Spring Vision ${{ github.ref_name }}
 
-            This release includes native executables for multiple platforms.
+            This release includes the MCP server JAR.
 
             ### Downloads
-            - **Linux x64**: `spring-vision-linux-x64.tar.gz`
-            - **macOS x64**: `spring-vision-macos-x64.tar.gz`
-            - **macOS ARM64**: `spring-vision-macos-arm64.tar.gz`
-            - **Windows x64**: `spring-vision-windows-x64.zip`
+            - **MCP Server JAR**: `mcp-${{ env.VERSION }}.jar` (requires Java 21+)
 
-            ### Installation
-            1. Download the appropriate archive for your platform
-            2. Extract the executable
-            3. Run `./spring-vision` (or `spring-vision.exe` on Windows)
+            ### Running the MCP Server
+            ```bash
+            java -jar mcp-${{ env.VERSION }}.jar
+            ```
 
             ### Features
-            - Automated setup for computer vision capabilities
-            - Cross-platform native executables
-            - No JVM required for runtime
+            - Computer vision capabilities via MCP
+            - Stdio transport for MCP clients
+            - Easy to integrate with AI assistants
           draft: false
           prerelease: false
 
-      - name: Upload Linux x64 release asset
+      - name: Upload MCP JAR release asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./spring-vision-linux-x64.tar.gz
-          asset_name: spring-vision-linux-x64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload macOS x64 release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./spring-vision-macos-x64.tar.gz
-          asset_name: spring-vision-macos-x64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload macOS ARM64 release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./spring-vision-macos-arm64.tar.gz
-          asset_name: spring-vision-macos-arm64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Windows x64 release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./spring-vision-windows-x64.zip
-          asset_name: spring-vision-windows-x64.zip
-          asset_content_type: application/zip
+          asset_path: ./artifacts/mcp-jar/mcp-*.jar
+          asset_name: mcp-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
