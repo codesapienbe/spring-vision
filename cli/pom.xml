@@ -103,13 +103,14 @@
           <configuration>
             <mainClass>io.github.codesapienbe.springvision.cli.SpringVisionInstaller</mainClass>
             <imageName>spring-vision</imageName>
-            <buildArgs>
-              <buildArg>--no-fallback</buildArg>
-              <buildArg>--initialize-at-build-time=org.springframework</buildArg>
-              <buildArg>--initialize-at-build-time=org.slf4j</buildArg>
-              <buildArg>--initialize-at-build-time=ch.qos.logback</buildArg>
-              <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-            </buildArgs>
+          <buildArgs>
+            <buildArg>--no-fallback</buildArg>
+            <buildArg>--initialize-at-build-time=org.springframework</buildArg>
+            <buildArg>--initialize-at-build-time=org.slf4j</buildArg>
+            <buildArg>--initialize-at-build-time=ch.qos.logback</buildArg>
+            <buildArg>--initialize-at-build-time=org.apache.commons.logging.LogAdapter$Slf4jLocationAwareLog</buildArg>
+            <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+          </buildArgs>
           </configuration>
         </plugin>
       </plugins>
