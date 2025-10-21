@@ -3,8 +3,7 @@ on:
   push:
     tags:
       - 'v*'
-      - '!v*-native'
-
+      
 jobs:
   check-secrets:
     name: Check Secrets
