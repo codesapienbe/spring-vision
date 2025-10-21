@@ -6,8 +6,28 @@ on:
       - '!v*-native'
 
 jobs:
+  check-secrets:
+    name: Check Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required secrets and variables
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "Error: APP_ID variable is not set in repository variables."
+            exit 1
+          fi
+          if [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "Error: APP_PRIVATE_KEY secret is not set in repository secrets."
+            exit 1
+          fi
+          echo "All required secrets and variables are present."
+        env:
+          APP_ID: ${{ vars.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+
   build-mcp:
     name: Build MCP JAR
+    needs: check-secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,6 +69,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -64,7 +91,7 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
@@ -91,7 +118,7 @@ jobs:
       - name: Upload MCP JAR release asset
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./artifacts/mcp-jar/mcp-*.jar
