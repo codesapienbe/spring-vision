@@ -109,6 +109,7 @@
     <module>starter</module>
     <module>mcp</module>
     <module>model</module>
+    <module>cli</module>
   </modules>
 
   <dependencyManagement>
@@ -186,12 +187,6 @@
         <version>${picocli.version}</version>
       </dependency>
 
-      <!-- Spring Boot Docker Compose -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-docker-compose</artifactId>
-        <version>${spring-boot.version}</version>
-      </dependency>
 
       <!-- Byte Buddy for Java 25 support -->
       <dependency>

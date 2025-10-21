@@ -29,8 +29,8 @@ The video will cover these steps:
 
 * **Show the configuration file**: "First, open your MCP configuration file in your repository."
 * **Show adding the JSON config**: "Next, add the configuration for your tool. For `spring-vision`, we'll add this JSON snippet."
-* **Explain the code**: "This configuration tells the MCP server to run the `spring-vision` tool using a Docker container. The `command` is `docker` and the `args` specify the container to run."
-* **Show it in action**: "Now, when you use `spring-vision` through MCP, it will execute this Docker command."
+* **Explain the code**: "This configuration tells the MCP server to run the `spring-vision` tool using JBang. The `command` is `jbang` and the `args` specify the runner script to execute."
+* **Show it in action**: "Now, when you use `spring-vision` through MCP, it will execute this JBang command."
 
 ### Conclusion (45-60 seconds)
 
@@ -43,26 +43,26 @@ Here is the JSON configuration to add to your MCP config file:
 
 ```json
 "spring-vision-mcp": {
-"command": "docker",
+"command": "jbang",
 "args": [
-"run",
-"-i",
-"--rm",
-"codesapienbe/spring-vision-mcp:latest"
+"run.java"
 ]
 }
 ```
 
 ## 🧪 Testing with stdio
 
-Once your Docker image is built, you can test it using stdio commands:
+Once the project is built, you can test it using JBang and stdio commands:
 
 ### Test Initialize
 
 ```bash
+# First, build the project
+make build
+
 # Initialize an MCP session
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | \
-docker run -i --rm codesapienbe/spring-vision:latest
+jbang run.java
 ```
 
 ### Test List Tools
@@ -70,7 +70,7 @@ docker run -i --rm codesapienbe/spring-vision:latest
 ```bash
 # List all available tools
 echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | \
-docker run -i --rm codesapienbe/spring-vision:latest
+jbang run.java
 ```
 
 ### Test Call countFaces Tool
@@ -78,21 +78,21 @@ docker run -i --rm codesapienbe/spring-vision:latest
 ```bash
 # Count faces in an image (replace with actual image URL)
 echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"countFaces","arguments":{"imageUrl":"https://example.com/image.jpg"}}}' | \
-docker run -i --rm codesapienbe/spring-vision:latest
+jbang run.java
 ```
 
 ### Interactive Testing
 
-You can also run the container interactively and type JSON-RPC messages:
+You can also run the application interactively and type JSON-RPC messages:
 
 ```bash
-docker run -i --rm codesapienbe/spring-vision:latest
+jbang run.java
 # Then paste your JSON-RPC messages and press Enter
 ```
 
 ### Using with MCP Clients
 
-The most common way to use the server is through MCP clients like Claude Desktop or Cline. Add the configuration from the "Code Example" section above to your MCP client's configuration file, and the client will automatically manage the Docker container lifecycle.
+The most common way to use the server is through MCP clients like Claude Desktop or Cline. Add the configuration from the "Code Example" section above to your MCP client's configuration file, and the client will automatically manage the JBang process lifecycle.
 
 ## Advised Video to Learn About MCP Servers
 

@@ -24,42 +24,43 @@ This architecture ensures:
 
 ---
 
-## 🐳 Quick Start with Docker
+## 🚀 Quick Start with JBang
 
 **The easiest way to run Spring Vision MCP Server:**
 
 ### Prerequisites
 
-- **Docker** installed ([https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/))
+- **JBang** installed ([https://jbang.dev/](https://jbang.dev/))
+- **Java 21+** installed
 
-### Build the Docker Image
+### Build the Application
 
 From the project root:
 
 ```bash
-# Build everything (JAR + Docker image)
+# Build everything
 make build
 
 # Or manually:
 mvn clean package -pl mcp -am
-docker build -t codesapienbe/spring-vision:latest -f mcp/Dockerfile .
 ```
 
 ### Test the Server
 
 ```bash
-# Test with a simple initialize message
+# Test with a simple initialize message (build first if needed)
+make build
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | \
-docker run -i --rm codesapienbe/spring-vision:latest
+jbang run.java
 ```
 
 ### Recommended run (keep server active and suppress JVM native-access warnings)
 
-Use this command to run the container with the recommended JVM flag so native library warnings are suppressed and the server stays active for MCP clients:
+Use this command to run the server with JBang. The server will stay active and ready for MCP clients:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"clientInfo":{"name":"test","version":"1.0"}}}' | \
-docker run -i --rm -e JAVA_OPTS='--enable-native-access=ALL-UNNAMED' codesapienbe/spring-vision:latest
+# Run the MCP server with JBang (builds automatically if needed)
+jbang run.java
 ```
 
 ---
@@ -147,10 +148,9 @@ The MCP server uses **structured JSON logging** to ensure reliable operation and
 
 ```bash
 # View real-time logs (pretty-printed JSON)
-docker run -i --rm codesapienbe/spring-vision:latest 2>&1 | jq
+jbang run.java 2>&1 | jq
 
-# View log files (if mounted)
-docker run -i --rm -v $(pwd)/logs:/app/logs codesapienbe/spring-vision:latest
+# View log files
 tail -f logs/mcp.json.log | jq
 
 # Filter by event type

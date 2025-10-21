@@ -37,7 +37,46 @@
 
 ## 🚀 Getting Started
 
-### 1. Add Dependency
+### Quick Install (Recommended for End Users)
+
+For the easiest installation experience, use our automated installer:
+
+```bash
+# Download the installer JAR (replace with actual download URL)
+curl -L -o spring-vision-installer.jar https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/spring-vision-installer.jar
+
+# Run the installer
+java -jar spring-vision-installer.jar install
+```
+
+That's it! The installer will:
+- ✅ Check system requirements
+- 📦 Install Spring Vision to `~/.springvision/`
+- ⚙️ Configure MCP settings for Claude Desktop
+- 🚀 Create run scripts
+
+### Manual Installation
+
+Spring Vision includes an MCP (Model Context Protocol) server that provides computer vision tools. You can run it manually with JBang:
+
+```bash
+# Clone the repository
+git clone https://github.com/codesapienbe/spring-vision.git
+cd spring-vision
+
+# Run with JBang (builds and runs automatically)
+jbang run.java
+```
+
+Or use the Makefile:
+
+```bash
+make run
+```
+
+### Using as a Library
+
+#### 1. Add Dependency
 
 ```xml
 <dependency>
@@ -47,7 +86,7 @@
 </dependency>
 ```
 
-### 2. Use in Your Code
+#### 2. Use in Your Code
 
 ```java
 @RestController
@@ -122,6 +161,27 @@ Spring Vision uses a simple, layered architecture:
 - **Framework Core**: `VisionTemplate` provides unified API for all vision tasks
 - **DJL Backend**: Deep Java Library handles model management and inference
 - **Vision Capabilities**: Modular detection and analysis capabilities
+
+## CLI Installer Commands
+
+The Spring Vision installer provides several commands:
+
+```bash
+# Install Spring Vision
+java -jar spring-vision-installer.jar install
+
+# Check installation status
+java -jar spring-vision-installer.jar status
+
+# Update to latest version
+java -jar spring-vision-installer.jar update
+
+# Uninstall Spring Vision
+java -jar spring-vision-installer.jar uninstall
+
+# Show help
+java -jar spring-vision-installer.jar --help
+```
 
 ## GPU Acceleration (Optional)
 

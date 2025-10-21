@@ -102,14 +102,14 @@ cat VERSION
 
 ```bash
 make build
-# Builds all modules and Docker image with version from VERSION file
+# Builds all modules with version from VERSION file
 ```
 
-### Run Docker Container
+### Run Application
 
 ```bash
 make run
-# Runs: docker run -i --rm codesapienbe/spring-vision:1.0.2
+# Runs: jbang run.java
 ```
 
 ## Benefits

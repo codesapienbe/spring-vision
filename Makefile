@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean deploy release docs test default
+.PHONY: build clean deploy release docs test installer default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -9,26 +9,21 @@ SPRING_VISION_VERSION := $(shell cat VERSION)
 # Local simulation repo and signing control (can be overridden on the make command line)
 LOCAL_REPO ?= $(CURDIR)/target/local-repo
 GPG_SKIP ?= true
-SKIP_DOCKER_BUILD ?= true
 
 clean:
-	mvn clean -q && docker image rm spring-vision-mcp:$(SPRING_VISION_VERSION) spring-vision-mcp:latest || true
+	mvn clean -q
 
 build:
-	@echo "Building project: Maven install (will also build the docker image) - Version: $(SPRING_VISION_VERSION)";
+	@echo "Building project: Maven install - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true;
 	mvn clean install -DskipTests || ( echo "Maven install failed!" && exit 1 );
 
-deploy:
-	@echo "Building locally and tagging images as :latest for local use (no remote pushes)";
-	# Ensure images are built by running the build target
+run:
+	@echo "Running Spring Vision MCP server locally with JBang";
+	# Ensure the project is built
 	$(MAKE) build || ( echo "Build failed" && exit 1 );
-	# Tag images locally to have :latest tag
-	docker tag spring-vision-base:$(SPRING_VISION_VERSION) spring-vision-base:latest || true;
-	docker tag spring-vision-mcp:$(SPRING_VISION_VERSION) spring-vision-mcp:latest || true;
-	echo "Local images available:";
-	docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}' | grep spring-vision || true;
-	echo "You can run the MCP server locally using: docker run --rm -p 8080:8080 spring-vision-mcp:latest";
+	# Run the MCP server using JBang runner
+	jbang run.java;
 
 release:
 	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \
@@ -50,6 +45,13 @@ docs:
 	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
 	echo "Javadocs report generated successfully in javadocs.txt" || \
 	echo "Javadocs generation completed with warnings/errors - see javadocs.txt for details"
+
+# Build the CLI installer JAR
+installer:
+	@echo "Building Spring Vision CLI installer..."
+	mvn clean package -pl cli -am -DskipTests || ( echo "CLI installer build failed!" && exit 1 )
+	@echo "CLI installer built: cli/target/cli-0.0.1.jar"
+	@echo "To use: java -jar cli/target/cli-0.0.1.jar --help"
 
 # Run only the DjlVisionBackend integration test
 test:

@@ -1,3 +1,4 @@
+
 package io.github.codesapienbe.springvision.mcp;
 
 import org.springframework.boot.SpringApplication;

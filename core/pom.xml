@@ -16,10 +16,6 @@
   <description>Core domain classes and interfaces for Spring Vision</description>
 
   <properties>
-    <!-- Use the Maven project.version (set by the top-level Makefile from VERSION) as the image tag.
-         The image name is the repository path without tag; tags are added in the docker plugin configuration. -->
-    <docker.image.name>docker.io/codesapienbe/spring-vision-base</docker.image.name>
-    
     <!-- DJL configuration - models now loaded directly from HuggingFace via djl:// URLs -->
     <pytorch.version>2.1.1</pytorch.version>
   </properties>
@@ -280,9 +276,6 @@
         <version>3.4.1</version>
       </plugin>
 
-      <!-- Read repository VERSION file into repo.version property -->
-      <!-- Image tagging handled via docker-maven-plugin tags; top-level Makefile sets project.version from VERSION. -->
-
       <!-- Maven Surefire Plugin for running tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -291,41 +284,6 @@
 
       <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
       <!-- No manual download needed - DJL handles caching automatically -->
-
-      <!-- Build the module's Dockerfile (core/Dockerfile) with the fabric8 docker-maven-plugin -->
-      <plugin>
-        <groupId>io.fabric8</groupId>
-        <artifactId>docker-maven-plugin</artifactId>
-        <version>0.40.1</version>
-        <configuration>
-          <images>
-            <image>
-              <name>${docker.image.name}</name>
-              <build>
-                <!-- Dockerfile is placed in the mcp module directory -->
-                <dockerFileDir>${project.basedir}</dockerFileDir>
-                <dockerFile>Dockerfile</dockerFile>
-                <tags>
-                  <tag>${project.version}</tag>
-                </tags>
-              </build>
-            </image>
-          </images>
-        </configuration>
-        <executions>
-          <execution>
-            <id>docker-build</id>
-            <phase>install</phase>
-            <goals>
-              <goal>build</goal>
-            </goals>
-            <configuration>
-              <!-- Allow skipping Docker build via -DskipDockerBuild=true -->
-              <skip>${skipDockerBuild}</skip>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
 
     </plugins>
   </build>

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "spring-vision-mcp": {
+      "command": "jbang",
+      "args": [
+        "run.java"
+      ]
+    }
+  }
+}
