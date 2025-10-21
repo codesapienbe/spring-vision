@@ -113,7 +113,7 @@ public class DjlProperties {
     }
 
     public static class ObjectDetection {
-        private String model = "ssd"; // or "yolo"
+        private String model = "yolo"; // or "ssd"
         private String backbone = "resnet50";
         private float confidenceThreshold = 0.5f;
         private int topK = 10;
@@ -152,7 +152,7 @@ public class DjlProperties {
     }
 
     public static class PoseEstimation {
-        private String model = "simple_pose";
+        private String model = "yolo";
         private int joints = 17;
         private float confidenceThreshold = 0.5f;
 

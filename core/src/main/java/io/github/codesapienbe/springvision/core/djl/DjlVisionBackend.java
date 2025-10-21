@@ -16,6 +16,7 @@ import ai.djl.Device;
 import ai.djl.training.util.ProgressBar;
 import io.github.codesapienbe.springvision.core.*;
 import io.github.codesapienbe.springvision.core.capabilities.*;
+import io.github.codesapienbe.springvision.core.djl.YoloLoader;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -26,7 +27,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.awt.BasicStroke;
@@ -38,6 +38,7 @@ import java.awt.RenderingHints;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,6 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import ai.djl.ndarray.NDManager;
 import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
-import io.github.codesapienbe.springvision.core.djl.translator.YuNetFaceDetectionTranslator;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
@@ -111,7 +111,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     public static final String BACKEND_ID = "djl";
     public static final String DISPLAY_NAME = "DJL Vision Backend";
-    public static final String VERSION = "1.0.5-DJL-0.33.0";
+    public static final String VERSION = "0.0.1-DJL-0.33.0";
 
     // Models
     private ZooModel<Image, DetectedObjects> faceDetectionModel;
@@ -439,9 +439,18 @@ public class DjlVisionBackend implements VisionBackend,
             int[][] scales = {{16, 32}, {64, 128}, {256, 512}};
             int[] steps = {8, 16, 32};
 
+            // Check if RetinaFace model is available locally (downloaded and extracted during build)
+            String retinaFaceUrl = "https://resources.djl.ai/test-models/pytorch/retinaface.zip"; // Fallback
+            if (isModelAvailable("retinaface/retinaface.pt")) {
+                retinaFaceUrl = "classpath:/models/retinaface/retinaface.pt";
+                logger.info("Using locally downloaded and extracted RetinaFace model");
+            } else {
+                logger.warn("RetinaFace model not found in classpath, downloading from DJL Model Zoo");
+            }
+
             Criteria<Image, DetectedObjects> criteria = Criteria.builder()
                 .setTypes(Image.class, DetectedObjects.class)
-                .optModelUrls("https://resources.djl.ai/test-models/pytorch/retinaface.zip")
+                .optModelUrls(retinaFaceUrl)
                 .optModelName("retinaface")
                 .optTranslator(new FaceDetectionTranslator(confThresh, nmsThresh, variance, topK, scales, steps))
                 .optEngine("PyTorch")
@@ -478,43 +487,122 @@ public class DjlVisionBackend implements VisionBackend,
     private void loadObjectDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading object detection model with DJL");
 
-        // Use a standard SSD model without overly specific filters
-        Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-            .optApplication(Application.CV.OBJECT_DETECTION)
-            .setTypes(Image.class, DetectedObjects.class)
-            .optEngine(properties.getEngine())
-            .optDevice(device)
-            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-            .build();
+        Criteria<Image, DetectedObjects> criteria;
+        String modelType = properties.getObjectDetection().getModel();
+
+        if ("yolo".equalsIgnoreCase(modelType)) {
+            // Use YOLOv8 model via YoloLoader (default)
+            logger.info("Using YOLOv8 object detection model");
+            criteria = YoloLoader.createDetectionCriteria();
+
+            // Check if YOLO model is available
+            if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
+                logger.warn("YOLOv8 model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to SSD model in configuration.");
+                throw new ModelNotFoundException("YOLOv8 model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
+            }
+        } else if ("ssd".equalsIgnoreCase(modelType)) {
+            // Use SSD model as fallback
+            logger.info("Using SSD object detection model with {} backbone", properties.getObjectDetection().getBackbone());
+            criteria = Criteria.builder()
+                .optApplication(Application.CV.OBJECT_DETECTION)
+                .setTypes(Image.class, DetectedObjects.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
+        } else {
+            // Default to YOLO for any other value
+            logger.info("Unknown object detection model '{}', defaulting to YOLOv8", modelType);
+            criteria = YoloLoader.createDetectionCriteria();
+
+            if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
+                logger.warn("YOLOv8 model not found, falling back to SSD model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
+                criteria = Criteria.builder()
+                    .optApplication(Application.CV.OBJECT_DETECTION)
+                    .setTypes(Image.class, DetectedObjects.class)
+                    .optEngine(properties.getEngine())
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
+            }
+        }
 
         objectDetectionModel = criteria.loadModel();
         modelCache.put("object_detection", objectDetectionModel);
-        logger.info("Object detection model loaded: {}", objectDetectionModel.getName());
+        logger.info("Object detection model loaded: {} ({})", objectDetectionModel.getName(), modelType);
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading pose estimation model with DJL");
 
-        // Try to load pose estimation model - DJL will select the best available
-        // If MediaPipe pose estimation is available, it will be preferred for its 33 keypoints
-        try {
-            Criteria<Image, NDList> criteria = Criteria.builder()
-                .setTypes(Image.class, NDList.class)
-                .optApplication(Application.CV.POSE_ESTIMATION)
-                .optEngine("OnnxRuntime")  // Prefer ONNX models like MediaPipe
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+        String modelType = properties.getPoseEstimation().getModel();
 
-            @SuppressWarnings("unchecked")
-            ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
-            poseEstimationModel = model;
+        if ("yolo".equalsIgnoreCase(modelType)) {
+            // Use YOLOv8 pose estimation model via YoloLoader (default)
+            logger.info("Using YOLOv8 pose estimation model");
+            Criteria<Image, Joints> criteria = YoloLoader.createPoseCriteria();
 
+            // Check if YOLO pose model is available
+            if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
+                logger.warn("YOLOv8 pose model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to simple_pose model in configuration.");
+                throw new ModelNotFoundException("YOLOv8 pose model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
+            }
+
+            poseEstimationModel = criteria.loadModel();
             modelCache.put("pose_estimation", poseEstimationModel);
-            logger.info("Pose estimation model loaded: {} - optimized for pose detection", poseEstimationModel.getName());
-        } catch (Exception e) {
-            logger.error("Failed to load pose estimation model: {}", e.getMessage());
-            throw new ModelNotFoundException("Pose estimation model not available", e);
+            logger.info("YOLOv8 pose estimation model loaded: {} - optimized for pose detection", poseEstimationModel.getName());
+        } else if ("simple_pose".equalsIgnoreCase(modelType)) {
+            // Use simple pose model as fallback
+            logger.info("Using simple pose estimation model");
+            try {
+                Criteria<Image, NDList> criteria = Criteria.builder()
+                    .setTypes(Image.class, NDList.class)
+                    .optApplication(Application.CV.POSE_ESTIMATION)
+                    .optEngine("OnnxRuntime")  // Prefer ONNX models like MediaPipe
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
+
+                @SuppressWarnings("unchecked")
+                ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
+                poseEstimationModel = model;
+
+                modelCache.put("pose_estimation", poseEstimationModel);
+                logger.info("Simple pose estimation model loaded: {} - optimized for pose detection", poseEstimationModel.getName());
+            } catch (Exception e) {
+                logger.error("Failed to load simple pose estimation model: {}", e.getMessage());
+                throw new ModelNotFoundException("Simple pose estimation model not available", e);
+            }
+        } else {
+            // Default to YOLO for any other value
+            logger.info("Unknown pose estimation model '{}', defaulting to YOLOv8", modelType);
+            Criteria<Image, Joints> criteria = YoloLoader.createPoseCriteria();
+
+            if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
+                logger.warn("YOLOv8 pose model not found, falling back to simple pose model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
+                try {
+                    Criteria<Image, NDList> fallbackCriteria = Criteria.builder()
+                        .setTypes(Image.class, NDList.class)
+                        .optApplication(Application.CV.POSE_ESTIMATION)
+                        .optEngine("OnnxRuntime")
+                        .optDevice(device)
+                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                        .build();
+
+                    @SuppressWarnings("unchecked")
+                    ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) fallbackCriteria.loadModel();
+                    poseEstimationModel = model;
+                    modelCache.put("pose_estimation", poseEstimationModel);
+                    logger.info("Fallback simple pose estimation model loaded: {}", poseEstimationModel.getName());
+                } catch (Exception e) {
+                    logger.error("Failed to load fallback pose estimation model: {}", e.getMessage());
+                    throw new ModelNotFoundException("No pose estimation model available", e);
+                }
+            } else {
+                poseEstimationModel = criteria.loadModel();
+                modelCache.put("pose_estimation", poseEstimationModel);
+                logger.info("YOLOv8 pose estimation model loaded: {}", poseEstimationModel.getName());
+            }
         }
     }
 
@@ -3411,6 +3499,14 @@ public class DjlVisionBackend implements VisionBackend,
         initialized = false;
         healthStatus = BackendHealthInfo.HealthStatus.UNKNOWN;
         logger.info("DJL vision backend cleanup completed");
+    }
+
+    /**
+     * Checks if a model file is available in the classpath.
+     */
+    private boolean isModelAvailable(String modelPath) {
+        URL resource = getClass().getClassLoader().getResource("models/" + modelPath);
+        return resource != null;
     }
 
     // L2-normalize a float vector; returns a new array (safe to call with null)

@@ -53,16 +53,17 @@ spring:
 
       # Object Detection Configuration
       object-detection:
-        # Model: ssd (default), yolo
-        model: ssd
-        # Backbone: resnet50, mobilenet, etc.
+        # Model: yolo (default), ssd
+        model: yolo
+        # Backbone: resnet50, mobilenet, etc. (only used with SSD)
         backbone: resnet50
         confidence-threshold: 0.5
         top-k: 10
 
       # Pose Estimation Configuration
       pose-estimation:
-        model: ""
+        # Model: yolo (default), simple_pose
+        model: yolo
         joints: 17  # COCO 17 keypoints
         confidence-threshold: 0.5
 
