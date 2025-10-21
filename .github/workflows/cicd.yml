@@ -48,7 +48,7 @@ jobs:
 
       - name: Build JARs
         run: |
-          mvn -B -pl core,mcp,starter -am clean package -DskipTests -Pdownload-models
+          mvn -B -pl core,mcp,starter,cli -am clean package -DskipTests -Pdownload-models
 
       - name: Upload core JAR artifact
         uses: actions/upload-artifact@v4
@@ -69,6 +69,13 @@ jobs:
         with:
           name: starter-jar
           path: starter/target/starter-*.jar
+          if-no-files-found: error
+
+      - name: Upload cli JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-jar
+          path: cli/target/cli-*.jar
           if-no-files-found: error
 
   create-release:
@@ -107,22 +114,31 @@ jobs:
           body: |
             ## Spring Vision ${{ github.ref_name }}
 
-            This release includes JARs for core, mcp, and starter modules.
+            This release includes JARs for core, mcp, starter, and cli modules.
 
             ### Downloads
             - **Core JAR**: `core-${{ env.VERSION }}.jar`
             - **MCP Server JAR**: `mcp-${{ env.VERSION }}.jar` (requires Java 21+)
             - **Starter JAR**: `starter-${{ env.VERSION }}.jar`
+            - **CLI Setup Tool**: `cli-${{ env.VERSION }}.jar` (requires Java 21+)
 
-            ### Running the MCP Server
+            ### Quick Setup (Recommended)
             ```bash
-            java -jar mcp-${{ env.VERSION }}.jar
+            # Run the CLI setup tool to automatically download and configure everything
+            jbang https://github.com/codesapienbe/spring-vision/releases/download/v${{ env.VERSION }}/cli-${{ env.VERSION }}.jar
+            ```
+
+            ### Manual Setup
+            ```bash
+            # Or run the MCP server directly after setup
+            jbang ~/.springvision/mcp-${{ env.VERSION }}.jar
             ```
 
             ### Features
             - Computer vision capabilities via MCP
             - Stdio transport for MCP clients
             - Easy to integrate with AI assistants
+            - One-command setup with CLI tool
           draft: false
           prerelease: false
 
@@ -232,4 +248,40 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: ./mcp-${{ env.VERSION }}.jar
           asset_name: mcp-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-cli:
+    name: Upload CLI JAR
+    needs: [ create-release, upload-mcp ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download cli JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload CLI JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./cli-${{ env.VERSION }}.jar
+          asset_name: cli-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive

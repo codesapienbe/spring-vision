@@ -30,7 +30,7 @@ import java.util.concurrent.Callable;
 @Command(
     name = "spring-vision-cli",
     mixinStandardHelpOptions = true,
-    version = "Spring Vision CLI 0.0.2",
+    version = "Spring Vision CLI 0.0.3",
     description = """
         🌟 Spring Vision MCP Server Setup Tool
 
