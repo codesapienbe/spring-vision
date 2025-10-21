@@ -18,7 +18,6 @@ Spring Vision 0.0.1 consists of these main components:
 1. **spring-vision-core** - Main framework with VisionTemplate and capabilities
 2. **spring-vision-starter** - Auto-configuration and REST API
 3. **spring-vision-mcp** - MCP server integration
-4. **spring-vision-model** - Model training utilities
 
 ### Quick Start (Single Dependency)
 
@@ -35,6 +34,7 @@ This gives you:
 - ✅ Auto-configuration
 - ✅ All detection capabilities
 - ✅ DJL backend integration
+- ✅ **Bundled Models**: YOLO, RetinaFace, and utility libraries included in JAR
 
 ### Configuration
 
@@ -51,32 +51,38 @@ spring:
 
 Spring Vision provides these built-in detection capabilities:
 
-### 🤖 **Computer Vision**
-- **Face Detection** - Detect faces in images (`detectFaces()`)
-- **Object Detection** - Detect objects (`detectObjects()`)
-- **Pose Estimation** - Detect human poses (`detectPoses()`)
-- **Hand Detection** - Detect hands (`detectHands()`)
-- **Text Detection (OCR)** - Extract text (`extractText()`)
-- **Barcode Scanning** - Scan barcodes (`scanBarcodes()`)
+### ✅ **Production Ready (Models Included in JAR)**
+- **Face Detection** - High-accuracy RetinaFace model (`detectFaces()`)
+- **Object Detection** - YOLOv8 models (`detectObjects()`)
+- **Pose Estimation** - YOLOv8 pose models (`detectPoses()`)
+- **Barcode Scanning** - ZXing library (`scanBarcodes()`)
+- **Metadata Extraction** - EXIF/GPS data (`extractMetadata()`)
+- **Image Annotation** - Drawing utilities (`annotate()`)
 
-### 🧠 **AI Analysis**
-- **Image Classification** - Classify images (`classifyImage()`)
-- **Action Recognition** - Recognize actions (`recognizeActions()`)
-- **Emotion Detection** - Detect emotions (`detectEmotions()`)
-- **Demographics Analysis** - Age/gender estimation (`detectDemographics()`)
+### 🤖 **AI-Powered (Runtime Download)**
+- **Text Detection (OCR)** - DJL OCR models (`extractText()`)
+- **Image Classification** - ResNet/Inception (`classifyImage()`)
+- **Segmentation** - Instance/Semantic models (`segmentImage()`)
+- **Action Recognition** - Activity detection (`recognizeActions()`)
+- **Face Embeddings** - Recognition vectors (`extractEmbeddings()`)
 
 ### 🔒 **Security & Safety**
-- **NSFW Detection** - Detect inappropriate content (`detectNSFW()`)
-- **Deepfake Detection** - Detect manipulated media (`detectDeepfake()`)
-- **Threat Detection** - Detect weapons/objects (`detectThreats()`)
+- **NSFW Detection** - Content filtering (`detectNSFW()`)
+- **Deepfake Detection** - AI-generated media (`detectDeepfake()`)
+- **Threat Detection** - Weapons/objects (`detectThreats()`)
 - **Biometric Authentication** - Face-based auth (`authenticateAccess()`)
 
 ### ❤️ **Health & Wellness**
-- **Fall Detection** - Detect falls (`detectFall()`)
-- **Stress Analysis** - Analyze stress levels (`analyzeStress()`)
+- **Fall Detection** - Pose-based analysis (`detectFall()`)
+- **Stress Analysis** - Emotion-based detection (`analyzeStress()`)
+- **Heart Rate** - rPPG from faces (`detectHeartRate()`)
+- **Demographics** - Age/gender estimation (`detectDemographics()`)
+
+### 🚧 **Placeholder Implementations**
+- **Hand Detection** - Uses object detection (`detectHands()`)
+- **Emotion Detection** - Mock implementation (`detectEmotions()`)
 
 ### 📊 **Utilities**
-- **Metadata Extraction** - Extract EXIF/GPS data (`extractMetadata()`)
 - **Face Embeddings** - Generate face vectors (`extractEmbeddings()`)
 - **Face Counting** - Count faces (`countFaces()`)
 

@@ -1,10 +1,40 @@
-# Face Detector Models
+# Face Detection Models
 
-This directory contains models for various face detection backends supported by FaceBytes.
+Spring Vision uses RetinaFace for high-accuracy face detection, bundled directly in the JAR.
 
-## Available Detectors
+## Current Face Detection
 
-### 1. OpenCV (Default - Always Available)
+### RetinaFace (Production Ready - Bundled in JAR)
+
+**Model:** `retinaface.pt` (110MB PyTorch model)
+**Location:** `classpath:/models/retinaface/retinaface.pt`
+
+**Features:**
+- ✅ **Bundled in JAR** - No downloads required
+- ✅ **High accuracy** - State-of-the-art face detection
+- ✅ **5-point landmarks** - Facial feature detection
+- ✅ **Multi-scale** - Works with various face sizes
+- ✅ **Robust** - Handles occlusions and angles
+- ✅ **Production ready** - Optimized for performance
+
+**Configuration:**
+```yaml
+spring:
+  vision:
+    djl:
+      face-detection:
+        confidence-threshold: 0.7
+        max-faces: 200
+```
+
+**Automatic Fallback:**
+If RetinaFace model is unavailable, Spring Vision falls back to:
+1. Generic object detection (person/face class)
+2. OpenCV Haar cascades (if available)
+
+## Legacy Face Detection (Deprecated)
+
+For historical reference, these were the previous face detection options:
 **Models:**
 - `haarcascade_frontalface_default.xml` - Haar cascade for frontal faces
 - `lbpcascade_frontalface.xml` - LBP cascade for frontal faces  

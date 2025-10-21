@@ -25,15 +25,17 @@
   </p>
 </div>
 
-**Spring Vision** is a computer vision framework that brings AI capabilities to your Spring Boot applications. Built on the Deep Java Library (DJL), it provides a simple API for common computer vision tasks like face detection, object recognition, and image analysis.
+**Spring Vision** is a computer vision framework that brings AI capabilities to your Spring Boot applications. Built on the Deep Java Library (DJL), it provides a simple API for common computer vision tasks. **Core models (YOLO, RetinaFace) are bundled in the JAR** - no downloads required for production use!
 
 ## ✨ Features
 
 - **🚀 Easy Setup**: Get started quickly with auto-configuration and sensible defaults.
+- **📦 Self-Contained JARs**: Core AI models (YOLO, RetinaFace) bundled - no downloads needed!
 - **🤖 DJL-Powered**: Built on Deep Java Library for modern AI model management.
-- **🔌 Multiple Backends**: Support for DJL (PyTorch, ONNX), OpenCV, and other vision libraries.
+- **🔌 Multiple Engines**: Support for PyTorch, ONNX Runtime, TensorFlow backends.
 - **🌐 Cross-Platform**: Works on Linux, macOS, and Windows.
 - **🏗️ Spring Boot Integration**: Health checks, metrics, and Spring ecosystem compatibility.
+- **⚡ Production Ready**: 8+ computer vision capabilities ready for deployment.
 
 ## 🚀 Getting Started
 
@@ -51,27 +53,31 @@ java -jar spring-vision-installer.jar install
 
 That's it! The installer will:
 - ✅ Check system requirements
-- 📦 Install Spring Vision to `~/.springvision/`
+- 📦 Install Spring Vision with bundled AI models (YOLO, RetinaFace)
 - ⚙️ Configure MCP settings for Claude Desktop
-- 🚀 Create run scripts
+- 🚀 Create run scripts (models included - no downloads needed!)
 
 ### Manual Installation
 
-Spring Vision includes an MCP (Model Context Protocol) server that provides computer vision tools. You can run it manually with JBang:
+Spring Vision includes an MCP (Model Context Protocol) server with bundled AI models. Build and run manually:
 
 ```bash
 # Clone the repository
 git clone https://github.com/codesapienbe/spring-vision.git
 cd spring-vision
 
-# Run with JBang (builds and runs automatically)
+# Build with models (downloads YOLO/RetinaFace during build)
+mvn clean install -Pdownload-models
+
+# Run the MCP server with JBang
 jbang run.java
 ```
 
-Or use the Makefile:
+Or use the Makefile (includes model download):
 
 ```bash
-make run
+make build  # Downloads and bundles models
+make run    # Runs the server
 ```
 
 ### Using as a Library
@@ -135,32 +141,63 @@ spring:
 
 ## 🚀 DJL Backend Features
 
-- **Automatic Model Management**: DJL downloads and caches models automatically
-- **Multi-Engine Support**: PyTorch, ONNX Runtime, TensorFlow
-- **GPU Acceleration**: CUDA support for faster inference (optional)
-- **Model Zoo Integration**: Access to pre-trained models from DJL model zoo
+- **📦 Bundled Core Models**: YOLOv8 and RetinaFace models included in JAR (no downloads needed)
+- **🔄 Runtime Downloads**: Advanced AI models download on-demand from DJL Model Zoo
+- **⚙️ Multi-Engine Support**: PyTorch, ONNX Runtime, TensorFlow backends
+- **🚀 GPU Acceleration**: CUDA support for faster inference (optional)
+- **🎯 Production Ready**: 8+ computer vision capabilities with zero-configuration
 
 ## Current Capabilities
 
-Spring Vision 0.0.1 provides these computer vision capabilities:
+Spring Vision 0.0.1 provides these computer vision capabilities (all models included in JAR):
 
-- **Face Detection** - Detect and locate faces in images
-- **Object Detection** - Identify and classify objects
-- **Text Recognition** - Extract text using OCR
-- **Image Classification** - Classify images into categories
-- **Pose Estimation** - Detect human body poses
-- **Emotion Analysis** - Recognize facial emotions
+### ✅ **Production Ready**
+- **Face Detection** - High-accuracy RetinaFace model (included)
+- **Object Detection** - YOLOv8 models (included)
+- **Pose Estimation** - YOLOv8 pose models (included)
+- **Barcode/QR Scanning** - ZXing library (included)
+- **Metadata Extraction** - EXIF/GPS/camera data (included)
+- **Image Annotation** - Drawing utilities (included)
 
-More capabilities will be added in future releases.
+### 🤖 **AI-Powered (Runtime Download)**
+- **Text Recognition (OCR)** - DJL OCR models
+- **Image Classification** - ResNet/Inception models
+- **Segmentation** - Instance/Semantic segmentation
+- **Action Recognition** - Activity detection models
+- **Face Embeddings** - Face recognition vectors
+
+### 🛡️ **Security & Safety**
+- **NSFW Detection** - Content filtering
+- **Deepfake Detection** - AI-generated media detection
+- **Threat Detection** - Weapons/object detection
+- **Biometric Authentication** - Face-based access control
+
+### ❤️ **Health & Wellness**
+- **Fall Detection** - Pose-based fall analysis
+- **Stress Analysis** - Emotion-based stress detection
+- **Heart Rate** - rPPG analysis from faces
+- **Demographics** - Age/gender estimation
 
 ## Architecture
 
-Spring Vision uses a simple, layered architecture:
+Spring Vision uses a modern, capability-based architecture built on the Deep Java Library (DJL):
 
-- **Application Layer**: REST API for computer vision operations
+### Core Components
+- **spring-vision-core** - Main framework with VisionTemplate and capabilities
+- **spring-vision-starter** - Auto-configuration and REST API
+- **spring-vision-mcp** - MCP server integration
+
+### Architecture Layers
+- **Application Layer**: REST API endpoints (`/api/vision/*`)
 - **Framework Core**: `VisionTemplate` provides unified API for all vision tasks
 - **DJL Backend**: Deep Java Library handles model management and inference
 - **Vision Capabilities**: Modular detection and analysis capabilities
+
+### Key Features
+- **Single Dependency**: One starter brings all computer vision capabilities
+- **Model Bundling**: Core models (YOLO, RetinaFace) included in JAR
+- **Auto-Configuration**: Zero-configuration setup with intelligent defaults
+- **Runtime Downloads**: Advanced models download on-demand
 
 ## CLI Installer Commands
 

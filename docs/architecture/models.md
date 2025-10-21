@@ -6,80 +6,168 @@ This guide describes how Spring Vision handles model files today: where they liv
 
 ## Model Locations
 
-- Default path for all backends: `classpath:/models`
-- You can override with an external path via properties (see Configuration below)
+- **Primary**: `classpath:/models` (bundled in JAR for portability)
+- **Fallback**: DJL Model Zoo (runtime download for advanced models)
+- **Override**: External paths via configuration (for custom models)
 
 ## Model Loading Strategy
 
-Model resolution is unified by the ModelResourceLoader with this priority:
+Models are loaded with this priority:
 
-1) Classpath resources (bundled in the JAR)
-2) Explicitly configured external path
-3) User cache directory: `~/.spring-vision/models/{module}/`
-4) Optional auto-download from official sources
+1) **Classpath resources** (bundled YOLO, RetinaFace models)
+2) **DJL Model Zoo** (runtime download for advanced AI models)
+3) **External paths** (configured via properties)
+4) **User cache** (`~/.spring-vision/models/`)
 
-## Bundled Models (Current)
+## Bundled Models (Included in JAR)
 
-- Core/OpenCV:
-    - Haar Cascades, DNN face models, ONNX models (e.g., YuNet and SFace)
-    - Total size ~40 MB
-- Other modules:
-    - MediaPipe and YOLO models can be added to resources, or auto-downloaded (see downloads section)
+### ✅ **Core Production Models**
+- **YOLOv8 Object Detection**: `yolov8n.pt`, `yolov8s.pt`, `yolov8m.pt`, `yolov8l.pt`, `yolov8x.pt`
+- **YOLOv8 Pose Estimation**: `yolov8n-pose.pt`, `yolov8s-pose.pt`, `yolov8m-pose.pt`
+- **YOLOv8 Segmentation**: `yolov8n-seg.pt`, `yolov8s-seg.pt`, `yolov8m-seg.pt`
+- **RetinaFace**: `retinaface.pt` (high-accuracy face detection)
+- **Classification**: `yolov8n-cls.pt` (image classification)
+- **OBB Detection**: `yolov8n-obb.pt` (oriented bounding boxes)
 
-## Configure Model Paths
+**Total bundled size**: ~500MB (all variants included)
 
-application.yml examples:
+### 📚 **Runtime Download Models**
+Advanced AI models downloaded on-demand:
+- OCR models (text recognition)
+- Image classification models (ResNet, Inception)
+- Segmentation models (instance/semantic)
+- Action recognition models
+- Face embedding models
+
+## Configuration
+
+Spring Vision uses DJL for unified model management:
 
 ```yaml
 spring:
   vision:
-    opencv:
-      enabled: true
-      # Defaults to classpath:/models
-      # modelPath: /custom/models/opencv
-      # enableAutoDownload: false
+    djl:
+      enabled: true                    # Enable DJL backend
+      engine: pytorch                  # pytorch, tensorflow, onnx
+      device: cpu                      # cpu or gpu
+      max-concurrent-inferences: 4     # Concurrency limit
+      show-progress: false             # Model loading progress
 
-    yolo:
-      enabled: true
-      model-name: yolov8n.onnx
-      # modelPath: /custom/models/yolo
+      # Model-specific settings
+      object-detection:
+        model: yolo                   # yolo (bundled) or ssd (runtime)
+        confidence-threshold: 0.5
 
-    mediapipe:
-      enabled: true
-      # modelPath: /custom/models/mediapipe
+      pose-estimation:
+        model: yolo                   # yolo (bundled) or simple_pose (runtime)
+        confidence-threshold: 0.5
+
+      face-detection:
+        confidence-threshold: 0.7     # RetinaFace bundled
+        max-faces: 200
 ```
 
-Tips:
+### Custom Model Paths
 
-- Use classpath models for maximum portability (Docker, CI/CD, read-only FS)
-- Use external paths for large/custom models you don’t want bundled
+For custom models, override the default paths:
 
-## Auto-Download and Verification
+```yaml
+spring:
+  vision:
+    djl:
+      # Custom model directory (external to JAR)
+      model-path: /opt/spring-vision/models
 
-- For some modules, models can be auto-downloaded during build or at runtime
-- Checksum verification (SHA-256) is supported to prevent corruption
-- HTTPS-only download policy recommended
+      # Or use environment variable
+      # model-path: ${SPRING_VISION_MODELS:/opt/spring-vision/models}
+```
 
-See: [Maven Model Download Guide](./downloads.md)
+**Tips:**
+- **Classpath models** (bundled): Maximum portability for Docker/CI/CD
+- **External paths**: For large custom models or model updates without rebuilding
+- **Runtime downloads**: For advanced models not included in JAR
+
+## Build-Time Model Download
+
+Core models are downloaded and bundled during the Maven build:
+
+```bash
+# Download and bundle all models (run during CI/CD)
+mvn clean install -Pdownload-models
+
+# Or with Makefile
+make build
+```
+
+This includes:
+- YOLOv8 models (object detection, pose, segmentation)
+- RetinaFace model (face detection)
+- All model variants (n, s, m, l, x sizes)
 
 ## Adding Custom Models
 
-- Place your ONNX/TFLite files under your chosen model path
-- Update the corresponding module properties (e.g., model-name)
-- For YOLO, convert from PyTorch to ONNX using Ultralytics export
+Override bundled models with custom ones:
 
-## Docker and Cloud
+```yaml
+spring:
+  vision:
+    djl:
+      model-path: /path/to/custom/models
+```
 
-- With classpath models, no volumes are needed; JARs are self-contained
-- External paths work with mounted volumes if you prefer dynamic model swaps
+Place your models in the expected directory structure:
+```
+/path/to/custom/models/
+├── yolov8/yolov8n.pt          # Custom object detection
+├── yolov8-pose/yolov8n-pose.pt # Custom pose estimation
+└── retinaface/retinaface.pt    # Custom face detection
+```
 
-## GPU Considerations
+## Docker and Cloud Deployment
 
-- GPU acceleration benefits larger models and batch workloads
-- Build with `-P gpu` and set `spring.vision.execution-provider=gpu`
-- See: [GPU Acceleration](./gpu.md)
+### Self-Contained JARs
+```dockerfile
+FROM openjdk:21-jre-slim
+COPY target/spring-vision-app.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+- No model volumes needed
+- All core models bundled in JAR
+- Maximum portability
+
+### External Models
+```dockerfile
+FROM openjdk:21-jre-slim
+VOLUME /opt/models
+ENV SPRING_VISION_MODELS=/opt/models
+COPY target/spring-vision-app.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+- Mount model volumes for updates without rebuilding
+- Useful for large custom models
+
+## GPU Acceleration
+
+Enable GPU support for faster inference:
+
+```yaml
+spring:
+  vision:
+    djl:
+      device: gpu
+      engine: pytorch
+```
+
+**Requirements:**
+- NVIDIA CUDA drivers installed
+- CUDA-compatible GPU
+- DJL CUDA runtime dependencies
+
+See: [GPU Configuration Guide](../configuration/gpu.md)
 
 ---
 
-See also: [Configuration](./config.md) · [Maven Model Download](./downloads.md) · [Runtime](./runtime.md) · [Architecture](./architecture.md)
+See also: [Configuration](../configuration/config.md) · [GPU Configuration](../configuration/gpu.md) · [Runtime](../configuration/runtime.md) · [Architecture](./architecture.md)
 

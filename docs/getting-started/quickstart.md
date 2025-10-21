@@ -19,43 +19,51 @@ Prerequisites
 
 Checklist (what you'll do in the video)
 
-1. Build the `starter` artifact from the repo so we can add it as a dependency.
+1. **Build the starter** with bundled models (YOLO, RetinaFace included in JAR).
 2. Create a new Spring Boot project using the Spring CLI.
-3. Add the `spring-vision` starter dependency to the generated project's `pom.xml` using the exact coordinates from this repo.
-4. Create a tiny application class that uses the starter to exercise the framework.
-5. Run and verify the app.
+3. Add the `spring-vision` starter dependency with the exact coordinates.
+4. Create a simple REST controller to test face detection and object detection.
+5. Run and verify the app works with bundled models (no downloads needed).
 
 High-level steps
 
-- Build the starter locally (so Maven can resolve it from the local repository).
-- Generate a new project with Spring CLI.
-- Modify `pom.xml` to include the starter dependency (groupId/artifactId/version from this repo's `starter/pom.xml`).
-- Add a minimal controller or runner to exercise the integration.
-- Run and show successful output.
+- **Build the starter with models**: Run `mvn install -Pdownload-models` to download and bundle YOLO/RetinaFace models.
+- Generate a new Spring Boot project with Spring CLI.
+- Add the spring-vision starter dependency to the project.
+- Create a REST controller to test face/object detection (models included in JAR).
+- Run and verify - no runtime downloads needed!
 
 Script for the video and commands
 
-(1) Build the starter artifact
+(1) Build the starter with bundled models
 
-Narration cue: "First we build the starter artifact from the spring-vision repo so we can add it to our new project as a dependency."
+Narration cue: "First we build the spring-vision starter with all models bundled. This downloads YOLO and RetinaFace models during the build process."
 
-Commands to run in the repo root (assumes the Maven wrapper is present):
+Commands to run in the repo root:
 
 ```bash
-./mvnw -q -pl starter -am clean install
+./mvnw -q clean install -Pdownload-models
 ```
 
 Explanation:
 
-- `-pl starter` builds the `starter` module only.
-- `-am` also builds modules that the starter depends on.
-- `clean install` puts the built starter into your local Maven repository so other projects can consume it.
+- `clean install` builds all modules and installs to local Maven repository.
+- `-Pdownload-models` downloads and bundles AI models (YOLO, RetinaFace) in the JAR.
+- Models are ~500MB total but give you production-ready computer vision.
 
-Checkpoint: After the build, you should see the starter artifact installed to your local Maven repo (usually `~/.m2/repository/...`). The starter coordinates in this repo are:
+Checkpoint: After the build, verify models are included:
 
-- groupId: io.github.codesapienbe.springvision
-- artifactId: starter
-- version: 0.0.1
+```bash
+# Check that models are bundled
+jar -tf starter/target/starter-0.0.1.jar | grep "models/" | head -5
+```
+
+Expected output shows bundled models:
+```
+models/yolov8/yolov8n.pt
+models/yolov8-pose/yolov8n-pose.pt
+models/retinaface/retinaface.pt
+```
 
 (2) Install Spring CLI (if not already installed)
 
@@ -140,19 +148,29 @@ Or build and run the jar:
 java -jar target/vision-demo-0.0.1-SNAPSHOT.jar
 ```
 
-Verification: In another terminal, run:
+Verification: Test the vision capabilities with bundled models:
 
 ```bash
-curl -s http://localhost:8080/health
+# Health check
+curl -s http://localhost:8080/actuator/health
+
+# Test face detection (upload an image with faces)
+curl -X POST -F "file=@face_image.jpg" http://localhost:8080/api/vision/faces
+
+# Test object detection (upload any image)
+curl -X POST -F "file=@any_image.jpg" http://localhost:8080/api/vision/objects
 ```
 
-You should see `OK` or a message coming from the starter's auto-configuration.
+**Expected:** JSON responses with detections using bundled YOLO/RetinaFace models (no downloads needed!)
 
 Troubleshooting
 
-- If Maven fails to resolve the `spring-vision` starter, ensure you ran the `./mvnw -pl starter -am clean install` step and that the coordinates you added match the `starter/pom.xml`.
-- If the `starter` depends on additional modules, the initial local build should have installed those as well because of `-am`.
-- If port 8080 is in use for the demo, run with `--server.port=8081` or set `server.port` in `application.properties`.
+- **Build fails with network errors**: Ensure you have internet access for model downloads. The `-Pdownload-models` profile downloads ~500MB of models.
+- **Models not found**: Verify the build completed with `-Pdownload-models`. Check `jar -tf target/*.jar | grep models/` to confirm models are bundled.
+- **Maven resolution fails**: Ensure you ran the full build first: `./mvnw clean install -Pdownload-models`
+- **Port 8080 in use**: Use `--server.port=8081` or set `server.port=8081` in `application.properties`
+- **Out of memory**: Vision models need memory. Try `-Xmx2g` when running.
+- **GPU not working**: Ensure CUDA drivers are installed and use `spring.vision.djl.device=gpu` in config.
 
 Narration tips for the video
 
