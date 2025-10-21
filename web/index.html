@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJL & Spring Vision Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PDF Export Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F5F5F5;  
+            scroll-behavior: smooth;
+            line-height: 1.65;
+            font-size: 1.125rem;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            max-height: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .color-blue1 { background-color: #00509D; color: white; }
+        .color-blue2 { background-color: #00C6FF; color: #00509D; }
+        .color-blue3 { background-color: #1E96FC; color: white; }
+        .shadow-primary { box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25); }
+        
+        .flow-box {
+            border: 2px solid #1E96FC;
+            background-color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            min-height: 5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition: transform 0.2s ease-in-out;
+        }
+        .flow-arrow { color: #00509D; font-size: 2.5rem; line-height: 1; align-self: center; }
+        .stat-card {
+            background-color: #00509D;
+            color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease-in-out;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+
+        .nav-link { transition: all 0.2s ease-in-out; padding: 0.5rem 1rem; }
+        .nav-link:hover, .nav-link:focus { background-color: #00C6FF; color: #00509D; outline: none; box-shadow: 0 0 0 3px #83EEFF; }
+
+        .feature-card, .capability-card {
+            background-color: #ffffff;
+            border-top: 5px solid #1E96FC;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            border-left: 1px solid #E0E0E0;
+            border-right: 1px solid #E0E0E0;
+        }
+        .feature-card:hover, .capability-card:hover { 
+            transform: scale(1.02);
+            box-shadow: 0 8px 15px rgba(30, 150, 252, 0.3);
+            border-top-color: #00C6FF; 
+        }
+
+        .model-detail {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: #4b5563;
+        }
+        .model-name {
+            font-weight: 700;
+            color: #00509D;
+            font-family: monospace;
+        }
+        .export-button {
+            transition: background-color 0.2s, transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 leading-relaxed">
+
+    <!-- Sticky Navigation Bar (Mobile-First, A11y Focus) -->
+    <nav class="sticky top-0 z-50 bg-[#00509D] shadow-lg" role="navigation" aria-label="Main Infographic Navigation">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <span class="text-xl sm:text-2xl font-black text-white tracking-wider">AI Infographic</span>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-4 text-sm sm:text-base font-semibold">
+                    <a href="#djl-core" class="nav-link rounded-md focus:ring-4 focus:ring-[#83EEFF] focus:ring-opacity-50" aria-label="Go to DJL Core Section">DJL Core</a>
+                    <a href="#spring-vision-framework" class="nav-link rounded-md focus:ring-4 focus:ring-[#83EEFF] focus:ring-opacity-50" aria-label="Go to Spring Vision Framework Section">Spring Vision</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <main role="main" class="container mx-auto p-4 md:p-10">
+        
+        <!-- Branding Bar -->
+        <div class="flex justify-center items-center space-x-6 sm:space-x-12 py-6 mb-8 bg-white rounded-xl shadow-md border-b-4 border-[#00C6FF]">
+            <div class="flex flex-col items-center">
+                <img 
+                    src="https://raw.githubusercontent.com/spring-vision/spring-vision/main/assets/logo.png" 
+                    alt="Spring Vision Logo" 
+                    class="h-16 w-16 sm:h-20 sm:w-20 object-contain"
+                    onerror="this.onerror=null; this.src='https://placehold.co/80x80/1E96FC/FFFFFF?text=SV';"
+                >
+                <span class="text-xs text-gray-500 mt-1 font-semibold">Spring Vision</span>
+            </div>
+            
+            <span class="text-4xl font-light text-gray-400 hidden sm:block">|</span>
+            
+            <div class="flex flex-col items-center">
+                <img 
+                    src="https://placehold.co/120x40/00509D/FFFFFF?text=DJL" 
+                    alt="DJL Logo Placeholder" 
+                    class="h-10 sm:h-12 object-contain"
+                >
+                <span class="text-xs text-gray-500 mt-1 font-semibold">Deep Java Library</span>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="flex justify-center space-x-4 mb-12">
+            <button onclick="exportToPdf()" class="export-button bg-[#1E96FC] text-white hover:bg-opacity-90 focus:ring-4 focus:ring-[#83EEFF] focus:ring-opacity-50">
+                <span>⬇️ Export as PDF</span>
+            </button>
+            <button onclick="exportToMarkdown()" class="export-button bg-gray-700 text-white hover:bg-gray-800 focus:ring-4 focus:ring-[#83EEFF] focus:ring-opacity-50">
+                <span>⬇️ Export as Markdown</span>
+            </button>
+        </div>
+
+        <div id="export-content">
+            <!-- DJL Core Section -->
+            <section id="djl-core" class="pt-2 md:pt-4">
+                <header class="text-center mb-10 md:mb-12">
+                    <h1 class="text-5xl md:text-7xl font-black text-[#00509D]">Deep Java Library (DJL)</h1>
+                    <p class="text-xl md:text-2xl mt-3 text-gray-600">The Native AI Bridge for the Java Ecosystem</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+                    
+                    <section class="md:col-span-2 lg:col-span-3 bg-white rounded-xl shadow-xl p-6 md:p-8">
+                        <h2 class="text-3xl font-bold text-[#00509D] mb-4">What is DJL?</h2>
+                        <p class="text-lg text-gray-700">
+                            The <strong>Deep Java Library (DJL)</strong> is a high-level, open-source library built by Amazon. Its core function is to simplify the development and deployment of deep learning models for Java developers. By acting as a unified <strong>abstraction layer</strong> over deep learning engines, DJL allows engineers to integrate cutting-edge AI (like PyTorch and TensorFlow) directly into their familiar Java applications, bypassing the complexity of environment and engine management.
+                        </p>
+                    </section>
+
+                    <div class="stat-card md:col-span-1 lg:col-span-1">
+                        <span class="text-7xl md:text-8xl font-black text-[#00C6FF]">900+</span>
+                        <span class="text-2xl font-semibold mt-3">Ready Models</span>
+                        <p class="mt-2 text-gray-200 text-base">Models are available in the Model Zoo for immediate use and deployment.</p>
+                    </div>
+
+                    <section class="md:col-span-1 lg:col-span-2 bg-white rounded-xl shadow-xl p-6 md:p-8">
+                        <h2 class="text-2xl font-bold text-[#00509D] mb-4">Model Zoo Domain Distribution</h2>
+                        <p class="text-base text-gray-700 mb-6">The majority of models in the DJL Model Zoo are focused on <strong>Computer Vision (65%)</strong>, providing robust tools for image and video analysis. <strong>NLP</strong> models form the second largest category, emphasizing the library's utility across multiple core AI domains.</p>
+                        <div class="chart-container">
+                            <canvas id="modelZooChart" role="img" aria-label="Doughnut chart showing model distribution: Computer Vision 65%, NLP 25%, Tabular Data 5%, Other 5%."></canvas>
+                        </div>
+                    </section>
+                    
+                    <section class="md:col-span-2 lg:col-span-3 bg-white rounded-xl shadow-xl p-6 md:p-8">
+                        <h2 class="text-3xl font-bold text-[#00509D] mb-6 text-center">DJL's Engine-Agnostic Architecture</h2>
+                        <p class="text-xl text-gray-700 text-center mb-8">This core design principle ensures a developer only interacts with one high-level API, decoupling their application logic from the underlying execution framework, guaranteeing flexibility and future-proofing.</p>
+                        <div class="flex flex-col md:flex-row items-center justify-center space-y-6 md:space-y-0 md:space-x-8 w-full">
+                            <div class="flow-box"><strong>Java Application</strong></div>
+                            <div class="flow-arrow transform md:-rotate-90" aria-hidden="true">⬇</div>
+                            <div class="flow-box bg-[#83EEFF] text-[#00509D]"><strong>DJL High-Level API (djl-api)</strong></div>
+                            <div class="flow-arrow transform md:-rotate-90" aria-hidden="true">⬇</div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flow-box text-sm"><strong>PyTorch</strong></div>
+                                <div class="flow-box text-sm"><strong>TensorFlow</strong></div>
+                                <div class="flow-box text-sm"><strong>MXNet</strong></div>
+                                <div class="flow-box text-sm"><strong>ONNX</strong></div>
+                            </div>
+                        </div>
+                    </section>
+                    
+                </div>
+            </section>
+
+            <!-- Spring Vision Framework Section -->
+            <section id="spring-vision-framework" class="pt-16 mt-20 border-t-8 border-[#1E96FC] rounded-t-xl">
+                <header class="text-center mb-12">
+                    <h2 class="text-5xl md:text-7xl font-black text-[#00509D]">Spring Vision Framework</h2>
+                    <p class="text-xl md:text-2xl mt-4 text-gray-600">The Production-Ready Abstraction for DJL on Spring Boot</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16">
+                    <div class="stat-card md:col-span-1 color-blue3">
+                        <span class="text-6xl md:text-7xl font-black text-white">SPRING</span>
+                        <span class="text-xl font-semibold mt-3">Familiarity</span>
+                        <p class="mt-1 text-gray-200 text-base">Seamless integration with Spring Boot's conventions.</p>
+                    </div>
+                    <div class="stat-card md:col-span-1 color-blue1">
+                        <span class="text-6xl md:text-7xl font-black text-[#00C6FF]">DJL</span>
+                        <span class="text-xl font-semibold mt-3">Power</span>
+                        <p class="mt-1 text-gray-200 text-base">Handles all model downloading and inference logic.</p>
+                    </div>
+                    <div class="stat-card md:col-span-1 color-blue2">
+                        <span class="text-6xl md:text-7xl font-black text-[#00509D]">API</span>
+                        <span class="text-xl font-semibold mt-3 text-gray-700">Simplicity</span>
+                        <p class="mt-1 text-base text-[#00509D]">A single `VisionTemplate` bean for all CV operations.</p>
+                    </div>
+                </div>
+
+                <section class="bg-white rounded-xl shadow-xl p-6 md:p-8 mb-12">
+                    <h3 class="text-3xl font-bold text-[#00509D] mb-6 text-center">Core Framework Features</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="feature-card">
+                            <p class="text-5xl mb-3 text-[#00509D]" aria-hidden="true">⚙️</p>
+                            <h4 class="text-xl font-bold text-gray-800">Auto-Configuration</h4>
+                            <p class="text-base text-gray-600 mt-2">Vision capabilities are automatically enabled and injected as a Spring bean upon dependency inclusion.</p>
+                        </div>
+                        <div class="feature-card">
+                            <p class="text-5xl mb-3 text-[#00509D]" aria-hidden="true">🔌</p>
+                            <h4 class="text-xl font-bold text-gray-800">Engine Abstraction</h4>
+                            <p class="text-base text-gray-600 mt-2">Allows runtime switching between DJL backends (PyTorch, ONNX) via simple `application.yml` profiles.</p>
+                        </div>
+                        <div class="feature-card">
+                            <p class="text-5xl mb-3 text-[#00509D]" aria-hidden="true">📈</p>
+                            <h4 class="text-xl font-bold text-gray-800">Actuator Metrics</h4>
+                            <p class="text-base text-gray-600 mt-2">Provides out-of-the-box health checks and operational metrics, compatible with Prometheus/Grafana stacks.</p>
+                        </div>
+                        <div class="feature-card">
+                            <p class="text-5xl mb-3 text-[#00509D]" aria-hidden="true">⚡</p>
+                            <h4 class="text-xl font-bold text-gray-800">GPU Acceleration</h4>
+                            <p class="text-base text-gray-600 mt-2">Toggle CUDA support using a Spring profile (`--spring.profiles.active=gpu`).</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="md:col-span-3 bg-white rounded-xl shadow-xl p-6 md:p-8 mt-12">
+                    <h3 class="text-3xl font-bold text-[#00509D] mb-6 text-center">VisionTemplate: Deep Dive into Multi-Class Prediction (MCP)</h3>
+                    <p class="text-xl text-gray-700 text-center mb-10">
+                        The `VisionTemplate` bean simplifies complex MCP tasks by mapping them to high-level, production-grade DJL models. The models listed below are currently used or represent the target model type for the corresponding method.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🧑‍🔬</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Face Detection</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Locate and box faces in an image for preprocessing or authentication.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectFaces(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">RetinaFace</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">📦</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Object Detection</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Identify, locate, and classify multiple instances of objects (e.g., cars, pets, furniture).</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectObjects(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">YOLOv5</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🖼️</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Image Classification</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Assign a single, dominant label to an entire image (e.g., "landscape," "animal").</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">classifyImage(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">ResNet-50</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🔤</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Text Recognition (OCR)</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Extract readable text from unstructured image data, such as documents or signs.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">recognizeText(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">PaddleOCR</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision / NLP</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🤸</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Pose Estimation</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Detect and map human joints (keypoints) for activity tracking or virtual applications.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">estimatePose(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">SimplePose</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">😮</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Emotion Analysis</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Classify the dominant facial emotion (e.g., happy, sad, neutral) in a detected face.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">analyzeEmotions(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">FER Model</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                        </div>
+                        
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">✂️</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Image Segmentation</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Pixel-level classification to delineate object boundaries and shapes within an image.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">segmentImage(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">U-Net / DeepLabV3</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Segmentation)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🚗</span>
+                                <h4 class="text-2xl font-bold text-gray-800">License Plate Detection</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Specialized detection for localizing vehicle license plates for automated systems.</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectLicensePlate(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">MobileNet SSD (Tuned)</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
+                        </div>
+
+                        <div class="capability-card">
+                            <div class="flex items-center space-x-3 mb-3">
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">✨</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Image Quality Assessment</h4>
+                            </div>
+                            <p class="text-base text-gray-700">Non-reference scoring of image aesthetics or technical quality (e.g., blur, noise).</p>
+                            <hr class="my-3 border-gray-200">
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">imageQuality(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">NIMA (Aesthetics)</span></p>
+                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                        </div>
+
+                    </div>
+                </section>
+            </section>
+        </div>
+
+        <footer class="text-center mt-20 py-8 border-t-2 border-[#1E96FC]">
+            <p class="text-xl text-[#00509D] font-semibold">Build intelligent, scalable Java applications with the power of DJL and the simplicity of Spring Vision.</p>
+            <p class="text-gray-600 mt-2 text-base">DJL is an open-source project by Amazon. Spring Vision is an open-source framework by codesapienbe.</p>
+        </footer>
+    </main>
+
+<script>
+    
+    function exportToPdf() {
+        const { jsPDF } = window.jspdf;
+        const mainContent = document.getElementById('export-content');
+        
+        const originalMarginTop = mainContent.style.marginTop;
+        const originalMarginBottom = mainContent.style.marginBottom;
+        mainContent.style.marginTop = '20px';
+        mainContent.style.marginBottom = '20px';
+
+        html2canvas(mainContent, {
+            scale: 2,
+            logging: false,
+            useCORS: true 
+        }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210;
+            const pageHeight = 295;
+            const imgHeight = canvas.height * imgWidth / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
+
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save('DJL-SpringVision-Infographic.pdf');
+        }).finally(() => {
+             mainContent.style.marginTop = originalMarginTop;
+             mainContent.style.marginBottom = originalMarginBottom;
+        });
+    }
+
+    function exportToMarkdown() {
+        const content = document.getElementById('export-content');
+        let mdContent = "## DJL & Spring Vision Infographic\n\n";
+
+        // --- DJL Core Section ---
+        const djlSection = content.querySelector('#djl-core');
+        mdContent += `\n# ${djlSection.querySelector('h1').textContent}\n`;
+        mdContent += `${djlSection.querySelector('.text-xl.md\\:text-2xl').textContent}\n\n`;
+        
+        mdContent += `## ${djlSection.querySelector('h2').textContent}\n`;
+        mdContent += `${djlSection.querySelector('.bg-white p').textContent.trim()}\n\n`;
+
+        mdContent += `## Core Metrics\n`;
+        djlSection.querySelectorAll('.stat-card').forEach(card => {
+            const title = card.querySelector('span:nth-child(2)').textContent.trim();
+            const value = card.querySelector('span:nth-child(1)').textContent.trim();
+            const desc = card.querySelector('p').textContent.trim();
+            mdContent += `- **${title}**: ${value} - ${desc}\n`;
+        });
+        mdContent += `\n`;
+        
+        mdContent += `## Model Zoo Domain Distribution\n`;
+        mdContent += `(Data visualization not exportable; Key data: Computer Vision 65%, NLP 25%, Tabular Data 5%, Other 5%)\n\n`;
+        
+        mdContent += `## DJL's Engine-Agnostic Architecture\n`;
+        mdContent += `This core design principle ensures a developer only interacts with one high-level API, decoupling their application logic from the underlying execution framework, guaranteeing flexibility and future-proofing.\n`;
+        mdContent += `\n--- Flow: Java Application -> DJL High-Level API -> (PyTorch, TensorFlow, MXNet, ONNX) ---\n\n`;
+
+
+        // --- Spring Vision Framework Section ---
+        const svSection = content.querySelector('#spring-vision-framework');
+        mdContent += `\n# ${svSection.querySelector('h2').textContent}\n`;
+        mdContent += `${svSection.querySelector('.text-xl.md\\:text-2xl').textContent}\n\n`;
+
+        mdContent += `## Core Framework Features\n`;
+        svSection.querySelectorAll('.feature-card').forEach(card => {
+            const title = card.querySelector('h4').textContent.trim();
+            const desc = card.querySelector('p:last-child').textContent.trim();
+            mdContent += `- **${title}**: ${desc}\n`;
+        });
+        mdContent += `\n`;
+
+        mdContent += `## VisionTemplate: Multi-Class Prediction (MCP) Capabilities\n`;
+        svSection.querySelectorAll('.capability-card').forEach(card => {
+            const title = card.querySelector('h4').textContent.trim();
+            const desc = card.querySelector('p:nth-of-type(1)').textContent.trim();
+            const method = card.querySelector('code').textContent.trim();
+            const model = card.querySelector('.model-name').textContent.trim();
+            const domain = card.querySelector('.model-detail:last-child').textContent.replace('DJL Domain: ', '').trim();
+
+            mdContent += `\n### ${title}\n`;
+            mdContent += `*Description*: ${desc}\n`;
+            mdContent += `*Method*: \`${method}\`\n`;
+            mdContent += `*Core Model*: ${model}\n`;
+            mdContent += `*DJL Domain*: ${domain}\n`;
+        });
+
+        // Download logic
+        const blob = new Blob([mdContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'DJL-SpringVision-Capabilities.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    
+    window.onload = function() {
+        const COLORS = {
+            blue1: '#00509D',
+            blue3: '#1E96FC',
+            blue2: '#00C6FF',
+            blue4: '#83EEFF',
+            gray: '#F5F5F5',
+        };
+
+        const FONT_OPTIONS = {
+            font: {
+                family: 'Inter, sans-serif',
+                size: 14,
+            }
+        };
+
+        const universalTooltipCallback = {
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const item = tooltipItems[0];
+                            let label = item.chart.data.labels[item.dataIndex];
+                            if (Array.isArray(label)) {
+                                return label.join(' ');
+                            } else {
+                                return label;
+                            }
+                        }
+                    }
+                },
+                legend: {
+                    labels: {
+                        ...FONT_OPTIONS
+                    }
+                }
+            }
+        };
+        
+        new Chart(document.getElementById('modelZooChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Computer Vision', 'NLP', 'Tabular Data', 'Other'],
+                datasets: [{
+                    label: 'Model Domain Distribution',
+                    data: [65, 25, 5, 5],
+                    backgroundColor: [COLORS.blue1, COLORS.blue3, COLORS.blue2, COLORS.blue4],
+                    borderColor: COLORS.gray,
+                    borderWidth: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                ...universalTooltipCallback,
+                plugins: {
+                    ...universalTooltipCallback.plugins,
+                    legend: {
+                        position: 'right',
+                        labels: { ...FONT_OPTIONS }
+                    }
+                }
+            }
+        });
+    };
+</script>
+</body>
+</html>
+
