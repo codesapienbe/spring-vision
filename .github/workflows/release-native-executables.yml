@@ -3,7 +3,7 @@ on:
   push:
     tags:
       - 'v*'
-      
+
 jobs:
   check-secrets:
     name: Check Secrets
@@ -24,8 +24,8 @@ jobs:
           APP_ID: ${{ vars.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
-  build-mcp:
-    name: Build MCP JAR
+  build-jars:
+    name: Build JARs
     needs: check-secrets
     runs-on: ubuntu-latest
     steps:
@@ -46,24 +46,39 @@ jobs:
           restore-keys: |
             ubuntu-maven-
 
-      - name: Build MCP JAR
+      - name: Build JARs
         run: |
-          mvn -B -pl mcp -am clean package -DskipTests
+          mvn -B -pl core,mcp,starter -am clean package -DskipTests
 
-      - name: Upload MCP JAR artifact
+      - name: Upload core JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-jar
+          path: core/target/core-*.jar
+          if-no-files-found: error
+
+      - name: Upload mcp JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: mcp-jar
           path: mcp/target/mcp-*.jar
           if-no-files-found: error
 
+      - name: Upload starter JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: starter-jar
+          path: starter/target/starter-*.jar
+          if-no-files-found: error
+
   create-release:
     name: Create GitHub Release
-    needs: build-mcp
+    needs: build-jars
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,11 +89,6 @@ jobs:
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
 
       - name: Set VERSION
         run: |
@@ -97,10 +107,12 @@ jobs:
           body: |
             ## Spring Vision ${{ github.ref_name }}
 
-            This release includes the MCP server JAR.
+            This release includes JARs for core, mcp, and starter modules.
 
             ### Downloads
+            - **Core JAR**: `core-${{ env.VERSION }}.jar`
             - **MCP Server JAR**: `mcp-${{ env.VERSION }}.jar` (requires Java 21+)
+            - **Starter JAR**: `starter-${{ env.VERSION }}.jar`
 
             ### Running the MCP Server
             ```bash
@@ -114,12 +126,110 @@ jobs:
           draft: false
           prerelease: false
 
+  upload-core:
+    name: Upload Core JAR
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download core JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: core-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload Core JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./core-*.jar
+          asset_name: core-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-starter:
+    name: Upload Starter JAR
+    needs: upload-core
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download starter JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: starter-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload Starter JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./starter-*.jar
+          asset_name: starter-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-mcp:
+    name: Upload MCP JAR
+    needs: upload-starter
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download mcp JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Upload MCP JAR release asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./artifacts/mcp-jar/mcp-*.jar
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./mcp-*.jar
           asset_name: mcp-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive
