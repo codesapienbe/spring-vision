@@ -158,7 +158,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./core-*.jar
+          asset_path: ./core-${{ env.VERSION }}.jar
           asset_name: core-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive
 
@@ -194,7 +194,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./starter-*.jar
+          asset_path: ./starter-${{ env.VERSION }}.jar
           asset_name: starter-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive
 
@@ -230,6 +230,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         with:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./mcp-*.jar
+          asset_path: ./mcp-${{ env.VERSION }}.jar
           asset_name: mcp-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive
