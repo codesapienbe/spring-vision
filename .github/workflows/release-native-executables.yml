@@ -1,0 +1,183 @@
+name: Release Native Executables
+on:
+  push:
+    tags:
+      - 'v*'
+      - '!v*-native'
+
+jobs:
+  build-native:
+    name: Build Native Executable (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact-name: spring-vision-linux-x64
+            executable-name: spring-vision
+          - os: macos-latest
+            artifact-name: spring-vision-macos-x64
+            executable-name: spring-vision
+          - os: macos-latest
+            artifact-name: spring-vision-macos-arm64
+            executable-name: spring-vision
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            artifact-name: spring-vision-windows-x64
+            executable-name: spring-vision.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: 'latest'
+          java-version: '21'
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up GraalVM (macOS)
+        if: runner.os == 'macOS'
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: 'latest'
+          java-version: '21'
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up GraalVM (Windows)
+        if: runner.os == 'Windows'
+        uses: graalvm/setup-graalvm@v1
+        with:
+          version: 'latest'
+          java-version: '21'
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build native executable
+        run: |
+          cd cli
+          mvn -B -Pnative native:compile
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: cli/target/native/spring-vision${{ runner.os == 'Windows' && '.exe' || '' }}
+          if-no-files-found: error
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release archives
+        run: |
+          cd artifacts
+          for dir in */; do
+            if [ -d "$dir" ]; then
+              executable="${dir%/}"
+              cd "$dir"
+              if [[ "$executable" == *"windows"* ]]; then
+                zip "../../${executable}.zip" *
+              else
+                tar -czf "../../${executable}.tar.gz" *
+              fi
+              cd ..
+            fi
+          done
+          cd ..
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## Spring Vision ${{ github.ref_name }}
+
+            This release includes native executables for multiple platforms.
+
+            ### Downloads
+            - **Linux x64**: `spring-vision-linux-x64.tar.gz`
+            - **macOS x64**: `spring-vision-macos-x64.tar.gz`
+            - **macOS ARM64**: `spring-vision-macos-arm64.tar.gz`
+            - **Windows x64**: `spring-vision-windows-x64.zip`
+
+            ### Installation
+            1. Download the appropriate archive for your platform
+            2. Extract the executable
+            3. Run `./spring-vision` (or `spring-vision.exe` on Windows)
+
+            ### Features
+            - Automated setup for computer vision capabilities
+            - Cross-platform native executables
+            - No JVM required for runtime
+          draft: false
+          prerelease: false
+
+      - name: Upload Linux x64 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./spring-vision-linux-x64.tar.gz
+          asset_name: spring-vision-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS x64 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./spring-vision-macos-x64.tar.gz
+          asset_name: spring-vision-macos-x64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS ARM64 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./spring-vision-macos-arm64.tar.gz
+          asset_name: spring-vision-macos-arm64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Windows x64 release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./spring-vision-windows-x64.zip
+          asset_name: spring-vision-windows-x64.zip
+          asset_content_type: application/zip
