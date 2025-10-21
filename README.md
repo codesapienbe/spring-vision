@@ -149,7 +149,7 @@ spring:
 
 ## Current Capabilities
 
-Spring Vision 0.0.1 provides these computer vision capabilities (all models included in JAR):
+Spring Vision 0.0.2 provides these computer vision capabilities (all models included in JAR):
 
 ### ✅ **Production Ready**
 - **Face Detection** - High-accuracy RetinaFace model (included)
