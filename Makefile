@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean deploy release docs test installer default
+.PHONY: build clean deploy release docs test default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -45,13 +45,6 @@ docs:
 	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
 	echo "Javadocs report generated successfully in javadocs.txt" || \
 	echo "Javadocs generation completed with warnings/errors - see javadocs.txt for details"
-
-# Build the CLI installer JAR
-installer:
-	@echo "Building Spring Vision CLI installer..."
-	mvn clean package -pl cli -am -DskipTests || ( echo "CLI installer build failed!" && exit 1 )
-	@echo "CLI installer built: cli/target/cli-0.0.1.jar"
-	@echo "To use: java -jar cli/target/cli-0.0.1.jar --help"
 
 # Run only the DjlVisionBackend integration test
 test:
