@@ -55,7 +55,7 @@ installer:
 
 # Run only the DjlVisionBackend integration test
 test:
-	@echo "Running DjlVisionBackend integration tests (core module)..."
-	# Run only in the core module to avoid failing other modules that don't contain these tests
-	mvn -pl core -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest test || \
+	@echo "Running DjlVisionBackend integration tests (core module) and VisionTool integration test (mcp module)..."
+	# Run only in the core and mcp modules to avoid failing other modules that don't contain these tests
+	mvn -pl core,mcp -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest,io.github.codesapienbe.springvision.mcp.VisionToolIntegrationTest test || \
 	( echo "Integration tests failed" && exit 1 )
