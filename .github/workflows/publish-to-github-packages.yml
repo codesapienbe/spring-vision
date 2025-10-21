@@ -10,6 +10,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug GitHub App setup
+        run: |
+          echo "APP_ID exists: ${{ vars.APP_ID != '' }}"
+          echo "APP_PRIVATE_KEY exists: ${{ secrets.APP_PRIVATE_KEY != '' }}"
+          echo "GitHub Actor: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Set up JDK 21 and configure Maven server for GitHub Packages
         uses: actions/setup-java@v4
         with:
@@ -17,7 +31,7 @@ jobs:
           java-version: 21
           server-id: github
           server-username: ${{ github.actor }}
-          server-password: ${{ secrets.PACKAGES_RELEASE_TOKEN }}
+          server-password: ${{ steps.app-token.outputs.token }}
 
       - name: Build and deploy to GitHub Packages
         env:
