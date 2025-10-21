@@ -164,7 +164,7 @@ jobs:
 
   upload-starter:
     name: Upload Starter JAR
-    needs: upload-core
+    needs: [ create-release, upload-core ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -200,7 +200,7 @@ jobs:
 
   upload-mcp:
     name: Upload MCP JAR
-    needs: upload-starter
+    needs: [ create-release, upload-starter ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
