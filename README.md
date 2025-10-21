@@ -41,21 +41,19 @@
 
 ### Quick Install (Recommended for End Users)
 
-For the easiest installation experience, use our automated installer:
+For the easiest installation experience, run our CLI setup tool directly with JBang:
 
 ```bash
-# Download the installer JAR (replace with actual download URL)
-curl -L -o spring-vision-installer.jar https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/spring-vision-installer.jar
-
-# Run the installer
-java -jar spring-vision-installer.jar install
+# Run the setup tool directly from GitHub releases
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
 ```
 
-That's it! The installer will:
-- ✅ Check system requirements
-- 📦 Install Spring Vision with bundled AI models (YOLO, RetinaFace)
-- ⚙️ Configure MCP settings for Claude Desktop
-- 🚀 Create run scripts (models included - no downloads needed!)
+That's it! The CLI tool will automatically:
+- ✅ Check for JBang installation and guide you if needed
+- 📦 Download the latest Spring Vision MCP Server JAR (~983MB)
+- 💾 Store it locally in `~/.springvision/` (no re-downloads needed!)
+- ℹ️ Show you how to configure your MCP client
+- 🚀 Set up everything automatically with no manual steps required!
 
 ### Manual Installation
 
@@ -109,6 +107,55 @@ public class VisionController {
 ```
 
 That's it! Your Spring Boot application now has state-of-the-art computer vision capabilities powered by DJL.
+
+## 🤖 MCP Client Configuration
+
+After running the CLI tool, configure your MCP client (Claude Desktop, VS Code, etc.) to use Spring Vision:
+
+### Using the CLI Tool Output
+
+The CLI tool will show you the exact configuration. Here's an example:
+
+```json
+{
+  "mcpServers": {
+    "spring-vision": {
+      "command": "jbang",
+      "args": ["/home/youruser/.springvision/mcp-0.0.2.jar"]
+    }
+  }
+}
+```
+
+### Manual Configuration
+
+1. **Find your MCP config file:**
+   - Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - VS Code: `~/.cursor/mcp.json`
+   - Other clients: Check their documentation
+
+2. **Add Spring Vision configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "spring-vision": {
+         "command": "jbang",
+         "args": ["~/.springvision/mcp-0.0.2.jar"]
+       }
+     }
+   }
+   ```
+
+3. **Restart your MCP client** to load the new configuration
+
+### Testing the Setup
+
+After configuration, restart your MCP client. You should see Spring Vision tools available with capabilities like:
+- Face detection and recognition
+- Object detection
+- Image classification
+- Text extraction (OCR)
+- And many more!
 
 ## ⚙️ Configuration
 
@@ -199,25 +246,41 @@ Spring Vision uses a modern, capability-based architecture built on the Deep Jav
 - **Auto-Configuration**: Zero-configuration setup with intelligent defaults
 - **Runtime Downloads**: Advanced models download on-demand
 
-## CLI Installer Commands
+## CLI Setup Commands
 
-The Spring Vision installer provides several commands:
+The Spring Vision CLI tool provides several options:
 
 ```bash
-# Install Spring Vision
-java -jar spring-vision-installer.jar install
+# Basic setup (downloads latest version)
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
 
-# Check installation status
-java -jar spring-vision-installer.jar status
-
-# Update to latest version
-java -jar spring-vision-installer.jar update
-
-# Uninstall Spring Vision
-java -jar spring-vision-installer.jar uninstall
+# Force re-download even if JAR exists
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --force
 
 # Show help
-java -jar spring-vision-installer.jar --help
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --help
+
+# Show version
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --version
+
+# Disable colors (for CI/CD)
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --no-color
+
+# Verbose output (for debugging)
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --verbose
+```
+
+### Managing Your Installation
+
+```bash
+# Update to latest version
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --force
+
+# Check JAR location
+ls -la ~/.springvision/
+
+# Remove downloaded JAR
+rm ~/.springvision/mcp-*.jar
 ```
 
 ## GPU Acceleration (Optional)

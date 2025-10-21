@@ -14,8 +14,11 @@ curl -Ls https://sh.jbang.dev | bash -s - app setup
 2. Run the MCP server:
 
 ```bash
-# Run the server (it will wait for JSON-RPC requests on stdin)
-jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar
+# First, set up Spring Vision using the CLI (downloads the JAR automatically)
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
+
+# Then run the downloaded MCP server (it will wait for JSON-RPC requests on stdin)
+jbang ~/.springvision/mcp-0.0.2.jar
 ```
 
 Wait for "Spring Vision MCP Server ready", then send JSON payloads to the running server by pasting them in the terminal or using bash commands.
@@ -27,7 +30,7 @@ To send JSON programmatically via bash:
 1. Find the server process PID:
 
 ```bash
-PID=$(pgrep -f "jbang.*mcp-0.0.1.jar")
+PID=$(pgrep -f "jbang.*mcp-0.0.2.jar")
 ```
 
 2. Send the JSON:

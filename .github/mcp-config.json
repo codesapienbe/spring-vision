@@ -3,7 +3,7 @@
     "spring-vision": {
       "command": "jbang",
       "args": [
-        "https://github.com/codesapienbe/spring-vision/releases/download/v0.0.2/mcp-0.0.2.jar"
+        "${HOME}/.springvision/mcp-0.0.2.jar"
       ]
     }
   }

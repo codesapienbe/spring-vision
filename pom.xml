@@ -108,6 +108,7 @@
     <module>core</module>
     <module>starter</module>
     <module>mcp</module>
+    <module>cli</module>
   </modules>
 
   <dependencyManagement>
