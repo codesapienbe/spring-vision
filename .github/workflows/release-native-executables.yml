@@ -48,7 +48,7 @@ jobs:
 
       - name: Build JARs
         run: |
-          mvn -B -pl core,mcp,starter -am clean package -DskipTests
+          mvn -B -pl core,mcp,starter -am clean package -DskipTests -Pdownload-models
 
       - name: Upload core JAR artifact
         uses: actions/upload-artifact@v4

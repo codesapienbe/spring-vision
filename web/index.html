@@ -219,7 +219,7 @@
             <section id="spring-vision-framework" class="pt-16 mt-20 border-t-8 border-[#1E96FC] rounded-t-xl">
                 <header class="text-center mb-12">
                     <h2 class="text-5xl md:text-7xl font-black text-[#00509D]">Spring Vision Framework</h2>
-                    <p class="text-xl md:text-2xl mt-4 text-gray-600">The Production-Ready Abstraction for DJL on Spring Boot</p>
+                    <p class="text-xl md:text-2xl mt-4 text-gray-600">Self-Contained Computer Vision for Spring Boot - Models Included!</p>
                 </header>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-16">
@@ -229,9 +229,9 @@
                         <p class="mt-1 text-gray-200 text-base">Seamless integration with Spring Boot's conventions.</p>
                     </div>
                     <div class="stat-card md:col-span-1 color-blue1">
-                        <span class="text-6xl md:text-7xl font-black text-[#00C6FF]">DJL</span>
-                        <span class="text-xl font-semibold mt-3">Power</span>
-                        <p class="mt-1 text-gray-200 text-base">Handles all model downloading and inference logic.</p>
+                        <span class="text-6xl md:text-7xl font-black text-[#00C6FF]">MODELS</span>
+                        <span class="text-xl font-semibold mt-3">Bundled</span>
+                        <p class="mt-1 text-gray-200 text-base">YOLOv8 & RetinaFace included in JAR - no downloads needed!</p>
                     </div>
                     <div class="stat-card md:col-span-1 color-blue2">
                         <span class="text-6xl md:text-7xl font-black text-[#00509D]">API</span>
@@ -267,9 +267,9 @@
                 </section>
                 
                 <section class="md:col-span-3 bg-white rounded-xl shadow-xl p-6 md:p-8 mt-12">
-                    <h3 class="text-3xl font-bold text-[#00509D] mb-6 text-center">VisionTemplate: Deep Dive into Multi-Class Prediction (MCP)</h3>
+                    <h3 class="text-3xl font-bold text-[#00509D] mb-6 text-center">VisionTemplate: Production-Ready Computer Vision</h3>
                     <p class="text-xl text-gray-700 text-center mb-10">
-                        The `VisionTemplate` bean simplifies complex MCP tasks by mapping them to high-level, production-grade DJL models. The models listed below are currently used or represent the target model type for the corresponding method.
+                        The `VisionTemplate` bean provides 8+ production-ready computer vision capabilities. Core models (YOLOv8, RetinaFace) are bundled in the JAR - no downloads required! Advanced AI models download on-demand from DJL Model Zoo.
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -278,10 +278,10 @@
                                 <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🧑‍🔬</span>
                                 <h4 class="text-2xl font-bold text-gray-800">Face Detection</h4>
                             </div>
-                            <p class="text-base text-gray-700">Locate and box faces in an image for preprocessing or authentication.</p>
+                            <p class="text-base text-gray-700">High-accuracy face detection with 5-point landmarks. Model bundled in JAR.</p>
                             <hr class="my-3 border-gray-200">
                             <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectFaces(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">RetinaFace</span></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">RetinaFace</span> (Bundled)</p>
                             <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
                         </div>
 
@@ -290,23 +290,23 @@
                                 <span class="text-4xl text-[#1E96FC]" aria-hidden="true">📦</span>
                                 <h4 class="text-2xl font-bold text-gray-800">Object Detection</h4>
                             </div>
-                            <p class="text-base text-gray-700">Identify, locate, and classify multiple instances of objects (e.g., cars, pets, furniture).</p>
+                            <p class="text-base text-gray-700">80+ COCO classes detection (cars, pets, furniture). YOLOv8 model bundled in JAR.</p>
                             <hr class="my-3 border-gray-200">
                             <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectObjects(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">YOLOv5</span></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">YOLOv8</span> (Bundled)</p>
                             <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
                         </div>
 
                         <div class="capability-card">
                             <div class="flex items-center space-x-3 mb-3">
-                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🖼️</span>
-                                <h4 class="text-2xl font-bold text-gray-800">Image Classification</h4>
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">📱</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Barcode Scanning</h4>
                             </div>
-                            <p class="text-base text-gray-700">Assign a single, dominant label to an entire image (e.g., "landscape," "animal").</p>
+                            <p class="text-base text-gray-700">Detect and decode QR codes, barcodes, and data matrices.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">classifyImage(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">ResNet-50</span></p>
-                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectBarcodes(bytes)</code></p>
+                            <p class="model-detail"><strong>Library:</strong> <span class="model-name">ZXing</span> (Bundled)</p>
+                            <p class="model-detail"><strong>Format Support:</strong> QR Code, EAN-13, Code-128, Data Matrix</p>
                         </div>
 
                         <div class="capability-card">
@@ -326,59 +326,59 @@
                                 <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🤸</span>
                                 <h4 class="text-2xl font-bold text-gray-800">Pose Estimation</h4>
                             </div>
-                            <p class="text-base text-gray-700">Detect and map human joints (keypoints) for activity tracking or virtual applications.</p>
+                            <p class="text-base text-gray-700">17-joint human pose detection for activity tracking and fall detection.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">estimatePose(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">SimplePose</span></p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectPoses(bytes)</code></p>
+                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">YOLOv8 Pose</span> (Bundled)</p>
                             <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
                         </div>
 
                         <div class="capability-card">
                             <div class="flex items-center space-x-3 mb-3">
-                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">😮</span>
-                                <h4 class="text-2xl font-bold text-gray-800">Emotion Analysis</h4>
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">📊</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Metadata Extraction</h4>
                             </div>
-                            <p class="text-base text-gray-700">Classify the dominant facial emotion (e.g., happy, sad, neutral) in a detected face.</p>
+                            <p class="text-base text-gray-700">Extract EXIF, GPS, and camera metadata from images.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">analyzeEmotions(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">FER Model</span></p>
-                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">extractMetaData(bytes)</code></p>
+                            <p class="model-detail"><strong>Library:</strong> <span class="model-name">Metadata Extractor</span> (Bundled)</p>
+                            <p class="model-detail"><strong>Supports:</strong> EXIF, IPTC, XMP, GPS coordinates</p>
                         </div>
                         
                         <div class="capability-card">
                             <div class="flex items-center space-x-3 mb-3">
-                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">✂️</span>
-                                <h4 class="text-2xl font-bold text-gray-800">Image Segmentation</h4>
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🚨</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Fall Detection</h4>
                             </div>
-                            <p class="text-base text-gray-700">Pixel-level classification to delineate object boundaries and shapes within an image.</p>
+                            <p class="text-base text-gray-700">Analyze pose data to detect falls and assess fall risk for elderly care.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">segmentImage(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">U-Net / DeepLabV3</span></p>
-                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Segmentation)</p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectFall(images)</code></p>
+                            <p class="model-detail"><strong>Based on:</strong> <span class="model-name">YOLOv8 Pose</span> (Bundled)</p>
+                            <p class="model-detail"><strong>Use Case:</strong> Safety monitoring, healthcare</p>
                         </div>
 
                         <div class="capability-card">
                             <div class="flex items-center space-x-3 mb-3">
-                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🚗</span>
-                                <h4 class="text-2xl font-bold text-gray-800">License Plate Detection</h4>
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">❤️</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Heart Rate Monitoring</h4>
                             </div>
-                            <p class="text-base text-gray-700">Specialized detection for localizing vehicle license plates for automated systems.</p>
+                            <p class="text-base text-gray-700">Remote photoplethysmography (rPPG) to estimate heart rate from facial video.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectLicensePlate(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">MobileNet SSD (Tuned)</span></p>
-                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Detection)</p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">detectHeartRate(images)</code></p>
+                            <p class="model-detail"><strong>Based on:</strong> <span class="model-name">RetinaFace</span> (Bundled)</p>
+                            <p class="model-detail"><strong>Use Case:</strong> Wellness monitoring, research</p>
                         </div>
 
                         <div class="capability-card">
                             <div class="flex items-center space-x-3 mb-3">
-                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">✨</span>
-                                <h4 class="text-2xl font-bold text-gray-800">Image Quality Assessment</h4>
+                                <span class="text-4xl text-[#1E96FC]" aria-hidden="true">🎨</span>
+                                <h4 class="text-2xl font-bold text-gray-800">Image Annotation</h4>
                             </div>
-                            <p class="text-base text-gray-700">Non-reference scoring of image aesthetics or technical quality (e.g., blur, noise).</p>
+                            <p class="text-base text-gray-700">Draw bounding boxes, labels, and overlays on detected objects.</p>
                             <hr class="my-3 border-gray-200">
-                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">imageQuality(bytes)</code></p>
-                            <p class="model-detail"><strong>Core Model:</strong> <span class="model-name">NIMA (Aesthetics)</span></p>
-                            <p class="model-detail"><strong>DJL Domain:</strong> Computer Vision (Classification)</p>
+                            <p class="model-detail"><strong>Method:</strong> <code class="text-[#1E96FC] font-mono">annotate(image, request)</code></p>
+                            <p class="model-detail"><strong>Library:</strong> <span class="model-name">Java Graphics2D</span> (Bundled)</p>
+                            <p class="model-detail"><strong>Features:</strong> Boxes, labels, obscuring, custom styling</p>
                         </div>
 
                     </div>
@@ -387,8 +387,8 @@
         </div>
 
         <footer class="text-center mt-20 py-8 border-t-2 border-[#1E96FC]">
-            <p class="text-xl text-[#00509D] font-semibold">Build intelligent, scalable Java applications with the power of DJL and the simplicity of Spring Vision.</p>
-            <p class="text-gray-600 mt-2 text-base">DJL is an open-source project by Amazon. Spring Vision is an open-source framework by codesapienbe.</p>
+            <p class="text-xl text-[#00509D] font-semibold">Build production-ready computer vision applications with bundled AI models - no downloads required!</p>
+            <p class="text-gray-600 mt-2 text-base">DJL is an open-source project by Amazon. Spring Vision includes YOLOv8 & RetinaFace models bundled in JAR.</p>
         </footer>
     </main>
 
