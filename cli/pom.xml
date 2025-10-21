@@ -18,7 +18,6 @@
   <properties>
     <spring-boot.version>3.2.8</spring-boot.version>
     <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
-    <native-maven-plugin.version>0.10.5</native-maven-plugin.version>
   </properties>
 
   <dependencies>
@@ -91,55 +90,6 @@
 
     </plugins>
 
-    <!-- Profile-specific plugins -->
-    <pluginManagement>
-      <plugins>
-        <!-- GraalVM Native Image Plugin (only active with native profile) -->
-        <plugin>
-          <groupId>org.graalvm.buildtools</groupId>
-          <artifactId>native-maven-plugin</artifactId>
-          <version>${native-maven-plugin.version}</version>
-          <extensions>true</extensions>
-          <configuration>
-            <mainClass>io.github.codesapienbe.springvision.cli.SpringVisionInstaller</mainClass>
-            <imageName>spring-vision</imageName>
-          <buildArgs>
-            <buildArg>--no-fallback</buildArg>
-            <buildArg>--initialize-at-build-time=org.springframework</buildArg>
-            <buildArg>--initialize-at-build-time=org.slf4j</buildArg>
-            <buildArg>--initialize-at-build-time=ch.qos.logback</buildArg>
-            <buildArg>--initialize-at-build-time=org.apache.commons.logging.LogAdapter$Slf4jLocationAwareLog</buildArg>
-            <buildArg>--initialize-at-run-time=org.springframework.core.io.VfsUtils</buildArg>
-            <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-          </buildArgs>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-
   </build>
 
-  <!-- Profiles -->
-  <profiles>
-    <profile>
-      <id>native</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.graalvm.buildtools</groupId>
-            <artifactId>native-maven-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>build-native</id>
-                <goals>
-                  <goal>compile-no-fork</goal>
-                </goals>
-                <phase>package</phase>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

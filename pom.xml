@@ -500,34 +500,5 @@
       </properties>
     </profile>
 
-    <!-- Native Profile for GraalVM Native Image Compilation -->
-    <profile>
-      <id>native</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <spring-boot.version>3.2.8</spring-boot.version>
-        <native-maven-plugin.version>0.10.5</native-maven-plugin.version>
-        <repackage.classifier>exec</repackage.classifier>
-        <maven.test.skip>true</maven.test.skip>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <version>${spring-boot.version}</version>
-            <configuration>
-              <classifier>${repackage.classifier}</classifier>
-              <image>
-                <builder>paketobuildpacks/builder-jammy-base:latest</builder>
-              </image>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
   </profiles>
 </project>
