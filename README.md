@@ -80,17 +80,31 @@ make run    # Runs the server
 
 ### Using as a Library
 
-#### 1. Add Dependency
+#### 1. Add Repository
+
+Spring Vision artifacts are published to GitHub Packages. Add the repository to your POM (no authentication required for public access):
+
+```xml
+<repositories>
+    <repository>
+        <id>github</id>
+        <name>GitHub Packages</name>
+        <url>https://maven.pkg.github.com/codesapienbe/spring-vision</url>
+    </repository>
+</repositories>
+```
+
+#### 2. Add Dependency
 
 ```xml
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.3</version>
 </dependency>
 ```
 
-#### 2. Use in Your Code
+#### 3. Use in Your Code
 
 ```java
 @RestController

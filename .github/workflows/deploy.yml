@@ -1,0 +1,54 @@
+name: Deploy to GitHub Packages
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ubuntu-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ubuntu-maven-
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Deploying version: $VERSION"
+
+      - name: Deploy to GitHub Packages
+        run: |
+          mvn -B clean deploy \
+            -DskipTests \
+            -Pdownload-models \
+            -Dmaven.wagon.http.pool=false \
+            -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log deployment completion
+        run: |
+          echo "✅ Version ${{ env.VERSION }} has been successfully deployed to GitHub Packages!"
+          echo "📦 Artifacts are now available at: https://github.com/codesapienbe/spring-vision/packages"
