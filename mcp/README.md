@@ -29,42 +29,18 @@ This architecture ensures:
 **Run Spring Vision MCP Server with a single command - no installation required!**
 
 ```bash
-curl -s https://raw.githubusercontent.com/codesapienbe/spring-vision/main/run.sh | bash
+jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar
 ```
 
-This will:
-
-- Download the latest Spring Vision MCP Server JAR automatically
-- Start the server and keep it running
-- Ready for MCP client connections
+This downloads and runs the latest JAR directly, no local build required. Ready for MCP client connections!
 
 **That's it!** Your MCP server is now running and can be configured in Claude Desktop, Cline, or any MCP client.
 
 ---
 
-## 🚀 Quick Start with JBang
-
-Run the Spring Vision MCP Server using JBang with the remote JAR:
-
-```bash
-jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.3/mcp-0.0.3.jar
-```
-
-This downloads and runs the latest JAR directly, no local build required.
-
----
-
 ## 🔧 MCP Client Configuration
 
-Configure your MCP client to use the Spring Vision server. The server uses stdio transport, so specify the command to run the JAR.
-
-### Download the JAR
-
-First, download the latest JAR:
-
-```bash
-curl -L https://github.com/codesapienbe/spring-vision/releases/latest/download/mcp-0.0.3.jar -o mcp-0.0.3.jar
-```
+Configure your MCP client to use the Spring Vision server. The server uses stdio transport, so specify the command to run the JAR remotely.
 
 ### Claude Desktop
 
@@ -74,17 +50,14 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "spring-vision": {
-      "command": "java",
+      "command": "jbang",
       "args": [
-        "-jar",
-        "/path/to/mcp-0.0.3.jar"
+        "https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar"
       ]
     }
   }
 }
 ```
-
-Replace `/path/to/mcp-0.0.3.jar` with the actual path to the downloaded JAR.
 
 ### Cline (VS Code Extension)
 
@@ -94,30 +67,9 @@ Add to your Cline MCP settings:
 {
   "mcpServers": {
     "spring-vision": {
-      "command": "java",
+      "command": "jbang",
       "args": [
-        "-jar",
-        "/path/to/mcp-0.0.3.jar"
-      ]
-    }
-  }
-}
-```
-
-### Docker (Alternative)
-
-If you prefer Docker, use the containerized version:
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "codesapienbe/spring-vision:latest"
+        "https://github.com/codesapienbe/spring-vision/releases/download/v0.0.1/mcp-0.0.1.jar"
       ]
     }
   }
@@ -155,3 +107,24 @@ For detailed logging documentation, see [LOGGING.md](LOGGING.md).
 - For Docker, use `--rm` to clean up containers
 
 ---
+
+## 🚀 For Developers
+
+If you're contributing to the project, you can build and run locally:
+
+### Prerequisites
+
+- **JBang** installed ([https://jbang.dev/](https://jbang.dev/))
+- **Java 21+** installed
+
+### Build and Run
+
+From the project root:
+
+```bash
+# Build the project
+make build
+
+# Run the MCP server
+jbang run.java
+```

@@ -7,7 +7,7 @@
 
   <groupId>io.github.codesapienbe.springvision</groupId>
   <artifactId>parent</artifactId>
-  <version>0.0.3</version>
+  <version>0.0.1</version>
   <packaging>pom</packaging>
 
   <name>Spring Vision</name>
@@ -109,7 +109,6 @@
     <module>starter</module>
     <module>mcp</module>
     <module>model</module>
-    <module>cli</module>
   </modules>
 
   <dependencyManagement>
