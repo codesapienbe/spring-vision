@@ -26,6 +26,7 @@ public class OcrCapabilityIntegrationTest {
         properties.setEngine("OnnxRuntime");
         properties.setDevice("cpu");
         properties.setAutoDownload(false);
+        properties.setSyntheticFallbacks(true);
 
         backend = new DjlVisionBackend(properties);
         backend.initialize();
