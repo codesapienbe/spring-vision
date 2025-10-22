@@ -306,25 +306,25 @@ public class DjlVisionBackend implements VisionBackend,
     public boolean isObjectDetectionModelAvailable() {
         // Consider model available if loaded into memory or if model file exists on
         // classpath
-        return objectDetectionModel != null || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
+        return objectDetectionModel != null || YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt");
     }
 
     @Override
     public boolean isFaceDetectionModelAvailable() {
-        return faceDetectionModel != null || YoloLoader.isModelAvailable("retinaface/retinaface.pt");
+        return faceDetectionModel != null || YoloModelLoader.isModelAvailable("retinaface/retinaface.pt");
     }
 
     @Override
     public boolean isPoseEstimationModelAvailable() {
-        return poseEstimationModel != null || YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt");
+        return poseEstimationModel != null || YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt");
     }
 
     @Override
     public boolean isImageClassificationModelAvailable() {
         // Image classification loads models on demand; consider available if model file
         // exists or loading will succeed
-        return YoloLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
-            || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt") || true;
+        return YoloModelLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
+            || YoloModelLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt") || true;
     }
 
     @Override
@@ -393,20 +393,6 @@ public class DjlVisionBackend implements VisionBackend,
     public void initialize() throws BaseVisionException {
         logger.info("Initializing DJL vision backend with all capabilities");
         try {
-            // If DJL is running in offline mode or auto-downloads are disabled via
-            // configuration, avoid loading models (and triggering DJL native/JNI
-            // initialization). In test environments we set `ai.djl.offline=true`
-            // or `properties.setAutoDownload(false)` to prevent network access.
-            boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
-            if (djlOffline || !properties.isAutoDownload()) {
-                logger.info("DJL offline or auto-download disabled; skipping model loading to avoid runtime downloads");
-                initialized = true;
-                healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
-                healthErrorMessage = null;
-                lastHealthCheckTime = System.currentTimeMillis();
-                logger.info("DJL vision backend initialized in offline mode (no models loaded)");
-                return;
-            }
             // Load face detector first for accurate face counts
             try {
                 loadFaceDetectionModel();
@@ -575,7 +561,7 @@ public class DjlVisionBackend implements VisionBackend,
             // Check if RetinaFace model is available locally (downloaded and extracted
             // during build)
             String retinaFaceUrl = "https://resources.djl.ai/test-models/pytorch/retinaface.zip"; // Fallback
-            String localRetinaFaceUrl = YoloLoader.getModelUrl("retinaface/retinaface.pt");
+            String localRetinaFaceUrl = YoloModelLoader.getModelUrl("retinaface/retinaface.pt");
             if (localRetinaFaceUrl != null) {
                 retinaFaceUrl = localRetinaFaceUrl;
                 logger.info("Using locally downloaded and extracted RetinaFace model");
@@ -630,10 +616,10 @@ public class DjlVisionBackend implements VisionBackend,
         if ("yolo".equalsIgnoreCase(modelType)) {
             // Use YOLOv8 model via YoloLoader (default)
             logger.info("Using YOLOv8 object detection model");
-            criteria = YoloLoader.createDetectionCriteria();
+            criteria = YoloModelLoader.createDetectionCriteria();
 
             // Check if YOLO model is available
-            if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
+            if (!YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt")) {
                 logger.warn(
                     "YOLOv8 model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to SSD model in configuration.");
                 throw new ModelNotFoundException(
@@ -653,9 +639,9 @@ public class DjlVisionBackend implements VisionBackend,
         } else {
             // Default to YOLO for any other value
             logger.info("Unknown object detection model '{}', defaulting to YOLOv8", modelType);
-            criteria = YoloLoader.createDetectionCriteria();
+            criteria = YoloModelLoader.createDetectionCriteria();
 
-            if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
+            if (!YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt")) {
                 logger.warn(
                     "YOLOv8 model not found, falling back to SSD model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
                 criteria = Criteria.builder()
@@ -681,10 +667,10 @@ public class DjlVisionBackend implements VisionBackend,
         if ("yolo".equalsIgnoreCase(modelType)) {
             // Use YOLOv8 pose estimation model via YoloLoader (default)
             logger.info("Using YOLOv8 pose estimation model");
-            Criteria<Image, Joints> criteria = YoloLoader.createPoseCriteria();
+            Criteria<Image, Joints> criteria = YoloModelLoader.createPoseCriteria();
 
             // Check if YOLO pose model is available
-            if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
+            if (!YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
                 logger.warn(
                     "YOLOv8 pose model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to simple_pose model in configuration.");
                 throw new ModelNotFoundException(
@@ -721,9 +707,9 @@ public class DjlVisionBackend implements VisionBackend,
         } else {
             // Default to YOLO for any other value
             logger.info("Unknown pose estimation model '{}', defaulting to YOLOv8", modelType);
-            Criteria<Image, Joints> criteria = YoloLoader.createPoseCriteria();
+            Criteria<Image, Joints> criteria = YoloModelLoader.createPoseCriteria();
 
-            if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
+            if (!YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
                 logger.warn(
                     "YOLOv8 pose model not found, falling back to simple pose model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
                 try {
@@ -845,8 +831,8 @@ public class DjlVisionBackend implements VisionBackend,
                 // being disabled, return a minimal synthetic detection to allow integration
                 // tests
                 // to validate backend initialization and model presence on disk.
-                boolean modelFilesPresent = YoloLoader.isModelAvailable("retinaface/retinaface.pt")
-                    || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
+                boolean modelFilesPresent = YoloModelLoader.isModelAvailable("retinaface/retinaface.pt")
+                    || YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt");
 
                 if (modelFilesPresent) {
                     logger.info(
@@ -961,8 +947,8 @@ public class DjlVisionBackend implements VisionBackend,
             // If object detection model isn't loaded (offline/test mode), return synthetic
             // detection
             if (objectDetectionModel == null) {
-                boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8/yolov8n.pt")
-                    || YoloLoader.isModelAvailable("yolov8s.pt");
+                boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt")
+                    || YoloModelLoader.isModelAvailable("yolov8s.pt");
 
                 if (modelFilesPresent) {
                     logger.info(
@@ -1054,8 +1040,8 @@ public class DjlVisionBackend implements VisionBackend,
         // If pose model not loaded but model files exist, return synthetic pose/person
         // detection
         if (poseEstimationModel == null) {
-            boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")
-                || YoloLoader.isModelAvailable("yolov8-pose/yolov8m-pose.pt");
+            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")
+                || YoloModelLoader.isModelAvailable("yolov8-pose/yolov8m-pose.pt");
 
             if (modelFilesPresent) {
                 logger.info("Pose model files present but model not loaded; returning synthetic pose detection");
@@ -1302,8 +1288,8 @@ public class DjlVisionBackend implements VisionBackend,
         // If semantic model not loaded but model files exist, return synthetic
         // VisionResult
         if (semanticSegmentationModel == null) {
-            boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
+            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
+                || YoloModelLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
 
             if (modelFilesPresent) {
                 logger.info(
@@ -1385,8 +1371,8 @@ public class DjlVisionBackend implements VisionBackend,
         // If instance segmentation model not loaded but model files exist, return
         // synthetic instances
         if (instanceSegmentationModel == null) {
-            boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
+            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
+                || YoloModelLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
 
             if (modelFilesPresent) {
                 logger.info(
@@ -1551,8 +1537,8 @@ public class DjlVisionBackend implements VisionBackend,
         // a synthetic embedding when model files exist on disk but DJL loading is
         // disabled.
         if (faceRecognitionModel == null) {
-            boolean modelFilesPresent = YoloLoader.isModelAvailable("retinaface/retinaface.pt")
-                || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
+            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("retinaface/retinaface.pt")
+                || YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt");
 
             if (modelFilesPresent) {
                 logger.info(
@@ -1785,7 +1771,7 @@ public class DjlVisionBackend implements VisionBackend,
             // Avoid calling native Tess4J in offline/test environments (can abort JVM)
             // Provide a deterministic synthetic OCR result so integration tests can
             // proceed.
-            boolean modelFilesPresent = YoloLoader.isModelAvailable("ocr/ocr.pt");
+            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("ocr/ocr.pt");
             Map<String, Object> bbox = new HashMap<>();
             // Normalized full-image bbox
             bbox.put("x", 0.0);
@@ -1935,8 +1921,8 @@ public class DjlVisionBackend implements VisionBackend,
 
             // If classification models are available on disk but DJL loading is disabled,
             // return a synthetic result
-            boolean classificationModelPresent = YoloLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
-                || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt");
+            boolean classificationModelPresent = YoloModelLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
+                || YoloModelLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt");
 
             if (classificationModelPresent) {
                 logger.info(
