@@ -27,14 +27,13 @@ import io.github.codesapienbe.springvision.core.exception.VisionBackendException
 public class OcrIntegrationTest {
 
     private VisionTemplate visionTemplate;
-    private AnnotationConfigApplicationContext context;
 
     @BeforeEach
     void setUp() {
         // Enable offline mode to avoid network dependencies
         System.setProperty("ai.djl.offline", "true");
 
-        context = new AnnotationConfigApplicationContext();
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
             new MapPropertySource("test-properties",
                 java.util.Map.of(

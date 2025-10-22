@@ -2091,19 +2091,23 @@ public class DjlVisionBackend implements VisionBackend,
      * Validates input parameters.
      */
     private void validateInput(ImageData imageData, DetectionQuery query) {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        Objects.requireNonNull(query, "DetectionQuery cannot be null");
+        if (imageData == null) {
+            throw new VisionProcessingException("ImageData cannot be null", "null_image_data", null);
+        }
+        if (query == null) {
+            throw new VisionProcessingException("DetectionQuery cannot be null", "null_query", null);
+        }
 
         if (imageData.data() == null || imageData.data().length == 0) {
-            throw new IllegalArgumentException("Image data cannot be empty");
+            throw new VisionProcessingException("Image data cannot be empty", "empty_image_data", null);
         }
 
         if (imageData.data().length > 50 * 1024 * 1024) { // 50MB limit
-            throw new IllegalArgumentException("Image size exceeds maximum limit of 50MB");
+            throw new VisionProcessingException("Image size exceeds maximum limit of 50MB", "image_too_large", null);
         }
 
         if (!getSupportedDetectionTypes().contains(query.getType())) {
-            throw new IllegalArgumentException("Unsupported detection type: " + query.getType());
+            throw new VisionProcessingException("Unsupported detection type: " + query.getType(), "unsupported_detection_type", null);
         }
     }
 
@@ -2948,7 +2952,7 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectFall(List<ImageData> imageDataList) throws BaseVisionException {
         Objects.requireNonNull(imageDataList, "ImageDataList cannot be null");
         if (imageDataList.isEmpty()) {
-            throw new IllegalArgumentException("ImageDataList cannot be empty");
+            throw new VisionProcessingException("ImageDataList cannot be empty", "empty_image_data_list", null);
         }
 
         logger.debug("Starting fall detection for {} frame(s)", imageDataList.size());
@@ -3137,7 +3141,7 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectStress(List<ImageData> imageDataList) throws BaseVisionException {
         Objects.requireNonNull(imageDataList, "ImageDataList cannot be null");
         if (imageDataList.isEmpty()) {
-            throw new IllegalArgumentException("ImageDataList cannot be empty");
+            throw new VisionProcessingException("ImageDataList cannot be empty", "empty_image_data_list", null);
         }
 
         logger.debug("Starting stress analysis for {} frame(s)", imageDataList.size());
@@ -3367,8 +3371,10 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Minimum frames check (10 seconds at 20 FPS = 200 frames minimum)
         if (imageDataList.size() < 100) {
-            throw new IllegalArgumentException(
-                "Heart rate detection requires minimum 100 frames (5+ seconds). Got: " + imageDataList.size());
+            throw new VisionProcessingException(
+                "Heart rate detection requires minimum 100 frames (5+ seconds). Got: " + imageDataList.size(),
+                "insufficient_frames",
+                null);
         }
 
         logger.debug("Starting heart rate estimation for {} frames", imageDataList.size());
@@ -3512,7 +3518,10 @@ public class DjlVisionBackend implements VisionBackend,
                 count++;
             }
 
-            filtered.add(sum / count);
+            if (count > 0) {
+                sum /= count;
+                filtered.add(sum);
+            }
         }
 
         // Detrend (remove DC component)
