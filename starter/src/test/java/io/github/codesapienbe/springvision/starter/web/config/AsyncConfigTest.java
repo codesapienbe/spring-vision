@@ -1,19 +1,16 @@
 package io.github.codesapienbe.springvision.starter.web.config;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
-
-import org.slf4j.MDC;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 /**
  * Comprehensive unit tests for AsyncConfig configuration class.

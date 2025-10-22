@@ -1,5 +1,8 @@
 package io.github.codesapienbe.springvision.core.djl.translator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.output.BoundingBox;
 import ai.djl.modality.cv.output.DetectedObjects;
@@ -10,9 +13,6 @@ import ai.djl.ndarray.types.DataType;
 import ai.djl.translate.Batchifier;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Custom translator for YuNet face detection model.
@@ -101,4 +101,3 @@ public class YuNetFaceDetectionTranslator implements Translator<Image, DetectedO
         return Batchifier.STACK;
     }
 }
-

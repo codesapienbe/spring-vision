@@ -12,7 +12,6 @@ import org.springframework.util.Assert;
 
 import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.VisionBackend;
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;

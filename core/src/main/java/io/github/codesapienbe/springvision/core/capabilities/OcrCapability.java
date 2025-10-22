@@ -1,10 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
 import java.util.List;
 import java.util.Map;
+
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
  * Capability interface for Optical Character Recognition (OCR).
@@ -33,4 +33,3 @@ public interface OcrCapability {
     ) {
     }
 }
-

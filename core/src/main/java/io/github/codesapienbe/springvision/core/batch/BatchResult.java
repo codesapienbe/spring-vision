@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.batch;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.VisionResult;
-
-import java.util.List;
 
 /**
  * Represents the result of processing a batch with a specific detection type.

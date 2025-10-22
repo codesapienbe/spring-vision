@@ -1,7 +1,5 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
-import io.github.codesapienbe.springvision.core.VectorService;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.github.codesapienbe.springvision.core.VectorService;
 
 /**
  * Simple in-memory VectorService implementation intended for development and tests.

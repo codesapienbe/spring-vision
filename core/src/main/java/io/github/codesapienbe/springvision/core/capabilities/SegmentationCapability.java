@@ -36,4 +36,3 @@ public interface SegmentationCapability {
      */
     VisionResult segmentInstances(ImageData imageData) throws BaseVisionException;
 }
-

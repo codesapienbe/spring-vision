@@ -1,13 +1,14 @@
 package io.github.codesapienbe.springvision.mcp;
 
-import jakarta.annotation.PostConstruct;
-import net.logstash.logback.argument.StructuredArguments;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import jakarta.annotation.PostConstruct;
+import net.logstash.logback.argument.StructuredArguments;
 
 /**
  * Emits structured JSON logs at startup for the MCP server using stdio transport.

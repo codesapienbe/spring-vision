@@ -1,12 +1,12 @@
 package io.github.codesapienbe.springvision.core.djl;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.TestPropertySource;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for DJL auto-configuration.
@@ -57,4 +57,3 @@ class DjlAutoConfigurationTest {
         assertFalse(backend.getSupportedDetectionTypes().isEmpty());
     }
 }
-

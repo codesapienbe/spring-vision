@@ -1,8 +1,8 @@
 package io.github.codesapienbe.springvision.starter.web.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Response DTO for multiple detection operations.

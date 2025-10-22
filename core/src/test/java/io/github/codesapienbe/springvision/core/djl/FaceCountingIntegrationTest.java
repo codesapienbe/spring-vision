@@ -1,11 +1,6 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionResult;
-import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,7 +9,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 
 /**
  * Integration test for face counting functionality in the core module.

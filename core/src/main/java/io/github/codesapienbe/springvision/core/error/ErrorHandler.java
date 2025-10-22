@@ -1,17 +1,18 @@
 package io.github.codesapienbe.springvision.core.error;
 
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
-import io.github.codesapienbe.springvision.core.logging.VisionLogger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
+import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import io.github.codesapienbe.springvision.core.logging.VisionLogger;
 
 /**
  * Comprehensive error handling and recovery mechanism for the Spring Vision framework.

@@ -17,27 +17,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import io.github.codesapienbe.springvision.core.DetectionCategory;
 import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import net.logstash.logback.argument.StructuredArguments;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 

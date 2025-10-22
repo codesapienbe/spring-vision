@@ -1,10 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
-import java.util.List;
 
 /**
  * Capability for detecting emotions from facial expressions in images.
@@ -61,4 +61,3 @@ public interface EmotionDetectionCapability {
      */
     List<Detection> detectEmotions(ImageData imageData) throws BaseVisionException;
 }
-

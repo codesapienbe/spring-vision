@@ -1,11 +1,5 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.output.DetectedObjects;
-import ai.djl.modality.cv.output.Joints;
-import ai.djl.repository.zoo.Criteria;
-import io.github.codesapienbe.springvision.core.djl.translator.YoloDetectionTranslator;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -13,6 +7,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import ai.djl.modality.cv.Image;
+import ai.djl.modality.cv.output.DetectedObjects;
+import ai.djl.modality.cv.output.Joints;
+import ai.djl.repository.zoo.Criteria;
+import io.github.codesapienbe.springvision.core.djl.translator.YoloDetectionTranslator;
 
 /**
  * Utility class for loading YOLOv8 models with pre-configured Criteria.

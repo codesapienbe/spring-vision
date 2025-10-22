@@ -1,10 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
-import java.util.List;
 
 /**
  * Capability for detecting demographic information (age, gender) from faces.
@@ -60,4 +60,3 @@ public interface DemographicsCapability {
      */
     List<Detection> detectDemographics(ImageData imageData) throws BaseVisionException;
 }
-

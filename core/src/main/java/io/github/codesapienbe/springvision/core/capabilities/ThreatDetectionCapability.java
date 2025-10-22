@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
-
-import java.util.List;
 
 /**
  * Capability interface for security threat detection.
@@ -89,4 +89,3 @@ public interface ThreatDetectionCapability {
      */
     List<Detection> detectThreat(List<ImageData> imageDataList);
 }
-

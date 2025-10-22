@@ -1,17 +1,19 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.ImageData;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.util.List;
+import io.github.codesapienbe.springvision.core.Detection;
+import io.github.codesapienbe.springvision.core.ImageData;
 
 /**
  * Strict integration test that requires DJL models to be available and the backend to initialize.
@@ -86,5 +88,3 @@ public class DjlVisionBackendModelAvailabilityTest {
         Assertions.assertNotNull(embs);
     }
 }
-
-

@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.starter.web.dto;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.github.codesapienbe.springvision.core.Detection;
 
 /**

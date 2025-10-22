@@ -270,10 +270,11 @@
           <version>${spotless.version}</version>
           <configuration>
             <java>
-              <googleJavaFormat>
-                <version>1.18.1</version>
+              <!-- Temporarily disabled Google Java Format due to JDK 21 compatibility issues -->
+              <!-- <googleJavaFormat>
+                <version>1.22.0</version>
                 <style>GOOGLE</style>
-              </googleJavaFormat>
+              </googleJavaFormat> -->
               <removeUnusedImports/>
               <importOrder>
                 <order>java,javax,org,com,</order>

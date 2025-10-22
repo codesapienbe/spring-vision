@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
-
-import java.util.List;
 
 /**
  * Capability interface for robotic arm guidance using computer vision.
@@ -36,4 +36,3 @@ public interface RoboticGuidanceCapability {
      */
     List<Detection> provideGuidance(List<ImageData> imageDataList);
 }
-

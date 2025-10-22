@@ -15,4 +15,3 @@ public interface FaceVerificationCapability {
     boolean verify(ImageData a, ImageData b, String metric, double threshold) throws BaseVisionException;
 
 }
-

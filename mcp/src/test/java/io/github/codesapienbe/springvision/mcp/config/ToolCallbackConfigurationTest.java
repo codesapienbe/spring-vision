@@ -1,16 +1,16 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
-import io.github.codesapienbe.springvision.mcp.VisionTool;
-import io.github.codesapienbe.springvision.core.VectorService;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.mcp.VisionTool;
 
 /**
  * Comprehensive unit tests for ToolCallbackConfiguration.

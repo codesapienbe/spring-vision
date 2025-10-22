@@ -1,22 +1,22 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
-import io.github.codesapienbe.springvision.core.VectorService;
-import io.github.codesapienbe.springvision.core.VisionBackend;
-import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.BeforeEach;
-import org.mockito.Mock;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.util.List;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+
+import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 
 /**
  * Comprehensive unit tests for VisionTemplateConfiguration.
@@ -384,4 +384,3 @@ class VisionTemplateConfigurationTest {
         }
     }
 }
-

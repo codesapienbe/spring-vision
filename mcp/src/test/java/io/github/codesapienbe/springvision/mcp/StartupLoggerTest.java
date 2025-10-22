@@ -1,12 +1,12 @@
 package io.github.codesapienbe.springvision.mcp;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import static org.assertj.core.api.Assertions.*;
 
 /**
  * Unit tests for StartupLogger component.
@@ -351,4 +351,3 @@ class StartupLoggerTest {
         }
     }
 }
-

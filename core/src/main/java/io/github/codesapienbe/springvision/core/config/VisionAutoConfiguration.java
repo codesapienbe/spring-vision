@@ -21,7 +21,6 @@ import org.springframework.core.env.Environment;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
-
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**

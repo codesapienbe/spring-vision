@@ -1,11 +1,11 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.function.Predicate;
+
 import io.github.codesapienbe.springvision.core.AnnotationRequest;
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
-import java.util.function.Predicate;
 
 /**
  * Capability interface for image obscuring and annotation operations.

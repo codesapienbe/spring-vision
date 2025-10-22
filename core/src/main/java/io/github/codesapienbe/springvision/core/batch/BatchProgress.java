@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.batch;
 
-import io.github.codesapienbe.springvision.core.VisionResult;
-
 import java.time.Instant;
 import java.util.List;
+
+import io.github.codesapienbe.springvision.core.VisionResult;
 
 /**
  * Represents the progress state of a batch processing operation.

@@ -1,12 +1,12 @@
 package io.github.codesapienbe.springvision.core.djl;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Comprehensive tests for DJL configuration properties.
@@ -64,4 +64,3 @@ class DjlPropertiesTest {
     static class TestConfig {
     }
 }
-

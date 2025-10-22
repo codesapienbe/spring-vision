@@ -1,10 +1,8 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
-import io.github.codesapienbe.springvision.core.VectorService;
-import io.github.codesapienbe.springvision.core.VisionBackend;
-import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
-import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +10,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-import java.util.Optional;
+import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 
 /**
  * Configuration for MCP module to expose a VisionTemplate bean.

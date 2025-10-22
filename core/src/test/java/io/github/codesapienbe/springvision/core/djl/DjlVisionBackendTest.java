@@ -1,17 +1,16 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import io.github.codesapienbe.springvision.core.BackendHealthInfo;
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
+import io.github.codesapienbe.springvision.core.BackendHealthInfo;
+import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 
 /**
  * Unit tests for DjlVisionBackend.

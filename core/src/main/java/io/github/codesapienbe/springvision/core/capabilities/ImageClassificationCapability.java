@@ -1,9 +1,9 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.Map;
+
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
-import java.util.Map;
 
 /**
  * Capability interface for image classification.
@@ -52,4 +52,3 @@ public interface ImageClassificationCapability {
     ) {
     }
 }
-

@@ -1,11 +1,7 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import io.github.codesapienbe.springvision.core.ImageData;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
+import static org.junit.jupiter.api.Assertions.*;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -14,7 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import javax.imageio.ImageIO;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import io.github.codesapienbe.springvision.core.ImageData;
 
 /**
  * Performance and stress tests for DJL backend.

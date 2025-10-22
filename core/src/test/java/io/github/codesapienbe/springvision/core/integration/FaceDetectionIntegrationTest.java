@@ -1,20 +1,22 @@
 package io.github.codesapienbe.springvision.core.integration;
 
-import io.github.codesapienbe.springvision.core.DetectionType;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionResult;
-import io.github.codesapienbe.springvision.core.VisionTemplate;
-import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+
+import javax.imageio.ImageIO;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import javax.imageio.ImageIO;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 
 /**
  * TDD Integration Test for Face Detection functionality.

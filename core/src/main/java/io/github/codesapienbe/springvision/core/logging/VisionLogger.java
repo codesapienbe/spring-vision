@@ -1,13 +1,5 @@
 package io.github.codesapienbe.springvision.core.logging;
 
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.DetectionQuery;
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +7,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
+import io.github.codesapienbe.springvision.core.Detection;
+import io.github.codesapienbe.springvision.core.DetectionQuery;
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
  * Comprehensive logging utility for the Spring Vision framework.

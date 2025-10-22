@@ -1,19 +1,78 @@
 package io.github.codesapienbe.springvision.core.djl;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.image.RasterFormatException;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+
+import javax.imageio.ImageIO;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.imaging.ImageProcessingException;
+import com.drew.metadata.Directory;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.Tag;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+import com.drew.metadata.exif.GpsDirectory;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.BinaryBitmap;
+import com.google.zxing.DecodeHintType;
+import com.google.zxing.LuminanceSource;
+import com.google.zxing.MultiFormatReader;
+import com.google.zxing.NotFoundException;
+import com.google.zxing.Reader;
+import com.google.zxing.Result;
+import com.google.zxing.ResultPoint;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.multi.GenericMultipleBarcodeReader;
+
+import ai.djl.Application;
+import ai.djl.Device;
 import ai.djl.MalformedModelException;
 import ai.djl.inference.Predictor;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.ImageFactory;
+import ai.djl.modality.cv.output.CategoryMask;
 import ai.djl.modality.cv.output.DetectedObjects;
 import ai.djl.modality.cv.output.Joints;
-import ai.djl.modality.cv.output.CategoryMask;
+import ai.djl.ndarray.NDArray;
+import ai.djl.ndarray.NDList;
+import ai.djl.ndarray.NDManager;
+import ai.djl.ndarray.types.DataType;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
-import ai.djl.translate.TranslateException;
-import ai.djl.Application;
-import ai.djl.Device;
 import ai.djl.training.util.ProgressBar;
+import ai.djl.translate.Batchifier;
+import ai.djl.translate.TranslateException;
+import ai.djl.translate.Translator;
+import ai.djl.translate.TranslatorContext;
 import io.github.codesapienbe.springvision.core.AnnotationRequest;
 import io.github.codesapienbe.springvision.core.BackendHealthInfo;
 import io.github.codesapienbe.springvision.core.BoundingBox;
@@ -45,68 +104,11 @@ import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapab
 import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
+import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import jakarta.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.awt.image.RasterFormatException;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
-
-import ai.djl.ndarray.NDArray;
-import ai.djl.ndarray.NDList;
-import ai.djl.ndarray.types.DataType;
-import ai.djl.translate.Batchifier;
-import ai.djl.translate.Translator;
-import ai.djl.translate.TranslatorContext;
-import ai.djl.ndarray.NDManager;
-import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
-import com.google.zxing.BarcodeFormat;
-import com.google.zxing.BinaryBitmap;
-import com.google.zxing.DecodeHintType;
-import com.google.zxing.LuminanceSource;
-import com.google.zxing.MultiFormatReader;
-import com.google.zxing.NotFoundException;
-import com.google.zxing.Reader;
-import com.google.zxing.Result;
-import com.google.zxing.ResultPoint;
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.multi.GenericMultipleBarcodeReader;
-import com.drew.imaging.ImageMetadataReader;
-import com.drew.imaging.ImageProcessingException;
-import com.drew.metadata.Metadata;
-import com.drew.metadata.Directory;
-import com.drew.metadata.Tag;
-import com.drew.metadata.exif.GpsDirectory;
-import com.drew.metadata.exif.ExifSubIFDDirectory;
 
 /**
  * Enhanced DJL-based vision backend with comprehensive computer vision capabilities.
@@ -3552,4 +3554,3 @@ public class DjlVisionBackend implements VisionBackend,
         return out;
     }
 }
-

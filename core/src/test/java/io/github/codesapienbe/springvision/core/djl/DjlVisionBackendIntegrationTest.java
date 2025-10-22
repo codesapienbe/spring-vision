@@ -1,18 +1,20 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import io.github.codesapienbe.springvision.core.Detection;
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionResult;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.util.List;
+import io.github.codesapienbe.springvision.core.Detection;
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
 
 /**
  * Integration tests for DjlVisionBackend. These tests avoid downloading external DJL models
@@ -166,4 +168,3 @@ public class DjlVisionBackendIntegrationTest {
 		Assertions.assertNotNull(out);
 	}
 }
-

@@ -1,16 +1,16 @@
 package io.github.codesapienbe.springvision.starter.web.dto;
 
-import io.github.codesapienbe.springvision.core.BoundingBox;
-import io.github.codesapienbe.springvision.core.Detection;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import io.github.codesapienbe.springvision.core.BoundingBox;
+import io.github.codesapienbe.springvision.core.Detection;
 
 /**
  * Comprehensive unit tests for DetectionResponse DTO.

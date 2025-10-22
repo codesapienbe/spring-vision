@@ -1,14 +1,13 @@
 package io.github.codesapienbe.springvision.core;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
+
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.assertj.core.api.Assertions.*;
-import org.assertj.core.data.Offset;
 
 /**
  * Comprehensive unit tests for BoundingBox class.

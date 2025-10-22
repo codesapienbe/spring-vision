@@ -1,11 +1,11 @@
 package io.github.codesapienbe.springvision.core.batch;
 
-import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.DetectionType;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.github.codesapienbe.springvision.core.DetectionType;
+import io.github.codesapienbe.springvision.core.ImageData;
 
 /**
  * Represents a batch processing job with its configuration and state.

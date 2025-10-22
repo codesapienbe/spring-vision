@@ -1,12 +1,13 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
-import io.github.codesapienbe.springvision.mcp.VisionTool;
-import io.github.codesapienbe.springvision.core.VectorService;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.Nullable;
-import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.ai.tool.method.MethodToolCallbackProvider;
+
+import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.mcp.VisionTool;
 
 /**
  * Configuration for registering Spring AI Tool Callbacks.

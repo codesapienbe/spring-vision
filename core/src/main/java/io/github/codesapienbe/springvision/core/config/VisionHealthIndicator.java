@@ -1,7 +1,9 @@
 package io.github.codesapienbe.springvision.core.config;
 
-import io.github.codesapienbe.springvision.core.BackendHealthInfo;
-import io.github.codesapienbe.springvision.core.VisionBackend;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.Health;
@@ -9,9 +11,8 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.util.Assert;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Map;
+import io.github.codesapienbe.springvision.core.BackendHealthInfo;
+import io.github.codesapienbe.springvision.core.VisionBackend;
 
 /**
  * Health indicator for Spring Vision backend.

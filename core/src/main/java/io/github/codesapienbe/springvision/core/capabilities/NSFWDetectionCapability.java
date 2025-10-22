@@ -1,10 +1,10 @@
 package io.github.codesapienbe.springvision.core.capabilities;
 
+import java.util.List;
+
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-
-import java.util.List;
 
 /**
  * Capability for detecting NSFW (Not Safe For Work) content in images.
@@ -51,4 +51,3 @@ public interface NSFWDetectionCapability {
      */
     List<Detection> detectNSFW(ImageData imageData) throws BaseVisionException;
 }
-

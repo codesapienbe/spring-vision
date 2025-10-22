@@ -1,5 +1,8 @@
 package io.github.codesapienbe.springvision.core.djl.translator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.output.DetectedObjects;
 import ai.djl.ndarray.NDArray;
@@ -7,9 +10,6 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Translator for YOLOv8 object detection models.

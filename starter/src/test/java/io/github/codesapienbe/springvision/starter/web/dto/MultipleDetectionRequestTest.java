@@ -1,13 +1,13 @@
 package io.github.codesapienbe.springvision.starter.web.dto;
 
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.*;
+
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-
-import java.util.List;
-import java.util.Arrays;
-
-import static org.assertj.core.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 /**
  * Comprehensive unit tests for MultipleDetectionRequest DTO.
