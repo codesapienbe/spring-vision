@@ -23,22 +23,24 @@ import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
  * Central Integration Test for all Vision capabilities.
  * Uses nested classes for each capability to avoid duplication of bean setup.
  */
-@SpringBootTest
+@SpringBootTest(classes = VisionAutoConfiguration.class)
 public class VisionIntegrationTest {
 
     private VisionTemplate visionTemplate;
+    private AnnotationConfigApplicationContext context;
 
     @BeforeEach
     void setUp() {
-        // Enable offline mode to avoid network dependencies
+        // Enable offline mode and synthetic fallbacks to avoid network dependencies
         System.setProperty("ai.djl.offline", "true");
 
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context = new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
             new MapPropertySource("test-properties",
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
-                    "vision.health.enabled", "false"
+                    "vision.health.enabled", "false",
+                    "vision.djl.syntheticFallbacks", "true"
                 )
             )
         );

@@ -24,19 +24,19 @@ import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 public class ObjectDetectionIntegrationTest {
 
     private VisionTemplate visionTemplate;
-    private AnnotationConfigApplicationContext context;
 
     @BeforeEach
     void setUp() {
         // Enable offline mode to avoid network dependencies
         System.setProperty("ai.djl.offline", "true");
 
-        context = new AnnotationConfigApplicationContext();
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
             new MapPropertySource("test-properties",
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
-                    "vision.health.enabled", "false"
+                    "vision.health.enabled", "false",
+                    "vision.djl.syntheticFallbacks", "true"
                 )
             )
         );
@@ -72,8 +72,8 @@ public class ObjectDetectionIntegrationTest {
         assertThat(result).isNotNull();
         assertThat(result.detections()).anyMatch(detection ->
             detection.label().toLowerCase().contains("car") ||
-            detection.label().toLowerCase().contains("truck") ||
-            detection.label().toLowerCase().contains("vehicle")
+                detection.label().toLowerCase().contains("truck") ||
+                detection.label().toLowerCase().contains("vehicle")
         );
     }
 
