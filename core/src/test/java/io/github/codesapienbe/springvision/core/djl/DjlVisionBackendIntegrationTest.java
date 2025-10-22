@@ -1,170 +1,156 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import java.awt.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.util.List;
 
 import javax.imageio.ImageIO;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 
-import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionResult;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 
 /**
- * Integration tests for DjlVisionBackend. These tests avoid downloading external DJL models
- * by using a lightweight Test subclass and exercising high-level capability methods to
- * verify interfaces, error handling, and output shapes.
+ * Integration test for DjlVisionBackend initialization and basic functionality.
+ * Tests backend health, model loading, and basic inference capabilities.
  */
+@DisplayName("DJL Vision Backend Integration Test")
 public class DjlVisionBackendIntegrationTest {
 
-	private static DjlVisionBackend backend;
+    private DjlVisionBackend backend;
 
-	@BeforeAll
-	public static void setup() {
-		// Prevent DJL from performing network downloads during test runs.
-		System.setProperty("ai.djl.offline", "true");
-		System.setProperty("OPT_OUT_TRACKING", "true");
+    @BeforeEach
+    void setUp() {
+        // Enable offline mode to avoid network dependencies
+        System.setProperty("ai.djl.offline", "true");
 
-		// Use default properties but disable auto-download so DJL won't attempt to fetch models/JNI.
-		DjlProperties props = new DjlProperties();
-		props.setEngine("OnnxRuntime");
-		props.setDevice("cpu");
-		props.setAutoDownload(false);
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.getEnvironment().getPropertySources().addFirst(
+            new MapPropertySource("test-properties",
+                java.util.Map.of(
+                    "vision.metrics.enabled", "false",
+                    "vision.health.enabled", "false"
+                )
+            )
+        );
+        context.register(VisionAutoConfiguration.class);
+        context.refresh();
 
-		backend = new DjlVisionBackend(props);
+        backend = (DjlVisionBackend) context.getBean(VisionBackend.class);
+    }
 
-		// Attempt to initialize backend; initialization should honor offline/auto-download settings.
-		try {
-			backend.initialize();
-		} catch (Throwable t) {
-			// Initialization may fail (including linkage errors or JVM-initializer issues).
-			// Catch Throwable here so the test run can continue and assert graceful handling.
-			System.err.println("DjlVisionBackend initialization warning: " + t.getMessage());
-		}
-	}
+    @Test
+    @DisplayName("Should initialize DJL backend successfully")
+    void shouldInitializeBackendSuccessfully() {
+        // When: Backend is initialized
+        backend.initialize();
 
-	@AfterAll
-	public static void teardown() {
-		if (backend != null) backend.shutdown();
-	}
+        // Then: Backend should be healthy and initialized
+        assertThat(backend.isHealthy()).isTrue();
+        assertThat(backend.getBackendId()).isEqualTo("djl");
+        assertThat(backend.getDisplayName()).isEqualTo("DJL Vision Backend");
+        assertThat(backend.getVersion()).isNotNull();
+    }
 
-	/**
-	 * Utility to create a simple RGB image with a colored rectangle and return ImageData JPEG bytes.
-	 */
-	private ImageData makeTestImage(int w, int h, Color rectColor) throws Exception {
-		BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = img.createGraphics();
-		g.setColor(Color.DARK_GRAY);
-		g.fillRect(0, 0, w, h);
-		g.setColor(rectColor);
-		g.fillRect(w/4, h/4, w/2, h/2);
-		g.dispose();
+    @Test
+    @DisplayName("Should provide backend health information")
+    void shouldProvideBackendHealthInformation() {
+        // When: Getting health info
+        var healthInfo = backend.getHealthInfo();
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		ImageIO.write(img, "jpeg", baos);
-		byte[] bytes = baos.toByteArray();
-		return ImageData.fromBytes(bytes, ImageData.DEFAULT_JPEG_MIME_TYPE);
-	}
+        // Then: Health info should contain expected details
+        assertThat(healthInfo).isNotNull();
+        assertThat(healthInfo.status()).isNotNull();
+        assertThat(healthInfo.metrics()).isNotNull();
+        assertThat(healthInfo.metrics().get("engine")).isNotNull();
+        assertThat(healthInfo.metrics().get("device")).isNotNull();
+    }
 
-	@Test
-	public void testDetectFaces_noModels_shouldNotThrow() throws Exception {
-		ImageData img = makeTestImage(320, 240, Color.RED);
-		try {
-			List<Detection> faces = backend.detectFaces(img);
-			Assertions.assertNotNull(faces);
-		} catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
-			// Accept any VisionBackendException that indicates backend couldn't initialize.
-			// Do not assert on message content to support variations across environments.
-		}
-	}
+    @Test
+    @DisplayName("Should support expected detection types")
+    void shouldSupportExpectedDetectionTypes() {
+        // When: Getting supported detection types
+        var supportedTypes = backend.getSupportedDetectionTypes();
 
-	@Test
-	public void testDetectObjects_noModels_shouldNotThrow() throws Exception {
-		ImageData img = makeTestImage(640, 480, Color.BLUE);
-		try {
-			List<Detection> objs = backend.detectObjects(img);
-			Assertions.assertNotNull(objs);
-		} catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
-			// Accept any VisionBackendException that indicates backend couldn't initialize.
-			// Do not assert on message content to support variations across environments.
-		}
-	}
+        // Then: Should include basic types
+        assertThat(supportedTypes).isNotNull();
+        assertThat(supportedTypes).containsAnyOf(
+            io.github.codesapienbe.springvision.core.DetectionType.FACE,
+            io.github.codesapienbe.springvision.core.DetectionType.OBJECT
+        );
+    }
 
-	@Test
-	public void testSegmentSemantic_noModels_shouldNotThrow() throws Exception {
-		ImageData img = makeTestImage(320, 320, Color.GREEN);
-		try {
-			VisionResult res = backend.segmentSemantic(img);
-			Assertions.assertNotNull(res);
-		} catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
-			// Acceptable when segmentation model isn't available
-			Assertions.assertTrue(vbe.getMessage().toLowerCase().contains("not initialized") || vbe.getMessage().toLowerCase().contains("not_initialized"));
-		} catch (Exception e) {
-			// Other exceptions are acceptable but should be surfaced in test output
-			Assertions.assertTrue(e instanceof Exception);
-		}
-	}
+    @Test
+    @DisplayName("Should handle basic object detection")
+    void shouldHandleBasicObjectDetection() {
+        // Given: A simple test image
+        ImageData testImage = createTestImage();
 
-	@Test
-	public void testExtractEmbeddings_handlesNoFaceGracefully() throws Exception {
-		ImageData img = makeTestImage(200, 200, Color.MAGENTA);
-		try {
-			List<float[]> embs = backend.extractEmbeddings(img, io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
-			Assertions.assertNotNull(embs);
-		} catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException | io.github.codesapienbe.springvision.core.exception.VisionProcessingException vbe) {
-			// Acceptable when face recognition model isn't available or processing fails
-			Assertions.assertTrue(vbe.getMessage() != null);
-		}
-	}
+        // When: Performing object detection
+        var detections = backend.detectObjects(testImage);
 
-	@Test
-	public void testOcr_andBarcode_andMetadata() throws Exception {
-		ImageData img = makeTestImage(300, 150, Color.ORANGE);
-		// OCR
-		try {
-			List<?> texts = backend.extractText(img);
-			Assertions.assertNotNull(texts);
-		} catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
-			// OCR may require models; accept not-initialized error or the new explicit OCR not-initialized message
-			String msg = vbe.getMessage() == null ? "" : vbe.getMessage().toLowerCase();
-			Assertions.assertTrue(msg.contains("not initialized") || msg.contains("not_initialized") || msg.contains("ocr not initialized"));
-		} catch (Exception e) {
-			// Any other OCR error is acceptable for integration tests
-			Assertions.assertTrue(e instanceof Exception);
-		}
+        // Then: Should return detections (may be synthetic in offline mode)
+        assertThat(detections).isNotNull();
+        // In offline mode, may return empty or synthetic results
+    }
 
-		// Barcode (ZXing) should work without DJL models, but accept processing exceptions
-		try {
-			List<Detection> bar = backend.detectBarcodes(img);
-			Assertions.assertNotNull(bar);
-		} catch (Exception e) {
-			Assertions.assertTrue(e instanceof Exception);
-		}
+    @Test
+    @DisplayName("Should handle basic face detection")
+    void shouldHandleBasicFaceDetection() {
+        // Given: A simple test image
+        ImageData testImage = createTestImage();
 
-		// Metadata extraction should work without models; accept processing exceptions
-		try {
-			List<Detection> meta = backend.extractMetaData(img);
-			Assertions.assertNotNull(meta);
-		} catch (Exception e) {
-			Assertions.assertTrue(e instanceof Exception);
-		}
-	}
+        // When: Performing face detection
+        var detections = backend.detectFaces(testImage);
 
-	@Test
-	public void testAnnotate_obscure_tag_mark() throws Exception {
-		ImageData img = makeTestImage(400, 300, Color.CYAN);
-		// Test annotate with TAG
-		io.github.codesapienbe.springvision.core.AnnotationRequest tagReq = new io.github.codesapienbe.springvision.core.AnnotationRequest.Builder()
-			.action(io.github.codesapienbe.springvision.core.AnnotationRequest.Action.TAG)
-			.label("TEST")
-			.build();
-		ImageData out = backend.annotate(img, tagReq);
-		Assertions.assertNotNull(out);
-	}
+        // Then: Should return detections (may be synthetic in offline mode)
+        assertThat(detections).isNotNull();
+        // In offline mode, may return empty or synthetic results
+    }
+
+    @Test
+    @DisplayName("Should handle OCR extraction")
+    void shouldHandleOcrExtraction() {
+        // Given: A simple test image
+        ImageData testImage = createTestImage();
+
+        // When: Performing OCR
+        var textDetections = backend.extractText(testImage);
+
+        // Then: Should return text detections (may be synthetic in offline mode)
+        assertThat(textDetections).isNotNull();
+        // In offline mode, may return synthetic results
+    }
+
+    @Test
+    @DisplayName("Should handle image classification")
+    void shouldHandleImageClassification() {
+        // Given: A simple test image
+        ImageData testImage = createTestImage();
+
+        // When: Performing image classification
+        var classifications = backend.classifyImage(testImage, 5);
+
+        // Then: Should return classifications (may be synthetic in offline mode)
+        assertThat(classifications).isNotNull();
+        // In offline mode, may return synthetic results
+    }
+
+    private ImageData createTestImage() {
+        try {
+            BufferedImage image = new BufferedImage(224, 224, BufferedImage.TYPE_INT_RGB);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            return ImageData.fromBytes(baos.toByteArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create test image", e);
+        }
+    }
 }

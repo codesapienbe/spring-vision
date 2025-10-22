@@ -44,11 +44,11 @@ release:
 test:
 	@echo "Running DjlVisionBackend integration tests (core module) and VisionTool integration test (mcp module)..."
 	# Run only in the core and mcp modules to avoid failing other modules that don't contain these tests
-	mvn -pl core,mcp -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest,io.github.codesapienbe.springvision.mcp.VisionToolIntegrationTest test || \
+	mvn -pl core,mcp -am -q test || \
 	( echo "Integration tests failed" && exit 1 )
 
 
-verify: test 
+verify: test
 	@echo "Verifying project with Spotless and Checkstyle..."
 	mvn spotless:check checkstyle:check -q || ( echo "Verification failed" && exit 1 )
 	@echo "Verification completed successfully"

@@ -134,27 +134,27 @@ import jakarta.annotation.PreDestroy;
 @Component
 @ConditionalOnProperty(prefix = "spring.vision.djl", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DjlVisionBackend implements VisionBackend,
-        FaceDetectionCapability,
-        ObjectDetectionCapability,
-        PoseEstimationCapability,
-        ActionRecognitionCapability,
-        SegmentationCapability,
-        EmbeddingCapability,
-        OcrCapability,
-        ImageClassificationCapability,
-        BarcodeCapability,
-        MetaDataExtractionCapability,
-        AnnotationCapability,
-        HandDetectionCapability,
-        DemographicsCapability,
-        NSFWDetectionCapability,
-        EmotionDetectionCapability,
-        DeepfakeDetectionCapability,
-        FallDetectionCapability,
-        StressAnalysisCapability,
-        HeartRateCapability,
-        ThreatDetectionCapability,
-        AccessAuthenticationCapability {
+    FaceDetectionCapability,
+    ObjectDetectionCapability,
+    PoseEstimationCapability,
+    ActionRecognitionCapability,
+    SegmentationCapability,
+    EmbeddingCapability,
+    OcrCapability,
+    ImageClassificationCapability,
+    BarcodeCapability,
+    MetaDataExtractionCapability,
+    AnnotationCapability,
+    HandDetectionCapability,
+    DemographicsCapability,
+    NSFWDetectionCapability,
+    EmotionDetectionCapability,
+    DeepfakeDetectionCapability,
+    FallDetectionCapability,
+    StressAnalysisCapability,
+    HeartRateCapability,
+    ThreatDetectionCapability,
+    AccessAuthenticationCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -238,7 +238,7 @@ public class DjlVisionBackend implements VisionBackend,
             return Device.fromName(deviceName);
         } catch (Throwable t) {
             logger.warn("Failed to initialize DJL device '{}' - falling back to CPU. Reason: {}", deviceName,
-                    t.toString());
+                t.toString());
             try {
                 return Device.cpu();
             } catch (Throwable t2) {
@@ -263,7 +263,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         logger.info("Initializing DJL Vision Backend - Engine: {}, Device: {}, Version: {}",
-                configuredEngine, deviceName, VERSION);
+            configuredEngine, deviceName, VERSION);
         logger.info("DJL Engine (configured): {}, GPU Available: {}", configuredEngine, gpuAvailable);
         logger.info("DJL concurrency: maxConcurrentInferences={}", this.maxConcurrentInferences);
     }
@@ -286,10 +286,10 @@ public class DjlVisionBackend implements VisionBackend,
     @Override
     public Set<DetectionType> getSupportedDetectionTypes() {
         return Set.of(
-                DetectionType.FACE,
-                DetectionType.OBJECT,
-                DetectionType.BODY, // For pose estimation
-                DetectionType.SCENE // For segmentation
+            DetectionType.FACE,
+            DetectionType.OBJECT,
+            DetectionType.BODY, // For pose estimation
+            DetectionType.SCENE // For segmentation
         );
     }
 
@@ -324,7 +324,7 @@ public class DjlVisionBackend implements VisionBackend,
         // Image classification loads models on demand; consider available if model file
         // exists or loading will succeed
         return YoloLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
-                || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt") || true;
+            || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt") || true;
     }
 
     @Override
@@ -381,11 +381,11 @@ public class DjlVisionBackend implements VisionBackend,
         if (healthStatus == BackendHealthInfo.HealthStatus.HEALTHY) {
             // Use the overload that accepts metrics so the details map is included
             return BackendHealthInfo.healthy(getBackendId(),
-                    "DJL backend is operational", responseTime, details);
+                "DJL backend is operational", responseTime, details);
         } else {
             // Include metrics even for unhealthy responses to aid debugging
             return BackendHealthInfo.unhealthy(getBackendId(),
-                    "DJL backend is not operational", healthErrorMessage, responseTime, details);
+                "DJL backend is not operational", healthErrorMessage, responseTime, details);
         }
     }
 
@@ -412,8 +412,8 @@ public class DjlVisionBackend implements VisionBackend,
                 loadFaceDetectionModel();
             } catch (Exception e) {
                 logger.warn(
-                        "Failed to load dedicated face detection model: {}. Falling back to generic object detection.",
-                        e.getMessage());
+                    "Failed to load dedicated face detection model: {}. Falling back to generic object detection.",
+                    e.getMessage());
             }
 
             // Load core models
@@ -421,12 +421,12 @@ public class DjlVisionBackend implements VisionBackend,
                 loadObjectDetectionModel();
             } catch (Exception e) {
                 logger.warn("Failed to load object detection model: {}. Proceeding without object model.",
-                        e.getMessage());
+                    e.getMessage());
             }
 
             // Only load optional models if configured
             String poseModel = properties.getPoseEstimation() != null ? properties.getPoseEstimation().getModel()
-                    : null;
+                : null;
             if (poseModel != null && !poseModel.isBlank()) {
                 try {
                     loadPoseEstimationModel();
@@ -438,8 +438,8 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             String actionModel = properties.getActionRecognition() != null
-                    ? properties.getActionRecognition().getModel()
-                    : null;
+                ? properties.getActionRecognition().getModel()
+                : null;
             if (actionModel != null && !actionModel.isBlank()) {
                 try {
                     loadActionRecognitionModel();
@@ -448,7 +448,7 @@ public class DjlVisionBackend implements VisionBackend,
                 }
             } else {
                 logger.info(
-                        "Action recognition model not configured or blank; skipping action recognition model load.");
+                    "Action recognition model not configured or blank; skipping action recognition model load.");
             }
 
             if (properties.getSegmentation() != null) {
@@ -480,10 +480,10 @@ public class DjlVisionBackend implements VisionBackend,
             healthStatus = BackendHealthInfo.HealthStatus.UNHEALTHY;
             healthErrorMessage = "Initialization failed: " + e.getMessage();
             throw new VisionBackendException(
-                    "Failed to initialize DJL backend",
-                    "initialization_failed",
-                    null,
-                    e);
+                "Failed to initialize DJL backend",
+                "initialization_failed",
+                null,
+                e);
         }
     }
 
@@ -507,7 +507,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     // Overload to support creating a Predictor with a custom Translator
     private <I, O, R> R withPredictor(ZooModel<I, O> model, Translator<I, O> translator,
-            PredictorCallback<I, O, R> callback) throws Exception {
+                                      PredictorCallback<I, O, R> callback) throws Exception {
         if (model == null) {
             throw new VisionBackendException("Model not initialized", "model_not_initialized", null);
         }
@@ -536,25 +536,25 @@ public class DjlVisionBackend implements VisionBackend,
             // Try to load a face embedding model for the recognition pipeline
             // This will be used to generate embeddings from cropped face regions
             Criteria<Image, float[]> criteria = Criteria.builder()
-                    .setTypes(Image.class, float[].class)
-                    .optApplication(Application.CV.IMAGE_CLASSIFICATION) // Face embedding as classification
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+                .setTypes(Image.class, float[].class)
+                .optApplication(Application.CV.IMAGE_CLASSIFICATION) // Face embedding as classification
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
             faceRecognitionModel = criteria.loadModel();
 
             modelCache.put("face_recognition", faceRecognitionModel);
             logger.info(
-                    "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + cropped face embeddings)",
-                    faceRecognitionModel.getName());
+                "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + cropped face embeddings)",
+                faceRecognitionModel.getName());
         } catch (Exception e) {
             logger.warn("Failed to load face recognition model: {}. Face recognition pipeline will be unavailable.",
-                    e.getMessage());
+                e.getMessage());
             // Don't throw exception - face recognition is optional
             logger.info(
-                    "Face recognition pipeline not available - this is expected as DJL has limited face embedding models. Pipeline requires: RetinaFace (✅ loaded) + face embedding model (❌ not found)");
+                "Face recognition pipeline not available - this is expected as DJL has limited face embedding models. Pipeline requires: RetinaFace (✅ loaded) + face embedding model (❌ not found)");
         }
     }
 
@@ -567,10 +567,10 @@ public class DjlVisionBackend implements VisionBackend,
             // RetinaFace configuration parameters (from working DJL example)
             double confThresh = 0.85f;
             double nmsThresh = 0.45f;
-            double[] variance = { 0.1f, 0.2f };
+            double[] variance = {0.1f, 0.2f};
             int topK = 5000;
-            int[][] scales = { { 16, 32 }, { 64, 128 }, { 256, 512 } };
-            int[] steps = { 8, 16, 32 };
+            int[][] scales = {{16, 32}, {64, 128}, {256, 512}};
+            int[] steps = {8, 16, 32};
 
             // Check if RetinaFace model is available locally (downloaded and extracted
             // during build)
@@ -584,36 +584,36 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-                    .setTypes(Image.class, DetectedObjects.class)
-                    .optModelUrls(retinaFaceUrl)
-                    .optModelName("retinaface")
-                    .optTranslator(new FaceDetectionTranslator(confThresh, nmsThresh, variance, topK, scales, steps))
-                    .optEngine("PyTorch")
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+                .setTypes(Image.class, DetectedObjects.class)
+                .optModelUrls(retinaFaceUrl)
+                .optModelName("retinaface")
+                .optTranslator(new FaceDetectionTranslator(confThresh, nmsThresh, variance, topK, scales, steps))
+                .optEngine("PyTorch")
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
             faceDetectionModel = criteria.loadModel();
             modelCache.put("face_detection", faceDetectionModel);
             logger.info("RetinaFace face detection model loaded: {} - high accuracy with landmark detection",
-                    faceDetectionModel.getName());
+                faceDetectionModel.getName());
         } catch (Exception e) {
             logger.warn("Failed to load RetinaFace model: {}. Falling back to object detection.", e.getMessage());
 
             // Fallback to generic object detection
             try {
                 Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-                        .setTypes(Image.class, DetectedObjects.class)
-                        .optApplication(Application.CV.OBJECT_DETECTION)
-                        .optEngine(properties.getEngine())
-                        .optDevice(device)
-                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                        .build();
+                    .setTypes(Image.class, DetectedObjects.class)
+                    .optApplication(Application.CV.OBJECT_DETECTION)
+                    .optEngine(properties.getEngine())
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
 
                 faceDetectionModel = criteria.loadModel();
                 modelCache.put("face_detection", faceDetectionModel);
                 logger.info("Face detection model loaded: {} - fallback to generic object detection",
-                        faceDetectionModel.getName());
+                    faceDetectionModel.getName());
             } catch (Exception fallbackEx) {
                 logger.error("Failed to load face detection model: {}", fallbackEx.getMessage());
                 throw new ModelNotFoundException("Face detection model not available", fallbackEx);
@@ -635,21 +635,21 @@ public class DjlVisionBackend implements VisionBackend,
             // Check if YOLO model is available
             if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
                 logger.warn(
-                        "YOLOv8 model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to SSD model in configuration.");
+                    "YOLOv8 model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to SSD model in configuration.");
                 throw new ModelNotFoundException(
-                        "YOLOv8 model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
+                    "YOLOv8 model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
             }
         } else if ("ssd".equalsIgnoreCase(modelType)) {
             // Use SSD model as fallback
             logger.info("Using SSD object detection model with {} backbone",
-                    properties.getObjectDetection().getBackbone());
+                properties.getObjectDetection().getBackbone());
             criteria = Criteria.builder()
-                    .optApplication(Application.CV.OBJECT_DETECTION)
-                    .setTypes(Image.class, DetectedObjects.class)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+                .optApplication(Application.CV.OBJECT_DETECTION)
+                .setTypes(Image.class, DetectedObjects.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
         } else {
             // Default to YOLO for any other value
             logger.info("Unknown object detection model '{}', defaulting to YOLOv8", modelType);
@@ -657,14 +657,14 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (!YoloLoader.isModelAvailable("yolov8/yolov8n.pt")) {
                 logger.warn(
-                        "YOLOv8 model not found, falling back to SSD model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
+                    "YOLOv8 model not found, falling back to SSD model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
                 criteria = Criteria.builder()
-                        .optApplication(Application.CV.OBJECT_DETECTION)
-                        .setTypes(Image.class, DetectedObjects.class)
-                        .optEngine(properties.getEngine())
-                        .optDevice(device)
-                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                        .build();
+                    .optApplication(Application.CV.OBJECT_DETECTION)
+                    .setTypes(Image.class, DetectedObjects.class)
+                    .optEngine(properties.getEngine())
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
             }
         }
 
@@ -686,26 +686,26 @@ public class DjlVisionBackend implements VisionBackend,
             // Check if YOLO pose model is available
             if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
                 logger.warn(
-                        "YOLOv8 pose model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to simple_pose model in configuration.");
+                    "YOLOv8 pose model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to simple_pose model in configuration.");
                 throw new ModelNotFoundException(
-                        "YOLOv8 pose model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
+                    "YOLOv8 pose model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
             }
 
             poseEstimationModel = criteria.loadModel();
             modelCache.put("pose_estimation", poseEstimationModel);
             logger.info("YOLOv8 pose estimation model loaded: {} - optimized for pose detection",
-                    poseEstimationModel.getName());
+                poseEstimationModel.getName());
         } else if ("simple_pose".equalsIgnoreCase(modelType)) {
             // Use simple pose model as fallback
             logger.info("Using simple pose estimation model");
             try {
                 Criteria<Image, NDList> criteria = Criteria.builder()
-                        .setTypes(Image.class, NDList.class)
-                        .optApplication(Application.CV.POSE_ESTIMATION)
-                        .optEngine("OnnxRuntime") // Prefer ONNX models like MediaPipe
-                        .optDevice(device)
-                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                        .build();
+                    .setTypes(Image.class, NDList.class)
+                    .optApplication(Application.CV.POSE_ESTIMATION)
+                    .optEngine(properties.getEngine()) // Use configured engine instead of hardcoded OnnxRuntime
+                    .optDevice(device)
+                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                    .build();
 
                 @SuppressWarnings("unchecked")
                 ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
@@ -713,7 +713,7 @@ public class DjlVisionBackend implements VisionBackend,
 
                 modelCache.put("pose_estimation", poseEstimationModel);
                 logger.info("Simple pose estimation model loaded: {} - optimized for pose detection",
-                        poseEstimationModel.getName());
+                    poseEstimationModel.getName());
             } catch (Exception e) {
                 logger.error("Failed to load simple pose estimation model: {}", e.getMessage());
                 throw new ModelNotFoundException("Simple pose estimation model not available", e);
@@ -725,15 +725,15 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (!YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
                 logger.warn(
-                        "YOLOv8 pose model not found, falling back to simple pose model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
+                    "YOLOv8 pose model not found, falling back to simple pose model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
                 try {
                     Criteria<Image, NDList> fallbackCriteria = Criteria.builder()
-                            .setTypes(Image.class, NDList.class)
-                            .optApplication(Application.CV.POSE_ESTIMATION)
-                            .optEngine("OnnxRuntime")
-                            .optDevice(device)
-                            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                            .build();
+                        .setTypes(Image.class, NDList.class)
+                        .optApplication(Application.CV.POSE_ESTIMATION)
+                        .optEngine(properties.getEngine()) // Use configured engine instead of hardcoded OnnxRuntime
+                        .optDevice(device)
+                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                        .build();
 
                     @SuppressWarnings("unchecked")
                     ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) fallbackCriteria.loadModel();
@@ -756,12 +756,12 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Loading action recognition model with DJL");
 
         Criteria<Image, float[]> criteria = Criteria.builder()
-                .optApplication(Application.CV.ACTION_RECOGNITION)
-                .setTypes(Image.class, float[].class)
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+            .optApplication(Application.CV.ACTION_RECOGNITION)
+            .setTypes(Image.class, float[].class)
+            .optEngine(properties.getEngine())
+            .optDevice(device)
+            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+            .build();
 
         actionRecognitionModel = criteria.loadModel();
         modelCache.put("action_recognition", actionRecognitionModel);
@@ -773,30 +773,30 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Semantic segmentation
         Criteria<Image, CategoryMask> semanticCriteria = Criteria.builder()
-                .optApplication(Application.CV.SEMANTIC_SEGMENTATION)
-                .setTypes(Image.class, CategoryMask.class)
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+            .optApplication(Application.CV.SEMANTIC_SEGMENTATION)
+            .setTypes(Image.class, CategoryMask.class)
+            .optEngine(properties.getEngine())
+            .optDevice(device)
+            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+            .build();
 
         semanticSegmentationModel = semanticCriteria.loadModel();
         modelCache.put("semantic_segmentation", semanticSegmentationModel);
 
         // Instance segmentation
         Criteria<Image, DetectedObjects> instanceCriteria = Criteria.builder()
-                .optApplication(Application.CV.INSTANCE_SEGMENTATION)
-                .setTypes(Image.class, DetectedObjects.class)
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+            .optApplication(Application.CV.INSTANCE_SEGMENTATION)
+            .setTypes(Image.class, DetectedObjects.class)
+            .optEngine(properties.getEngine())
+            .optDevice(device)
+            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+            .build();
 
         instanceSegmentationModel = instanceCriteria.loadModel();
         modelCache.put("instance_segmentation", instanceSegmentationModel);
 
         logger.info("Segmentation models loaded: semantic={}, instance={}",
-                semanticSegmentationModel.getName(), instanceSegmentationModel.getName());
+            semanticSegmentationModel.getName(), instanceSegmentationModel.getName());
     }
 
     // ==========================
@@ -807,10 +807,10 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectFaces(ImageData imageData) throws BaseVisionException {
         // Use configured thresholds from properties by default
         DetectionQuery query = new DetectionQuery.Builder()
-                .type(DetectionType.FACE)
-                .minConfidence(properties.getFaceDetection().getConfidenceThreshold())
-                .maxDetections(properties.getFaceDetection().getMaxFaces())
-                .build();
+            .type(DetectionType.FACE)
+            .minConfidence(properties.getFaceDetection().getConfidenceThreshold())
+            .maxDetections(properties.getFaceDetection().getMaxFaces())
+            .build();
         return detectFaces(imageData, query);
     }
 
@@ -820,9 +820,9 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectFaces(ImageData imageData, DetectionQuery query) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         validateInput(imageData, query);
@@ -834,7 +834,7 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Convert ImageData to DJL Image
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // Prefer specialized face detection model when available, fall back to object
             // detection.
@@ -846,11 +846,11 @@ public class DjlVisionBackend implements VisionBackend,
                 // tests
                 // to validate backend initialization and model presence on disk.
                 boolean modelFilesPresent = YoloLoader.isModelAvailable("retinaface/retinaface.pt")
-                        || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
+                    || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
 
                 if (modelFilesPresent) {
                     logger.info(
-                            "Model files present but models not loaded; returning synthetic detection to satisfy integration tests");
+                        "Model files present but models not loaded; returning synthetic detection to satisfy integration tests");
                     if (!properties.isSyntheticFallbacks()) {
                         logger.info("Synthetic fallbacks disabled via properties; returning empty result instead");
                         return Collections.emptyList();
@@ -867,7 +867,7 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             ZooModel<Image, DetectedObjects> modelToUse = (faceDetectionModel != null) ? faceDetectionModel
-                    : objectDetectionModel;
+                : objectDetectionModel;
 
             List<Detection> faceDetections = withPredictor(modelToUse, predictor -> {
                 DetectedObjects detections = predictor.predict(djlImage);
@@ -877,12 +877,12 @@ public class DjlVisionBackend implements VisionBackend,
                 List<Detection> allDetections = convertDetections(detections, query);
                 if (modelToUse == objectDetectionModel) {
                     return allDetections.stream()
-                            .filter(d -> {
-                                String lbl = d.label() == null ? "" : d.label().toLowerCase();
-                                return lbl.contains("person") || lbl.contains("face") || lbl.contains("head")
-                                        || lbl.contains("human");
-                            })
-                            .toList();
+                        .filter(d -> {
+                            String lbl = d.label() == null ? "" : d.label().toLowerCase();
+                            return lbl.contains("person") || lbl.contains("face") || lbl.contains("head")
+                                || lbl.contains("human");
+                        })
+                        .toList();
                 } else {
                     // face detector returns face classes - return as-is
                     return allDetections;
@@ -890,30 +890,30 @@ public class DjlVisionBackend implements VisionBackend,
             });
 
             logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
-                    faceDetections.size(), correlationId);
+                faceDetections.size(), correlationId);
 
             return faceDetections;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image",
-                    "image_load_failed",
-                    DetectionType.FACE.name(),
-                    e);
+                "Failed to load image",
+                "image_load_failed",
+                DetectionType.FACE.name(),
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process image",
-                    "inference_failed",
-                    DetectionType.FACE.name(),
-                    e);
+                "Failed to process image",
+                "inference_failed",
+                DetectionType.FACE.name(),
+                e);
         } catch (VisionBackendException e) {
             throw e;
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Face detection failed",
-                    "detection_failed",
-                    null,
-                    e);
+                "Face detection failed",
+                "detection_failed",
+                null,
+                e);
         }
     }
 
@@ -924,17 +924,17 @@ public class DjlVisionBackend implements VisionBackend,
     @Override
     public List<Detection> detectObjects(ImageData imageData) {
         DetectionQuery query = new DetectionQuery.Builder()
-                .type(DetectionType.OBJECT)
-                .minConfidence(properties.getObjectDetection().getConfidenceThreshold())
-                .build();
+            .type(DetectionType.OBJECT)
+            .minConfidence(properties.getObjectDetection().getConfidenceThreshold())
+            .build();
         try {
             return detectObjects(imageData, query);
         } catch (BaseVisionException e) {
             throw new io.github.codesapienbe.springvision.core.exception.VisionBackendException(
-                    "Object detection failed",
-                    "detect_objects",
-                    null,
-                    e);
+                "Object detection failed",
+                "detect_objects",
+                null,
+                e);
         }
     }
 
@@ -944,9 +944,9 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectObjects(ImageData imageData, DetectionQuery query) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         validateInput(imageData, query);
@@ -956,17 +956,17 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL object detection requested: correlationId={}, backend=djl", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // If object detection model isn't loaded (offline/test mode), return synthetic
             // detection
             if (objectDetectionModel == null) {
                 boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8/yolov8n.pt")
-                        || YoloLoader.isModelAvailable("yolov8s.pt");
+                    || YoloLoader.isModelAvailable("yolov8s.pt");
 
                 if (modelFilesPresent) {
                     logger.info(
-                            "Object model files present but model not loaded; returning synthetic object detection");
+                        "Object model files present but model not loaded; returning synthetic object detection");
                     if (!properties.isSyntheticFallbacks()) {
                         logger.info("Synthetic fallbacks disabled via properties; returning empty object list");
                         return Collections.emptyList();
@@ -984,7 +984,7 @@ public class DjlVisionBackend implements VisionBackend,
                         syntheticCount = Math.min(12, query.getMaxDetections());
                     }
                     List<Detection> syntheticList = new ArrayList<>();
-                    String[] syntheticLabels = new String[] { "person", "car", "bicycle", "dog", "cat", "chair", "table", "phone", "laptop", "bottle" };
+                    String[] syntheticLabels = new String[]{"person", "car", "bicycle", "dog", "cat", "chair", "table", "phone", "laptop", "bottle"};
                     for (int i = 0; i < syntheticCount; i++) {
                         double x = Math.max(0.0, 0.01 * i);
                         double y = Math.max(0.0, 0.01 * i);
@@ -1014,27 +1014,27 @@ public class DjlVisionBackend implements VisionBackend,
             });
 
             logger.info("DJL object detection completed: {} objects detected, correlationId={}, backend=djl",
-                    results.size(), correlationId);
+                results.size(), correlationId);
 
             return results;
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image",
-                    "image_load_failed",
-                    DetectionType.OBJECT.name(),
-                    e);
+                "Failed to load image",
+                "image_load_failed",
+                DetectionType.OBJECT.name(),
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process image",
-                    "inference_failed",
-                    DetectionType.OBJECT.name(),
-                    e);
+                "Failed to process image",
+                "inference_failed",
+                DetectionType.OBJECT.name(),
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Object detection failed",
-                    "detection_failed",
-                    null,
-                    e);
+                "Object detection failed",
+                "detection_failed",
+                null,
+                e);
         }
     }
 
@@ -1046,16 +1046,16 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> detectPoses(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         // If pose model not loaded but model files exist, return synthetic pose/person
         // detection
         if (poseEstimationModel == null) {
             boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")
-                    || YoloLoader.isModelAvailable("yolov8-pose/yolov8m-pose.pt");
+                || YoloLoader.isModelAvailable("yolov8-pose/yolov8m-pose.pt");
 
             if (modelFilesPresent) {
                 logger.info("Pose model files present but model not loaded; returning synthetic pose detection");
@@ -1069,9 +1069,9 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             throw new VisionBackendException(
-                    "Pose estimation model not initialized",
-                    "model_not_initialized",
-                    null);
+                "Pose estimation model not initialized",
+                "model_not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1080,7 +1080,7 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL pose estimation requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             List<Detection> results = withPredictor(poseEstimationModel, predictor -> {
                 Joints joints = predictor.predict(djlImage);
@@ -1088,28 +1088,28 @@ public class DjlVisionBackend implements VisionBackend,
             });
 
             logger.info("DJL pose estimation completed: {} poses detected, correlationId={}",
-                    results.size(), correlationId);
+                results.size(), correlationId);
 
             return results;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for pose estimation",
-                    "image_load_failed",
-                    "POSE",
-                    e);
+                "Failed to load image for pose estimation",
+                "image_load_failed",
+                "POSE",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process pose estimation",
-                    "inference_failed",
-                    "POSE",
-                    e);
+                "Failed to process pose estimation",
+                "inference_failed",
+                "POSE",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Pose estimation failed",
-                    "pose_failed",
-                    null,
-                    e);
+                "Pose estimation failed",
+                "pose_failed",
+                null,
+                e);
         }
     }
 
@@ -1145,10 +1145,10 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Create a single detection representing the entire pose
         Detection poseDetection = new Detection(
-                "person_pose",
-                calculateAverageConfidence(jointsData),
-                null, // No bounding box for individual joints
-                poseAttributes);
+            "person_pose",
+            calculateAverageConfidence(jointsData),
+            null, // No bounding box for individual joints
+            poseAttributes);
 
         results.add(poseDetection);
         return results;
@@ -1156,10 +1156,10 @@ public class DjlVisionBackend implements VisionBackend,
 
     private String getJointTypeName(int index) {
         String[] jointNames = {
-                "nose", "left_eye", "right_eye", "left_ear", "right_ear",
-                "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
-                "left_wrist", "right_wrist", "left_hip", "right_hip",
-                "left_knee", "right_knee", "left_ankle", "right_ankle"
+            "nose", "left_eye", "right_eye", "left_ear", "right_ear",
+            "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
+            "left_wrist", "right_wrist", "left_hip", "right_hip",
+            "left_knee", "right_knee", "left_ankle", "right_ankle"
         };
         return index < jointNames.length ? jointNames[index] : "joint_" + index;
     }
@@ -1168,8 +1168,8 @@ public class DjlVisionBackend implements VisionBackend,
         if (joints.isEmpty())
             return 0.0;
         double sum = joints.stream()
-                .mapToDouble(j -> ((Number) j.get("confidence")).doubleValue())
-                .sum();
+            .mapToDouble(j -> ((Number) j.get("confidence")).doubleValue())
+            .sum();
         return sum / joints.size();
     }
 
@@ -1181,9 +1181,9 @@ public class DjlVisionBackend implements VisionBackend,
     public List<Detection> recognizeActions(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         // If action model not loaded, try synthetic fallback when model files are
@@ -1192,13 +1192,13 @@ public class DjlVisionBackend implements VisionBackend,
             boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
             if (djlOffline || !properties.isAutoDownload()) {
                 logger.info(
-                        "Action recognition model not loaded; returning synthetic action detection in offline/test mode");
+                    "Action recognition model not loaded; returning synthetic action detection in offline/test mode");
                 if (!properties.isSyntheticFallbacks()) {
                     logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
                     throw new VisionBackendException(
-                            "Action recognition model not initialized",
-                            "model_not_initialized",
-                            null);
+                        "Action recognition model not initialized",
+                        "model_not_initialized",
+                        null);
                 }
                 Map<String, Object> attrs = new HashMap<>();
                 attrs.put("backend", BACKEND_ID);
@@ -1211,9 +1211,9 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             throw new VisionBackendException(
-                    "Action recognition model not initialized",
-                    "model_not_initialized",
-                    null);
+                "Action recognition model not initialized",
+                "model_not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1222,35 +1222,35 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL action recognition requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             float[] predictions = withPredictor(actionRecognitionModel, predictor -> predictor.predict(djlImage));
 
             List<Detection> results = convertActionPredictions(predictions);
 
             logger.info("DJL action recognition completed: {} actions detected, correlationId={}",
-                    results.size(), correlationId);
+                results.size(), correlationId);
 
             return results;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for action recognition",
-                    "image_load_failed",
-                    "ACTION",
-                    e);
+                "Failed to load image for action recognition",
+                "image_load_failed",
+                "ACTION",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process action recognition",
-                    "inference_failed",
-                    "ACTION",
-                    e);
+                "Failed to process action recognition",
+                "inference_failed",
+                "ACTION",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Action recognition failed",
-                    "action_failed",
-                    null,
-                    e);
+                "Action recognition failed",
+                "action_failed",
+                null,
+                e);
         }
     }
 
@@ -1260,8 +1260,8 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Common action labels (can be customized based on model)
         String[] actionLabels = {
-                "walking", "running", "sitting", "standing", "jumping",
-                "waving", "clapping", "reading", "writing", "eating"
+            "walking", "running", "sitting", "standing", "jumping",
+            "waving", "clapping", "reading", "writing", "eating"
         };
 
         for (int i = 0; i < Math.min(predictions.length, actionLabels.length); i++) {
@@ -1272,10 +1272,10 @@ public class DjlVisionBackend implements VisionBackend,
                 attributes.put("actionIndex", i);
 
                 Detection detection = new Detection(
-                        actionLabels[i],
-                        predictions[i],
-                        null,
-                        attributes);
+                    actionLabels[i],
+                    predictions[i],
+                    null,
+                    attributes);
                 results.add(detection);
             }
         }
@@ -1294,26 +1294,26 @@ public class DjlVisionBackend implements VisionBackend,
     public VisionResult segmentSemantic(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         // If semantic model not loaded but model files exist, return synthetic
         // VisionResult
         if (semanticSegmentationModel == null) {
             boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                    || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
+                || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
 
             if (modelFilesPresent) {
                 logger.info(
-                        "Segmentation model files present but model not loaded; returning synthetic segmentation result");
+                    "Segmentation model files present but model not loaded; returning synthetic segmentation result");
                 if (!properties.isSyntheticFallbacks()) {
                     logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
                     throw new VisionBackendException(
-                            "Semantic segmentation model not initialized",
-                            "model_not_initialized",
-                            null);
+                        "Semantic segmentation model not initialized",
+                        "model_not_initialized",
+                        null);
                 }
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put("segmentationType", "semantic");
@@ -1331,9 +1331,9 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             throw new VisionBackendException(
-                    "Semantic segmentation model not initialized",
-                    "model_not_initialized",
-                    null);
+                "Semantic segmentation model not initialized",
+                "model_not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1342,7 +1342,7 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL semantic segmentation requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             CategoryMask mask = withPredictor(semanticSegmentationModel, predictor -> predictor.predict(djlImage));
 
@@ -1354,22 +1354,22 @@ public class DjlVisionBackend implements VisionBackend,
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for semantic segmentation",
-                    "image_load_failed",
-                    "SEGMENTATION",
-                    e);
+                "Failed to load image for semantic segmentation",
+                "image_load_failed",
+                "SEGMENTATION",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process semantic segmentation",
-                    "inference_failed",
-                    "SEGMENTATION",
-                    e);
+                "Failed to process semantic segmentation",
+                "inference_failed",
+                "SEGMENTATION",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Semantic segmentation failed",
-                    "segmentation_failed",
-                    null,
-                    e);
+                "Semantic segmentation failed",
+                "segmentation_failed",
+                null,
+                e);
         }
     }
 
@@ -1377,26 +1377,26 @@ public class DjlVisionBackend implements VisionBackend,
     public VisionResult segmentInstances(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         // If instance segmentation model not loaded but model files exist, return
         // synthetic instances
         if (instanceSegmentationModel == null) {
             boolean modelFilesPresent = YoloLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                    || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
+                || YoloLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
 
             if (modelFilesPresent) {
                 logger.info(
-                        "Instance segmentation model files present but model not loaded; returning synthetic instance segmentation result");
+                    "Instance segmentation model files present but model not loaded; returning synthetic instance segmentation result");
                 if (!properties.isSyntheticFallbacks()) {
                     logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
                     throw new VisionBackendException(
-                            "Instance segmentation model not initialized",
-                            "model_not_initialized",
-                            null);
+                        "Instance segmentation model not initialized",
+                        "model_not_initialized",
+                        null);
                 }
                 Map<String, Object> metadata = new HashMap<>();
                 metadata.put("segmentationType", "instance");
@@ -1421,9 +1421,9 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             throw new VisionBackendException(
-                    "Instance segmentation model not initialized",
-                    "model_not_initialized",
-                    null);
+                "Instance segmentation model not initialized",
+                "model_not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1432,36 +1432,36 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL instance segmentation requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             DetectedObjects detections = withPredictor(instanceSegmentationModel,
-                    predictor -> predictor.predict(djlImage));
+                predictor -> predictor.predict(djlImage));
 
             VisionResult result = convertInstanceDetectionsToResult(detections, correlationId);
 
             logger.info("DJL instance segmentation completed: {} instances, correlationId={}",
-                    detections.getNumberOfObjects(), correlationId);
+                detections.getNumberOfObjects(), correlationId);
 
             return result;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for instance segmentation",
-                    "image_load_failed",
-                    "SEGMENTATION",
-                    e);
+                "Failed to load image for instance segmentation",
+                "image_load_failed",
+                "SEGMENTATION",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to process instance segmentation",
-                    "inference_failed",
-                    "SEGMENTATION",
-                    e);
+                "Failed to process instance segmentation",
+                "inference_failed",
+                "SEGMENTATION",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Instance segmentation failed",
-                    "segmentation_failed",
-                    null,
-                    e);
+                "Instance segmentation failed",
+                "segmentation_failed",
+                null,
+                e);
         }
     }
 
@@ -1475,11 +1475,11 @@ public class DjlVisionBackend implements VisionBackend,
         metadata.put("correlationId", correlationId);
 
         return VisionResult.builder()
-                .detectionType(DetectionType.SCENE)
-                .detections(List.of())
-                .processingTimeMs(0L)
-                .metadata(metadata)
-                .build();
+            .detectionType(DetectionType.SCENE)
+            .detections(List.of())
+            .processingTimeMs(0L)
+            .metadata(metadata)
+            .build();
     }
 
     private VisionResult convertInstanceDetectionsToResult(DetectedObjects detections, String correlationId) {
@@ -1497,16 +1497,16 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("instanceId", i);
 
             io.github.codesapienbe.springvision.core.BoundingBox svBbox = new io.github.codesapienbe.springvision.core.BoundingBox(
-                    rect.getX(),
-                    rect.getY(),
-                    rect.getWidth(),
-                    rect.getHeight());
+                rect.getX(),
+                rect.getY(),
+                rect.getWidth(),
+                rect.getHeight());
 
             Detection detection = new Detection(
-                    obj.getClassName(),
-                    obj.getProbability(),
-                    svBbox,
-                    attributes);
+                obj.getClassName(),
+                obj.getProbability(),
+                svBbox,
+                attributes);
 
             results.add(detection);
         }
@@ -1516,11 +1516,11 @@ public class DjlVisionBackend implements VisionBackend,
         metadata.put("segmentationType", "instance");
 
         return VisionResult.builder()
-                .detectionType(DetectionType.SCENE)
-                .detections(results)
-                .processingTimeMs(0L)
-                .metadata(metadata)
-                .build();
+            .detectionType(DetectionType.SCENE)
+            .detections(results)
+            .processingTimeMs(0L)
+            .metadata(metadata)
+            .build();
     }
 
     // ==========================
@@ -1534,17 +1534,17 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         throw new VisionBackendException(
-                "Embedding extraction not supported for category: " + subject,
-                "unsupported_category",
-                null);
+            "Embedding extraction not supported for category: " + subject,
+            "unsupported_category",
+            null);
     }
 
     private List<float[]> extractFaceEmbeddings(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         // Ensure face recognition model is loaded. In offline/test mode we may return
@@ -1552,11 +1552,11 @@ public class DjlVisionBackend implements VisionBackend,
         // disabled.
         if (faceRecognitionModel == null) {
             boolean modelFilesPresent = YoloLoader.isModelAvailable("retinaface/retinaface.pt")
-                    || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
+                || YoloLoader.isModelAvailable("yolov8/yolov8n.pt");
 
             if (modelFilesPresent) {
                 logger.info(
-                        "Face recognition model files present but model not loaded; returning synthetic embedding(s)");
+                    "Face recognition model files present but model not loaded; returning synthetic embedding(s)");
                 // Return a single synthetic embedding vector of length 128
                 float[] emb = new float[128];
                 for (int i = 0; i < emb.length; i++)
@@ -1574,7 +1574,7 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL face embedding extraction requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // First, detect faces to get bounding boxes. Use detectFaces which will prefer
             // a face detector.
@@ -1587,7 +1587,7 @@ public class DjlVisionBackend implements VisionBackend,
                 float[] fullEmbedding = withPredictor(faceRecognitionModel, predictor -> predictor.predict(djlImage));
                 embeddings.add(l2Normalize(fullEmbedding));
                 logger.info("No face boxes found - extracted embedding from full image, correlationId={}",
-                        correlationId);
+                    correlationId);
                 return embeddings;
             }
 
@@ -1634,8 +1634,8 @@ public class DjlVisionBackend implements VisionBackend,
 
                     // Model-aware preprocessing: resize and apply normalization via Translator
                     String modelName = (properties.getFaceRecognition() != null
-                            ? properties.getFaceRecognition().getModel()
-                            : "");
+                        ? properties.getFaceRecognition().getModel()
+                        : "");
                     int targetSize = determineFaceRecognitionInputSize(modelName);
 
                     BufferedImage resized = resizeImage(faceCrop, targetSize, targetSize);
@@ -1646,7 +1646,7 @@ public class DjlVisionBackend implements VisionBackend,
                     try {
                         // Use centralized helper that manages concurrency and predictor lifecycle
                         float[] emb = withPredictor(faceRecognitionModel, translator,
-                                predictor -> predictor.predict(faceImage));
+                            predictor -> predictor.predict(faceImage));
                         if (emb != null) {
                             embeddings.add(l2Normalize(emb));
                         }
@@ -1667,22 +1667,22 @@ public class DjlVisionBackend implements VisionBackend,
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for embedding extraction",
-                    "image_load_failed",
-                    "EMBEDDING",
-                    e);
+                "Failed to load image for embedding extraction",
+                "image_load_failed",
+                "EMBEDDING",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to extract embeddings",
-                    "inference_failed",
-                    "EMBEDDING",
-                    e);
+                "Failed to extract embeddings",
+                "inference_failed",
+                "EMBEDDING",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Embedding extraction failed",
-                    "extraction_failed",
-                    null,
-                    e);
+                "Embedding extraction failed",
+                "extraction_failed",
+                null,
+                e);
         }
     }
 
@@ -1710,12 +1710,12 @@ public class DjlVisionBackend implements VisionBackend,
         String m = (modelName == null ? "" : modelName.toLowerCase());
         if (m.contains("facenet") || m.contains("inception")) {
             // FaceNet often expects inputs in [-1, 1]
-            mean = new float[] { 0.5f, 0.5f, 0.5f };
-            std = new float[] { 0.5f, 0.5f, 0.5f };
+            mean = new float[]{0.5f, 0.5f, 0.5f};
+            std = new float[]{0.5f, 0.5f, 0.5f};
         } else {
             // Default to ImageNet normalization
-            mean = new float[] { 0.485f, 0.456f, 0.406f };
-            std = new float[] { 0.229f, 0.224f, 0.225f };
+            mean = new float[]{0.485f, 0.456f, 0.406f};
+            std = new float[]{0.229f, 0.224f, 0.225f};
         }
 
         final float[] meanF = mean;
@@ -1772,9 +1772,9 @@ public class DjlVisionBackend implements VisionBackend,
     public List<OcrCapability.TextDetection> extractText(ImageData imageData) throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1808,10 +1808,10 @@ public class DjlVisionBackend implements VisionBackend,
             // TDD-style OCR integration tests deterministic in offline environments.
             String syntheticText = properties.isSyntheticFallbacks() ? "Line 1\nLine 2\nLine 3" : "no_text";
             OcrCapability.TextDetection synthetic = new OcrCapability.TextDetection(
-                    syntheticText,
-                    modelFilesPresent ? 0.6 : 0.0,
-                    bbox,
-                    attributes);
+                syntheticText,
+                modelFilesPresent ? 0.6 : 0.0,
+                bbox,
+                attributes);
 
             return List.of(synthetic);
         }
@@ -1820,16 +1820,16 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL OCR requested: correlationId={}", correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // Load OCR model on demand
             Criteria<Image, String> criteria = Criteria.builder()
-                    .optApplication(Application.CV.WORD_RECOGNITION)
-                    .setTypes(Image.class, String.class)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+                .optApplication(Application.CV.WORD_RECOGNITION)
+                .setTypes(Image.class, String.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
             // Use try-with-resources for the model so it is closed when done
             try (ZooModel<Image, String> ocrModel = criteria.loadModel()) {
@@ -1847,13 +1847,13 @@ public class DjlVisionBackend implements VisionBackend,
                 bbox.put("height", djlImage.getHeight());
 
                 OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
-                        extractedText,
-                        1.0, // High confidence for full image OCR
-                        bbox,
-                        attributes);
+                    extractedText,
+                    1.0, // High confidence for full image OCR
+                    bbox,
+                    attributes);
 
                 logger.info("DJL OCR completed: {} characters extracted, correlationId={}",
-                        extractedText.length(), correlationId);
+                    extractedText.length(), correlationId);
 
                 return List.of(textDetection);
             }
@@ -1880,34 +1880,34 @@ public class DjlVisionBackend implements VisionBackend,
                 bbox.put("height", buf.getHeight());
 
                 OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
-                        tessText,
-                        1.0,
-                        bbox,
-                        attributes);
+                    tessText,
+                    1.0,
+                    bbox,
+                    attributes);
 
                 logger.info("Tess4J OCR completed: {} characters extracted, correlationId={}",
-                        tessText.length(), correlationId);
+                    tessText.length(), correlationId);
 
                 return List.of(textDetection);
             } catch (ClassNotFoundException cnf) {
                 throw new VisionProcessingException(
-                        "OCR model not available and Tess4J not on classpath",
-                        "ocr_unavailable",
-                        "OCR",
-                        e);
+                    "OCR model not available and Tess4J not on classpath",
+                    "ocr_unavailable",
+                    "OCR",
+                    e);
             } catch (Exception ex) {
                 throw new VisionProcessingException(
-                        "Fallback OCR failed",
-                        "ocr_failed",
-                        "OCR",
-                        ex);
+                    "Fallback OCR failed",
+                    "ocr_failed",
+                    "OCR",
+                    ex);
             }
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "OCR failed",
-                    "ocr_failed",
-                    null,
-                    e);
+                "OCR failed",
+                "ocr_failed",
+                null,
+                e);
         }
     }
 
@@ -1917,12 +1917,12 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public ImageClassificationCapability.ClassificationResult classifyImage(ImageData imageData, int topK)
-            throws BaseVisionException {
+        throws BaseVisionException {
         if (!initialized) {
             throw new VisionBackendException(
-                    "Backend not initialized",
-                    "not_initialized",
-                    null);
+                "Backend not initialized",
+                "not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1931,23 +1931,23 @@ public class DjlVisionBackend implements VisionBackend,
             logger.debug("DJL image classification requested: topK={}, correlationId={}", topK, correlationId);
 
             Image djlImage = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(imageData.data()));
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             // If classification models are available on disk but DJL loading is disabled,
             // return a synthetic result
             boolean classificationModelPresent = YoloLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
-                    || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt");
+                || YoloLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt");
 
             if (classificationModelPresent) {
                 logger.info(
-                        "Classification model files present but model not loaded; returning synthetic classification result");
+                    "Classification model files present but model not loaded; returning synthetic classification result");
 
                 if (!properties.isSyntheticFallbacks()) {
                     logger.info("Synthetic fallbacks disabled via properties; throwing classification_failed");
                     throw new VisionBackendException(
-                            "Classification model not initialized",
-                            "classification_failed",
-                            null);
+                        "Classification model not initialized",
+                        "classification_failed",
+                        null);
                 }
 
                 List<ImageClassificationCapability.Classification> results = new ArrayList<>();
@@ -1976,16 +1976,16 @@ public class DjlVisionBackend implements VisionBackend,
             // Load image classification model on demand
             // Default to ResNet for general image classification
             Criteria<Image, ai.djl.modality.Classifications> criteria = Criteria.builder()
-                    .optApplication(Application.CV.IMAGE_CLASSIFICATION)
-                    .setTypes(Image.class, ai.djl.modality.Classifications.class)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+                .optApplication(Application.CV.IMAGE_CLASSIFICATION)
+                .setTypes(Image.class, ai.djl.modality.Classifications.class)
+                .optEngine(properties.getEngine())
+                .optDevice(device)
+                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+                .build();
 
             try (ZooModel<Image, ai.djl.modality.Classifications> classificationModel = criteria.loadModel()) {
                 ai.djl.modality.Classifications classifications = withPredictor(classificationModel,
-                        predictor -> predictor.predict(djlImage));
+                    predictor -> predictor.predict(djlImage));
 
                 List<ImageClassificationCapability.Classification> results = new ArrayList<>();
                 List<ai.djl.modality.Classifications.Classification> topKItems = classifications.topK(topK);
@@ -1996,9 +1996,9 @@ public class DjlVisionBackend implements VisionBackend,
                     attributes.put("model", classificationModel.getName());
 
                     ImageClassificationCapability.Classification classification = new ImageClassificationCapability.Classification(
-                            item.getClassName(),
-                            item.getProbability(),
-                            attributes);
+                        item.getClassName(),
+                        item.getProbability(),
+                        attributes);
                     results.add(classification);
                 }
 
@@ -2008,29 +2008,29 @@ public class DjlVisionBackend implements VisionBackend,
                 metadata.put("totalClasses", classifications.getClassNames().size());
 
                 logger.info("DJL image classification completed: {} classifications, correlationId={}",
-                        results.size(), correlationId);
+                    results.size(), correlationId);
 
                 return new ImageClassificationCapability.ClassificationResult(results, metadata);
             }
 
         } catch (IOException e) {
             throw new VisionProcessingException(
-                    "Failed to load image for classification",
-                    "image_load_failed",
-                    "CLASSIFICATION",
-                    e);
+                "Failed to load image for classification",
+                "image_load_failed",
+                "CLASSIFICATION",
+                e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                    "Failed to classify image",
-                    "inference_failed",
-                    "CLASSIFICATION",
-                    e);
+                "Failed to classify image",
+                "inference_failed",
+                "CLASSIFICATION",
+                e);
         } catch (Exception e) {
             throw new VisionBackendException(
-                    "Image classification failed",
-                    "classification_failed",
-                    null,
-                    e);
+                "Image classification failed",
+                "classification_failed",
+                null,
+                e);
         }
     }
 
@@ -2054,10 +2054,10 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Convert to Spring Vision BoundingBox using normalized coordinates (0..1)
             io.github.codesapienbe.springvision.core.BoundingBox svBbox = new io.github.codesapienbe.springvision.core.BoundingBox(
-                    rect.getX(),
-                    rect.getY(),
-                    rect.getWidth(),
-                    rect.getHeight());
+                rect.getX(),
+                rect.getY(),
+                rect.getWidth(),
+                rect.getHeight());
 
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("backend", BACKEND_ID);
@@ -2069,10 +2069,10 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("model", modelName);
 
             Detection detection = new Detection(
-                    obj.getClassName(),
-                    obj.getProbability(),
-                    svBbox,
-                    attributes);
+                obj.getClassName(),
+                obj.getProbability(),
+                svBbox,
+                attributes);
 
             results.add(detection);
 
@@ -2083,7 +2083,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         logger.debug("Converted {} detections with filtering (minConfidence={}, maxDetections={})",
-                results.size(), query.getMinConfidence(), query.getMaxDetections());
+            results.size(), query.getMinConfidence(), query.getMaxDetections());
         return results;
     }
 
@@ -2142,16 +2142,16 @@ public class DjlVisionBackend implements VisionBackend,
             Map<DecodeHintType, Object> hints = new EnumMap<>(DecodeHintType.class);
             hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
             hints.put(DecodeHintType.POSSIBLE_FORMATS, Arrays.asList(
-                    BarcodeFormat.QR_CODE,
-                    BarcodeFormat.DATA_MATRIX,
-                    BarcodeFormat.EAN_13,
-                    BarcodeFormat.EAN_8,
-                    BarcodeFormat.CODE_128,
-                    BarcodeFormat.CODE_39,
-                    BarcodeFormat.UPC_A,
-                    BarcodeFormat.UPC_E,
-                    BarcodeFormat.AZTEC,
-                    BarcodeFormat.PDF_417));
+                BarcodeFormat.QR_CODE,
+                BarcodeFormat.DATA_MATRIX,
+                BarcodeFormat.EAN_13,
+                BarcodeFormat.EAN_8,
+                BarcodeFormat.CODE_128,
+                BarcodeFormat.CODE_39,
+                BarcodeFormat.UPC_A,
+                BarcodeFormat.UPC_E,
+                BarcodeFormat.AZTEC,
+                BarcodeFormat.PDF_417));
 
             List<Detection> detections = new ArrayList<>();
 
@@ -2171,7 +2171,7 @@ public class DjlVisionBackend implements VisionBackend,
                     Reader singleReader = new MultiFormatReader();
                     Result singleResult = singleReader.decode(bitmap, hints);
                     detections.add(
-                            createBarcodeDetection(singleResult, bufferedImage.getWidth(), bufferedImage.getHeight()));
+                        createBarcodeDetection(singleResult, bufferedImage.getWidth(), bufferedImage.getHeight()));
                     logger.info("Detected 1 barcode");
                 } catch (NotFoundException e2) {
                     logger.debug("No barcodes detected in image");
@@ -2208,7 +2208,7 @@ public class DjlVisionBackend implements VisionBackend,
         // Add metadata if available
         if (result.getResultMetadata() != null) {
             result.getResultMetadata()
-                    .forEach((key, value) -> attributes.put("metadata_" + key.toString(), value.toString()));
+                .forEach((key, value) -> attributes.put("metadata_" + key.toString(), value.toString()));
         }
 
         // Return detection with format as label and confidence 1.0 (barcodes are
@@ -2278,7 +2278,7 @@ public class DjlVisionBackend implements VisionBackend,
             for (Directory directory : metadata.getDirectories()) {
                 String directoryName = directory.getName();
                 Map<String, Object> directoryData = groupedMetadata.computeIfAbsent(
-                        directoryName, k -> new LinkedHashMap<>());
+                    directoryName, k -> new LinkedHashMap<>());
 
                 // Add all tags from this directory
                 for (Tag tag : directory.getTags()) {
@@ -2444,8 +2444,8 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Count total tags
         int tagCount = groupedMetadata.values().stream()
-                .mapToInt(Map::size)
-                .sum();
+            .mapToInt(Map::size)
+            .sum();
         attributes.put("tagCount", tagCount);
 
         BoundingBox bbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
@@ -2460,7 +2460,7 @@ public class DjlVisionBackend implements VisionBackend,
      */
     @Override
     public ImageData obscure(ImageData imageData, java.util.function.Predicate<Detection> filter)
-            throws BaseVisionException {
+        throws BaseVisionException {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(filter, "Filter cannot be null");
 
@@ -2601,7 +2601,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects hands in an image.
-     * 
+     *
      * <p>
      * Intended model: DamarJati/face-hand-YOLOv5 (PyTorch YOLO)
      * </p>
@@ -2624,9 +2624,9 @@ public class DjlVisionBackend implements VisionBackend,
             // Note: Generic object detection may not have 'hand' class
             // This is a placeholder until dedicated hand model is loaded
             List<Detection> handDetections = allDetections.stream()
-                    .filter(d -> d.label().toLowerCase().contains("hand") ||
-                            d.label().toLowerCase().contains("person"))
-                    .toList();
+                .filter(d -> d.label().toLowerCase().contains("hand") ||
+                    d.label().toLowerCase().contains("person"))
+                .toList();
 
             logger.info("Hand detection completed: {} potential hands detected", handDetections.size());
             return handDetections;
@@ -2642,7 +2642,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects demographics (age and gender) from faces.
-     * 
+     *
      * <p>
      * Intended model: abhilash88/age-gender-prediction (Vision Transformer, 94.3%
      * gender accuracy)
@@ -2684,13 +2684,13 @@ public class DjlVisionBackend implements VisionBackend,
                 attributes.put("backend", BACKEND_ID);
                 attributes.put("model", "placeholder");
                 attributes.put("note",
-                        "Using placeholder demographics until dedicated model loaded: abhilash88/age-gender-prediction");
+                    "Using placeholder demographics until dedicated model loaded: abhilash88/age-gender-prediction");
 
                 demographics.add(new Detection(
-                        gender, // label is the gender
-                        genderConfidence,
-                        face.boundingBox(),
-                        attributes));
+                    gender, // label is the gender
+                    genderConfidence,
+                    face.boundingBox(),
+                    attributes));
             }
 
             logger.info("Demographics detection completed: {} face(s) analyzed", faces.size());
@@ -2723,7 +2723,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects NSFW content in images.
-     * 
+     *
      * <p>
      * Intended model: Falconsai/nsfw_image_detection (Vision Transformer, ~98%
      * accuracy)
@@ -2754,7 +2754,7 @@ public class DjlVisionBackend implements VisionBackend,
 
                 // Check if label indicates NSFW content
                 if (label.contains("nsfw") || label.contains("adult") ||
-                        label.contains("explicit") || label.contains("inappropriate")) {
+                    label.contains("explicit") || label.contains("inappropriate")) {
                     isNSFW = true;
                     classification = "nsfw";
                     confidence = topResult.confidence();
@@ -2770,7 +2770,7 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("backend", BACKEND_ID);
             attributes.put("model", "generic-classifier");
             attributes.put("note",
-                    "Using generic classification until dedicated NSFW model loaded: Falconsai/nsfw_image_detection");
+                "Using generic classification until dedicated NSFW model loaded: Falconsai/nsfw_image_detection");
 
             logger.info("NSFW detection completed: classification={}, confidence={}", classification, confidence);
 
@@ -2778,10 +2778,10 @@ public class DjlVisionBackend implements VisionBackend,
             // Use empty bounding box for whole-image classification
             BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
             return List.of(new Detection(
-                    classification, // label is "normal" or "nsfw"
-                    confidence,
-                    wholeBbox, // whole image bounding box
-                    attributes));
+                classification, // label is "normal" or "nsfw"
+                confidence,
+                wholeBbox, // whole image bounding box
+                attributes));
 
         } catch (Exception e) {
             logger.error("NSFW detection failed: {}", e.getMessage(), e);
@@ -2794,7 +2794,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects emotions from facial expressions.
-     * 
+     *
      * <p>
      * Intended model: abhilash88/face-emotion-detection (Vision Transformer, 71.55%
      * on FER2013)
@@ -2815,7 +2815,7 @@ public class DjlVisionBackend implements VisionBackend,
             // Create Detection for each face with emotion
             // In full implementation, use dedicated emotion detection model:
             // abhilash88/face-emotion-detection
-            String[] emotionLabels = { "happy", "sad", "angry", "neutral", "surprise", "fear", "disgust" };
+            String[] emotionLabels = {"happy", "sad", "angry", "neutral", "surprise", "fear", "disgust"};
             List<Detection> emotions = new ArrayList<>();
 
             for (int i = 0; i < faces.size(); i++) {
@@ -2832,13 +2832,13 @@ public class DjlVisionBackend implements VisionBackend,
                 attributes.put("model", "placeholder");
                 attributes.put("emotionClasses", Arrays.asList(emotionLabels));
                 attributes.put("note",
-                        "Using placeholder emotions until dedicated model loaded: abhilash88/face-emotion-detection");
+                    "Using placeholder emotions until dedicated model loaded: abhilash88/face-emotion-detection");
 
                 emotions.add(new Detection(
-                        emotion, // label is the emotion
-                        confidence,
-                        face.boundingBox(),
-                        attributes));
+                    emotion, // label is the emotion
+                    confidence,
+                    face.boundingBox(),
+                    attributes));
             }
 
             logger.info("Emotion detection completed: {} face(s) analyzed", faces.size());
@@ -2855,7 +2855,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects deepfake/manipulated images.
-     * 
+     *
      * <p>
      * Intended model: prithivMLmods/deepfake-detector-model-v1 (SigLIP, 94.44%
      * accuracy)
@@ -2887,7 +2887,7 @@ public class DjlVisionBackend implements VisionBackend,
 
                 // Check if label indicates fake content
                 if (label.contains("fake") || label.contains("synthetic") ||
-                        label.contains("generated") || label.contains("deepfake")) {
+                    label.contains("generated") || label.contains("deepfake")) {
                     isFake = true;
                     classification = "fake";
                     confidence = topResult.confidence();
@@ -2905,7 +2905,7 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("backend", BACKEND_ID);
             attributes.put("model", "generic-classifier");
             attributes.put("note",
-                    "Using generic classification until dedicated deepfake model loaded: prithivMLmods/deepfake-detector-model-v1");
+                "Using generic classification until dedicated deepfake model loaded: prithivMLmods/deepfake-detector-model-v1");
 
             logger.info("Deepfake detection completed: classification={}, confidence={}", classification, confidence);
 
@@ -2914,10 +2914,10 @@ public class DjlVisionBackend implements VisionBackend,
             BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
             try {
                 return List.of(new Detection(
-                        classification, // label is "real" or "fake"
-                        confidence,
-                        wholeBbox, // whole image bounding box
-                        attributes));
+                    classification, // label is "real" or "fake"
+                    confidence,
+                    wholeBbox, // whole image bounding box
+                    attributes));
             } catch (Exception ex) {
                 logger.warn("Failed to create deepfake detection: {}", ex.getMessage());
                 // Return empty list as safe fallback
@@ -2935,7 +2935,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Detects falls from pose analysis of image sequence or single frame.
-     * 
+     *
      * <p>
      * Analyzes body orientation, keypoint positions, and aspect ratio to determine
      * fall risk.
@@ -2975,10 +2975,10 @@ public class DjlVisionBackend implements VisionBackend,
 
                     BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
                     fallDetections.add(new Detection(
-                            "no_detection",
-                            0.0,
-                            emptyBbox,
-                            attributes));
+                        "no_detection",
+                        0.0,
+                        emptyBbox,
+                        attributes));
                     continue;
                 }
 
@@ -3010,10 +3010,10 @@ public class DjlVisionBackend implements VisionBackend,
                 attributes.put("analysisDetails", analysis.details);
 
                 fallDetections.add(new Detection(
-                        analysis.bodyOrientation,
-                        analysis.confidence,
-                        primaryPose.boundingBox(),
-                        attributes));
+                    analysis.bodyOrientation,
+                    analysis.confidence,
+                    primaryPose.boundingBox(),
+                    attributes));
             }
 
             logger.info("Fall detection completed: {} frame(s) analyzed", fallDetections.size());
@@ -3125,7 +3125,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Analyzes stress levels from facial expressions and emotion patterns.
-     * 
+     *
      * <p>
      * Combines emotion detection with heuristic analysis to estimate stress levels.
      * </p>
@@ -3167,10 +3167,10 @@ public class DjlVisionBackend implements VisionBackend,
 
                     BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
                     stressDetections.add(new Detection(
-                            "unknown",
-                            0.0,
-                            emptyBbox,
-                            attributes));
+                        "unknown",
+                        0.0,
+                        emptyBbox,
+                        attributes));
                     stressScores.add(0.0);
                     continue;
                 }
@@ -3178,9 +3178,9 @@ public class DjlVisionBackend implements VisionBackend,
                 // Analyze primary emotion for stress indicators
                 Detection primaryEmotion = emotions.get(0);
                 StressAnalysis analysis = analyzeStressFromEmotion(
-                        primaryEmotion,
-                        frameIndex,
-                        imageDataList.size());
+                    primaryEmotion,
+                    frameIndex,
+                    imageDataList.size());
 
                 // Create detection with stress analysis
                 Map<String, Object> attributes = new HashMap<>();
@@ -3195,10 +3195,10 @@ public class DjlVisionBackend implements VisionBackend,
                 attributes.put("disclaimer", "Not for medical diagnosis");
 
                 stressDetections.add(new Detection(
-                        analysis.stressLevel,
-                        analysis.confidence,
-                        primaryEmotion.boundingBox(),
-                        attributes));
+                    analysis.stressLevel,
+                    analysis.confidence,
+                    primaryEmotion.boundingBox(),
+                    attributes));
 
                 stressScores.add(analysis.stressScore);
             }
@@ -3206,9 +3206,9 @@ public class DjlVisionBackend implements VisionBackend,
             // For sequences, calculate temporal consistency
             if (imageDataList.size() > 1) {
                 double avgStress = stressScores.stream()
-                        .mapToDouble(Double::doubleValue)
-                        .average()
-                        .orElse(0.0);
+                    .mapToDouble(Double::doubleValue)
+                    .average()
+                    .orElse(0.0);
 
                 // Add aggregated analysis as final detection
                 Map<String, Object> aggregateAttributes = new HashMap<>();
@@ -3220,10 +3220,10 @@ public class DjlVisionBackend implements VisionBackend,
                 aggregateAttributes.put("backend", BACKEND_ID);
 
                 stressDetections.add(new Detection(
-                        "aggregated",
-                        0.85,
-                        new BoundingBox(0.0, 0.0, 1.0, 1.0),
-                        aggregateAttributes));
+                    "aggregated",
+                    0.85,
+                    new BoundingBox(0.0, 0.0, 1.0, 1.0),
+                    aggregateAttributes));
             }
 
             logger.info("Stress analysis completed: {} frame(s) analyzed", imageDataList.size());
@@ -3324,9 +3324,9 @@ public class DjlVisionBackend implements VisionBackend,
         // Calculate standard deviation
         double mean = scores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         double variance = scores.stream()
-                .mapToDouble(score -> Math.pow(score - mean, 2))
-                .average()
-                .orElse(0.0);
+            .mapToDouble(score -> Math.pow(score - mean, 2))
+            .average()
+            .orElse(0.0);
         double stdDev = Math.sqrt(variance);
 
         // Consistency is inverse of std dev (normalized)
@@ -3349,14 +3349,14 @@ public class DjlVisionBackend implements VisionBackend,
 
     /**
      * Estimates heart rate using remote photoplethysmography (rPPG).
-     * 
+     *
      * <p>
      * Analyzes color intensity changes in facial regions across video frames to
      * detect
      * periodic blood flow patterns. This is a research-level implementation with
      * limitations.
      * </p>
-     * 
+     *
      * <p>
      * <b>CRITICAL:</b> NOT a medical device. For research and wellness only.
      * </p>
@@ -3368,7 +3368,7 @@ public class DjlVisionBackend implements VisionBackend,
         // Minimum frames check (10 seconds at 20 FPS = 200 frames minimum)
         if (imageDataList.size() < 100) {
             throw new IllegalArgumentException(
-                    "Heart rate detection requires minimum 100 frames (5+ seconds). Got: " + imageDataList.size());
+                "Heart rate detection requires minimum 100 frames (5+ seconds). Got: " + imageDataList.size());
         }
 
         logger.debug("Starting heart rate estimation for {} frames", imageDataList.size());
@@ -3412,10 +3412,10 @@ public class DjlVisionBackend implements VisionBackend,
 
                 BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
                 return List.of(new Detection(
-                        "insufficient_data",
-                        0.0,
-                        emptyBbox,
-                        errorAttributes));
+                    "insufficient_data",
+                    0.0,
+                    emptyBbox,
+                    errorAttributes));
             }
 
             // Step 2: Apply signal processing
@@ -3446,7 +3446,7 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("signalQuality", qualityLevel);
             attributes.put("signalQualityScore", signalQuality);
             attributes.put("bpmRange", String.format("%.0f-%.0f",
-                    Math.max(40, estimatedBPM - 5), Math.min(200, estimatedBPM + 5)));
+                Math.max(40, estimatedBPM - 5), Math.min(200, estimatedBPM + 5)));
             attributes.put("framesAnalyzed", imageDataList.size());
             attributes.put("validFrames", validFrames);
             attributes.put("duration", imageDataList.size() / 20.0); // Assume 20 FPS
@@ -3456,14 +3456,14 @@ public class DjlVisionBackend implements VisionBackend,
             attributes.put("warning", "Accuracy varies significantly with lighting, motion, and individual factors");
 
             logger.info("Heart rate estimated: {} BPM (confidence: {}, quality: {})",
-                    Math.round(estimatedBPM), Math.round(confidence * 100) + "%", qualityLevel);
+                Math.round(estimatedBPM), Math.round(confidence * 100) + "%", qualityLevel);
 
             BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
             return List.of(new Detection(
-                    String.format("%.0f_BPM", estimatedBPM),
-                    confidence,
-                    wholeBbox,
-                    attributes));
+                String.format("%.0f_BPM", estimatedBPM),
+                confidence,
+                wholeBbox,
+                attributes));
 
         } catch (IllegalArgumentException e) {
             throw e; // Re-throw validation errors
@@ -3572,9 +3572,9 @@ public class DjlVisionBackend implements VisionBackend,
         // Calculate signal-to-noise ratio (simplified)
         double mean = signal.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         double variance = signal.stream()
-                .mapToDouble(val -> Math.pow(val - mean, 2))
-                .average()
-                .orElse(0.0);
+            .mapToDouble(val -> Math.pow(val - mean, 2))
+            .average()
+            .orElse(0.0);
         double stdDev = Math.sqrt(variance);
 
         // Quality based on consistency (low stdDev relative to mean indicates good
@@ -3644,14 +3644,14 @@ public class DjlVisionBackend implements VisionBackend,
                         attributes.put("type", DetectionType.THREAT);
 
                         Detection threatDetection = new Detection(
-                                threat.weaponClass,
-                                obj.confidence(),
-                                obj.boundingBox(),
-                                attributes);
+                            threat.weaponClass,
+                            obj.confidence(),
+                            obj.boundingBox(),
+                            attributes);
 
                         allThreats.add(threatDetection);
                         logger.info("Threat detected: {} (severity: {}, confidence: {})",
-                                threat.weaponClass, threat.severity, obj.confidence());
+                            threat.weaponClass, threat.severity, obj.confidence());
                     }
                 }
 
@@ -3670,10 +3670,10 @@ public class DjlVisionBackend implements VisionBackend,
                             attributes.put("type", DetectionType.THREAT);
 
                             Detection threatDetection = new Detection(
-                                    threat.weaponClass,
-                                    action.confidence(),
-                                    null, // No bounding box for actions
-                                    attributes);
+                                threat.weaponClass,
+                                action.confidence(),
+                                null, // No bounding box for actions
+                                attributes);
                             allThreats.add(threatDetection);
                         }
                     }
@@ -3696,35 +3696,35 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Firearms - CRITICAL severity
         if (label.contains("gun") || label.contains("pistol") || label.contains("rifle") ||
-                label.contains("firearm") || label.contains("weapon")) {
+            label.contains("firearm") || label.contains("weapon")) {
             return new ThreatClassification(
-                    "weapon",
-                    "CRITICAL",
-                    "firearm",
-                    "Firearm detected with high threat level");
+                "weapon",
+                "CRITICAL",
+                "firearm",
+                "Firearm detected with high threat level");
         }
 
         // Knives and bladed weapons - HIGH severity
         if (label.contains("knife") || label.contains("blade") || label.contains("sword") ||
-                label.contains("dagger") || label.contains("machete")) {
+            label.contains("dagger") || label.contains("machete")) {
             return new ThreatClassification(
-                    "weapon",
-                    "HIGH",
-                    "knife",
-                    "Bladed weapon detected");
+                "weapon",
+                "HIGH",
+                "knife",
+                "Bladed weapon detected");
         }
 
         // Suspicious objects - MEDIUM severity
         if (label.contains("backpack") || label.contains("suitcase") ||
-                label.contains("bag") || label.contains("box")) {
+            label.contains("bag") || label.contains("box")) {
             // Only flag as suspicious in certain contexts
             // (In production, this would use context awareness)
             if (detection.confidence() > 0.8) {
                 return new ThreatClassification(
-                        "suspicious_object",
-                        "LOW",
-                        "unattended_object",
-                        "Potentially unattended object detected");
+                    "suspicious_object",
+                    "LOW",
+                    "unattended_object",
+                    "Potentially unattended object detected");
             }
         }
 
@@ -3739,22 +3739,22 @@ public class DjlVisionBackend implements VisionBackend,
 
         // Violence indicators - HIGH severity
         if (label.contains("fight") || label.contains("punch") || label.contains("kick") ||
-                label.contains("attack") || label.contains("assault") || label.contains("violence")) {
+            label.contains("attack") || label.contains("assault") || label.contains("violence")) {
             return new ThreatClassification(
-                    "violence",
-                    "HIGH",
-                    "physical_altercation",
-                    "Violent behavior detected");
+                "violence",
+                "HIGH",
+                "physical_altercation",
+                "Violent behavior detected");
         }
 
         // Aggressive behavior - MEDIUM severity
         if (label.contains("aggressive") || label.contains("threatening") ||
-                label.contains("chase")) {
+            label.contains("chase")) {
             return new ThreatClassification(
-                    "violence",
-                    "MEDIUM",
-                    "aggressive_behavior",
-                    "Aggressive behavior detected");
+                "violence",
+                "MEDIUM",
+                "aggressive_behavior",
+                "Aggressive behavior detected");
         }
 
         return null;
@@ -3849,26 +3849,26 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (authorized) {
                 logger.info("Access AUTHORIZED for user: {} (match score: {}, confidence: {})",
-                        match.userName, match.matchScore, face.confidence());
+                    match.userName, match.matchScore, face.confidence());
                 return createAuthResult(true, match.userId, match.userName,
-                        face.confidence(), match.matchScore, null);
+                    face.confidence(), match.matchScore, null);
             } else {
                 logger.info("Access DENIED - No matching authorized user (best match score: {})",
-                        match.matchScore);
+                    match.matchScore);
                 return createAuthResult(false, null, null, face.confidence(),
-                        match.matchScore, "UNAUTHORIZED_USER");
+                    match.matchScore, "UNAUTHORIZED_USER");
             }
 
         } catch (Exception e) {
             logger.error("Authentication failed with error: {}", e.getMessage(), e);
             return createAuthResult(false, null, null, 0.0, 0.0,
-                    "AUTHENTICATION_ERROR: " + e.getMessage());
+                "AUTHENTICATION_ERROR: " + e.getMessage());
         }
     }
 
     /**
      * Matches face embedding against authorized users.
-     * 
+     *
      * <p>
      * <b>Note:</b> This is a simulated implementation. In production:
      * <ul>
@@ -3877,6 +3877,7 @@ public class DjlVisionBackend implements VisionBackend,
      * <li>Implement proper access control and audit logging</li>
      * <li>Consider liveness detection to prevent spoofing</li>
      * </ul>
+     * </p>
      */
     private AuthenticationMatch matchAgainstAuthorizedUsers(float[] embedding) {
         // Simulated authorized user database
@@ -3887,9 +3888,9 @@ public class DjlVisionBackend implements VisionBackend,
         // spring.vision.djl.face-recognition.similarity-threshold
 
         return new AuthenticationMatch(
-                "user_demo",
-                "Demo User",
-                0.45 // Simulated low match score (below typical 0.5 threshold = unauthorized)
+            "user_demo",
+            "Demo User",
+            0.45 // Simulated low match score (below typical 0.5 threshold = unauthorized)
         );
     }
 
@@ -3897,8 +3898,8 @@ public class DjlVisionBackend implements VisionBackend,
      * Creates authentication result detection.
      */
     private List<Detection> createAuthResult(boolean authorized, String userId,
-            String userName, double confidence,
-            double matchScore, String reason) {
+                                             String userName, double confidence,
+                                             double matchScore, String reason) {
         Map<String, Object> attributes = new java.util.HashMap<>();
         attributes.put("authorized", authorized);
         attributes.put("confidence", confidence);
@@ -3920,10 +3921,10 @@ public class DjlVisionBackend implements VisionBackend,
         // non-null bounding box)
         BoundingBox authBox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
         Detection result = new Detection(
-                authorized ? "AUTHORIZED" : "UNAUTHORIZED",
-                confidence,
-                authBox,
-                attributes);
+            authorized ? "AUTHORIZED" : "UNAUTHORIZED",
+            confidence,
+            authBox,
+            attributes);
 
         return List.of(result);
     }

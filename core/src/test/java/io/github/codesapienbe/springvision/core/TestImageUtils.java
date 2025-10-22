@@ -1,4 +1,4 @@
-package io.github.codesapienbe.springvision.core.djl;
+package io.github.codesapienbe.springvision.core;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
-
-import io.github.codesapienbe.springvision.core.ImageData;
 
 /**
  * Utility class for creating realistic test images for integration testing.
@@ -26,7 +24,7 @@ public class TestImageUtils {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
 
-        // Anti-aliasing for better quality
+        // Antialiasing for better quality
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         // Background
