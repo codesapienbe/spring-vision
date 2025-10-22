@@ -36,7 +36,10 @@ public class ObjectDetectionIntegrationTest {
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
                     "vision.health.enabled", "false",
-                    "vision.djl.syntheticFallbacks", "true"
+                    // Use the DJL-specific properties prefix so the auto-config binder
+                    // (which binds to spring.vision.djl) picks this up during backend
+                    // construction in tests.
+                    "spring.vision.djl.syntheticFallbacks", "true"
                 )
             )
         );

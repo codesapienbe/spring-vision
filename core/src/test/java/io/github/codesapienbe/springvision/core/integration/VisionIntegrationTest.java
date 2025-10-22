@@ -38,7 +38,10 @@ public class VisionIntegrationTest {
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
                     "vision.health.enabled", "false",
-                    "vision.djl.syntheticFallbacks", "true"
+                    // Ensure DJL synthetic fallbacks are enabled for offline integration
+                    // tests by using the spring.vision.djl prefix which is bound to
+                    // DjlProperties during backend creation.
+                    "spring.vision.djl.syntheticFallbacks", "true"
                 )
             )
         );

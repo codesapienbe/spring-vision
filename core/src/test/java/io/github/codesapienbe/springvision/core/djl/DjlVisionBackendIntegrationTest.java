@@ -36,7 +36,11 @@ public class DjlVisionBackendIntegrationTest {
             new MapPropertySource("test-properties",
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
-                    "vision.health.enabled", "false"
+                    "vision.health.enabled", "false",
+                    // Enable synthetic fallbacks in offline test runs so components like
+                    // OCR/classification return synthetic results instead of throwing
+                    // when models are not initialized/offline.
+                    "spring.vision.djl.syntheticFallbacks", "true"
                 )
             )
         );
