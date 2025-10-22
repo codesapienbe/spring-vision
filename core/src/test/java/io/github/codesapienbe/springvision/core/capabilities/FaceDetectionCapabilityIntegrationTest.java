@@ -52,16 +52,17 @@ public class FaceDetectionCapabilityIntegrationTest {
     }
 
     @Test
-    @DisplayName("TDD: detectFaces should return list (initially expect failure)")
+    @DisplayName("TDD: detectFaces should return non-empty list when models available (fail first)")
     @EnabledIf("modelsAvailable")
-    void tdd_detectFaces_shouldReturnList() throws IOException {
+    void tdd_detectFaces_shouldReturnNonEmptyList() throws IOException {
         ImageData image = TestImageUtils.createSimpleFaceImage(320, 240);
 
-        // This test follows TDD: we expect integration to fail until implemented
+        // TDD: this should fail initially — we expect at least one detection when models are loaded
         List<Detection> detections = ((io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability) backend).detectFaces(image);
 
-        // Minimal assertions - let it fail if behavior is missing or returns null
+        // Require non-empty results to drive implementation work
         assertThat(detections).isNotNull();
+        assertThat(detections).isNotEmpty();
     }
 
     static boolean modelsAvailable() {
