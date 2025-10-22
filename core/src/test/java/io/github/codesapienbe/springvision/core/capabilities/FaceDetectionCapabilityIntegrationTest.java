@@ -32,6 +32,7 @@ public class FaceDetectionCapabilityIntegrationTest {
         properties.setEngine("PyTorch");
         properties.setDevice("cpu");
         properties.setAutoDownload(false);
+        properties.setSyntheticFallbacks(true);
 
         backend = new DjlVisionBackend(properties);
         backend.initialize();

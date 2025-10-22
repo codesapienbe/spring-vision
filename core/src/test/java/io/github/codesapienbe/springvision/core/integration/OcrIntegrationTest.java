@@ -43,6 +43,8 @@ public class OcrIntegrationTest {
                 )
             )
         );
+        // Enable synthetic fallbacks for OCR in offline TDD tests
+        context.getEnvironment().getSystemProperties().put("spring.vision.djl.synthetic-fallbacks", "true");
         context.register(VisionAutoConfiguration.class);
         context.refresh();
 
@@ -55,13 +57,30 @@ public class OcrIntegrationTest {
         ImageData documentImage = createDocumentImageWithText("Hello World");
 
         // When: OCR is attempted in offline mode
+        // Create a strict backend instance (synthetic fallbacks disabled)
+        AnnotationConfigApplicationContext local = new AnnotationConfigApplicationContext();
         try {
-            visionTemplate.extractText(documentImage);
-            // If we reach here, OCR worked (unexpected in offline mode)
-            fail("Expected OCR to fail in offline mode");
-        } catch (VisionBackendException e) {
-            // Then: Should fail gracefully with appropriate error
-            assertThat(e.getOperation()).isEqualTo("not_initialized");
+            local.getEnvironment().getPropertySources().addFirst(
+                new MapPropertySource("test-properties",
+                    java.util.Map.of(
+                        "vision.metrics.enabled", "false",
+                        "vision.health.enabled", "false",
+                        "spring.vision.djl.synthetic-fallbacks", "false"
+                    )
+                )
+            );
+            local.register(VisionAutoConfiguration.class);
+            local.refresh();
+
+            VisionTemplate strictTemplate = local.getBean(VisionTemplate.class);
+            try {
+                strictTemplate.extractText(documentImage);
+                fail("Expected OCR to fail in offline mode");
+            } catch (VisionBackendException e) {
+                assertThat(e.getOperation()).isEqualTo("not_initialized");
+            }
+        } finally {
+            local.close();
         }
     }
 

@@ -11,6 +11,11 @@ import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionResult;
@@ -28,7 +33,8 @@ public class FaceCountingIntegrationTest {
     public void testFaceCountingFromUrl() throws Exception {
         // Create Spring context with auto-configuration
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            context.register(VisionAutoConfiguration.class);
+            // Register a lightweight MeterRegistry for tests and the auto-configuration
+            context.register(TestConfig.class, VisionAutoConfiguration.class);
             context.refresh();
 
             VisionTemplate visionTemplate = context.getBean(VisionTemplate.class);
@@ -50,6 +56,14 @@ public class FaceCountingIntegrationTest {
             System.out.println("- Image size: " + imageBytes.length + " bytes");
             System.out.println("- Detected faces: " + result.detectionCount());
             System.out.println("- Average confidence: " + result.averageConfidence());
+        }
+    }
+
+    @Configuration
+    static class TestConfig {
+        @Bean
+        public MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
         }
     }
 

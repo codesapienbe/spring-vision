@@ -43,6 +43,8 @@ public class ImageClassificationIntegrationTest {
                 )
             )
         );
+        // Ensure synthetic fallbacks are enabled for TDD-style offline tests
+        context.getEnvironment().getSystemProperties().put("spring.vision.djl.synthetic-fallbacks", "true");
         context.register(VisionAutoConfiguration.class);
         context.refresh();
 
@@ -53,15 +55,31 @@ public class ImageClassificationIntegrationTest {
     void shouldHandleImageClassificationInOfflineMode() {
         // Given: An image and offline mode
         ImageData catImage = createCatImage();
-
-        // When: Image classification is attempted in offline mode
+        // When: Image classification is attempted in offline mode using a strict
+        // backend instance with synthetic fallbacks disabled (should fail)
+        AnnotationConfigApplicationContext local = new AnnotationConfigApplicationContext();
         try {
-            visionTemplate.classifyImage(catImage, 5);
-            // If we reach here, classification worked (unexpected in offline mode)
-            fail("Expected image classification to fail in offline mode");
-        } catch (VisionBackendException e) {
-            // Then: Should fail gracefully with appropriate error
-            assertThat(e.getOperation()).isEqualTo("classification_failed");
+            local.getEnvironment().getPropertySources().addFirst(
+                new MapPropertySource("test-properties",
+                    java.util.Map.of(
+                        "vision.metrics.enabled", "false",
+                        "vision.health.enabled", "false",
+                        "spring.vision.djl.synthetic-fallbacks", "false"
+                    )
+                )
+            );
+            local.register(VisionAutoConfiguration.class);
+            local.refresh();
+
+            VisionTemplate strictTemplate = local.getBean(VisionTemplate.class);
+            try {
+                strictTemplate.classifyImage(catImage, 5);
+                fail("Expected image classification to fail in offline mode");
+            } catch (VisionBackendException e) {
+                assertThat(e.getOperation()).isEqualTo("classification_failed");
+            }
+        } finally {
+            local.close();
         }
     }
 

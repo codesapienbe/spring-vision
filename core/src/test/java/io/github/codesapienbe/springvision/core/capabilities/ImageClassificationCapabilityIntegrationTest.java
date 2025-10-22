@@ -24,6 +24,7 @@ public class ImageClassificationCapabilityIntegrationTest {
         p.setEngine("OnnxRuntime");
         p.setDevice("cpu");
         p.setAutoDownload(false);
+        p.setSyntheticFallbacks(true); // enable synthetic fallbacks for these capability TDD tests
         backend = new DjlVisionBackend(p);
         backend.initialize();
     }

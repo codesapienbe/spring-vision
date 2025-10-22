@@ -20,6 +20,7 @@ import org.springframework.core.env.Environment;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -276,7 +277,19 @@ public class VisionAutoConfiguration {
         logger.info("Creating DJL vision backend (default)");
 
         try {
-            DjlVisionBackend backend = new DjlVisionBackend();
+            // Bind DJL-specific properties from the environment so test-level
+            // property sources (e.g., synthetic-fallbacks) are respected when
+            // constructing the backend.
+            DjlProperties djlProps = new DjlProperties();
+            try {
+                Binder binder = Binder.get(environment);
+                binder.bind("spring.vision.djl", Bindable.ofInstance(djlProps));
+                logger.debug("Bound spring.vision.djl properties for DJL backend");
+            } catch (Exception e) {
+                logger.debug("Failed to bind spring.vision.djl properties: {}", e.getMessage());
+            }
+
+            DjlVisionBackend backend = new DjlVisionBackend(djlProps);
             backend.initialize();
             logger.info("DJL backend initialized successfully");
             return backend;

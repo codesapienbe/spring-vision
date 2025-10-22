@@ -31,13 +31,17 @@ public class FaceDetectionIntegrationTest {
     void setUp() {
         // Enable offline mode to avoid network dependencies
         System.setProperty("ai.djl.offline", "true");
+        // Ensure synthetic fallbacks are explicitly disabled at JVM level for strict offline tests
+        System.setProperty("spring.vision.djl.synthetic-fallbacks", "false");
 
         context = new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
             new MapPropertySource("test-properties",
                 java.util.Map.of(
                     "vision.metrics.enabled", "false",
-                    "vision.health.enabled", "false"
+                    "vision.health.enabled", "false",
+                    // Explicitly disable synthetic fallbacks for strict offline face tests
+                    "spring.vision.djl.synthetic-fallbacks", "false"
                 )
             )
         );

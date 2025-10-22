@@ -22,8 +22,14 @@ public class ActionRecognitionCapabilityIntegrationTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        DjlProperties p = new DjlProperties(); p.setEngine("OnnxRuntime"); p.setDevice("cpu"); p.setAutoDownload(false);
-        backend = new DjlVisionBackend(p); backend.initialize();
+        DjlProperties p = new DjlProperties();
+        p.setEngine("OnnxRuntime");
+        p.setDevice("cpu");
+        p.setAutoDownload(false);
+        p.setSyntheticFallbacks(true);
+
+        backend = new DjlVisionBackend(p);
+        backend.initialize();
     }
 
     @AfterAll
