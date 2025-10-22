@@ -245,6 +245,11 @@
             </argLine>
             <forkCount>1</forkCount>
             <reuseForks>false</reuseForks>
+            <systemPropertyVariables>
+              <!-- Enable DJL model loading for integration tests -->
+              <ai.djl.offline>false</ai.djl.offline>
+              <OPT_OUT_TRACKING>true</OPT_OUT_TRACKING>
+            </systemPropertyVariables>
             <excludedGroups>memory-intensive</excludedGroups>
           </configuration>
         </plugin>
