@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean deploy release docs test default
+.PHONY: build clean deploy release docs test sync default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -52,3 +52,13 @@ test:
 	# Run only in the core and mcp modules to avoid failing other modules that don't contain these tests
 	mvn -pl core,mcp -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest,io.github.codesapienbe.springvision.mcp.VisionToolIntegrationTest test || \
 	( echo "Integration tests failed" && exit 1 )
+
+sync:
+	@echo "Building and syncing MCP jar for local testing..."
+	# Build the mcp module
+	mvn -pl mcp clean package -DskipTests -q || ( echo "MCP build failed!" && exit 1 )
+	# Create the target directory if it doesn't exist
+	mkdir -p /home/codesapienbe/.springvision
+	# Copy the compiled jar
+	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar
+	@echo "MCP jar synced to /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar"

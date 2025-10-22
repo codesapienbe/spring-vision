@@ -33,8 +33,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class VisionLogger {
 
-    private static final Logger logger = LoggerFactory.getLogger(VisionLogger.class);
-
     // Performance metrics
     private static final AtomicLong totalRequests = new AtomicLong(0);
     private static final AtomicLong successfulRequests = new AtomicLong(0);

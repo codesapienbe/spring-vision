@@ -38,7 +38,6 @@ import java.awt.RenderingHints;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -2623,13 +2622,8 @@ public class DjlVisionBackend implements VisionBackend,
         }
         
         // Determine body orientation and fall risk
-        boolean isLying = false;
-        boolean isSitting = false;
-        boolean isFalling = false;
-        
         // High aspect ratio suggests horizontal (lying down)
         if (analysis.aspectRatio > 1.2) {
-            isLying = true;
             analysis.bodyOrientation = "lying";
             analysis.riskLevel = "high";
             analysis.fallDetected = true;
@@ -2640,14 +2634,12 @@ public class DjlVisionBackend implements VisionBackend,
         else if (headY != null && headY > 0.6) {
             if (hipY != null && Math.abs(headY - hipY) < 0.2) {
                 // Head and hips at similar height - likely sitting or on ground
-                isLying = true;
                 analysis.bodyOrientation = "lying";
                 analysis.riskLevel = "high";
                 analysis.fallDetected = true;
                 analysis.confidence = 0.75;
                 analysis.details = "Head and hips at similar height indicates fall or lying position";
             } else {
-                isSitting = true;
                 analysis.bodyOrientation = "sitting";
                 analysis.riskLevel = "medium";
                 analysis.fallDetected = false;
@@ -3346,9 +3338,7 @@ public class DjlVisionBackend implements VisionBackend,
     @Override
     public List<Detection> authenticateAccess(ImageData imageData) {
         logger.info("Authenticating access from image");
-        
-        List<Detection> results = new ArrayList<>();
-        
+
         try {
             // Step 1: Detect faces
             List<Detection> faces = detectFaces(imageData);
@@ -3505,11 +3495,6 @@ public class DjlVisionBackend implements VisionBackend,
     /**
      * Checks if a model file is available in the classpath.
      */
-    private boolean isModelAvailable(String modelPath) {
-        URL resource = getClass().getClassLoader().getResource("models/" + modelPath);
-        return resource != null;
-    }
-
     // L2-normalize a float vector; returns a new array (safe to call with null)
     private float[] l2Normalize(float[] v) {
         if (v == null) return new float[0];

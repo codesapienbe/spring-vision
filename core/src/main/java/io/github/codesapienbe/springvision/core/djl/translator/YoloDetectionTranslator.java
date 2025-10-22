@@ -19,11 +19,14 @@ public class YoloDetectionTranslator implements Translator<Image, DetectedObject
 
     private static final int INPUT_SIZE = 640; // YOLOv8 default input size
     private static final float CONFIDENCE_THRESHOLD = 0.25f;
-    private static final float NMS_THRESHOLD = 0.45f;
 
     @Override
     public NDList processInput(TranslatorContext ctx, Image input) {
         NDManager manager = ctx.getNDManager();
+
+        // Store original image dimensions for scaling in processOutput
+        ctx.setAttachment("originalWidth", input.getWidth());
+        ctx.setAttachment("originalHeight", input.getHeight());
 
         // Resize image to YOLO input size
         Image resized = input.resize(INPUT_SIZE, INPUT_SIZE, true);
@@ -46,6 +49,10 @@ public class YoloDetectionTranslator implements Translator<Image, DetectedObject
     @Override
     public DetectedObjects processOutput(TranslatorContext ctx, NDList list) {
         NDArray output = list.singletonOrThrow();
+
+        // Get original image dimensions for coordinate scaling
+        int originalWidth = (int) ctx.getAttachment("originalWidth");
+        int originalHeight = (int) ctx.getAttachment("originalHeight");
 
         // YOLOv8 output shape is [1, 84, 8400] for COCO dataset
         // Where 84 = 4 bbox coords + 80 classes, 8400 = 80x80 + 40x40 + 20x20 grids
@@ -88,12 +95,20 @@ public class YoloDetectionTranslator implements Translator<Image, DetectedObject
                 float x2 = cx + w / 2;
                 float y2 = cy + h / 2;
 
-                // Scale back to original image size (assuming 640x640 input)
-                float scale = Math.max(ctx.getNDManager().getDevice().equals(ctx.getNDManager().getDevice()) ? 1.0f : 1.0f, 1.0f); // Placeholder scaling
+                // YOLO outputs coordinates normalized to INPUT_SIZE (640x640)
+                // Scale to normalized coordinates relative to original image dimensions
+                float scaleX = (float) originalWidth / INPUT_SIZE;
+                float scaleY = (float) originalHeight / INPUT_SIZE;
 
+                float scaledX1 = x1 * scaleX;
+                float scaledY1 = y1 * scaleY;
+                float scaledX2 = x2 * scaleX;
+                float scaledY2 = y2 * scaleY;
+
+                // Ensure coordinates stay within [0, 1] bounds
                 boundingBoxes.add(new ai.djl.modality.cv.output.Rectangle(
-                    Math.max(0, x1), Math.max(0, y1),
-                    Math.min(1.0f, x2 - x1), Math.min(1.0f, y2 - y1)
+                    Math.max(0, scaledX1), Math.max(0, scaledY1),
+                    Math.min(1.0f, scaledX2 - scaledX1), Math.min(1.0f, scaledY2 - scaledY1)
                 ));
 
                 classNames.add(getCocoClassName(maxClassIdx));

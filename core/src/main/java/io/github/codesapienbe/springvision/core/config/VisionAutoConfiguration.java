@@ -238,7 +238,6 @@ public class VisionAutoConfiguration {
      */
     private void bindBackendProperties(Object backend) {
         try {
-            String backendId = backend.getClass().getSimpleName().toLowerCase();
             String prefix = resolvePropertiesPrefix(backend);
             if (prefix == null) {
                 logger.debug("No properties prefix resolved for backend class: {}", backend.getClass().getName());
