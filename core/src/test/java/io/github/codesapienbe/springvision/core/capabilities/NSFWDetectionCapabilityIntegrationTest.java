@@ -20,7 +20,7 @@ public class NSFWDetectionCapabilityIntegrationTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        DjlProperties p = new DjlProperties(); p.setEngine("OnnxRuntime"); p.setDevice("cpu"); p.setAutoDownload(false);
+        DjlProperties p = new DjlProperties(); p.setEngine("OnnxRuntime"); p.setDevice("cpu"); p.setAutoDownload(false); p.setSyntheticFallbacks(true);
         backend = new DjlVisionBackend(p); backend.initialize();
     }
 

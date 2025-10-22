@@ -27,6 +27,7 @@ public class HandDetectionCapabilityIntegrationTest {
         p.setDevice("cpu");
         p.setAutoDownload(false);
         p.setSyntheticFallbacks(true);
+        p.setSyntheticFallbacks(true);
         backend = new DjlVisionBackend(p);
         backend.initialize();
     }
