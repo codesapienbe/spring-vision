@@ -1,12 +1,150 @@
-name: Deploy to GitHub Packages
+name: Release and Deploy
 on:
   push:
     tags:
       - 'v*'
 
 jobs:
-  deploy:
+  check-secrets:
+    name: Check Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required secrets and variables
+        run: |
+          if [ -z "$APP_ID" ]; then
+            echo "Error: APP_ID variable is not set in repository variables."
+            exit 1
+          fi
+          if [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "Error: APP_PRIVATE_KEY secret is not set in repository secrets."
+            exit 1
+          fi
+          echo "All required secrets and variables are present."
+        env:
+          APP_ID: ${{ vars.APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+
+  build-jars:
+    name: Build JARs
+    needs: check-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ubuntu-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ubuntu-maven-
+
+      - name: Build JARs
+        run: |
+          mvn -B -pl core,mcp,starter,cli -am clean package -DskipTests -Pdownload-models
+
+      - name: Upload core JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-jar
+          path: core/target/core-*.jar
+          if-no-files-found: error
+
+      - name: Upload mcp JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-jar
+          path: mcp/target/mcp-*.jar
+          if-no-files-found: error
+
+      - name: Upload starter JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: starter-jar
+          path: starter/target/starter-*.jar
+          if-no-files-found: error
+
+      - name: Upload cli JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-jar
+          path: cli/target/cli-*.jar
+          if-no-files-found: error
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-jars
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## Spring Vision ${{ github.ref_name }}
+
+            This release includes JARs for core, mcp, starter, and cli modules.
+
+            ### Downloads
+            - **Core JAR**: `core-${{ env.VERSION }}.jar`
+            - **MCP Server JAR**: `mcp-${{ env.VERSION }}.jar` (requires Java 21+)
+            - **Starter JAR**: `starter-${{ env.VERSION }}.jar`
+            - **CLI Setup Tool**: `cli-${{ env.VERSION }}.jar` (requires Java 21+)
+
+            ### Quick Setup (Recommended)
+            ```bash
+            # Run the CLI setup tool to automatically download and configure everything
+            jbang https://github.com/codesapienbe/spring-vision/releases/download/v${{ env.VERSION }}/cli-${{ env.VERSION }}.jar
+            ```
+
+            ### Manual Setup
+            ```bash
+            # Or run the MCP server directly after setup
+            jbang ~/.springvision/mcp-${{ env.VERSION }}.jar
+            ```
+
+            ### Features
+            - Computer vision capabilities via MCP
+            - Stdio transport for MCP clients
+            - Easy to integrate with AI assistants
+            - One-command setup with CLI tool
+          draft: false
+          prerelease: false
+
+  deploy-packages:
     name: Deploy to GitHub Packages
+    needs: create-release
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,6 +169,19 @@ jobs:
           restore-keys: |
             ubuntu-maven-
 
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          echo "GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)" >> $GITHUB_ENV
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "codesapienbe"
+          git config --global user.email "yilmaz@codesapien.net"
+          git config --global commit.gpgsign true
+          git config --global user.signingkey ${{ env.GPG_KEY_ID }}
+
       - name: Set VERSION
         run: |
           VERSION=${{ github.ref_name }}
@@ -47,8 +198,153 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Log deployment completion
         run: |
           echo "✅ Version ${{ env.VERSION }} has been successfully deployed to GitHub Packages!"
           echo "📦 Artifacts are now available at: https://github.com/codesapienbe/spring-vision/packages"
+
+  upload-core:
+    name: Upload Core JAR
+    needs: deploy-packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download core JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: core-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload Core JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./core-${{ env.VERSION }}.jar
+          asset_name: core-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-starter:
+    name: Upload Starter JAR
+    needs: [ create-release, upload-core ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download starter JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: starter-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload Starter JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./starter-${{ env.VERSION }}.jar
+          asset_name: starter-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-mcp:
+    name: Upload MCP JAR
+    needs: [ create-release, upload-starter ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download mcp JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mcp-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload MCP JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./mcp-${{ env.VERSION }}.jar
+          asset_name: mcp-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
+
+  upload-cli:
+    name: Upload CLI JAR
+    needs: [ create-release, upload-mcp ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download cli JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cli-jar
+          path: .
+
+      - name: Set VERSION
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Upload CLI JAR release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./cli-${{ env.VERSION }}.jar
+          asset_name: cli-${{ env.VERSION }}.jar
+          asset_content_type: application/java-archive
