@@ -13,8 +13,8 @@ import org.junit.jupiter.api.condition.EnabledIf;
 
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.djl.DjlProperties;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.djl.TestImageUtils;
 
 @DisplayName("Integration: FaceDetectionCapability")
@@ -69,5 +69,3 @@ public class FaceDetectionCapabilityIntegrationTest {
         return modelsAvailable;
     }
 }
-
-
