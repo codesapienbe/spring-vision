@@ -1,6 +1,8 @@
-# MCP Tools Testing Guide
+# MCP Testing Guide
 
-This guide provides comprehensive examples for testing each MCP tool in VisionTool.java using real photo URLs and JSON-RPC requests.
+[Docs Home](../index.md) · [Quick Start](./quick-start.md) · [MCP Setup](./mcp-setup.md) · [API Usage](../development/API_USAGE.md)
+
+This guide provides comprehensive examples for testing each Spring Vision MCP tool using real photo URLs and JSON-RPC requests. Use this guide to verify your MCP server setup and test all available computer vision capabilities.
 
 ## Prerequisites
 

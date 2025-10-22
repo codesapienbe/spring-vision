@@ -14,11 +14,9 @@ Our documentation is organized into logical sections for easy navigation:
 
 ### 🚀 [Getting Started](./getting-started/)
 New to Spring Vision? Start here!
-- **[Quick Start](./getting-started/start.md)** - Basic setup and first steps
-- **[Spring CLI Guide](./getting-started/quickstart.md)** - Generate projects with Spring CLI
-- **[MCP Tools Testing](./getting-started/mcp-tools-testing.md)** - Test all MCP tools with examples
-- **[Video Tutorial](./getting-started/tutorial.md)** - Video tutorial script and guide
-- **[MCP Configuration](./getting-started/tutorial-1.md)** - Configure MCP server tools
+- **[Quick Start](./getting-started/quick-start.md)** - Complete setup guide (MCP server or Spring Boot library)
+- **[MCP Setup](./getting-started/mcp-setup.md)** - Configure MCP server for AI assistants
+- **[MCP Testing](./getting-started/mcp-testing.md)** - Test all MCP tools with examples
 
 ### 🏗️ [Architecture](./architecture/)
 Understanding Spring Vision's design and components
@@ -54,7 +52,7 @@ Project roadmap, version info, and community
 ## 🎯 Quick Start by Audience
 
 ### 👨‍💻 **Developers**
-- **[Getting Started](./getting-started/start.md)** - Basic setup in 5 minutes
+- **[Quick Start](./getting-started/quick-start.md)** - Complete setup guide (MCP or library)
 - **[Architecture](./architecture/architecture.md)** - Understand the framework design
 - **[API Reference](./development/API_USAGE.md)** - Complete API documentation
 - **[Contributing](./development/contributing.md)** - Join the development community

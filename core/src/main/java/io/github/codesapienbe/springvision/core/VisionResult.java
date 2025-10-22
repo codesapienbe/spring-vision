@@ -191,6 +191,31 @@ public record VisionResult(
     }
 
     /**
+     * Gets the extracted text from OCR operations.
+     * This method is primarily useful for OCR (text extraction) results.
+     *
+     * @return the extracted text, or null if no text was extracted
+     */
+    public String extractedText() {
+        if (detections.isEmpty()) {
+            return null;
+        }
+
+        // For OCR results, concatenate all text detections
+        StringBuilder text = new StringBuilder();
+        for (Detection detection : detections) {
+            if (detection.label() != null && !detection.label().trim().isEmpty()) {
+                if (text.length() > 0) {
+                    text.append(" ");
+                }
+                text.append(detection.label());
+            }
+        }
+
+        return text.length() > 0 ? text.toString() : null;
+    }
+
+    /**
      * Creates a new builder for VisionResult.
      *
      * @return a new VisionResult builder

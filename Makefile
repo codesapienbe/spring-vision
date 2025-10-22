@@ -62,3 +62,11 @@ sync:
 	# Copy the compiled jar
 	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar
 	@echo "MCP jar synced to /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar"
+	# Update version in .cursor/mcp.json if it exists
+	@if [ -f /home/codesapienbe/.cursor/mcp.json ]; then \
+		echo "Updating version in .cursor/mcp.json..."; \
+		jq --arg version "$(SPRING_VISION_VERSION)" '.mcpServers."spring-vision".args[0] = "/home/codesapienbe/.springvision/mcp-" + $$version + ".jar"' /home/codesapienbe/.cursor/mcp.json > /tmp/mcp.json.tmp && mv /tmp/mcp.json.tmp /home/codesapienbe/.cursor/mcp.json; \
+		echo "Updated .cursor/mcp.json with version $(SPRING_VISION_VERSION)"; \
+	else \
+		echo ".cursor/mcp.json not found, skipping version update"; \
+	fi

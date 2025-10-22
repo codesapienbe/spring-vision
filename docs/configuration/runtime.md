@@ -2,7 +2,7 @@
 
 # Runtime Guide
 
-Basic runtime configuration and troubleshooting for Spring Vision 0.0.1.
+Basic runtime configuration and troubleshooting for Spring Vision 0.0.4.
 
 ## Overview
 
