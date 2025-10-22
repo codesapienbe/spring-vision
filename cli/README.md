@@ -29,7 +29,7 @@ The easiest way to use the CLI is directly via JBang from GitHub releases:
 
 ```bash
 # Run setup directly from GitHub (downloads latest version automatically)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar
 ```
 
 That's it! The CLI will handle everything automatically.
@@ -40,42 +40,42 @@ That's it! The CLI will handle everything automatically.
 
 ```bash
 # Run the setup directly from GitHub releases
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar
 ```
 
 ### Force Re-download
 
 ```bash
 # Force re-download even if JAR already exists
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --force
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --force
 ```
 
 ### Disable Colors
 
 ```bash
 # Disable colored output
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --no-color
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --no-color
 ```
 
 ### Verbose Mode
 
 ```bash
 # Enable verbose output for debugging
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --verbose
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --verbose
 ```
 
 ### Help
 
 ```bash
 # Show help information
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --help
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --help
 ```
 
 ### Version
 
 ```bash
 # Show version information
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.2.jar --version
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --version
 ```
 
 ## What It Does
@@ -100,32 +100,32 @@ jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli
 📁 Creating Spring Vision directory: /home/user/.springvision
 ℹ️  Directory already exists: /home/user/.springvision
 📡 Fetching latest release information from GitHub...
-✅ Latest version: 0.0.2
-ℹ️  Found MCP JAR: mcp-0.0.2.jar
-⬇️  Downloading Spring Vision MCP Server v0.0.2
+✅ Latest version: 0.0.4
+ℹ️  Found MCP JAR: mcp-0.0.4.jar
+⬇️  Downloading Spring Vision MCP Server v0.0.4
    This may take a few minutes due to the large file size (~983MB)...
 ℹ️  Download progress: 25% (245 MB / 983 MB)
 ℹ️  Download progress: 50% (491 MB / 983 MB)
 ℹ️  Download progress: 75% (737 MB / 983 MB)
 ✅ Download completed successfully! (983 MB)
-✅ JAR saved to: /home/user/.springvision/mcp-0.0.2.jar
+✅ JAR saved to: /home/user/.springvision/mcp-0.0.4.jar
 
 ╔════════════════════════════════════════════════════════════════╗
 ║                       🎉 Setup Complete!                      ║
 ╚════════════════════════════════════════════════════════════════╝
 
-MCP Server JAR: /home/user/.springvision/mcp-0.0.2.jar
-Version: 0.0.2
+MCP Server JAR: /home/user/.springvision/mcp-0.0.4.jar
+Version: 0.0.4
 
 To run the MCP server:
-  jbang /home/user/.springvision/mcp-0.0.2.jar
+  jbang /home/user/.springvision/mcp-0.0.4.jar
 
 To update your MCP client config (~/.cursor/mcp.json):
 {
   "mcpServers": {
     "spring-vision": {
       "command": "jbang",
-      "args": ["/home/user/.springvision/mcp-0.0.2.jar"]
+      "args": ["/home/user/.springvision/mcp-0.0.4.jar"]
     }
   }
 }

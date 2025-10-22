@@ -2,7 +2,7 @@
 
 # Spring Vision Architecture & Capabilities
 
-**Version**: 0.0.2
+**Version**: 0.0.4
 **Last Updated**: October 21, 2025
 
 ## Overview

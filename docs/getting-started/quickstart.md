@@ -55,7 +55,7 @@ Checkpoint: After the build, verify models are included:
 
 ```bash
 # Check that models are bundled
-jar -tf starter/target/starter-0.0.2.jar | grep "models/" | head -5
+jar -tf starter/target/starter-0.0.4.jar | grep "models/" | head -5
 ```
 
 Expected output shows bundled models:
@@ -112,7 +112,7 @@ Open `vision-demo/pom.xml` and add a dependency in the `<dependencies>` section.
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.4</version>
 </dependency>
 ```
 
@@ -145,7 +145,7 @@ Or build and run the jar:
 
 ```bash
 ./mvnw package
-java -jar target/vision-demo-0.0.2-SNAPSHOT.jar
+java -jar target/vision-demo-0.0.4-SNAPSHOT.jar
 ```
 
 Verification: Test the vision capabilities with bundled models:
