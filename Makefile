@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean deploy release docs test sync default
+.PHONY: build clean release docs test sync default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
