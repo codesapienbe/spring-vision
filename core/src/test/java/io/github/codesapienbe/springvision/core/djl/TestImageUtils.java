@@ -1,13 +1,11 @@
 package io.github.codesapienbe.springvision.core.djl;
 
 import java.awt.*;
-import java.awt.font.FontRenderContext;
-import java.awt.font.TextLayout;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Random;
+
 import javax.imageio.ImageIO;
 
 import io.github.codesapienbe.springvision.core.ImageData;

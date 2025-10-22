@@ -310,7 +310,8 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public boolean isImageClassificationModelAvailable() {
-        return imageClassificationModel != null;
+        // Image classification loads models on demand, so it's always available
+        return true;
     }
 
     @Override
