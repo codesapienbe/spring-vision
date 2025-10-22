@@ -19,13 +19,13 @@ public class StartupLogger {
     private static final Logger log = LoggerFactory.getLogger(StartupLogger.class);
 
     @Value("${spring.ai.mcp.server.name:spring-vision}")
-    private String serverName;
+    private String serverName = "spring-vision";
 
     @Value("${spring.ai.mcp.server.version:1.0.5}")
-    private String serverVersion;
+    private String serverVersion = "1.0.5";
 
     @Value("${spring.ai.mcp.server.transport:stdio}")
-    private String transport;
+    private String transport = "stdio";
 
     @PostConstruct
     public void onStartup() {

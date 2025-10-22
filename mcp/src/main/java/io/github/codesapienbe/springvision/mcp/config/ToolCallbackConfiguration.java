@@ -35,6 +35,9 @@ public class ToolCallbackConfiguration {
         if (visionTool != null) {
             // register the VisionTool instance so its @Tool methods are discovered
             builder.toolObjects(visionTool);
+        } else {
+            // When no VisionTool is available, create an empty provider
+            builder.toolObjects(new Object[0]);
         }
         return builder.build();
     }

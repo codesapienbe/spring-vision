@@ -57,6 +57,11 @@ public class ToolRegistryInspector implements ApplicationListener<ContextRefresh
      */
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        if (event == null) {
+            log.warn("Received null ContextRefreshedEvent",
+                StructuredArguments.keyValue("event", "null_event_received"));
+            return;
+        }
         ApplicationContext ctx = event.getApplicationContext();
 
         for (String registryClassName : REGISTRY_TYPES) {

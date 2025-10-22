@@ -16,7 +16,7 @@ clean:
 build:
 	@echo "Building project: Maven install - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true;
-	mvn clean install -DskipTests -Pdownload-models || ( echo "Maven install failed!" && exit 1 );
+	mvn clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -Pdownload-models || ( echo "Maven install failed!" && exit 1 );
 
 run:
 	@echo "Running Spring Vision MCP server locally with JBang";

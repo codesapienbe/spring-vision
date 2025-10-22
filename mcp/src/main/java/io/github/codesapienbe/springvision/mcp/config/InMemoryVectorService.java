@@ -97,7 +97,9 @@ public class InMemoryVectorService implements VectorService {
 
     @Override
     public void deleteEmbeddingById(String embeddingId) {
-        store.remove(embeddingId);
+        if (embeddingId != null) {
+            store.remove(embeddingId);
+        }
     }
 
     @Override
@@ -129,7 +131,9 @@ public class InMemoryVectorService implements VectorService {
             }
             if (na <= 0 || nb <= 0) return Double.POSITIVE_INFINITY;
             double sim = dot / (Math.sqrt(na) * Math.sqrt(nb));
-            return 1.0 - sim;
+            // Clamp similarity to [0, 1] range to handle floating point precision issues
+            sim = Math.max(0.0, Math.min(1.0, sim));
+            return Math.max(0.0, 1.0 - sim);
         } else {
             // euclidean
             double s = 0.0;
