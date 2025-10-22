@@ -216,6 +216,7 @@
               <arg>-Xlint:deprecation</arg>
               <arg>-Xlint:rawtypes</arg>
               <arg>-Xlint:-classfile</arg> <!-- Disable class file warnings -->
+              <arg>-Xlint:-options</arg> <!-- Disable option warnings -->
             </compilerArgs>
             <!-- Treat warnings as errors to enforce code quality (can be disabled with -Dcompiler.warnings.as.errors=false) -->
             <failOnWarning>${compiler.warnings.as.errors}</failOnWarning>
