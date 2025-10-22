@@ -19,4 +19,11 @@ public interface BarcodeCapability {
      * @return A list of detections, each representing a found barcode.
      */
     List<Detection> detectBarcodes(ImageData imageData);
+
+    /**
+     * Checks if barcode detection models are available and loaded.
+     *
+     * @return true if barcode detection models are available, false otherwise
+     */
+    boolean isBarcodeModelAvailable();
 }

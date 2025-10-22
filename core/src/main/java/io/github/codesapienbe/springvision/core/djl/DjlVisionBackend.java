@@ -289,6 +289,64 @@ public class DjlVisionBackend implements VisionBackend,
         return healthStatus == BackendHealthInfo.HealthStatus.HEALTHY && initialized;
     }
 
+    // ==========================
+    // Capability Model Availability Implementations
+    // ==========================
+
+    @Override
+    public boolean isObjectDetectionModelAvailable() {
+        return objectDetectionModel != null;
+    }
+
+    @Override
+    public boolean isFaceDetectionModelAvailable() {
+        return faceDetectionModel != null;
+    }
+
+    @Override
+    public boolean isPoseEstimationModelAvailable() {
+        return poseEstimationModel != null;
+    }
+
+    @Override
+    public boolean isImageClassificationModelAvailable() {
+        return imageClassificationModel != null;
+    }
+
+    @Override
+    public boolean isOcrModelAvailable() {
+        // OCR doesn't use DJL models - it uses external libraries
+        return true; // OCR is always available since it uses ZXing/Tesseract
+    }
+
+    @Override
+    public boolean isEmbeddingModelAvailable() {
+        return faceRecognitionModel != null;
+    }
+
+    @Override
+    public boolean isBarcodeModelAvailable() {
+        // Barcode detection doesn't use ML models - it uses ZXing library
+        return true; // Barcode detection is always available since it uses ZXing
+    }
+
+    @Override
+    public boolean isMetaDataExtractionModelAvailable() {
+        // Metadata extraction doesn't use ML models - it uses Drew library
+        return true; // Metadata extraction is always available since it uses Drew
+    }
+
+    @Override
+    public boolean isAnnotationModelAvailable() {
+        // Annotation doesn't use ML models - it's image processing
+        return true; // Annotation is always available since it's basic image processing
+    }
+
+    @Override
+    public boolean isActionRecognitionModelAvailable() {
+        return actionRecognitionModel != null;
+    }
+
     @Override
     public BackendHealthInfo getHealthInfo() {
         long responseTime = System.currentTimeMillis() - lastHealthCheckTime;

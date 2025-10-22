@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.core.djl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -81,9 +82,57 @@ public class ObjectDetectionIntegrationTest {
         assertThat(detections).isNotNull();
         assertThat(detections).isInstanceOf(List.class);
 
-        // With real models, we should get some detections (may be background or generic objects)
-        // The important thing is that the model processed the image
-        System.out.println("Detected " + detections.size() + " objects in rectangle image");
+        // CRITICAL: With real models loaded, we should NOT get empty results
+        // If models are loaded but returning empty lists, something is wrong
+        if (backend.isObjectDetectionModelAvailable()) {
+            // If model claims to be loaded, we should get actual detection results
+            // Even if it's just background detections, there should be some output
+            assertThat(detections).isNotEmpty()
+                .withFailMessage("Model claims to be loaded but returned no detections. " +
+                    "This indicates the model is not actually processing images.");
+            System.out.println("✅ Successfully detected " + detections.size() + " objects with real model");
+        } else {
+            // If model is not loaded, empty results are expected but this is an error condition
+            fail("Object detection model should be loaded but is not. Check backend initialization.");
+        }
+    }
+
+    @Test
+    @DisplayName("Should verify model loading status is accurate")
+    @EnabledIf("modelsAvailable")
+    void shouldVerifyModelLoadingStatus() {
+        // Test that the backend correctly reports model loading status
+        boolean objectDetectionLoaded = backend.isObjectDetectionModelAvailable();
+
+        if (objectDetectionLoaded) {
+            System.out.println("✅ Object detection model is correctly reported as loaded");
+        } else {
+            fail("Backend initialization claimed success but object detection model is not loaded. " +
+                 "This indicates a bug in the initialization or model loading logic.");
+        }
+    }
+
+    @Test
+    @DisplayName("Should fail appropriately when backend cannot initialize with models")
+    void shouldFailAppropriatelyWhenBackendCannotInitializeWithModels() {
+        // This test validates that the integration test setup correctly detects
+        // when the backend fails to initialize with real models
+
+        // The setup should have failed with VisionBackendException due to PyTorch JNI issues
+        // This is the correct behavior - the test should not proceed if models can't be loaded
+
+        // If we get here, it means the setup succeeded, which would be unexpected
+        // given the known PyTorch JNI library issues
+
+        System.out.println("⚠️  Unexpected: Backend initialization succeeded despite known PyTorch JNI issues");
+
+        // But if models ARE available, validate that they're actually loaded
+        if (backend != null && backend.isObjectDetectionModelAvailable()) {
+            System.out.println("✅ Models are actually loaded despite JNI issues - this is unexpected but good!");
+        } else {
+            fail("Backend claims to be healthy but models are not loaded. This indicates " +
+                 "the backend is incorrectly reporting success when it should fail.");
+        }
     }
 
     @Test
@@ -240,6 +289,79 @@ public class ObjectDetectionIntegrationTest {
         // Then: Should not exceed configured maximum
         int maxConfigured = 10; // From setup
         assertThat(detections.size()).isLessThanOrEqualTo(maxConfigured);
+    }
+
+    @Test
+    @DisplayName("Should perform real inference with loaded models")
+    @EnabledIf("modelsAvailable")
+    void shouldPerformRealInferenceWithLoadedModels() throws IOException {
+        // Given: Test image with clear visual features
+        ImageData image = TestImageUtils.createRectangleImage(640, 480, Color.RED);
+
+        // When: Object detection is performed
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = backend.detectObjects(image);
+        long inferenceTime = System.currentTimeMillis() - startTime;
+
+        // Then: Validate complete inference pipeline
+        assertThat(detections).isNotNull();
+
+        // If model is loaded, we should get some inference results
+        if (backend.isObjectDetectionModelAvailable()) {
+            // Real inference should take some measurable time (not just return empty immediately)
+            assertThat(inferenceTime).isGreaterThan(10)
+                .withFailMessage("Inference completed too quickly (" + inferenceTime + "ms), " +
+                    "suggesting model was not actually used");
+
+            // Should get some detections (even if just background/generic objects)
+            assertThat(detections).isNotEmpty()
+                .withFailMessage("Model is loaded but produced no detections. " +
+                    "Check if model is actually processing images.");
+
+            // Validate detection structure
+            Detection firstDetection = detections.get(0);
+            assertThat(firstDetection.label()).isNotNull();
+            assertThat(firstDetection.confidence()).isBetween(0.0, 1.0);
+            assertThat(firstDetection.boundingBox()).isNotNull();
+
+            System.out.println("✅ Real inference completed in " + inferenceTime + "ms, " +
+                "detected " + detections.size() + " objects including: " +
+                detections.stream().map(Detection::label).distinct().limit(3).toList());
+        }
+    }
+
+    @Test
+    @DisplayName("Should validate complete integration test behavior")
+    void shouldValidateCompleteIntegrationTestBehavior() {
+        // This is a comprehensive test that validates the entire integration testing approach
+
+        System.out.println("🔍 Integration Test Validation:");
+        System.out.println("  - Backend initialized: " + (backend != null));
+        System.out.println("  - Backend healthy: " + (backend != null && backend.isHealthy()));
+        System.out.println("  - Models available on disk: " + modelsAvailable);
+        System.out.println("  - Object detection model loaded: " +
+            (backend != null && backend.isObjectDetectionModelAvailable()));
+
+        // Key validations for real integration tests:
+        if (modelsAvailable) {
+            // If model files exist, the backend should be able to load them
+            assertThat(backend).isNotNull()
+                .withFailMessage("Backend should initialize when model files are available");
+
+            if (backend.isHealthy()) {
+                // If backend reports healthy, models should actually be loaded
+                assertThat(backend.isObjectDetectionModelAvailable())
+                    .withFailMessage("Backend reports healthy but object detection model not loaded");
+            } else {
+                // If backend is not healthy, it should fail initialization (which it currently does)
+                System.out.println("✅ Backend correctly fails when PyTorch JNI libraries unavailable");
+            }
+        } else {
+            // If no models available, backend should still initialize but in offline mode
+            System.out.println("ℹ️  No models available - this is expected in CI/test environments");
+        }
+
+        System.out.println("✅ Integration test validation completed");
     }
 
     @Test

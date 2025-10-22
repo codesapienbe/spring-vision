@@ -51,4 +51,11 @@ public interface ImageClassificationCapability {
         Map<String, Object> attributes
     ) {
     }
+
+    /**
+     * Checks if image classification models are available and loaded.
+     *
+     * @return true if image classification models are available, false otherwise
+     */
+    boolean isImageClassificationModelAvailable();
 }

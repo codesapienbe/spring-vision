@@ -25,4 +25,11 @@ public interface ActionRecognitionCapability {
      * @throws BaseVisionException if action recognition fails
      */
     List<Detection> recognizeActions(ImageData imageData) throws BaseVisionException;
+
+    /**
+     * Checks if action recognition models are available and loaded.
+     *
+     * @return true if action recognition models are available, false otherwise
+     */
+    boolean isActionRecognitionModelAvailable();
 }

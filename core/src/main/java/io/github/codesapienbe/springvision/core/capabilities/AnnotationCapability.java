@@ -29,4 +29,11 @@ public interface AnnotationCapability {
      * @throws BaseVisionException if an error occurs during the operation.
      */
     ImageData annotate(ImageData imageData, AnnotationRequest request) throws BaseVisionException;
+
+    /**
+     * Checks if annotation capabilities are available and loaded.
+     *
+     * @return true if annotation capabilities are available, false otherwise
+     */
+    boolean isAnnotationModelAvailable();
 }

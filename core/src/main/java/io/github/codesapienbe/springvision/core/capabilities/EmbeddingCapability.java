@@ -19,4 +19,11 @@ public interface EmbeddingCapability {
      * @throws BaseVisionException if embedding extraction fails
      */
     List<float[]> extractEmbeddings(ImageData imageData, DetectionCategory subject) throws BaseVisionException;
+
+    /**
+     * Checks if embedding models are available and loaded.
+     *
+     * @return true if embedding models are available, false otherwise
+     */
+    boolean isEmbeddingModelAvailable();
 }

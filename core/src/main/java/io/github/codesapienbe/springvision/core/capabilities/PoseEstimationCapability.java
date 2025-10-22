@@ -17,4 +17,11 @@ public interface PoseEstimationCapability {
      * Detects poses in the provided image.
      */
     List<Detection> detectPoses(ImageData imageData);
+
+    /**
+     * Checks if pose estimation models are available and loaded.
+     *
+     * @return true if pose estimation models are available, false otherwise
+     */
+    boolean isPoseEstimationModelAvailable();
 }

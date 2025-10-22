@@ -20,4 +20,11 @@ public interface FaceDetectionCapability {
      * @return A list of detected faces.
      */
     List<Detection> detectFaces(ImageData imageData);
+
+    /**
+     * Checks if face detection models are available and loaded.
+     *
+     * @return true if face detection models are available, false otherwise
+     */
+    boolean isFaceDetectionModelAvailable();
 }

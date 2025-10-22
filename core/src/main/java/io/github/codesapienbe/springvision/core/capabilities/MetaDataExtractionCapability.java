@@ -59,4 +59,11 @@ public interface MetaDataExtractionCapability {
      * Each detection contains metadata attributes in the attributes map.
      */
     List<Detection> extractMetaData(ImageData imageData);
+
+    /**
+     * Checks if metadata extraction capabilities are available and loaded.
+     *
+     * @return true if metadata extraction capabilities are available, false otherwise
+     */
+    boolean isMetaDataExtractionModelAvailable();
 }

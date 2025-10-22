@@ -32,4 +32,11 @@ public interface OcrCapability {
         Map<String, Object> attributes
     ) {
     }
+
+    /**
+     * Checks if OCR models are available and loaded.
+     *
+     * @return true if OCR models are available, false otherwise
+     */
+    boolean isOcrModelAvailable();
 }

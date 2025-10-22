@@ -17,4 +17,11 @@ public interface ObjectDetectionCapability {
      * Detects objects in the provided image.
      */
     List<Detection> detectObjects(ImageData imageData);
+
+    /**
+     * Checks if object detection models are available and loaded.
+     *
+     * @return true if object detection models are available, false otherwise
+     */
+    boolean isObjectDetectionModelAvailable();
 }
