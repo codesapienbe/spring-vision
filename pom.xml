@@ -70,6 +70,9 @@
     <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
 
+    <!-- Linting configuration -->
+    <compiler.warnings.as.errors>false</compiler.warnings.as.errors>
+
     <!-- GPG signing control -->
     <gpg.skip>false</gpg.skip>
   </properties>
@@ -208,7 +211,14 @@
             <release>21</release>
             <compilerArgs>
               <arg>-parameters</arg>
+              <!-- Enable targeted linting for code quality -->
+              <arg>-Xlint:unchecked</arg>
+              <arg>-Xlint:deprecation</arg>
+              <arg>-Xlint:rawtypes</arg>
+              <arg>-Xlint:-classfile</arg> <!-- Disable class file warnings -->
             </compilerArgs>
+            <!-- Treat warnings as errors to enforce code quality (can be disabled with -Dcompiler.warnings.as.errors=false) -->
+            <failOnWarning>${compiler.warnings.as.errors}</failOnWarning>
             <annotationProcessorPaths>
               <path>
                 <groupId>org.springframework.boot</groupId>

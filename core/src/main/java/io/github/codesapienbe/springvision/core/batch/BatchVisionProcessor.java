@@ -217,7 +217,7 @@ public class BatchVisionProcessor {
                 .thenApply(results -> new BatchResult(detectionType, results)))
             .collect(Collectors.toList());
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
             .thenApply(v -> futures.stream()
                 .map(CompletableFuture::join)
                 .collect(Collectors.toList()));

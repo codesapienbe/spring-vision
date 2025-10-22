@@ -123,8 +123,10 @@ public class VisionMetrics {
         this.errorCounters = new ConcurrentHashMap<>();
         this.lastMetricsCollection = Instant.now();
 
-        // Initialize metrics
-        initializeMetrics();
+        // Initialize basic metrics first
+        initializeBasicMetrics();
+        // Initialize gauge metrics after construction to avoid 'this' escape
+        initializeGaugeMetrics();
 
         logger.debug("Vision metrics initialized for backend: {}", backend.getBackendId());
     }
@@ -297,7 +299,7 @@ public class VisionMetrics {
     /**
      * Initializes all metrics.
      */
-    private void initializeMetrics() {
+    private void initializeBasicMetrics() {
         // Total detections counter
         totalDetectionsCounter = Counter.builder(METRICS_PREFIX + ".detections.total")
             .tag("backend", backend.getBackendId())
@@ -310,13 +312,17 @@ public class VisionMetrics {
             .description("Total number of errors")
             .register(meterRegistry);
 
-        // Backend health gauge
+        logger.debug("Initialized basic vision metrics for backend: {}", backend.getBackendId());
+    }
+
+    private void initializeGaugeMetrics() {
+        // Backend health gauge - use method reference to avoid 'this' escape during construction
         backendHealthGauge = io.micrometer.core.instrument.Gauge.builder(METRICS_PREFIX + ".backend.health", this, VisionMetrics::getBackendHealthValue)
             .tag("backend", backend.getBackendId())
             .description("Backend health status (1 = healthy, 0 = unhealthy)")
             .register(meterRegistry);
 
-        logger.debug("Initialized vision metrics for backend: {}", backend.getBackendId());
+        logger.debug("Initialized gauge metrics for backend: {}", backend.getBackendId());
     }
 
     /**
