@@ -10,7 +10,6 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
@@ -23,7 +22,6 @@ import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
  * Central Integration Test for all Vision capabilities.
  * Uses nested classes for each capability to avoid duplication of bean setup.
  */
-@SpringBootTest(classes = VisionAutoConfiguration.class)
 public class VisionIntegrationTest {
 
     private VisionTemplate visionTemplate;
