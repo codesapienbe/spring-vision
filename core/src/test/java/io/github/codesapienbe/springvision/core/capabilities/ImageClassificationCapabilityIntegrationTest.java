@@ -20,7 +20,8 @@ public class ImageClassificationCapabilityIntegrationTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        DjlProperties p = new DjlProperties();
+        DjlProperties p = new DjlProperties(); 
+        p.setSyntheticFallbacks(true); // enable synthetic fallbacks for these capability TDD tests
         p.setEngine("OnnxRuntime");
         p.setDevice("cpu");
         p.setAutoDownload(false);

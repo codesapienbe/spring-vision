@@ -22,7 +22,7 @@ public class ActionRecognitionCapabilityIntegrationTest {
 
     @BeforeAll
     static void setup() throws Exception {
-        DjlProperties p = new DjlProperties();
+        DjlProperties p = new DjlProperties(); p.setSyntheticFallbacks(true);
         p.setEngine("OnnxRuntime");
         p.setDevice("cpu");
         p.setAutoDownload(false);
