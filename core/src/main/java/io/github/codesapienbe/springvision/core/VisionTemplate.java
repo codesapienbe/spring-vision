@@ -1,14 +1,37 @@
 package io.github.codesapienbe.springvision.core;
 
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
-import io.github.codesapienbe.springvision.core.capabilities.*;
+import io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability;
+import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.OcrCapability;
+import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
+import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Template for computer vision operations providing a unified interface

@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean release docs test sync default
+.PHONY: build clean release test sync verify format default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -40,18 +40,23 @@ release:
 		git push origin v$(SPRING_VISION_VERSION) || ( echo "Failed to push tag to origin" && exit 1 ); \
 	fi
 
-docs:
-	@echo "Generating javadocs and creating report..."
-	mvn javadoc:javadoc > javadocs.txt 2>&1 && \
-	echo "Javadocs report generated successfully in javadocs.txt" || \
-	echo "Javadocs generation completed with warnings/errors - see javadocs.txt for details"
-
 # Run only the DjlVisionBackend integration test
 test:
 	@echo "Running DjlVisionBackend integration tests (core module) and VisionTool integration test (mcp module)..."
 	# Run only in the core and mcp modules to avoid failing other modules that don't contain these tests
 	mvn -pl core,mcp -am -q -Dtest=io.github.codesapienbe.springvision.core.djl.DjlVisionBackendIntegrationTest,io.github.codesapienbe.springvision.core.djl.DjlVisionBackendModelAvailabilityTest,io.github.codesapienbe.springvision.mcp.VisionToolIntegrationTest test || \
 	( echo "Integration tests failed" && exit 1 )
+
+
+verify: test 
+	@echo "Verifying project with Spotless and Checkstyle..."
+	mvn spotless:check checkstyle:check -q || ( echo "Verification failed" && exit 1 )
+	@echo "Verification completed successfully"
+
+format:
+	@echo "Formatting project with Spotless..."
+	mvn spotless:apply -q || ( echo "Formatting failed" && exit 1 )
+	@echo "Formatting completed successfully"
 
 sync:
 	@echo "Building and syncing MCP jar for local testing..."
