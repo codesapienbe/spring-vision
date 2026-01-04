@@ -39,36 +39,36 @@
 
 
   <properties>
-    <maven.compiler.release>21</maven.compiler.release>
+    <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <!-- Spring Boot Version -->
-    <spring-boot.version>3.2.8</spring-boot.version>
-    <spring-cloud.version>2023.0.0</spring-cloud.version>
+    <spring-boot.version>3.5.0</spring-boot.version>
+    <spring-cloud.version>2024.0.0</spring-cloud.version>
 
     <!-- Dependencies -->
     <javacv.version>1.5.10</javacv.version>
-    <micrometer.version>1.12.0</micrometer.version>
+    <micrometer.version>1.14.0</micrometer.version>
 
     <!-- Additional shared versions -->
     <commons-math3.version>3.6.1</commons-math3.version>
-    <onnxruntime.version>1.15.1</onnxruntime.version>
+    <onnxruntime.version>1.19.0</onnxruntime.version>
     <djl.version>0.33.0</djl.version>
-    <pytorch.version>2.1.1</pytorch.version>
-    <picocli.version>4.7.5</picocli.version>
-    <spring-ai.version>1.0</spring-ai.version>
+    <pytorch.version>2.3.0</pytorch.version>
+    <picocli.version>4.7.6</picocli.version>
+    <spring-ai.version>1.1.0</spring-ai.version>
 
     <!-- OpenCV platform selection: default to Linux x86_64. Change this property in CI/builds to target another platform. -->
     <opencv.version>4.9.0-${javacv.version}</opencv.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
 
     <!-- Code Quality & Plugins -->
-    <checkstyle.version>10.12.5</checkstyle.version>
-    <spotless.version>2.43.0</spotless.version>
-    <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
-    <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
-    <maven-failsafe-plugin.version>3.2.5</maven-failsafe-plugin.version>
+    <checkstyle.version>10.17.0</checkstyle.version>
+    <spotless.version>2.45.0</spotless.version>
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
+    <maven-failsafe-plugin.version>3.3.1</maven-failsafe-plugin.version>
 
     <!-- Linting configuration -->
     <compiler.warnings.as.errors>false</compiler.warnings.as.errors>

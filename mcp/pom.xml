@@ -16,8 +16,8 @@
   <description>MCP Server for Spring Vision using Spring AI</description>
 
   <properties>
-    <spring-boot.version>3.1.3</spring-boot.version>
-    <spring-ai.version>1.0.3</spring-ai.version>
+    <!-- Inherit spring-boot.version from parent: 3.5.0 -->
+    <!-- Inherit spring-ai.version from parent: 1.1.0 -->
 
     <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
     <!-- Directory where build-time downloaded models are stored -->

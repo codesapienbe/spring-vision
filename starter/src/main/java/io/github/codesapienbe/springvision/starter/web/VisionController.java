@@ -16,7 +16,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
 import io.github.codesapienbe.springvision.core.DetectionCategory;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
@@ -216,7 +214,7 @@ public class VisionController {
             @RequestParam(defaultValue = "5") Integer topK) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
             try {
@@ -238,9 +236,9 @@ public class VisionController {
                 response.put("count", result.detectionCount());
                 response.put("processingTimeMs", duration);
 
-            return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
+            } catch (Exception e) {
                 log.error("Failed to classify image", e);
                 response.put("status", "error");
                 response.put("classifications", List.of());
@@ -265,7 +263,7 @@ public class VisionController {
             @RequestPart(required = false) MultipartFile file) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
             try {
@@ -296,9 +294,9 @@ public class VisionController {
                 response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
                 response.put("processingTimeMs", duration);
 
-            return ResponseEntity.ok(response);
+                return ResponseEntity.ok(response);
 
-        } catch (Exception e) {
+            } catch (Exception e) {
                 log.error("Failed to detect objects", e);
                 response.put("status", "error");
                 response.put("objects", List.of());
@@ -323,27 +321,29 @@ public class VisionController {
             @RequestPart(required = false) MultipartFile file) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
-        try {
+            try {
                 ImageData imgData = resolveImageSource(imageUrl, file);
                 VisionResult result = visionTemplate.extractText(imgData);
 
                 List<Map<String, Object>> detections = new ArrayList<>();
                 StringBuilder fullText = new StringBuilder();
 
-            for (var detection : result.detections()) {
+                for (var detection : result.detections()) {
                     Map<String, Object> item = new HashMap<>();
                     String text = (String) detection.attributes().get("text");
                     item.put("text", text);
                     item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                    item.put("boundingBox", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
+                    if (detection.boundingBox() != null) {
+                        item.put("boundingBox", Map.of(
+                            "x", detection.boundingBox().x(),
+                            "y", detection.boundingBox().y(),
+                            "width", detection.boundingBox().width(),
+                            "height", detection.boundingBox().height()
+                        ));
+                    }
                     detections.add(item);
                     if (text != null) fullText.append(text).append(" ");
                 }
@@ -380,15 +380,15 @@ public class VisionController {
             @RequestPart(required = false) MultipartFile file) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
-        try {
+            try {
                 ImageData imgData = resolveImageSource(imageUrl, file);
                 VisionResult result = visionTemplate.scanBarcodes(imgData);
 
                 List<Map<String, Object>> barcodes = new ArrayList<>();
-            for (var detection : result.detections()) {
+                for (var detection : result.detections()) {
                     Map<String, Object> barcodeInfo = new HashMap<>();
                     barcodeInfo.put("format", detection.label());
                     barcodeInfo.put("content", detection.attributes().get("content"));
@@ -408,9 +408,8 @@ public class VisionController {
                 response.put("barcodes", barcodes);
                 response.put("processingTimeMs", duration);
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
                 log.error("Failed to scan barcode", e);
                 response.put("status", "error");
                 response.put("barcodes", List.of());
@@ -435,15 +434,15 @@ public class VisionController {
             @RequestPart(required = false) MultipartFile file) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
-        try {
+            try {
                 ImageData imgData = resolveImageSource(imageUrl, file);
                 VisionResult result = visionTemplate.detectPoses(imgData);
 
                 List<Map<String, Object>> poses = new ArrayList<>();
-            for (var detection : result.detections()) {
+                for (var detection : result.detections()) {
                     Map<String, Object> pose = new HashMap<>();
                     pose.put("label", detection.label());
                     pose.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
@@ -457,9 +456,8 @@ public class VisionController {
                 response.put("count", result.detectionCount());
                 response.put("processingTimeMs", duration);
 
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
                 log.error("Failed to detect poses", e);
                 response.put("status", "error");
                 response.put("poses", List.of());
@@ -482,7 +480,7 @@ public class VisionController {
             @RequestPart(required = false) MultipartFile file) {
 
         return Mono.fromCallable(() -> {
-        long startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
             Map<String, Object> response = new HashMap<>();
 
             try {
@@ -505,7 +503,6 @@ public class VisionController {
                 response.put("processingTimeMs", duration);
 
                 return ResponseEntity.ok(response);
-
             } catch (Exception e) {
                 log.error("Failed to recognize actions", e);
                 response.put("status", "error");
@@ -537,21 +534,20 @@ public class VisionController {
             try {
                 ImageData imgData = resolveImageSource(imageUrl, file);
                 VisionResult result = visionTemplate.detectNSFW(imgData);
+                long duration = System.currentTimeMillis() - startTime;
 
-            if (!result.hasDetections()) {
+                if (!result.hasDetections()) {
                     response.put("status", "success");
                     response.put("classification", "unknown");
                     response.put("confidence", 0.0);
                     response.put("isNSFW", false);
-                    response.put("processingTimeMs", 0);
-                return ResponseEntity.ok(response);
-            }
+                    response.put("processingTimeMs", duration);
+                    return ResponseEntity.ok(response);
+                }
 
-            var detection = result.detections().get(0);
-            boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
-            String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
-
-                long duration = System.currentTimeMillis() - startTime;
+                var detection = result.detections().get(0);
+                boolean isNSFW = (Boolean) detection.attributes().getOrDefault("isNSFW", false);
+                String classification = (String) detection.attributes().getOrDefault("classification", detection.label());
                 response.put("status", "success");
                 response.put("classification", classification);
                 response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
