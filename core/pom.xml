@@ -33,6 +33,14 @@
     </pluginRepository>
   </pluginRepositories>
 
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Maven Central</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <!-- Spring Boot Starter -->
     <dependency>
@@ -142,11 +150,11 @@
       <version>3.24ea4</version>
     </dependency>
 
-    <!-- LZ4 compression for efficient index storage -->
+    <!-- LZ4 compression for efficient index storage - using yawkat fork with security fixes -->
     <dependency>
-      <groupId>org.lz4</groupId>
+      <groupId>at.yawk.lz4</groupId>
       <artifactId>lz4-java</artifactId>
-      <version>1.8.0</version>
+      <version>1.10.1</version>
     </dependency>
     <!-- ZXing barcode detection -->
     <dependency>
