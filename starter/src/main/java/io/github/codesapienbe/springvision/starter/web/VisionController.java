@@ -345,7 +345,9 @@ public class VisionController {
                         ));
                     }
                     detections.add(item);
-                    if (text != null) fullText.append(text).append(" ");
+                    if (text != null) {
+                        fullText.append(text).append(" ");
+                    }
                 }
 
                 long duration = System.currentTimeMillis() - startTime;
@@ -662,7 +664,9 @@ public class VisionController {
         // Support data URIs
         if (trimmed.startsWith("data:")) {
             int comma = trimmed.indexOf(',');
-            if (comma < 0) throw new IOException("Invalid data URI format");
+            if (comma < 0) {
+                throw new IOException("Invalid data URI format");
+            }
             String metadata = trimmed.substring(5, comma);
             String dataPart = trimmed.substring(comma + 1);
 
@@ -751,7 +755,9 @@ public class VisionController {
                 if (backend instanceof EmbeddingCapability cap) {
                     try {
                         List<float[]> out = cap.extractEmbeddings(img, category);
-                        if (out != null) return out;
+                        if (out != null) {
+                            return out;
+                        }
                     } catch (Exception e) {
                         log.warn("Backend extractEmbeddings failed", e);
                     }
@@ -763,7 +769,9 @@ public class VisionController {
 
         try {
             List<float[]> res = visionTemplate.extractEmbeddings(img, category);
-            if (res != null) return res;
+            if (res != null) {
+                return res;
+            }
         } catch (Exception e) {
             log.debug("Template extractEmbeddings failed, returning empty list", e);
         }
@@ -775,7 +783,9 @@ public class VisionController {
      * Serialize float embedding to bytes.
      */
     private byte[] serializeEmbedding(float[] arr) {
-        if (arr == null) return new byte[0];
+        if (arr == null) {
+            return new byte[0];
+        }
 
         byte[] out = new byte[arr.length * 4];
         for (int i = 0; i < arr.length; i++) {
