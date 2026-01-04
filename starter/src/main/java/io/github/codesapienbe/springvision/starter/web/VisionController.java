@@ -393,12 +393,14 @@ public class VisionController {
                     barcodeInfo.put("format", detection.label());
                     barcodeInfo.put("content", detection.attributes().get("content"));
                     barcodeInfo.put("confidence", detection.confidence());
-                    barcodeInfo.put("location", Map.of(
-                        "x", detection.boundingBox().x(),
-                        "y", detection.boundingBox().y(),
-                        "width", detection.boundingBox().width(),
-                        "height", detection.boundingBox().height()
-                    ));
+                    if (detection.boundingBox() != null) {
+                        barcodeInfo.put("location", Map.of(
+                            "x", detection.boundingBox().x(),
+                            "y", detection.boundingBox().y(),
+                            "width", detection.boundingBox().width(),
+                            "height", detection.boundingBox().height()
+                        ));
+                    }
                     barcodes.add(barcodeInfo);
                 }
 
@@ -755,13 +757,15 @@ public class VisionController {
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("Failed to access backend directly for embeddings", e);
         }
 
         try {
             List<float[]> res = visionTemplate.extractEmbeddings(img, category);
             if (res != null) return res;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("Template extractEmbeddings failed, returning empty list", e);
         }
 
         return List.of();
