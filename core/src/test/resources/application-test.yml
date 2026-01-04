@@ -8,6 +8,8 @@ spring:
       enabled: true
       engine: PyTorch
       confidence-threshold: 0.1  # Lower threshold for tests
+      synthetic-fallbacks: true  # Enable synthetic results when models unavailable
+      auto-download: false  # Don't download models during tests
       # Use lightweight models for testing
       face-detection-model: "mock://test-face-detection"
       object-detection-model: "mock://test-object-detection"
