@@ -90,10 +90,14 @@ VisionTemplate
 - Java 25+ required (enforced by `maven-enforcer-plugin`); source compiled to `--release 25`.
 - Tests needing heavy memory use JUnit 5 tag `memory-intensive` and are excluded by default.
 
+## Agent Rules
+
+- **No data is better than wrong data.** If a tool, model, or capability is non-functional, incomplete, or returning placeholder/synthetic values, it must fail loudly with an exception rather than silently returning fabricated results. A `VisionProcessingException` or `VisionUnsupportedException` with a clear message is always preferable to a response that looks successful but contains invented data. This applies everywhere: backend methods, MCP tool handlers, REST controllers, and capability stubs.
+
 ## Key Conventions
 
 - All configuration properties use prefix `spring.vision.*` (e.g., `spring.vision.djl.enabled`).
 - Integration tests (`*IntegrationTest.java`, `*IT.java`) are handled by Failsafe; unit tests by Surefire.
-- Synthetic/fallback results are returned in offline/test mode so tests pass without network access (`ai.djl.offline=false` is set in Surefire but models may be absent).
+- Tests run with real model inference when models are present; no synthetic fallback results in production code paths.
 - The `download-models` Maven profile downloads YOLO and RetinaFace models into the JAR during build; skip it with `-P!download-models` if models are already present.
 - GPU support is opt-in via `-P gpu` profile (requires NVIDIA CUDA).

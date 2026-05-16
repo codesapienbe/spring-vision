@@ -2454,21 +2454,8 @@ public class DjlVisionBackend implements VisionBackend,
                 List<Detection> poses = detectPoses(imageData);
 
                 if (poses.isEmpty()) {
-                    // No person detected - no fall risk
-                    Map<String, Object> attributes = new HashMap<>();
-                    attributes.put("fallDetected", false);
-                    attributes.put("bodyOrientation", "unknown");
-                    attributes.put("riskLevel", "low");
-                    attributes.put("frameIndex", frameIndex);
-                    attributes.put("reason", "no_person_detected");
-                    attributes.put("backend", BACKEND_ID);
-
-                    BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                    fallDetections.add(new Detection(
-                        "no_detection",
-                        0.0,
-                        emptyBbox,
-                        attributes));
+                    // No person detected in this frame — skip rather than fabricate
+                    logger.debug("No person detected in frame {} — skipping", frameIndex);
                     continue;
                 }
 
@@ -2644,24 +2631,8 @@ public class DjlVisionBackend implements VisionBackend,
                 List<Detection> emotions = detectEmotions(imageData);
 
                 if (emotions.isEmpty()) {
-                    // No face detected - neutral stress
-                    Map<String, Object> attributes = new HashMap<>();
-                    attributes.put("stressLevel", "unknown");
-                    attributes.put("stressScore", 0.0);
-                    attributes.put("confidence", 0.0);
-                    attributes.put("frameIndex", frameIndex);
-                    attributes.put("reason", "no_face_detected");
-                    attributes.put("backend", BACKEND_ID);
-                    // Ensure dominantEmotion is present for downstream consumers/tests
-                    attributes.put("dominantEmotion", "unknown");
-
-                    BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                    stressDetections.add(new Detection(
-                        "unknown",
-                        0.0,
-                        emptyBbox,
-                        attributes));
-                    stressScores.add(0.0);
+                    // No face detected in this frame — skip rather than fabricate
+                    logger.debug("No face detected in frame {} — skipping", frameIndex);
                     continue;
                 }
 
@@ -2694,24 +2665,28 @@ public class DjlVisionBackend implements VisionBackend,
             }
 
             // For sequences, calculate temporal consistency
-            if (imageDataList.size() > 1) {
+            if (imageDataList.size() > 1 && !stressScores.isEmpty()) {
                 double avgStress = stressScores.stream()
                     .mapToDouble(Double::doubleValue)
                     .average()
                     .orElse(0.0);
+                double temporalConsistency = calculateConsistency(stressScores);
+                double frameCoverage = (double) stressScores.size() / imageDataList.size();
+                double aggregatedConfidence = Math.min(temporalConsistency, frameCoverage);
 
                 // Add aggregated analysis as final detection
                 Map<String, Object> aggregateAttributes = new HashMap<>();
                 aggregateAttributes.put("aggregatedAnalysis", true);
                 aggregateAttributes.put("averageStressScore", avgStress);
                 aggregateAttributes.put("framesAnalyzed", imageDataList.size());
+                aggregateAttributes.put("framesWithDetections", stressScores.size());
                 aggregateAttributes.put("stressLevel", categorizeStressScore(avgStress));
-                aggregateAttributes.put("temporalConsistency", calculateConsistency(stressScores));
+                aggregateAttributes.put("temporalConsistency", temporalConsistency);
                 aggregateAttributes.put("backend", BACKEND_ID);
 
                 stressDetections.add(new Detection(
                     "aggregated",
-                    0.85,
+                    aggregatedConfidence,
                     new BoundingBox(0.0, 0.0, 1.0, 1.0),
                     aggregateAttributes));
             }
@@ -2896,18 +2871,11 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Check if we have enough valid frames
             if (validFrames < 50) {
-                Map<String, Object> errorAttributes = new HashMap<>();
-                errorAttributes.put("error", "insufficient_face_detection");
-                errorAttributes.put("validFrames", validFrames);
-                errorAttributes.put("totalFrames", imageDataList.size());
-                errorAttributes.put("message", "Not enough frames with detected faces");
-
-                BoundingBox emptyBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                return List.of(new Detection(
-                    "insufficient_data",
-                    0.0,
-                    emptyBbox,
-                    errorAttributes));
+                throw new VisionProcessingException(
+                    "Heart rate estimation requires at least 50 frames with a detected face. "
+                    + "Got " + validFrames + " valid frames out of " + imageDataList.size() + " total.",
+                    "insufficient_face_detection",
+                    null);
             }
 
             // Step 2: Apply signal processing
@@ -2921,7 +2889,11 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Step 5: Validate BPM range (normal human range: 40-200 BPM)
             if (estimatedBPM < 40.0 || estimatedBPM > 200.0) {
-                estimatedBPM = 75.0; // Default to average resting HR
+                throw new VisionProcessingException(
+                    "Heart rate estimation produced an out-of-range result (" + String.format("%.1f", estimatedBPM)
+                    + " BPM). Signal quality may be insufficient — ensure stable lighting and minimal motion.",
+                    "invalid_bpm_estimate",
+                    null);
             }
 
             // Calculate signal quality
@@ -3375,18 +3347,12 @@ public class DjlVisionBackend implements VisionBackend,
      * </p>
      */
     private AuthenticationMatch matchAgainstAuthorizedUsers(float[] embedding) {
-        // Simulated authorized user database
-        // In production, this would be a real database lookup
-
-        // For demo purposes, return a simulated match
-        // Confidence threshold is configurable via
-        // spring.vision.djl.face-recognition.similarity-threshold
-
-        return new AuthenticationMatch(
-            "user_demo",
-            "Demo User",
-            0.45 // Simulated low match score (below typical 0.5 threshold = unauthorized)
-        );
+        throw new VisionUnsupportedException(
+            "Face authentication requires a configured authorized-user store. "
+            + "Integrate VectorStoreCapability with a secure biometric database "
+            + "before enabling this feature in production.",
+            "face_auth_not_configured",
+            null);
     }
 
     /**

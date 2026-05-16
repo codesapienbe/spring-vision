@@ -481,11 +481,8 @@ public class VisionTool {
 
             if (!result.hasDetections()) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("status", "success");
-                response.put("classification", "unknown");
-                response.put("confidence", 0.0);
-                response.put("isNSFW", false);
-                response.put("processingTimeMs", 0);
+                response.put("status", "no_detection");
+                response.put("message", "Model returned no detections — content cannot be classified");
                 return response;
             }
 
@@ -504,7 +501,6 @@ public class VisionTool {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("classification", "unknown");
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -562,11 +558,8 @@ public class VisionTool {
 
             if (!result.hasDetections()) {
                 Map<String, Object> response = new HashMap<>();
-                response.put("status", "success");
-                response.put("classification", "unknown");
-                response.put("confidence", 0.0);
-                response.put("isFake", false);
-                response.put("processingTimeMs", 0);
+                response.put("status", "no_detection");
+                response.put("message", "Model returned no detections — authenticity cannot be determined");
                 return response;
             }
 
@@ -587,7 +580,6 @@ public class VisionTool {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("classification", "unknown");
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -690,11 +682,8 @@ public class VisionTool {
             if (!result.hasDetections()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("status", "success");
-                response.put("fallDetected", false);
-                response.put("bodyOrientation", "unknown");
-                response.put("riskLevel", "low");
-                response.put("message", "No person detected");
-                response.put("processingTimeMs", 0);
+                response.put("message", "No person detected in image");
+                response.put("count", 0);
                 return response;
             }
 
@@ -729,7 +718,6 @@ public class VisionTool {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("fallDetected", false);
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -745,10 +733,8 @@ public class VisionTool {
             if (!result.hasDetections()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("status", "success");
-                response.put("stressLevel", "unknown");
-                response.put("stressScore", 0.0);
-                response.put("message", "No face detected");
-                response.put("processingTimeMs", 0);
+                response.put("message", "No face detected in image");
+                response.put("count", 0);
                 return response;
             }
 
@@ -784,7 +770,6 @@ public class VisionTool {
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
-            response.put("stressLevel", "unknown");
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -2076,7 +2061,6 @@ public class VisionTool {
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "Image URL is required and cannot be empty");
-                response.put("classification", "unknown");
                 return response;
             }
 
@@ -2086,11 +2070,8 @@ public class VisionTool {
             VisionResult result = visionTemplate.detectNSFW(imgData);
 
             if (!result.hasDetections()) {
-                response.put("status", "success");
-                response.put("classification", "unknown");
-                response.put("confidence", 0.0);
-                response.put("isNSFW", false);
-                response.put("processingTimeMs", 0);
+                response.put("status", "no_detection");
+                response.put("message", "Model returned no detections — content cannot be classified");
                 return response;
             }
 
@@ -2106,7 +2087,6 @@ public class VisionTool {
             return response;
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("classification", "unknown");
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -2188,7 +2168,6 @@ public class VisionTool {
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "Image URL is required and cannot be empty");
-                response.put("classification", "unknown");
                 return response;
             }
 
@@ -2198,11 +2177,8 @@ public class VisionTool {
             VisionResult result = visionTemplate.detectDeepfake(imgData);
 
             if (!result.hasDetections()) {
-                response.put("status", "success");
-                response.put("classification", "unknown");
-                response.put("confidence", 0.0);
-                response.put("isFake", false);
-                response.put("processingTimeMs", 0);
+                response.put("status", "no_detection");
+                response.put("message", "Model returned no detections — authenticity cannot be determined");
                 return response;
             }
 
@@ -2221,7 +2197,6 @@ public class VisionTool {
             return response;
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("classification", "unknown");
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
             return response;
         }
@@ -2360,7 +2335,6 @@ public class VisionTool {
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "Image URL is required and cannot be empty");
-                response.put("fallDetected", false);
                 return response;
             }
 
@@ -2372,11 +2346,8 @@ public class VisionTool {
 
             if (!result.hasDetections()) {
                 response.put("status", "success");
-                response.put("fallDetected", false);
-                response.put("bodyOrientation", "unknown");
-                response.put("riskLevel", "low");
-                response.put("message", "No person detected");
-                response.put("processingTimeMs", 0);
+                response.put("message", "No person detected in image");
+                response.put("count", 0);
                 return response;
             }
 
@@ -2422,7 +2393,6 @@ public class VisionTool {
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Failed to detect fall: " + e.getMessage());
-            response.put("fallDetected", false);
             return response;
         }
     }
@@ -2441,7 +2411,6 @@ public class VisionTool {
             if (imageUrl == null || imageUrl.trim().isEmpty()) {
                 response.put("status", "error");
                 response.put("message", "Image URL is required and cannot be empty");
-                response.put("stressLevel", "unknown");
                 return response;
             }
 
@@ -2453,10 +2422,8 @@ public class VisionTool {
 
             if (!result.hasDetections()) {
                 response.put("status", "success");
-                response.put("stressLevel", "unknown");
-                response.put("stressScore", 0.0);
-                response.put("message", "No face detected");
-                response.put("processingTimeMs", 0);
+                response.put("message", "No face detected in image");
+                response.put("count", 0);
                 return response;
             }
 
@@ -2493,7 +2460,6 @@ public class VisionTool {
         } catch (Exception e) {
             response.put("status", "error");
             response.put("message", "Failed to analyze stress: " + e.getMessage());
-            response.put("stressLevel", "unknown");
             return response;
         }
     }
