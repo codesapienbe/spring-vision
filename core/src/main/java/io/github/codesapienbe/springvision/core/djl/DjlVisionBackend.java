@@ -1644,14 +1644,9 @@ public class DjlVisionBackend implements VisionBackend,
         @Override
         public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
             NDManager mgr = ctx.getNDManager();
-            // Decode as grayscale — DJL gives shape [H, W, 1] or [H, W]; values 0-255
             NDArray gray = input.toNDArray(mgr, Image.Flag.GRAYSCALE).toType(DataType.FLOAT32, false);
-            // Ensure shape is [H, W] (drop trailing 1 if present)
-            if (gray.getShape().dimension() == 3) {
-                gray = gray.squeeze(-1);
-            }
-            // emotion-ferplus-8 expects [batch, 1, 64, 64] with pixel values 0-255
-            gray = gray.expandDims(0).expandDims(0); // [1, 1, 64, 64]
+            // emotion-ferplus-8 expects [1, 1, 64, 64]; reshape flattens any trailing channel dim
+            gray = gray.reshape(1, 1, 64, 64);
             return new NDList(gray);
         }
 
