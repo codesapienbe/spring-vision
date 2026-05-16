@@ -16,8 +16,8 @@
   <description>Core domain classes and interfaces for Spring Vision</description>
 
   <properties>
-    <!-- DJL configuration - models now loaded directly from HuggingFace via djl:// URLs -->
-    <pytorch.version>2.1.1</pytorch.version>
+    <!-- pytorch.version and pytorch.classifier are inherited from the root pom
+         (root sets default linux-x86_64 + OS-detection profiles override per host). -->
 
     <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
     <!-- Directory where build-time downloaded models are stored -->
