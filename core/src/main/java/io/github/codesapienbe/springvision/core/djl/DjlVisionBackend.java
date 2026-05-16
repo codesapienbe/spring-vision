@@ -63,6 +63,7 @@ import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.types.DataType;
+import ai.djl.ndarray.types.Shape;
 import ai.djl.repository.zoo.Criteria;
 import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
@@ -165,6 +166,8 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, DetectedObjects> faceDetectionModel;
     private ZooModel<Image, float[]> faceRecognitionModel;
     private ZooModel<Image, float[]> emotionModel;
+    private ZooModel<Image, float[]> ageModel;
+    private ZooModel<Image, float[]> genderModel;
     private ZooModel<Image, DetectedObjects> objectDetectionModel;
     private ZooModel<Image, Joints> poseEstimationModel;
     private ZooModel<Image, float[]> actionRecognitionModel;
@@ -503,6 +506,13 @@ public class DjlVisionBackend implements VisionBackend,
                 logger.warn("Failed to load emotion model: {}. Emotion detection will be unavailable.", e.getMessage());
             }
 
+            try {
+                loadDemographicsModels();
+            } catch (Exception e) {
+                logger.warn("Failed to load demographics models: {}. Demographics detection will be unavailable.",
+                    e.getMessage());
+            }
+
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
             healthErrorMessage = null;
@@ -621,6 +631,42 @@ public class DjlVisionBackend implements VisionBackend,
         emotionModel = criteria.loadModel();
         modelCache.put("emotion", emotionModel);
         logger.info("FER+ emotion model loaded: {}", emotionModel.getName());
+    }
+
+    private void loadDemographicsModels() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading age/gender demographics models (OnnxRuntime, GoogLeNet-based)");
+
+        String ageUrl = YoloModelLoader.getModelUrl("age-gender/age_googlenet.onnx");
+        if (ageUrl == null) {
+            ageUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/age_googlenet.onnx";
+        }
+        ageModel = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(ageUrl)
+            .optModelName("age_googlenet")
+            .optTranslator(new AgeGenderTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build()
+            .loadModel();
+        modelCache.put("age", ageModel);
+        logger.info("Age model loaded: {}", ageModel.getName());
+
+        String genderUrl = YoloModelLoader.getModelUrl("age-gender/gender_googlenet.onnx");
+        if (genderUrl == null) {
+            genderUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/gender_googlenet.onnx";
+        }
+        genderModel = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(genderUrl)
+            .optModelName("gender_googlenet")
+            .optTranslator(new AgeGenderTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build()
+            .loadModel();
+        modelCache.put("gender", genderModel);
+        logger.info("Gender model loaded: {}", genderModel.getName());
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1679,6 +1725,68 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
+    // Translator for age_googlenet.onnx and gender_googlenet.onnx (ONNX Model Zoo, GoogLeNet-based).
+    // Input:  DJL Image (face crop pre-resized to 224x224 RGB)
+    // Output: float[] softmax probabilities — 8 age buckets or 2 gender classes
+    private static final class AgeGenderTranslator implements Translator<Image, float[]> {
+
+        // Age bucket labels (Gil Levi & Tal Hassner, 2015)
+        static final String[] AGE_LABELS = {"0-2", "4-6", "8-12", "15-20", "25-32", "38-43", "48-53", "60-100"};
+        static final String[] GENDER_LABELS = {"male", "female"};
+
+        @Override
+        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
+            NDManager mgr = ctx.getNDManager();
+            // toNDArray returns [H, W, 3] RGB float32, values 0-255.
+            // DJL normalises to RGB regardless of the native image backend (OpenCV/BufferedImage).
+            float[] rgb = input.toNDArray(mgr, Image.Flag.COLOR).toType(DataType.FLOAT32, false)
+                .toFloatArray();
+            int pixels = rgb.length / 3;
+            // Build [1, 3, H, W] in BGR channel order with Caffe mean subtraction
+            // (mean=[104 B, 117 G, 123 R]).
+            float[] data = new float[rgb.length];
+            for (int i = 0; i < pixels; i++) {
+                float r = rgb[i * 3]     - 123f;
+                float g = rgb[i * 3 + 1] - 117f;
+                float b = rgb[i * 3 + 2] - 104f;
+                data[i] = b;                // channel 0 = B
+                data[pixels + i] = g;       // channel 1 = G
+                data[2 * pixels + i] = r;   // channel 2 = R
+            }
+            long h = input.getHeight();
+            long w = input.getWidth();
+            return new NDList(mgr.create(data, new Shape(1, 3, h, w)));
+        }
+
+        @Override
+        public float[] processOutput(TranslatorContext ctx, NDList list) {
+            float[] logits = list.getFirst().toFloatArray();
+            return softmax(logits);
+        }
+
+        @Override
+        public Batchifier getBatchifier() {
+            return null;
+        }
+
+        private static float[] softmax(float[] logits) {
+            float max = logits[0];
+            for (float v : logits) {
+                if (v > max) max = v;
+            }
+            float sum = 0f;
+            float[] out = new float[logits.length];
+            for (int i = 0; i < logits.length; i++) {
+                out[i] = (float) Math.exp(logits[i] - max);
+                sum += out[i];
+            }
+            for (int i = 0; i < out.length; i++) {
+                out[i] /= sum;
+            }
+            return out;
+        }
+    }
+
     private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         BufferedImage gray = new BufferedImage(64, 64, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D g = gray.createGraphics();
@@ -2450,10 +2558,99 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public List<Detection> detectDemographics(ImageData imageData) throws BaseVisionException {
-        throw new VisionUnsupportedException(
-            "Demographics detection requires a dedicated model (abhilash88/age-gender-prediction) that is not yet integrated",
-            "detectDemographics",
-            "DEMOGRAPHICS");
+        if (!initialized) {
+            throw new VisionBackendException("Backend not initialized", "not_initialized", null);
+        }
+        if (ageModel == null || genderModel == null) {
+            throw new VisionBackendException(
+                "Demographics models not available. Run 'mvn clean install -Pdownload-models' to download age_googlenet.onnx and gender_googlenet.onnx.",
+                "model_not_initialized",
+                null);
+        }
+        if (imageData == null || imageData.data() == null || imageData.data().length == 0) {
+            throw new VisionProcessingException("Image data must not be null or empty", "null_input", null);
+        }
+
+        String correlationId = generateCorrelationId();
+        logger.debug("DJL demographics detection requested: correlationId={}", correlationId);
+
+        try {
+            List<Detection> faceDetections = detectFaces(imageData);
+            if (faceDetections.isEmpty()) {
+                return List.of();
+            }
+
+            BufferedImage fullImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            int imgW = fullImage.getWidth();
+            int imgH = fullImage.getHeight();
+
+            List<Detection> results = new ArrayList<>();
+            for (int i = 0; i < faceDetections.size(); i++) {
+                io.github.codesapienbe.springvision.core.BoundingBox bbox = faceDetections.get(i).boundingBox();
+                if (bbox == null) continue;
+
+                int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+                int padX = (int) (w * 0.1);
+                int padY = (int) (h * 0.1);
+                int sx = Math.max(0, x - padX);
+                int sy = Math.max(0, y - padY);
+                int sw = Math.min(imgW - sx, w + padX * 2);
+                int sh = Math.min(imgH - sy, h + padY * 2);
+
+                BufferedImage crop;
+                try {
+                    crop = fullImage.getSubimage(sx, sy, sw, sh);
+                } catch (java.awt.image.RasterFormatException rfe) {
+                    logger.warn("Invalid crop for face {} in demographics detection - skipping: {}", i, rfe.getMessage());
+                    continue;
+                }
+                BufferedImage crop224 = resizeImage(crop, 224, 224);
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                ImageIO.write(crop224, "png", baos);
+                Image faceImage = ImageFactory.getInstance().fromInputStream(new ByteArrayInputStream(baos.toByteArray()));
+
+                try {
+                    float[] ageProbs = withPredictor(ageModel, p -> p.predict(faceImage));
+                    int ageIdx = 0;
+                    for (int j = 1; j < ageProbs.length; j++) {
+                        if (ageProbs[j] > ageProbs[ageIdx]) ageIdx = j;
+                    }
+                    String ageLabel = AgeGenderTranslator.AGE_LABELS[ageIdx];
+                    float ageConf = ageProbs[ageIdx];
+
+                    float[] genderProbs = withPredictor(genderModel, p -> p.predict(faceImage));
+                    int genderIdx = genderProbs[1] > genderProbs[0] ? 1 : 0;
+                    String genderLabel = AgeGenderTranslator.GENDER_LABELS[genderIdx];
+                    float genderConf = genderProbs[genderIdx];
+
+                    java.util.Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+                    attrs.put("faceIndex", i);
+                    attrs.put("age", ageLabel);
+                    attrs.put("ageConfidence", ageConf);
+                    attrs.put("gender", genderLabel);
+                    attrs.put("genderConfidence", genderConf);
+
+                    results.add(new Detection(
+                        genderLabel + "/" + ageLabel,
+                        Math.min(ageConf, genderConf),
+                        bbox,
+                        attrs));
+                } catch (Exception ex) {
+                    logger.warn("Failed to detect demographics for face {}", i, ex);
+                }
+            }
+
+            logger.info("DJL demographics detection completed: faces={}, correlationId={}", results.size(), correlationId);
+            return results;
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Image decoding failed during demographics detection: " + e.getMessage(),
+                "io_error", null, e);
+        }
     }
 
     // ==================== NSFWDetectionCapability Implementation ====================
