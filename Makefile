@@ -80,6 +80,6 @@ sync:
 	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCP_JAR)
 	@echo "Jar → $(MCP_JAR)"
 	@echo "Registering spring-vision MCP server in agent configs:"
-	$(call upsert-mcp,$(HOME)/.claude/settings.json)
+	$(call upsert-mcp,$(HOME)/.claude.json)
 	$(call upsert-mcp,$(HOME)/.cursor/mcp.json)
 	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
