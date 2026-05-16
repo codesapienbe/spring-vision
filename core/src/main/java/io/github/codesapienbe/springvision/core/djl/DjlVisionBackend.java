@@ -573,33 +573,26 @@ public class DjlVisionBackend implements VisionBackend,
             logger.info("FaceFeatureNet model not bundled in classpath, will resolve from DJL Model Zoo URL");
         }
 
-        try {
-            String configuredModelName = properties.getFaceRecognition() != null
-                ? properties.getFaceRecognition().getModel()
-                : "face_feature";
+        String configuredModelName = properties.getFaceRecognition() != null
+            ? properties.getFaceRecognition().getModel()
+            : "face_feature";
 
-            Criteria<Image, float[]> criteria = Criteria.builder()
-                .setTypes(Image.class, float[].class)
-                .optModelUrls(faceFeatureUrl)
-                .optModelName("face_feature")
-                .optTranslator(createFaceEmbeddingTranslator(configuredModelName))
-                .optEngine("PyTorch")
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
+        Criteria<Image, float[]> criteria = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(faceFeatureUrl)
+            .optModelName("face_feature")
+            .optTranslator(createFaceEmbeddingTranslator(configuredModelName))
+            .optEngine("PyTorch")
+            .optDevice(device)
+            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+            .build();
 
-            faceRecognitionModel = criteria.loadModel();
+        faceRecognitionModel = criteria.loadModel();
 
-            modelCache.put("face_recognition", faceRecognitionModel);
-            logger.info(
-                "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + FaceFeatureNet embeddings)",
-                faceRecognitionModel.getName());
-        } catch (Exception e) {
-            logger.warn("Failed to load face recognition model: {}. Face recognition pipeline will be unavailable.",
-                e.getMessage());
-            logger.info(
-                "Face recognition pipeline not available. Pipeline requires: RetinaFace (loaded) + FaceFeatureNet (failed to load)");
-        }
+        modelCache.put("face_recognition", faceRecognitionModel);
+        logger.info(
+            "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + FaceFeatureNet embeddings)",
+            faceRecognitionModel.getName());
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1503,7 +1496,12 @@ public class DjlVisionBackend implements VisionBackend,
                     int targetSize = determineFaceRecognitionInputSize(modelName);
 
                     BufferedImage resized = resizeImage(faceCrop, targetSize, targetSize);
-                    Image faceImage = ImageFactory.getInstance().fromImage(resized);
+                    // Convert to bytes and use fromInputStream to avoid OpenCV/BufferedImage
+                    // ClassCastException when the OpenCV engine is also on the classpath
+                    java.io.ByteArrayOutputStream faceBaos = new java.io.ByteArrayOutputStream();
+                    ImageIO.write(resized, "png", faceBaos);
+                    Image faceImage = ImageFactory.getInstance()
+                        .fromInputStream(new ByteArrayInputStream(faceBaos.toByteArray()));
 
                     Translator<Image, float[]> translator = createFaceEmbeddingTranslator(modelName);
 
@@ -1541,6 +1539,8 @@ public class DjlVisionBackend implements VisionBackend,
                 "inference_failed",
                 "EMBEDDING",
                 e);
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new VisionBackendException(
                 "Embedding extraction failed",

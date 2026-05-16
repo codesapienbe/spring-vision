@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
+import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
@@ -83,17 +85,19 @@ public class DjlVisionBackendIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should fail object detection when models are unavailable in offline mode")
-    void shouldFailObjectDetectionWhenModelsUnavailable() {
+    @DisplayName("Should succeed at object detection when bundled models are present")
+    void shouldSucceedForObjectDetectionWhenModelsPresent() throws Exception {
         ImageData testImage = createTestImage();
-        assertThrows(BaseVisionException.class, () -> backend.detectObjects(testImage));
+        List<Detection> results = backend.detectObjects(testImage);
+        assertThat(results).isNotNull();
     }
 
     @Test
-    @DisplayName("Should fail face detection when models are unavailable in offline mode")
-    void shouldFailFaceDetectionWhenModelsUnavailable() {
+    @DisplayName("Should succeed at face detection when bundled models are present")
+    void shouldSucceedForFaceDetectionWhenModelsPresent() throws Exception {
         ImageData testImage = createTestImage();
-        assertThrows(BaseVisionException.class, () -> backend.detectFaces(testImage));
+        List<Detection> results = backend.detectFaces(testImage);
+        assertThat(results).isNotNull();
     }
 
     @Test

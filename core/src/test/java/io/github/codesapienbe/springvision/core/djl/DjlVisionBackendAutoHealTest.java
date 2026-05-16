@@ -12,6 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIf;
+
+import io.github.codesapienbe.springvision.core.djl.YoloModelLoader;
 
 import ai.djl.modality.cv.Image;
 import ai.djl.repository.zoo.ZooModel;
@@ -105,6 +108,7 @@ class DjlVisionBackendAutoHealTest {
 
         @Test
         @DisplayName("returns false when load fails (no model zoo, offline)")
+        @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelAvailable")
         void returnsFalseWhenLoadFails() throws Exception {
             // Precondition: cooldown not active (lastAttemptMs == 0)
             assertThat(getLastLoadAttemptMs(backend)).isEqualTo(0L);
@@ -119,6 +123,7 @@ class DjlVisionBackendAutoHealTest {
 
         @Test
         @DisplayName("sets cooldown after a failed load so next immediate call is rejected")
+        @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelAvailable")
         void setsCooldownAfterFailedLoad() throws Exception {
             backend.ensureEmbeddingModelLoaded(); // first call — triggers (failed) load
             long firstAttemptMs = getLastLoadAttemptMs(backend);
@@ -129,6 +134,18 @@ class DjlVisionBackendAutoHealTest {
             assertFalse(result);
             // Timestamp should not have been updated by the second call
             assertThat(getLastLoadAttemptMs(backend)).isEqualTo(firstAttemptMs);
+        }
+
+        @Test
+        @DisplayName("returns true when face feature model is available locally (bundled or cached)")
+        @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelNotAvailable")
+        void returnsTrueWhenFaceFeatureModelAvailableLocally() throws Exception {
+            assertThat(getLastLoadAttemptMs(backend)).isEqualTo(0L);
+
+            boolean result = backend.ensureEmbeddingModelLoaded();
+
+            assertTrue(result);
+            assertThat(backend.isEmbeddingModelAvailable()).isTrue();
         }
 
         @Test
@@ -193,7 +210,8 @@ class DjlVisionBackendAutoHealTest {
         }
 
         @Test
-        @DisplayName("auto-heal fails (offline load) → throws with 'model_not_initialized'")
+        @DisplayName("auto-heal fails (offline load) → throws VisionBackendException with 'model_not_initialized'")
+        @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelAvailable")
         void throwsWhenOfflineLoadFails() throws Exception {
             setInitialized(backend, true);
             // cooldown not active — auto-heal will attempt a (failing) load
@@ -204,6 +222,18 @@ class DjlVisionBackendAutoHealTest {
                 .isInstanceOf(VisionBackendException.class)
                 .extracting(ex -> ((VisionBackendException) ex).getOperation())
                 .isEqualTo("model_not_initialized");
+        }
+
+        @Test
+        @DisplayName("when face feature model available, extraction failure on empty image throws VisionBackendException")
+        @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelNotAvailable")
+        void throwsExtractionExceptionWhenModelAvailableButImageInvalid() throws Exception {
+            setInitialized(backend, true);
+
+            ImageData imageData = TestImageUtils.createEmptyImage(64, 64);
+
+            assertThatThrownBy(() -> backend.extractEmbeddings(imageData, DetectionCategory.FACE))
+                .isInstanceOf(VisionBackendException.class);
         }
 
         @Test
@@ -253,5 +283,13 @@ class DjlVisionBackendAutoHealTest {
         Field f = DjlVisionBackend.class.getDeclaredField("lastEmbeddingLoadAttemptMs");
         f.setAccessible(true);
         return f.getLong(target);
+    }
+
+    static boolean faceFeatureModelAvailable() {
+        return YoloModelLoader.isModelAvailable("face_feature/face_feature.pt");
+    }
+
+    static boolean faceFeatureModelNotAvailable() {
+        return !faceFeatureModelAvailable();
     }
 }

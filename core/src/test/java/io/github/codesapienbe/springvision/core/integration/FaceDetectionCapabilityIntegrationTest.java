@@ -194,16 +194,13 @@ public class FaceDetectionCapabilityIntegrationTest {
         assertThatThrownBy(() -> backend.detectFaces(null))
             .isInstanceOf(BaseVisionException.class);
 
-        // Test empty image data
-        ImageData emptyImage = ImageData.fromBytes(new byte[0], "image/jpeg");
-        assertThatThrownBy(() -> backend.detectFaces(emptyImage))
-            .isInstanceOf(BaseVisionException.class);
-
-        // Test oversized image
-        byte[] largeData = new byte[100 * 1024 * 1024]; // 100MB
-        ImageData largeImage = ImageData.fromBytes(largeData, "image/jpeg");
-        assertThatThrownBy(() -> backend.detectFaces(largeImage))
+        // Test empty image data — ImageData itself rejects empty bytes at construction
+        assertThatThrownBy(() -> backend.detectFaces(ImageData.fromBytes(new byte[0], "image/jpeg")))
             .isInstanceOf(IllegalArgumentException.class);
+
+        // Test oversized image — backend validates and rejects images exceeding 50MB limit
+        assertThatThrownBy(() -> backend.detectFaces(ImageData.fromBytes(new byte[100 * 1024 * 1024], "image/jpeg")))
+            .isInstanceOf(BaseVisionException.class);
     }
 
     @Test

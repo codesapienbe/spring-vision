@@ -28,6 +28,8 @@ import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import net.logstash.logback.argument.StructuredArguments;
 
 /**
@@ -230,12 +232,10 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d faces", result.detectionCount()));
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("count", 0);
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -253,13 +253,10 @@ public class VisionTool {
                 modelStatus = healEmbeddingModel() ? "available" : "not_loaded";
             }
             if ("not_loaded".equals(modelStatus)) {
-                response.put("status", "error");
-                response.put("model_status", "not_loaded");
-                response.put("embeddings", List.of());
-                response.put("message", "Embedding model not loaded. Auto-heal attempted. "
-                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.");
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-                return response;
+                throw new VisionBackendException(
+                    "Embedding model not loaded. Auto-heal attempted. "
+                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.",
+                    "model_not_initialized", null);
             }
 
             ImageData img = resolveImage(imageBytes);
@@ -282,12 +279,10 @@ public class VisionTool {
             response.put("embeddings", out);
             response.put("processingTimeMs", System.currentTimeMillis() - startTime);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("embeddings", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -323,12 +318,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("text", "");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -355,12 +348,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("classifications", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -398,12 +389,10 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d objects", result.detectionCount()));
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("objects", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -431,12 +420,10 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             response.put("message", String.format("Detected %d poses", result.detectionCount()));
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("poses", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -463,12 +450,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("actions", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -498,11 +483,10 @@ public class VisionTool {
             response.put("isNSFW", isNSFW);
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -540,12 +524,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("emotions", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -577,11 +559,10 @@ public class VisionTool {
             if (manipulationType != null) response.put("manipulationType", manipulationType);
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -617,12 +598,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("hands", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -663,12 +642,10 @@ public class VisionTool {
             response.put("facesAnalyzed", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("demographics", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -715,11 +692,10 @@ public class VisionTool {
             }
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -767,11 +743,10 @@ public class VisionTool {
             response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -799,12 +774,10 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             response.put("backend", result.metadata().get("backendId"));
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("metadata", Map.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -841,12 +814,10 @@ public class VisionTool {
             response.put("processingTimeMs", 0);
             response.put("backend", result.metadata().get("backendId"));
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("barcodes", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -893,13 +864,10 @@ public class VisionTool {
             response.put("disclaimer", "For legitimate security and safety use only. Comply with local surveillance laws and privacy regulations.");
             response.put("warning", "False positives may occur. Human verification recommended for critical decisions.");
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("threats", List.of());
-            response.put("threatCount", 0);
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -950,12 +918,10 @@ public class VisionTool {
             response.put("securityNote", "This is a demonstration. Production systems should implement liveness detection and multi-factor authentication.");
             response.put("privacyNote", "Ensure compliance with biometric privacy laws (GDPR, BIPA, etc.)");
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("authorized", false);
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
         }
     }
 
@@ -998,12 +964,10 @@ public class VisionTool {
             response.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
             response.put("processingTimeMs", 0);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded frames: " + e.getMessage());
-            response.put("heartRate", 0.0);
-            return response;
+            throw new VisionProcessingException("Failed to process uploaded frames: " + e.getMessage(), e);
         }
     }
 
@@ -1051,13 +1015,10 @@ public class VisionTool {
                 StructuredArguments.keyValue("duration_ms", duration));
             return response;
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("count", 0);
-            response.put("message", "Failed to count faces: " + e.getMessage());
-            response.put("processingTimeMs", duration);
-            return response;
+            throw new VisionProcessingException("Failed to count faces: " + e.getMessage(), e);
         }
     }
 
@@ -1087,13 +1048,10 @@ public class VisionTool {
                 modelStatus = healEmbeddingModel() ? "available" : "not_loaded";
             }
             if ("not_loaded".equals(modelStatus)) {
-                response.put("status", "error");
-                response.put("model_status", "not_loaded");
-                response.put("embeddings", List.of());
-                response.put("message", "Embedding model not loaded. Auto-heal attempted. "
-                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.");
-                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
-                return response;
+                throw new VisionBackendException(
+                    "Embedding model not loaded. Auto-heal attempted. "
+                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.",
+                    "model_not_initialized", null);
             }
 
             ImageData imgData = resolveImage(imageUrl.trim());
@@ -1119,26 +1077,12 @@ public class VisionTool {
             response.put("embeddings", out);
             response.put("processingTimeMs", duration);
             return response;
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to extract embeddings: " + errorMsg);
-            response.put("embeddings", List.of());
-            response.put("processingTimeMs", duration);
-
+        } catch (RuntimeException e) {
             log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to extract embeddings: " + e.getMessage(), e);
         }
     }
 
@@ -1193,24 +1137,12 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to extract text: " + errorMsg);
-            response.put("text", "");
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to extract text from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to extract text from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to extract text: " + e.getMessage(), e);
         }
     }
 
@@ -1256,24 +1188,12 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to classify image: " + errorMsg);
-            response.put("classifications", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to classify image from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to classify image from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to classify image: " + e.getMessage(), e);
         }
     }
 
@@ -1328,15 +1248,12 @@ public class VisionTool {
             response.put("message", String.format("Detected %d objects", result.detectionCount()));
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("objects", List.of());
-            response.put("count", 0);
-            response.put("message", "Failed to detect objects: " + e.getMessage());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to detect objects from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to detect objects from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to detect objects: " + e.getMessage(), e);
         }
     }
 
@@ -1380,24 +1297,12 @@ public class VisionTool {
             response.put("message", String.format("Detected %d poses", result.detectionCount()));
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to detect poses: " + errorMsg);
-            response.put("poses", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to detect poses from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to detect poses from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to detect poses: " + e.getMessage(), e);
         }
     }
 
@@ -1440,24 +1345,12 @@ public class VisionTool {
             response.put("processingTimeMs", duration);
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to recognize actions: " + errorMsg);
-            response.put("actions", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to recognize actions from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to recognize actions from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to recognize actions: " + e.getMessage(), e);
         }
     }
 
@@ -1522,25 +1415,14 @@ public class VisionTool {
             // Delegate evaluation to a shared helper to keep logic consistent with other methods
             return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to verify faces: " + errorMsg);
-            response.put("isMatch", false);
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to verify faces - source: {}, target: {}",
                 sanitizeUrlForLogging(sourceImageUrl), sanitizeUrlForLogging(targetImageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to verify faces - source: {}, target: {}",
+                sanitizeUrlForLogging(sourceImageUrl), sanitizeUrlForLogging(targetImageUrl), e);
+            throw new VisionProcessingException("Failed to verify faces: " + e.getMessage(), e);
         }
     }
 
@@ -1594,22 +1476,12 @@ public class VisionTool {
 
             return evaluateSimilarityAndBuildResponse(sourceEmbedding, targetEmbedding, sourceEmbeddings.size(), targetEmbeddings.size(), startTime);
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-            response.put("message", "Failed to verify faces from bytes: " + errorMsg);
-            response.put("isMatch", false);
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to verify faces from bytes", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to verify faces from bytes", e);
+            throw new VisionProcessingException("Failed to verify faces from bytes: " + e.getMessage(), e);
         }
     }
 
@@ -1750,24 +1622,12 @@ public class VisionTool {
             response.put("message", String.format("Found %d matching faces in dataset", matches.size()));
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to lookup faces: " + errorMsg);
-            response.put("matches", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to lookup faces from source: {}", sanitizeUrlForLogging(sourceImageUrl), e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to lookup faces from source: {}", sanitizeUrlForLogging(sourceImageUrl), e);
+            throw new VisionProcessingException("Failed to lookup faces: " + e.getMessage(), e);
         }
     }
 
@@ -1863,24 +1723,12 @@ public class VisionTool {
             response.put("message", String.format("Found %d matching faces in dataset", matches.size()));
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to lookup faces from bytes: " + errorMsg);
-            response.put("matches", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to lookup faces from bytes", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to lookup faces from bytes", e);
+            throw new VisionProcessingException("Failed to lookup faces from bytes: " + e.getMessage(), e);
         }
     }
 
@@ -2023,8 +1871,10 @@ public class VisionTool {
                 // rather than silently returning an empty list (which looks like "success, 0 faces").
                 log.warn("extractEmbeddingsFromTemplate: {}", vbe.getMessage());
                 modelError = vbe;
+            } catch (RuntimeException e) {
+                throw e;
             } catch (Exception e) {
-                log.warn("extractEmbeddingsFromTemplate: backend.extractEmbeddings threw: {}", e.getMessage());
+                throw new VisionProcessingException("Embedding extraction failed: " + e.getMessage(), e);
             }
         }
 
@@ -2034,8 +1884,10 @@ public class VisionTool {
             if (res != null) return res;
         } catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
             if (modelError == null) modelError = vbe;
-        } catch (Exception ignored) {
-            // non-model errors: proceed to final fallback
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Embedding extraction failed: " + e.getMessage(), e);
         }
 
         // Propagate model-not-initialized errors so callers get a real error response
@@ -2085,10 +1937,10 @@ public class VisionTool {
             response.put("isNSFW", isNSFW);
             response.put("processingTimeMs", 0);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process image: " + e.getMessage(), e);
         }
     }
 
@@ -2147,10 +1999,8 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
             response.put("message", "Failed to detect emotions: " + e.getMessage());
-            response.put("emotions", List.of());
-            response.put("processingTimeMs", duration);
             log.error("Failed to detect emotions from URL: {}", sanitizeUrlForLogging(imageUrl), e);
-            return response;
+            throw new VisionProcessingException("Failed to detect emotions: " + e.getMessage(), e);
         }
     }
 
@@ -2195,10 +2045,10 @@ public class VisionTool {
             if (manipulationType != null) response.put("manipulationType", manipulationType);
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to process image: " + e.getMessage(), e);
         }
     }
 
@@ -2251,11 +2101,10 @@ public class VisionTool {
             response.put("count", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("hands", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to detect hands: " + e.getMessage(), e);
         }
     }
 
@@ -2313,11 +2162,10 @@ public class VisionTool {
             response.put("facesAnalyzed", result.detectionCount());
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("demographics", List.of());
-            response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to detect demographics: " + e.getMessage(), e);
         }
     }
 
@@ -2390,10 +2238,10 @@ public class VisionTool {
 
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", "Failed to detect fall: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to detect fall: " + e.getMessage(), e);
         }
     }
 
@@ -2457,10 +2305,10 @@ public class VisionTool {
             response.put("disclaimer", "Not for medical diagnosis - research and wellness monitoring only");
             response.put("processingTimeMs", duration);
             return response;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            response.put("status", "error");
-            response.put("message", "Failed to analyze stress: " + e.getMessage());
-            return response;
+            throw new VisionProcessingException("Failed to analyze stress: " + e.getMessage(), e);
         }
     }
 
@@ -2561,22 +2409,12 @@ public class VisionTool {
 
             return response;
 
-        } catch (IllegalArgumentException e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            response.put("heartRate", 0.0);
-            response.put("processingTimeMs", duration);
-            log.error("Heart rate estimation validation error: {}", e.getMessage());
-            return response;
+        } catch (RuntimeException e) {
+            log.error("Heart rate estimation failed: {}", e.getMessage());
+            throw e;
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", "Failed to estimate heart rate: " + e.getMessage());
-            response.put("heartRate", 0.0);
-            response.put("processingTimeMs", duration);
             log.error("Failed to estimate heart rate", e);
-            return response;
+            throw new VisionProcessingException("Failed to estimate heart rate: " + e.getMessage(), e);
         }
     }
 
@@ -2623,14 +2461,12 @@ public class VisionTool {
                 StructuredArguments.keyValue("duration_ms", duration));
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("count", 0);
-            response.put("message", "Failed to count faces: " + e.getMessage());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to count faces from bytes", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to count faces from bytes", e);
+            throw new VisionProcessingException("Failed to count faces: " + e.getMessage(), e);
         }
     }
 
@@ -2681,24 +2517,12 @@ public class VisionTool {
             response.put("embeddings", out);
             response.put("processingTimeMs", duration);
             return response;
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to extract embeddings: " + errorMsg);
-            response.put("embeddings", List.of());
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to extract embeddings from bytes", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to extract embeddings from bytes", e);
+            throw new VisionProcessingException("Failed to extract embeddings: " + e.getMessage(), e);
         }
     }
 
@@ -2755,32 +2579,12 @@ public class VisionTool {
 
             return response;
 
-        } catch (IOException e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", "Failed to download image: " + e.getMessage());
-            response.put("metadata", Map.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to download image for metadata extraction", e);
-            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to extract metadata from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to extract metadata: " + errorMsg);
-            response.put("metadata", Map.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to extract metadata", e);
-            return response;
+            log.error("Failed to extract metadata from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to extract metadata: " + e.getMessage(), e);
         }
     }
 
@@ -2848,32 +2652,12 @@ public class VisionTool {
 
             return response;
 
-        } catch (IOException e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", "Failed to download image: " + e.getMessage());
-            response.put("barcodes", List.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to download image for barcode scanning", e);
-            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to scan barcode from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
         } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-
-            String errorMsg = e.getMessage();
-            if (errorMsg == null || errorMsg.isBlank()) {
-                errorMsg = e.getClass().getSimpleName();
-                Throwable cause = e.getCause();
-                if (cause != null && cause.getMessage() != null) {
-                    errorMsg += ": " + cause.getMessage();
-                }
-            }
-
-            response.put("message", "Failed to scan barcode: " + errorMsg);
-            response.put("barcodes", List.of());
-            response.put("processingTimeMs", duration);
-            log.error("Failed to scan barcode", e);
-            return response;
+            log.error("Failed to scan barcode from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to scan barcode: " + e.getMessage(), e);
         }
     }
 
@@ -3011,15 +2795,12 @@ public class VisionTool {
 
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", "Failed to detect threats: " + e.getMessage());
-            response.put("threats", List.of());
-            response.put("threatCount", 0);
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to detect threats", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to detect threats", e);
+            throw new VisionProcessingException("Failed to detect threats: " + e.getMessage(), e);
         }
     }
 
@@ -3165,14 +2946,12 @@ public class VisionTool {
 
             return response;
 
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "error");
-            response.put("message", "Failed to authenticate access: " + e.getMessage());
-            response.put("authorized", false);
-            response.put("processingTimeMs", duration);
+        } catch (RuntimeException e) {
             log.error("Failed to authenticate access", e);
-            return response;
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to authenticate access", e);
+            throw new VisionProcessingException("Failed to authenticate access: " + e.getMessage(), e);
         }
     }
 }

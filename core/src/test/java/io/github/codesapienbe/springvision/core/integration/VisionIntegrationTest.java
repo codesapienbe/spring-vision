@@ -1,5 +1,6 @@
 package io.github.codesapienbe.springvision.core.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
@@ -14,14 +15,14 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.env.MapPropertySource;
 
 import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
  * Central Integration Test for all Vision capabilities.
- * In offline mode (no models loaded), all inference methods must fail with a
- * meaningful exception rather than returning fabricated results.
+ * Tests that models are loaded and detection succeeds, and that invalid input fails loudly.
  */
 public class VisionIntegrationTest {
 
@@ -50,9 +51,10 @@ public class VisionIntegrationTest {
     class ObjectDetectionTests {
 
         @Test
-        void shouldFailWhenModelsUnavailable() {
+        void shouldSucceedWhenModelsPresent() {
             ImageData image = createPlaceholderImage(640, 480);
-            assertThrows(BaseVisionException.class, () -> visionTemplate.detectObjects(image));
+            VisionResult result = visionTemplate.detectObjects(image);
+            assertThat(result).isNotNull();
         }
     }
 
@@ -60,9 +62,10 @@ public class VisionIntegrationTest {
     class FaceDetectionTests {
 
         @Test
-        void shouldFailWhenModelsUnavailable() {
+        void shouldSucceedWhenModelsPresent() {
             ImageData image = createPlaceholderImage(640, 480);
-            assertThrows(BaseVisionException.class, () -> visionTemplate.detectFaces(image));
+            VisionResult result = visionTemplate.detectFaces(image);
+            assertThat(result).isNotNull();
         }
     }
 

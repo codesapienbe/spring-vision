@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.mcp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -23,18 +24,18 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 
 /**
  * Unit tests for the auto-healing logic in {@link VisionTool} embedding tools.
  *
- * <p>Covers all branches of:
+ * <p>All failure paths now throw exceptions (no silent JSON error returns) per the
+ * "No data is better than wrong data" policy. Tests verify that:
  * <ul>
- *   <li>{@code embeddingModelStatus()} — "available", "not_loaded", "unsupported", "unknown"</li>
- *   <li>{@code healEmbeddingModel()} — success, failure, non-EmbeddingCapability backend, exception</li>
- *   <li>{@code extractEmbeddingsFromTemplate()} — success, VisionBackendException propagation,
- *       generic exception swallowing, template fallback, empty list</li>
- *   <li>{@code extractEmbeddings(byte[])} — all model-status branches, timing, null/empty input</li>
- *   <li>{@code extractEmbeddings(String)} — all model-status branches, null/empty URL</li>
+ *   <li>Model-not-loaded → {@link VisionBackendException} thrown</li>
+ *   <li>null/empty input → {@link VisionProcessingException} thrown</li>
+ *   <li>Backend exceptions propagate unmodified</li>
+ *   <li>Success paths return the expected response map</li>
  * </ul>
  */
 class VisionToolEmbeddingAutoHealTest {
@@ -50,8 +51,6 @@ class VisionToolEmbeddingAutoHealTest {
     void setUp() {
         embeddingBackend = mock(EmbeddingBackend.class, withSettings());
         vectorService = mock(VectorService.class);
-        // serializeEmbedding() calls vectorService.embeddingToBytes(); return empty bytes
-        // so Base64.encodeToString() doesn't receive null.
         when(vectorService.embeddingToBytes(any())).thenReturn(new byte[0]);
         VisionTemplate template = new VisionTemplate(embeddingBackend, vectorService);
         visionTool = new VisionTool(template);
@@ -64,46 +63,39 @@ class VisionToolEmbeddingAutoHealTest {
     class EmbeddingModelStatus {
 
         @Test
-        @DisplayName("reports 'available' in success response when model is loaded")
+        @DisplayName("returns success with model_status=available when model is loaded")
         void reportsAvailableWhenModelLoaded() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
-            // resolveImage will fail on invalid bytes, landing in the catch path
-            // but model_status should still NOT be "not_loaded" when model is available
-            assertThat(response.get("model_status")).isNotEqualTo("not_loaded");
+            assertThat(response.get("status")).isEqualTo("success");
+            assertThat(response.get("model_status")).isEqualTo("available");
         }
 
         @Test
-        @DisplayName("reports 'not_loaded' when model is not available and heal fails")
+        @DisplayName("throws VisionBackendException when model unavailable and heal fails")
         void reportsNotLoadedWhenModelUnavailableAndHealFails() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
-
-            assertThat(response.get("status")).isEqualTo("error");
-            assertThat(response.get("model_status")).isEqualTo("not_loaded");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(new byte[]{1, 2, 3}))
+                .isInstanceOf(VisionBackendException.class)
+                .hasMessageContaining("Auto-heal attempted");
         }
 
         @Test
-        @DisplayName("model_status is 'unsupported' (not 'not_loaded') for non-EmbeddingCapability backend")
-        void proceedsWithoutModelStatusWhenBackendLacksCapability() {
-            // VisionTool backed by a plain VisionBackend (no EmbeddingCapability).
-            // embeddingModelStatus() returns "unsupported" → no pre-flight blocking and no healing.
+        @DisplayName("throws VisionUnsupportedException for non-EmbeddingCapability backend")
+        void throwsForNonEmbeddingCapabilityBackend() {
             VisionBackend plainBackend = mock(VisionBackend.class);
             VectorService vs = mock(VectorService.class);
             when(vs.embeddingToBytes(any())).thenReturn(new byte[0]);
             VisionTemplate plainTemplate = new VisionTemplate(plainBackend, vs);
             VisionTool plainTool = new VisionTool(plainTemplate);
 
-            // Invalid bytes → image decode fails → error path (no model_status injected)
-            Map<String, Object> response = plainTool.extractEmbeddings(new byte[]{1});
-
-            // No heal was attempted — model_status should never be "not_loaded"
-            assertThat(response.get("model_status")).isNotEqualTo("not_loaded");
+            assertThatThrownBy(() -> plainTool.extractEmbeddings(buildMinimalPng()))
+                .isInstanceOf(io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException.class);
         }
     }
 
@@ -120,38 +112,37 @@ class VisionToolEmbeddingAutoHealTest {
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            // Invalid bytes will fail at image decode, but we just need to verify
-            // ensureEmbeddingModelLoaded was called and model_status is not "not_loaded"
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             verify(embeddingBackend).ensureEmbeddingModelLoaded();
+            assertThat(response.get("status")).isEqualTo("success");
             assertThat(response.get("model_status")).isNotEqualTo("not_loaded");
         }
 
         @Test
-        @DisplayName("heal fails: ensureEmbeddingModelLoaded is called and error is returned")
+        @DisplayName("heal fails: throws VisionBackendException with actionable message")
         void healFailsAndErrorIsReturned() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(new byte[]{1, 2, 3}))
+                .isInstanceOf(VisionBackendException.class)
+                .hasMessageContaining("mvn clean install -Pdownload-models");
 
             verify(embeddingBackend).ensureEmbeddingModelLoaded();
-            assertThat(response.get("status")).isEqualTo("error");
-            assertThat(response.get("model_status")).isEqualTo("not_loaded");
         }
 
         @Test
-        @DisplayName("heal throws: exception is caught and false is returned (no crash)")
+        @DisplayName("heal throws: exception is caught internally; model still not loaded → VisionBackendException")
         void healExceptionIsCaughtSafely() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded())
                 .thenThrow(new RuntimeException("simulated load failure"));
 
-            // Should not propagate the RuntimeException
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
-
-            assertThat(response.get("status")).isEqualTo("error");
+            // healEmbeddingModel() catches the exception and returns false.
+            // The not-loaded state then throws VisionBackendException.
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(new byte[]{1, 2, 3}))
+                .isInstanceOf(VisionBackendException.class);
         }
 
         @Test
@@ -160,7 +151,7 @@ class VisionToolEmbeddingAutoHealTest {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            visionTool.extractEmbeddings(new byte[]{1});
+            visionTool.extractEmbeddings(buildMinimalPng());
 
             verify(embeddingBackend, never()).ensureEmbeddingModelLoaded();
         }
@@ -174,15 +165,13 @@ class VisionToolEmbeddingAutoHealTest {
 
         @Test
         @DisplayName("returns embeddings when backend succeeds")
-        void returnsEmbeddingsOnBackendSuccess() throws Exception {
+        void returnsEmbeddingsOnBackendSuccess() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             float[] vec = {0.1f, 0.2f, 0.3f};
             when(embeddingBackend.extractEmbeddings(any(ImageData.class), any(DetectionCategory.class)))
                 .thenReturn(List.of(vec));
 
-            // Build a valid PNG via AWT so ImageData.fromBytes doesn't throw
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = visionTool.extractEmbeddings(png);
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             assertThat(response.get("status")).isEqualTo("success");
             assertThat(response.get("count")).isEqualTo(1);
@@ -190,55 +179,39 @@ class VisionToolEmbeddingAutoHealTest {
 
         @Test
         @DisplayName("propagates VisionBackendException from backend — not silently swallowed")
-        void propagatesVisionBackendExceptionFromBackend() throws Exception {
+        void propagatesVisionBackendExceptionFromBackend() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(ImageData.class), any(DetectionCategory.class)))
                 .thenThrow(new VisionBackendException("model_not_initialized", "model_not_initialized", null));
 
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = visionTool.extractEmbeddings(png);
-
-            assertThat(response.get("status")).isEqualTo("error");
-            assertThat((String) response.get("message")).contains("model_not_initialized");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(buildMinimalPng()))
+                .isInstanceOf(VisionBackendException.class)
+                .hasMessageContaining("model_not_initialized");
         }
 
         @Test
-        @DisplayName("swallows generic exception from backend and falls through to template fallback")
-        void swallowsGenericExceptionFromBackend() throws Exception {
+        @DisplayName("propagates RuntimeException from backend — not swallowed")
+        void propagatesRuntimeExceptionFromBackend() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
-            // Backend throws a generic exception (not VisionBackendException)
             when(embeddingBackend.extractEmbeddings(any(ImageData.class), any(DetectionCategory.class)))
                 .thenThrow(new IllegalStateException("internal error"));
-            // Template fallback (visionTemplate.extractEmbeddings) will also throw VisionUnsupportedException
-            // because VisionTemplate.extractEmbeddings delegates back to the same backend
 
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = visionTool.extractEmbeddings(png);
-
-            // Either success with 0 embeddings (template fell back to empty) or an error
-            // from the template fallback — either way, not an unhandled exception
-            assertThat(response).containsKey("status");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(buildMinimalPng()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("internal error");
         }
 
         @Test
-        @DisplayName("returns 0 embeddings (no exception) when backend is not EmbeddingCapability")
-        void returnsEmptyListWhenNonEmbeddingCapabilityBackendAndNoError() throws Exception {
-            // Use a plain VisionBackend that doesn't implement EmbeddingCapability.
-            // embeddingModelStatus() → "unsupported", no blocking pre-flight, but extraction
-            // returns nothing useful.  The success path writes model_status="unsupported".
+        @DisplayName("throws VisionUnsupportedException when backend is not EmbeddingCapability")
+        void throwsForNonEmbeddingCapabilityBackend() {
             VisionBackend plain = mock(VisionBackend.class);
             VectorService vs = mock(VectorService.class);
             when(vs.embeddingToBytes(any())).thenReturn(new byte[0]);
             VisionTemplate tpl = new VisionTemplate(plain, vs);
             VisionTool tool = new VisionTool(tpl);
 
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = tool.extractEmbeddings(png);
-
-            // extraction succeeds (0 embeddings) — model_status is "unsupported", not "not_loaded"
-            assertThat(response.get("status")).isEqualTo("success");
-            assertThat(response.get("count")).isEqualTo(0);
-            assertThat(response.get("model_status")).isEqualTo("unsupported");
+            assertThatThrownBy(() -> tool.extractEmbeddings(buildMinimalPng()))
+                .isInstanceOf(io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException.class);
         }
     }
 
@@ -249,17 +222,15 @@ class VisionToolEmbeddingAutoHealTest {
     class ExtractEmbeddingsBytesTool {
 
         @Test
-        @DisplayName("model_status=not_loaded + actionable message when heal fails")
-        void returnsNotLoadedStatusWhenHealFails() {
+        @DisplayName("throws VisionBackendException with actionable message when heal fails")
+        void throwsNotLoadedExceptionWhenHealFails() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1, 2, 3});
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(new byte[]{1, 2, 3}))
+                .isInstanceOf(VisionBackendException.class)
+                .hasMessageContaining("mvn clean install -Pdownload-models");
 
-            assertThat(response.get("status")).isEqualTo("error");
-            assertThat(response.get("model_status")).isEqualTo("not_loaded");
-            assertThat(response.get("embeddings")).isEqualTo(List.of());
-            assertThat((String) response.get("message")).contains("mvn clean install -Pdownload-models");
             verify(embeddingBackend).ensureEmbeddingModelLoaded();
         }
 
@@ -270,19 +241,19 @@ class VisionToolEmbeddingAutoHealTest {
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             verify(embeddingBackend).ensureEmbeddingModelLoaded();
             assertThat(response.get("model_status")).isNotEqualTo("not_loaded");
         }
 
         @Test
-        @DisplayName("processingTimeMs is a non-negative Long")
+        @DisplayName("processingTimeMs is a non-negative Long in success response")
         void processingTimeMsIsNonNegativeLong() {
-            when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
-            when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
+            when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
+            when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[]{1});
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             assertThat(response.get("processingTimeMs"))
                 .isInstanceOf(Long.class)
@@ -291,12 +262,11 @@ class VisionToolEmbeddingAutoHealTest {
 
         @Test
         @DisplayName("processingTimeMs is present and non-negative on success path")
-        void processingTimeMsPresentOnSuccess() throws Exception {
+        void processingTimeMsPresentOnSuccess() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = visionTool.extractEmbeddings(png);
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             assertThat(response.get("processingTimeMs"))
                 .isInstanceOf(Long.class)
@@ -305,35 +275,32 @@ class VisionToolEmbeddingAutoHealTest {
 
         @Test
         @DisplayName("model_status=available is in success response")
-        void modelStatusAvailableInSuccessResponse() throws Exception {
+        void modelStatusAvailableInSuccessResponse() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
             when(embeddingBackend.extractEmbeddings(any(), any())).thenReturn(List.of());
 
-            byte[] png = buildMinimalPng();
-            Map<String, Object> response = visionTool.extractEmbeddings(png);
+            Map<String, Object> response = visionTool.extractEmbeddings(buildMinimalPng());
 
             assertThat(response.get("status")).isEqualTo("success");
             assertThat(response.get("model_status")).isEqualTo("available");
         }
 
         @Test
-        @DisplayName("returns error for null input without crashing")
-        void returnsErrorForNullInput() {
+        @DisplayName("throws VisionProcessingException for null input")
+        void throwsForNullInput() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
 
-            Map<String, Object> response = visionTool.extractEmbeddings((byte[]) null);
-
-            assertThat(response.get("status")).isEqualTo("error");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings((byte[]) null))
+                .isInstanceOf(VisionProcessingException.class);
         }
 
         @Test
-        @DisplayName("returns error for empty byte array")
-        void returnsErrorForEmptyBytes() {
+        @DisplayName("throws VisionProcessingException for empty byte array")
+        void throwsForEmptyBytes() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
 
-            Map<String, Object> response = visionTool.extractEmbeddings(new byte[0]);
-
-            assertThat(response.get("status")).isEqualTo("error");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings(new byte[0]))
+                .isInstanceOf(VisionProcessingException.class);
         }
     }
 
@@ -344,43 +311,39 @@ class VisionToolEmbeddingAutoHealTest {
     class ExtractEmbeddingsUrlTool {
 
         @Test
-        @DisplayName("model_status=not_loaded + actionable message when heal fails")
-        void returnsNotLoadedStatusWhenHealFails() {
+        @DisplayName("throws VisionBackendException with actionable message when heal fails")
+        void throwsNotLoadedExceptionWhenHealFails() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings("https://example.com/face.jpg");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings("https://example.com/face.jpg"))
+                .isInstanceOf(VisionBackendException.class)
+                .hasMessageContaining("mvn clean install -Pdownload-models");
 
-            assertThat(response.get("status")).isEqualTo("error");
-            assertThat(response.get("model_status")).isEqualTo("not_loaded");
-            assertThat(response.get("embeddings")).isEqualTo(List.of());
-            assertThat((String) response.get("message")).contains("mvn clean install -Pdownload-models");
             verify(embeddingBackend).ensureEmbeddingModelLoaded();
         }
 
         @Test
-        @DisplayName("model_status is not 'not_loaded' when model is available (URL may still fail)")
-        void modelStatusNotNotLoadedWhenModelAvailable() {
+        @DisplayName("throws VisionProcessingException when model is available but URL fails")
+        void throwsWhenModelAvailableButUrlFails() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
 
-            Map<String, Object> response = visionTool.extractEmbeddings("https://example.invalid/face.jpg");
-
-            assertThat(response.get("model_status")).isNotEqualTo("not_loaded");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings("https://example.invalid/face.jpg"))
+                .isInstanceOf(VisionProcessingException.class);
         }
 
         @Test
-        @DisplayName("model_status=not_loaded when heal fails (URL branch)")
-        void reportsNotLoadedInUrlBranch() {
+        @DisplayName("throws VisionBackendException when model not loaded (URL branch)")
+        void throwsNotLoadedInUrlBranch() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings("https://example.com/img.png");
-
-            assertThat(response.get("model_status")).isEqualTo("not_loaded");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings("https://example.com/img.png"))
+                .isInstanceOf(VisionBackendException.class);
         }
 
         @Test
-        @DisplayName("returns error for null URL")
+        @DisplayName("returns error JSON for null URL (null/empty validation is non-throwing)")
         void returnsErrorForNullUrl() {
             Map<String, Object> response = visionTool.extractEmbeddings((String) null);
 
@@ -389,7 +352,7 @@ class VisionToolEmbeddingAutoHealTest {
         }
 
         @Test
-        @DisplayName("returns error for empty URL")
+        @DisplayName("returns error JSON for empty URL (null/empty validation is non-throwing)")
         void returnsErrorForEmptyUrl() {
             Map<String, Object> response = visionTool.extractEmbeddings("   ");
 
@@ -398,16 +361,13 @@ class VisionToolEmbeddingAutoHealTest {
         }
 
         @Test
-        @DisplayName("processingTimeMs is present even on error path")
-        void processingTimeMsPresentOnError() {
+        @DisplayName("throws VisionBackendException (not return JSON) when heal fails")
+        void throwsRatherThanReturnsErrorWhenHealFails() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(false);
             when(embeddingBackend.ensureEmbeddingModelLoaded()).thenReturn(false);
 
-            Map<String, Object> response = visionTool.extractEmbeddings("https://example.com/face.jpg");
-
-            assertThat(response.get("processingTimeMs"))
-                .isInstanceOf(Long.class)
-                .satisfies(v -> assertThat((Long) v).isGreaterThanOrEqualTo(0L));
+            assertThatThrownBy(() -> visionTool.extractEmbeddings("https://example.com/face.jpg"))
+                .isInstanceOf(VisionBackendException.class);
         }
 
         @Test
@@ -415,7 +375,8 @@ class VisionToolEmbeddingAutoHealTest {
         void healNotCalledWhenModelAvailable() {
             when(embeddingBackend.isEmbeddingModelAvailable()).thenReturn(true);
 
-            visionTool.extractEmbeddings("https://example.invalid/face.jpg");
+            assertThatThrownBy(() -> visionTool.extractEmbeddings("https://example.invalid/face.jpg"))
+                .isInstanceOf(VisionProcessingException.class);
 
             verify(embeddingBackend, never()).ensureEmbeddingModelLoaded();
         }
@@ -427,7 +388,7 @@ class VisionToolEmbeddingAutoHealTest {
      * Builds the minimal valid 1×1 white PNG bytes so {@code ImageData.fromBytes}
      * succeeds and we can test the post-model-check extraction path.
      */
-    private static byte[] buildMinimalPng() {
+    static byte[] buildMinimalPng() {
         try {
             java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(
                 1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB);
