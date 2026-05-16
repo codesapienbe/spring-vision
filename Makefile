@@ -58,20 +58,20 @@ format:
 	mvn spotless:apply -q || ( echo "Formatting failed" && exit 1 )
 	@echo "Formatting completed successfully"
 
+SPRINGVISION_DIR ?= $(HOME)/.springvision
+
 sync:
 	@echo "Building and syncing MCP jar for local testing..."
-	# Build the mcp module
 	mvn -pl mcp clean package -DskipTests -q || ( echo "MCP build failed!" && exit 1 )
-	# Create the target directory if it doesn't exist
-	mkdir -p /home/codesapienbe/.springvision
-	# Copy the compiled jar
-	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar
-	@echo "MCP jar synced to /home/codesapienbe/.springvision/mcp-$(SPRING_VISION_VERSION).jar"
-	# Update version in .cursor/mcp.json if it exists
-	@if [ -f /home/codesapienbe/.cursor/mcp.json ]; then \
-		echo "Updating version in .cursor/mcp.json..."; \
-		jq --arg version "$(SPRING_VISION_VERSION)" '.mcpServers."spring-vision".args[0] = "/home/codesapienbe/.springvision/mcp-" + $$version + ".jar"' /home/codesapienbe/.cursor/mcp.json > /tmp/mcp.json.tmp && mv /tmp/mcp.json.tmp /home/codesapienbe/.cursor/mcp.json; \
-		echo "Updated .cursor/mcp.json with version $(SPRING_VISION_VERSION)"; \
+	mkdir -p $(SPRINGVISION_DIR)
+	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
+	@echo "MCP jar synced to $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar"
+	@if [ -f $(HOME)/.cursor/mcp.json ]; then \
+		echo "Updating version in ~/.cursor/mcp.json..."; \
+		jq --arg version "$(SPRING_VISION_VERSION)" --arg dir "$(SPRINGVISION_DIR)" \
+			'.mcpServers."spring-vision".args[0] = $$dir + "/mcp-" + $$version + ".jar"' \
+			$(HOME)/.cursor/mcp.json > /tmp/mcp.json.tmp && mv /tmp/mcp.json.tmp $(HOME)/.cursor/mcp.json; \
+		echo "Updated ~/.cursor/mcp.json with version $(SPRING_VISION_VERSION)"; \
 	else \
-		echo ".cursor/mcp.json not found, skipping version update"; \
+		echo "~/.cursor/mcp.json not found, skipping version update"; \
 	fi
