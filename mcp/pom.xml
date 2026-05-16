@@ -126,20 +126,19 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- DJL PyTorch Engine for .pt files -->
+    <!-- DJL PyTorch Engine for .pt files — version managed by DJL BOM in root pom -->
     <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-engine</artifactId>
-        <version>0.27.0</version>
         <scope>runtime</scope>
     </dependency>
 
-    <!-- DJL PyTorch Native Library (CPU) -->
+    <!-- DJL PyTorch Native Library (CPU) — classifier auto-selected by OS profiles in root pom -->
     <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-native-cpu</artifactId>
-        <version>2.1.2</version>
-        <classifier>linux-x86_64</classifier>
+        <version>${pytorch.version}</version>
+        <classifier>${pytorch.classifier}</classifier>
         <scope>runtime</scope>
     </dependency>
 
@@ -148,17 +147,16 @@
     <dependency>
         <groupId>ai.djl.pytorch</groupId>
         <artifactId>pytorch-native-cu121</artifactId>
-        <version>2.1.2</version>
-        <classifier>linux-x86_64</classifier>
+        <version>${pytorch.version}</version>
+        <classifier>${pytorch.classifier}</classifier>
         <scope>runtime</scope>
     </dependency>
     -->
 
-    <!-- DJL ONNX Runtime (if you also want ONNX support) -->
+    <!-- DJL ONNX Runtime (if you also want ONNX support) — version managed by DJL BOM in root pom -->
     <dependency>
         <groupId>ai.djl.onnxruntime</groupId>
         <artifactId>onnxruntime-engine</artifactId>
-        <version>0.27.0</version>
         <scope>runtime</scope>
     </dependency>
   </dependencies>

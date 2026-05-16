@@ -234,12 +234,13 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Add an explicit platform-specific PyTorch native library to avoid runtime JNI download in containers -->
+    <!-- Add an explicit platform-specific PyTorch native library to avoid runtime JNI download in containers.
+         Classifier is auto-selected by OS-detection profiles in the root pom. -->
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-native-cpu</artifactId>
       <version>${pytorch.version}</version>
-      <classifier>linux-x86_64</classifier>
+      <classifier>${pytorch.classifier}</classifier>
       <scope>runtime</scope>
     </dependency>
 

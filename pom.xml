@@ -55,13 +55,16 @@
     <commons-math3.version>3.6.1</commons-math3.version>
     <onnxruntime.version>1.19.0</onnxruntime.version>
     <djl.version>0.33.0</djl.version>
-    <pytorch.version>2.3.0</pytorch.version>
+    <pytorch.version>2.5.1</pytorch.version>
     <picocli.version>4.7.6</picocli.version>
     <spring-ai.version>1.1.0</spring-ai.version>
 
     <!-- OpenCV platform selection: default to Linux x86_64. Change this property in CI/builds to target another platform. -->
     <opencv.version>4.9.0-${javacv.version}</opencv.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
+
+    <!-- DJL PyTorch native classifier: default to linux-x86_64. Overridden by OS-detection profiles below. -->
+    <pytorch.classifier>linux-x86_64</pytorch.classifier>
 
     <!-- Code Quality & Plugins -->
     <checkstyle.version>10.17.0</checkstyle.version>
@@ -512,6 +515,61 @@
       </activation>
       <properties>
         <onnxruntime.provider>cuda</onnxruntime.provider>
+      </properties>
+    </profile>
+
+    <!-- OS-detection profiles to select the right DJL PyTorch native classifier.
+         Default (linux-x86_64) is set in <properties>; profiles below override per host. -->
+    <profile>
+      <id>pytorch-osx-aarch64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <pytorch.classifier>osx-aarch64</pytorch.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>pytorch-osx-x86_64</id>
+      <activation>
+        <os>
+          <family>mac</family>
+          <arch>x86_64</arch>
+        </os>
+      </activation>
+      <properties>
+        <pytorch.classifier>osx-x86_64</pytorch.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>pytorch-linux-aarch64</id>
+      <activation>
+        <os>
+          <family>unix</family>
+          <name>linux</name>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <pytorch.classifier>linux-aarch64</pytorch.classifier>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>pytorch-win-x86_64</id>
+      <activation>
+        <os>
+          <family>windows</family>
+          <arch>amd64</arch>
+        </os>
+      </activation>
+      <properties>
+        <pytorch.classifier>win-x86_64</pytorch.classifier>
       </properties>
     </profile>
 
