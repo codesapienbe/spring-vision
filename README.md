@@ -49,6 +49,7 @@ jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/cli
 ```
 
 That's it! The CLI tool will automatically:
+
 - ✅ Check for JBang installation and guide you if needed
 - 📦 Download the latest Spring Vision MCP Server JAR (~983MB)
 - 💾 Store it locally in `~/.springvision/` (no re-downloads needed!)
@@ -149,6 +150,7 @@ The CLI tool will show you the exact configuration. Here's an example:
    - Other clients: Check their documentation
 
 2. **Add Spring Vision configuration:**
+
    ```json
    {
      "mcpServers": {
@@ -165,6 +167,7 @@ The CLI tool will show you the exact configuration. Here's an example:
 ### Testing the Setup
 
 After configuration, restart your MCP client. You should see Spring Vision tools available with capabilities like:
+
 - Face detection and recognition
 - Object detection
 - Image classification
@@ -213,6 +216,7 @@ spring:
 Spring Vision 0.0.4 provides these computer vision capabilities (all models included in JAR):
 
 ### ✅ **Production Ready**
+
 - **Face Detection** - High-accuracy RetinaFace model (included)
 - **Object Detection** - YOLOv8 models (included)
 - **Pose Estimation** - YOLOv8 pose models (included)
@@ -221,6 +225,7 @@ Spring Vision 0.0.4 provides these computer vision capabilities (all models incl
 - **Image Annotation** - Drawing utilities (included)
 
 ### 🤖 **AI-Powered (Runtime Download)**
+
 - **Text Recognition (OCR)** - DJL OCR models
 - **Image Classification** - ResNet/Inception models
 - **Segmentation** - Instance/Semantic segmentation
@@ -228,12 +233,14 @@ Spring Vision 0.0.4 provides these computer vision capabilities (all models incl
 - **Face Embeddings** - Face recognition vectors
 
 ### 🛡️ **Security & Safety**
+
 - **NSFW Detection** - Content filtering
 - **Deepfake Detection** - AI-generated media detection
 - **Threat Detection** - Weapons/object detection
 - **Biometric Authentication** - Face-based access control
 
 ### ❤️ **Health & Wellness**
+
 - **Fall Detection** - Pose-based fall analysis
 - **Stress Analysis** - Emotion-based stress detection
 - **Heart Rate** - rPPG analysis from faces
@@ -244,17 +251,20 @@ Spring Vision 0.0.4 provides these computer vision capabilities (all models incl
 Spring Vision uses a modern, capability-based architecture built on the Deep Java Library (DJL):
 
 ### Core Components
+
 - **spring-vision-core** - Main framework with VisionTemplate and capabilities
 - **spring-vision-starter** - Auto-configuration and REST API
 - **spring-vision-mcp** - MCP server integration
 
 ### Architecture Layers
+
 - **Application Layer**: REST API endpoints (`/api/vision/*`)
 - **Framework Core**: `VisionTemplate` provides unified API for all vision tasks
 - **DJL Backend**: Deep Java Library handles model management and inference
 - **Vision Capabilities**: Modular detection and analysis capabilities
 
 ### Key Features
+
 - **Single Dependency**: One starter brings all computer vision capabilities
 - **Model Bundling**: Core models (YOLO, RetinaFace) included in JAR
 - **Auto-Configuration**: Zero-configuration setup with intelligent defaults
