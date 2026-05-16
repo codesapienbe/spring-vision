@@ -1,10 +1,5 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.output.DetectedObjects;
-import ai.djl.modality.cv.output.Joints;
-import ai.djl.repository.zoo.Criteria;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -13,6 +8,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ConcurrentHashMap;
+
+import ai.djl.modality.cv.Image;
+import ai.djl.modality.cv.output.DetectedObjects;
+import ai.djl.modality.cv.output.Joints;
+import ai.djl.repository.zoo.Criteria;
 
 public class YoloModelLoader {
 

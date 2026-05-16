@@ -26,4 +26,17 @@ public interface EmbeddingCapability {
      * @return true if embedding models are available, false otherwise
      */
     boolean isEmbeddingModelAvailable();
+
+    /**
+     * Attempts to load the embedding model on demand if it is not already available.
+     *
+     * <p>Backends should override this method to implement lazy/on-demand model loading
+     * so callers can trigger a load attempt before giving up. The default implementation
+     * simply reports whether the model is already loaded.
+     *
+     * @return true if the embedding model is available after this call, false otherwise
+     */
+    default boolean ensureEmbeddingModelLoaded() {
+        return isEmbeddingModelAvailable();
+    }
 }
