@@ -223,7 +223,7 @@ public class DjlProperties {
     }
 
     public static class FaceRecognition {
-        private String model = "inception_resnet_v1"; // or "facenet"
+        private String model = "face_feature"; // DJL FaceFeatureNet (PyTorch, 112x112, 512-dim)
         private int embeddingSize = 512;
         private float similarityThreshold = 0.6f;
 

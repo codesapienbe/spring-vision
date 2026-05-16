@@ -518,13 +518,24 @@ public class DjlVisionBackend implements VisionBackend,
         // 2. Crop detected faces with padding
         // 3. Extract embeddings from cropped faces only
 
+        // FaceFeatureNet (PyTorch, 112x112, 512-dim output). Prefer a locally bundled
+        // copy when available so production deployments do not depend on outbound
+        // network access; fall back to the public DJL test-models URL otherwise.
+        String faceFeatureUrl = "https://resources.djl.ai/test-models/pytorch/face_feature.zip";
+        String localFaceFeatureUrl = YoloModelLoader.getModelUrl("face_feature/face_feature.pt");
+        if (localFaceFeatureUrl != null) {
+            faceFeatureUrl = localFaceFeatureUrl;
+            logger.info("Using locally bundled FaceFeatureNet model");
+        } else {
+            logger.info("FaceFeatureNet model not bundled in classpath, will resolve from DJL Model Zoo URL");
+        }
+
         try {
-            // Try to load a face embedding model for the recognition pipeline
-            // This will be used to generate embeddings from cropped face regions
             Criteria<Image, float[]> criteria = Criteria.builder()
                 .setTypes(Image.class, float[].class)
-                .optApplication(Application.CV.IMAGE_CLASSIFICATION) // Face embedding as classification
-                .optEngine(properties.getEngine())
+                .optModelUrls(faceFeatureUrl)
+                .optModelName("face_feature")
+                .optEngine("PyTorch")
                 .optDevice(device)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
@@ -533,14 +544,13 @@ public class DjlVisionBackend implements VisionBackend,
 
             modelCache.put("face_recognition", faceRecognitionModel);
             logger.info(
-                "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + cropped face embeddings)",
+                "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + FaceFeatureNet embeddings)",
                 faceRecognitionModel.getName());
         } catch (Exception e) {
             logger.warn("Failed to load face recognition model: {}. Face recognition pipeline will be unavailable.",
                 e.getMessage());
-            // Don't throw exception - face recognition is optional
             logger.info(
-                "Face recognition pipeline not available - this is expected as DJL has limited face embedding models. Pipeline requires: RetinaFace (✅ loaded) + face embedding model (❌ not found)");
+                "Face recognition pipeline not available. Pipeline requires: RetinaFace (loaded) + FaceFeatureNet (failed to load)");
         }
     }
 
@@ -1492,16 +1502,15 @@ public class DjlVisionBackend implements VisionBackend,
     // model name
     private int determineFaceRecognitionInputSize(String modelName) {
         if (modelName == null)
-            return 160;
+            return 112;
         String m = modelName.toLowerCase();
+        if (m.contains("face_feature") || m.contains("arcface") || m.contains("sphereface")) {
+            return 112;
+        }
         if (m.contains("inception") || m.contains("facenet") || m.contains("resnet")) {
-            return 160; // common for FaceNet/ResNet-based face embeddings
+            return 160;
         }
-        if (m.contains("arcface") || m.contains("sphereface")) {
-            return 112; // some ArcFace models use 112x112
-        }
-        // default fallback
-        return 160;
+        return 112;
     }
 
     // Create a translator that normalizes the image to the model's expected range.
@@ -1510,7 +1519,11 @@ public class DjlVisionBackend implements VisionBackend,
         float[] mean;
         float[] std;
         String m = (modelName == null ? "" : modelName.toLowerCase());
-        if (m.contains("facenet") || m.contains("inception")) {
+        if (m.contains("face_feature")) {
+            // FaceFeatureNet from DJL test-models — inputs roughly in [-1, 1]
+            mean = new float[]{127.5f / 255f, 127.5f / 255f, 127.5f / 255f};
+            std = new float[]{128f / 255f, 128f / 255f, 128f / 255f};
+        } else if (m.contains("facenet") || m.contains("inception")) {
             // FaceNet often expects inputs in [-1, 1]
             mean = new float[]{0.5f, 0.5f, 0.5f};
             std = new float[]{0.5f, 0.5f, 0.5f};

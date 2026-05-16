@@ -594,6 +594,18 @@
                           <outputFileName>retinaface.zip</outputFileName>
                       </configuration>
                   </execution>
+                  <execution>
+                      <id>download-face-feature</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://resources.djl.ai/test-models/pytorch/face_feature.zip</url>
+                          <outputDirectory>${models.directory}/face_feature</outputDirectory>
+                          <outputFileName>face_feature.zip</outputFileName>
+                      </configuration>
+                  </execution>
               </executions>
           </plugin>
           <!-- Maven Antrun Plugin for extracting ZIP files -->
@@ -611,6 +623,19 @@
                           <target>
                               <unzip src="${models.directory}/retinaface/retinaface.zip"
                                      dest="${models.directory}/retinaface" />
+                          </target>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>extract-face-feature</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>run</goal>
+                      </goals>
+                      <configuration>
+                          <target>
+                              <unzip src="${models.directory}/face_feature/face_feature.zip"
+                                     dest="${models.directory}/face_feature" />
                           </target>
                       </configuration>
                   </execution>
