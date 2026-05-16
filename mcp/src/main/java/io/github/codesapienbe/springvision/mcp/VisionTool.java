@@ -242,7 +242,26 @@ public class VisionTool {
     @Tool(name = "extract_face_embeddings_b", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
+        long startTime = System.currentTimeMillis();
+        Map<String, Object> response = new HashMap<>();
         try {
+            // Pre-flight: auto-heal the embedding model if it is not yet loaded
+            String modelStatus = embeddingModelStatus();
+            if ("not_loaded".equals(modelStatus)) {
+                log.warn("extractEmbeddings(bytes): embedding model not loaded — triggering auto-heal",
+                    StructuredArguments.keyValue("event", "embedding_model_missing"));
+                modelStatus = healEmbeddingModel() ? "available" : "not_loaded";
+            }
+            if ("not_loaded".equals(modelStatus)) {
+                response.put("status", "error");
+                response.put("model_status", "not_loaded");
+                response.put("embeddings", List.of());
+                response.put("message", "Embedding model not loaded. Auto-heal attempted. "
+                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.");
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
             ImageData img = resolveImage(imageBytes);
             List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(img,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
@@ -257,18 +276,17 @@ public class VisionTool {
                 idx++;
             }
 
-            Map<String, Object> response = new HashMap<>();
-            long duration = 0;
             response.put("status", "success");
+            response.put("model_status", modelStatus);
             response.put("count", out.size());
             response.put("embeddings", out);
-            response.put("processingTimeMs", duration);
+            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
             return response;
         } catch (Exception e) {
-            Map<String, Object> response = new HashMap<>();
             response.put("status", "error");
             response.put("embeddings", List.of());
             response.put("message", "Failed to process uploaded image bytes: " + e.getMessage());
+            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
             return response;
         }
     }
@@ -1076,9 +1094,25 @@ public class VisionTool {
                 return response;
             }
 
+            // Pre-flight: auto-heal the embedding model if it is not yet loaded
+            String modelStatus = embeddingModelStatus();
+            if ("not_loaded".equals(modelStatus)) {
+                log.warn("extractEmbeddings(url): embedding model not loaded — triggering auto-heal",
+                    StructuredArguments.keyValue("event", "embedding_model_missing"));
+                modelStatus = healEmbeddingModel() ? "available" : "not_loaded";
+            }
+            if ("not_loaded".equals(modelStatus)) {
+                response.put("status", "error");
+                response.put("model_status", "not_loaded");
+                response.put("embeddings", List.of());
+                response.put("message", "Embedding model not loaded. Auto-heal attempted. "
+                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.");
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return response;
+            }
+
             ImageData imgData = resolveImage(imageUrl.trim());
 
-            // Use VisionTemplate high-level API
             List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
             List<Map<String, Object>> out = new ArrayList<>();
@@ -1095,6 +1129,7 @@ public class VisionTool {
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "success");
+            response.put("model_status", modelStatus);
             response.put("count", out.size());
             response.put("embeddings", out);
             response.put("processingTimeMs", duration);
@@ -1103,7 +1138,6 @@ public class VisionTool {
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "error");
 
-            // Handle null exception messages by using the exception class name or cause chain
             String errorMsg = e.getMessage();
             if (errorMsg == null || errorMsg.isBlank()) {
                 errorMsg = e.getClass().getSimpleName();
@@ -1117,7 +1151,6 @@ public class VisionTool {
             response.put("embeddings", List.of());
             response.put("processingTimeMs", duration);
 
-            // Log full error for debugging
             log.error("Failed to extract embeddings from URL: {}", sanitizeUrlForLogging(imageUrl), e);
 
             return response;
@@ -1947,6 +1980,41 @@ public class VisionTool {
         return ImageData.fromBytes(bytes);
     }
 
+    /** Returns "available", "not_loaded", "unsupported", or "unknown" for the embedding model. */
+    private String embeddingModelStatus() {
+        try {
+            VisionBackend backend = visionTemplate.backend();
+            if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
+                return cap.isEmbeddingModelAvailable() ? "available" : "not_loaded";
+            }
+            return "unsupported";
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+
+    /**
+     * Triggers on-demand model loading via {@code ensureEmbeddingModelLoaded()}.
+     * Returns true if the model is available after the attempt.
+     */
+    private boolean healEmbeddingModel() {
+        try {
+            VisionBackend backend = visionTemplate.backend();
+            if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
+                log.info("healEmbeddingModel: triggering on-demand load",
+                    StructuredArguments.keyValue("event", "embedding_model_heal_start"));
+                boolean healed = cap.ensureEmbeddingModelLoaded();
+                log.info("healEmbeddingModel: result={}",
+                    StructuredArguments.keyValue("healed", healed));
+                return healed;
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn("healEmbeddingModel failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
     /**
      * Robust embedding extractor: prefer VisionTemplate API, but fall back to calling the
      * backend's EmbeddingCapability directly when the template is a Mockito stub that
@@ -1954,33 +2022,42 @@ public class VisionTool {
      */
     private List<float[]> extractEmbeddingsFromTemplate(ImageData img, io.github.codesapienbe.springvision.core.DetectionCategory category) {
         // Prefer calling the backend directly when available (covers Mockito mocks that only stub backend()).
-        try {
-            if (visionTemplate != null) {
+        io.github.codesapienbe.springvision.core.exception.VisionBackendException modelError = null;
+        if (visionTemplate != null) {
+            try {
                 VisionBackend backend = visionTemplate.backend();
                 if (backend instanceof io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability cap) {
-                    try {
-                        List<float[]> out = cap.extractEmbeddings(img, category);
-                        if (out != null) {
-                            log.debug("extractEmbeddingsFromTemplate: backend fallback returned {} embeddings", out.size());
-                            return out;
-                        }
-                    } catch (Exception e) {
-                        log.warn("extractEmbeddingsFromTemplate: backend.extractEmbeddings threw: {}", e.getMessage());
+                    List<float[]> out = cap.extractEmbeddings(img, category);
+                    if (out != null) {
+                        log.debug("extractEmbeddingsFromTemplate: backend returned {} embeddings", out.size());
+                        return out;
                     }
                 }
+            } catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
+                // Preserve this error — if the template fallback also fails we will propagate it
+                // rather than silently returning an empty list (which looks like "success, 0 faces").
+                log.warn("extractEmbeddingsFromTemplate: {}", vbe.getMessage());
+                modelError = vbe;
+            } catch (Exception e) {
+                log.warn("extractEmbeddingsFromTemplate: backend.extractEmbeddings threw: {}", e.getMessage());
             }
-        } catch (Exception ignored) {
-            // ignore and try template API next
         }
 
         // Fallback to VisionTemplate high-level API if backend direct call unavailable or returned null/empty
         try {
             List<float[]> res = visionTemplate.extractEmbeddings(img, category);
             if (res != null) return res;
+        } catch (io.github.codesapienbe.springvision.core.exception.VisionBackendException vbe) {
+            if (modelError == null) modelError = vbe;
         } catch (Exception ignored) {
-            // final fallback: empty list
+            // non-model errors: proceed to final fallback
         }
 
+        // Propagate model-not-initialized errors so callers get a real error response
+        // instead of a misleading "success with 0 embeddings".
+        if (modelError != null) {
+            throw modelError;
+        }
         return List.of();
     }
 

@@ -1,6 +1,5 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -13,7 +12,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,11 +22,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
+
 import javax.imageio.ImageIO;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
 import com.drew.metadata.Directory;
@@ -48,6 +49,7 @@ import com.google.zxing.ResultPoint;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.multi.GenericMultipleBarcodeReader;
+
 import ai.djl.Application;
 import ai.djl.Device;
 import ai.djl.MalformedModelException;
@@ -186,6 +188,11 @@ public class DjlVisionBackend implements VisionBackend,
 
     // Read once at construction; avoids re-reading the system property on every inference call
     private final boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
+
+    // Embedding model auto-healing — cooldown prevents hammering the model zoo on each request
+    private static final long EMBEDDING_RELOAD_COOLDOWN_MS = 60_000L;
+    private volatile long lastEmbeddingLoadAttemptMs = 0L;
+    private final Object embeddingLoadLock = new Object();
 
     // Functional callback for predictor usage
     @FunctionalInterface
@@ -336,6 +343,42 @@ public class DjlVisionBackend implements VisionBackend,
     @Override
     public boolean isEmbeddingModelAvailable() {
         return faceRecognitionModel != null;
+    }
+
+    @Override
+    public boolean ensureEmbeddingModelLoaded() {
+        if (faceRecognitionModel != null) {
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastEmbeddingLoadAttemptMs < EMBEDDING_RELOAD_COOLDOWN_MS) {
+            logger.debug("Embedding model reload skipped — cooldown active ({}s remaining)",
+                (EMBEDDING_RELOAD_COOLDOWN_MS - (now - lastEmbeddingLoadAttemptMs)) / 1000);
+            return false;
+        }
+        synchronized (embeddingLoadLock) {
+            if (faceRecognitionModel != null) {
+                return true;
+            }
+            now = System.currentTimeMillis();
+            if (now - lastEmbeddingLoadAttemptMs < EMBEDDING_RELOAD_COOLDOWN_MS) {
+                return false;
+            }
+            lastEmbeddingLoadAttemptMs = now;
+            logger.info("Auto-healing: loading face recognition (embedding) model on demand");
+            try {
+                loadFaceRecognitionModel();
+            } catch (Exception e) {
+                logger.warn("Auto-healing: failed to load face recognition model: {}", e.getMessage());
+            }
+            if (faceRecognitionModel != null) {
+                logger.info("Auto-healing: face recognition model loaded successfully");
+                return true;
+            }
+            logger.warn("Auto-healing: face recognition model still unavailable after load attempt. "
+                + "Run 'mvn clean install -Pdownload-models' or ensure network access to DJL model zoo.");
+            return false;
+        }
     }
 
     @Override
@@ -1379,10 +1422,14 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         if (faceRecognitionModel == null) {
-            throw new VisionBackendException(
-                "Face recognition model not initialized",
-                "model_not_initialized",
-                null);
+            logger.warn("Face recognition model missing — attempting auto-heal before failing");
+            if (!ensureEmbeddingModelLoaded() || faceRecognitionModel == null) {
+                throw new VisionBackendException(
+                    "Face recognition model not available. Auto-heal attempted. "
+                    + "Run 'mvn clean install -Pdownload-models' or check network access to DJL model zoo.",
+                    "model_not_initialized",
+                    null);
+            }
         }
 
         String correlationId = generateCorrelationId();

@@ -6,16 +6,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.List;
 
-import io.github.codesapienbe.springvision.core.*;
-import io.github.codesapienbe.springvision.core.djl.DjlProperties;
-import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
-import io.github.codesapienbe.springvision.core.djl.YoloLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
+import io.github.codesapienbe.springvision.core.*;
+import io.github.codesapienbe.springvision.core.djl.DjlProperties;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.YoloLoader;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
