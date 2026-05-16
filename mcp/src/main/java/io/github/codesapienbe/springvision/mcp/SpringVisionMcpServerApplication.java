@@ -57,7 +57,7 @@ public class SpringVisionMcpServerApplication {
                 Path cachePath = Paths.get(modelCache);
                 Files.createDirectories(cachePath);
                 System.setProperty("ai.djl.repository.cache.dir", cachePath.toAbsolutePath().toString());
-                System.out.println("[startup] Set ai.djl.repository.cache.dir=" + cachePath.toAbsolutePath());
+                System.err.println("[startup] Set ai.djl.repository.cache.dir=" + cachePath.toAbsolutePath());
 
                 // Attempt to extract bundled models from classpath to the cache (best-effort).
                 extractBundledModelsToCache(cachePath);
@@ -101,7 +101,7 @@ public class SpringVisionMcpServerApplication {
     private static void extractResourceToCache(String resourcePath, Path cachePath) {
         try (InputStream in = SpringVisionMcpServerApplication.class.getClassLoader().getResourceAsStream(resourcePath)) {
             if (in == null) return; // not bundled
-            System.out.println("[startup] Found bundled model resource: " + resourcePath + " - extracting to cache");
+            System.err.println("[startup] Found bundled model resource: " + resourcePath + " - extracting to cache");
             if (resourcePath.toLowerCase().endsWith(".zip")) {
                 try (ZipInputStream zis = new ZipInputStream(in)) {
                     ZipEntry entry;
