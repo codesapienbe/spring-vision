@@ -531,10 +531,15 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         try {
+            String configuredModelName = properties.getFaceRecognition() != null
+                ? properties.getFaceRecognition().getModel()
+                : "face_feature";
+
             Criteria<Image, float[]> criteria = Criteria.builder()
                 .setTypes(Image.class, float[].class)
                 .optModelUrls(faceFeatureUrl)
                 .optModelName("face_feature")
+                .optTranslator(createFaceEmbeddingTranslator(configuredModelName))
                 .optEngine("PyTorch")
                 .optDevice(device)
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
