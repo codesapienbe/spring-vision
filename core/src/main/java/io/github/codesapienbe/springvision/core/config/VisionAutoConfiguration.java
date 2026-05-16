@@ -277,9 +277,7 @@ public class VisionAutoConfiguration {
         logger.info("Creating DJL vision backend (default)");
 
         try {
-            // Bind DJL-specific properties from the environment so test-level
-            // property sources (e.g., synthetic-fallbacks) are respected when
-            // constructing the backend.
+            // Bind DJL-specific properties from the environment.
             DjlProperties djlProps = new DjlProperties();
             try {
                 Binder binder = Binder.get(environment);

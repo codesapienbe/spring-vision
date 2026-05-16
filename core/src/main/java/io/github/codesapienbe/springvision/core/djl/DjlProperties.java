@@ -80,12 +80,6 @@ public class DjlProperties {
      * Face recognition settings
      */
     private FaceRecognition faceRecognition = new FaceRecognition();
-    /**
-     * When true, allow synthetic fallbacks for offline/testing environments.
-     * Defaults to false to preserve strict offline behavior unless tests opt-in.
-     */
-    private boolean syntheticFallbacks = false;
-
     // Nested configuration classes
     public static class FaceDetection {
         private String model = "retinaface"; // or "lightface"
@@ -380,11 +374,4 @@ public class DjlProperties {
         this.faceRecognition = faceRecognition;
     }
 
-    public boolean isSyntheticFallbacks() {
-        return syntheticFallbacks;
-    }
-
-    public void setSyntheticFallbacks(boolean syntheticFallbacks) {
-        this.syntheticFallbacks = syntheticFallbacks;
-    }
 }

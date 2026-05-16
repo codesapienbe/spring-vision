@@ -104,6 +104,7 @@ import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTran
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 import jakarta.annotation.PreDestroy;
 
 /**
@@ -821,19 +822,8 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // Prefer specialized face detection model when available, fall back to object
-            // detection.
-            // If no models are loaded (e.g., offline/test mode), return synthetic fallback if enabled.
+            // Prefer specialized face detection model when available, fall back to object detection.
             if (faceDetectionModel == null && objectDetectionModel == null) {
-                if (shouldUseSynthetic()) {
-                    logger.info("Face detection models not loaded (offline/test mode); returning synthetic face detection");
-
-                    // Create a synthetic detection centered in image
-                    BoundingBox box = new BoundingBox(0.3, 0.3, 0.4, 0.4);
-                    Detection synthetic = Detection.of("face", 0.6, box, "backend", "djl");
-                    return List.of(synthetic);
-                }
-
                 throw new VisionBackendException(
                     "Face detection models not initialized",
                     "model_not_initialized",
@@ -932,39 +922,7 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // If object detection model isn't loaded (offline/test mode), return synthetic
-            // detection
             if (objectDetectionModel == null) {
-                if (shouldUseSynthetic()) {
-                    logger.info(
-                        "Object detection model not loaded (offline/test mode); returning synthetic object detection");
-                    // Produce multiple synthetic detections to satisfy integration tests that
-                    // expect many outputs
-                    int syntheticCount = 10; // default
-                    if (query.getMaxDetections() > 0) {
-                        syntheticCount = Math.min(12, query.getMaxDetections());
-                    }
-                    List<Detection> syntheticList = new ArrayList<>();
-                    String[] syntheticLabels = new String[]{"person", "car", "bicycle", "dog", "cat", "chair", "table", "phone", "laptop", "bottle"};
-                    for (int i = 0; i < syntheticCount; i++) {
-                        double x = Math.max(0.0, 0.01 * i);
-                        double y = Math.max(0.0, 0.01 * i);
-                        double w = 0.1 + ((i % 5) * 0.02);
-                        double h = 0.1 + ((i % 7) * 0.015);
-                        BoundingBox box = new BoundingBox(x, y, Math.min(w, 1.0), Math.min(h, 1.0));
-                        Map<String, Object> attrs = new HashMap<>();
-                        attrs.put("backend", BACKEND_ID);
-                        attrs.put("model", "synthetic");
-                        attrs.put("index", i);
-                        String label = syntheticLabels[i % syntheticLabels.length];
-                        // Slightly vary confidence per detection
-                        double confidence = 0.5 + ((i % 5) * 0.08);
-                        Detection d = new Detection(label, confidence, box, attrs);
-                        syntheticList.add(d);
-                    }
-                    return syntheticList;
-                }
-
                 throw new VisionBackendException(
                     "Object detection model not initialized",
                     "model_not_initialized",
@@ -1014,15 +972,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
-        // If pose model not loaded, return synthetic pose/person detection if in offline/test mode
         if (poseEstimationModel == null) {
-            if (shouldUseSynthetic()) {
-                logger.info("Pose estimation model not loaded (offline/test mode); returning synthetic pose detection");
-                BoundingBox box = new BoundingBox(0.2, 0.2, 0.6, 0.6);
-                Detection synthetic = Detection.of("person", 0.6, box, "backend", BACKEND_ID);
-                return List.of(synthetic);
-            }
-
             throw new VisionBackendException(
                 "Pose estimation model not initialized",
                 "model_not_initialized",
@@ -1141,29 +1091,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
-        // If action model not loaded, try synthetic fallback when model files are
-        // present
         if (actionRecognitionModel == null) {
-            if (djlOffline || !properties.isAutoDownload()) {
-                logger.info(
-                    "Action recognition model not loaded; returning synthetic action detection in offline/test mode");
-                if (!properties.isSyntheticFallbacks()) {
-                    logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
-                    throw new VisionBackendException(
-                        "Action recognition model not initialized",
-                        "model_not_initialized",
-                        null);
-                }
-                Map<String, Object> attrs = new HashMap<>();
-                attrs.put("backend", BACKEND_ID);
-                attrs.put("model", "synthetic");
-                attrs.put("correlationId", generateCorrelationId());
-
-                BoundingBox whole = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                Detection synthetic = new Detection("waving", 0.6, whole, attrs);
-                return List.of(synthetic);
-            }
-
             throw new VisionBackendException(
                 "Action recognition model not initialized",
                 "model_not_initialized",
@@ -1253,37 +1181,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
-        // If semantic model not loaded but model files exist, return synthetic
-        // VisionResult
         if (semanticSegmentationModel == null) {
-            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                || YoloModelLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
-
-            if (modelFilesPresent) {
-                logger.info(
-                    "Segmentation model files present but model not loaded; returning synthetic segmentation result");
-                if (!properties.isSyntheticFallbacks()) {
-                    logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
-                    throw new VisionBackendException(
-                        "Semantic segmentation model not initialized",
-                        "model_not_initialized",
-                        null);
-                }
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("segmentationType", "semantic");
-                metadata.put("backend", BACKEND_ID);
-                metadata.put("model", "synthetic");
-                metadata.put("correlationId", generateCorrelationId());
-
-                // Create a single synthetic detection representing whole image
-                BoundingBox whole = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-                Map<String, Object> attrs = new HashMap<>();
-                attrs.put("backend", BACKEND_ID);
-                Detection det = new Detection("scene", 1.0, whole, attrs);
-
-                return VisionResult.of(DetectionType.SCENE, List.of(det), 1.0, 5L, metadata);
-            }
-
             throw new VisionBackendException(
                 "Semantic segmentation model not initialized",
                 "model_not_initialized",
@@ -1336,43 +1234,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
-        // If instance segmentation model not loaded but model files exist, return
-        // synthetic instances
         if (instanceSegmentationModel == null) {
-            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("yolov8-seg/yolov8n-seg.pt")
-                || YoloModelLoader.isModelAvailable("yolov8-seg/yolov8m-seg.pt");
-
-            if (modelFilesPresent) {
-                logger.info(
-                    "Instance segmentation model files present but model not loaded; returning synthetic instance segmentation result");
-                if (!properties.isSyntheticFallbacks()) {
-                    logger.info("Synthetic fallbacks disabled via properties; throwing model_not_initialized");
-                    throw new VisionBackendException(
-                        "Instance segmentation model not initialized",
-                        "model_not_initialized",
-                        null);
-                }
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("segmentationType", "instance");
-                metadata.put("backend", BACKEND_ID);
-                metadata.put("model", "synthetic");
-                metadata.put("correlationId", generateCorrelationId());
-
-                // Create a couple of synthetic instance detections
-                BoundingBox b1 = new BoundingBox(0.1, 0.1, 0.3, 0.3);
-                Map<String, Object> a1 = new HashMap<>();
-                a1.put("backend", BACKEND_ID);
-                a1.put("model", "synthetic");
-                Detection d1 = new Detection("instance_1", 0.9, b1, a1);
-
-                BoundingBox b2 = new BoundingBox(0.5, 0.2, 0.4, 0.5);
-                Map<String, Object> a2 = new HashMap<>();
-                a2.put("backend", BACKEND_ID);
-                a2.put("model", "synthetic");
-                Detection d2 = new Detection("instance_2", 0.85, b2, a2);
-
-                return VisionResult.of(DetectionType.SCENE, List.of(d1, d2), 0.875, 10L, metadata);
-            }
 
             throw new VisionBackendException(
                 "Instance segmentation model not initialized",
@@ -1501,25 +1363,11 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
-        // Ensure face recognition model is loaded. In offline/test mode we may return
-        // a synthetic embedding when model files exist on disk but DJL loading is
-        // disabled.
         if (faceRecognitionModel == null) {
-            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("retinaface/retinaface.pt")
-                || YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt");
-
-            if (modelFilesPresent) {
-                logger.info(
-                    "Face recognition model files present but model not loaded; returning synthetic embedding(s)");
-                // Return a single synthetic embedding vector of length 128
-                float[] emb = new float[128];
-                for (int i = 0; i < emb.length; i++)
-                    emb[i] = (float) (Math.sin(i) * 0.01f + 0.5f);
-                return List.of(l2Normalize(emb));
-            }
-
-            logger.info("Face recognition model not loaded; returning empty embeddings list");
-            return Collections.emptyList();
+            throw new VisionBackendException(
+                "Face recognition model not initialized",
+                "model_not_initialized",
+                null);
         }
 
         String correlationId = generateCorrelationId();
@@ -1733,40 +1581,8 @@ public class DjlVisionBackend implements VisionBackend,
 
         String correlationId = generateCorrelationId();
 
-        // If DJL is offline or auto-downloads are disabled, attempt safe fallbacks
         if (djlOffline || !properties.isAutoDownload()) {
-            // Avoid calling native Tess4J in offline/test environments (can abort JVM)
-            // Provide a deterministic synthetic OCR result so integration tests can
-            // proceed.
-            boolean modelFilesPresent = YoloModelLoader.isModelAvailable("ocr/ocr.pt");
-            Map<String, Object> bbox = new HashMap<>();
-            // Normalized full-image bbox
-            bbox.put("x", 0.0);
-            bbox.put("y", 0.0);
-            bbox.put("width", 1.0);
-            bbox.put("height", 1.0);
-
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("backend", BACKEND_ID);
-            attributes.put("model", modelFilesPresent ? "synthetic" : "none");
-            attributes.put("correlationId", correlationId);
-
-            if (!properties.isSyntheticFallbacks()) {
-                // In strict offline mode without synthetic fallbacks, surface an error
-                throw new VisionBackendException("OCR model not initialized", "not_initialized", "OCR");
-            }
-
-            // When synthetic fallbacks are enabled, provide a multiline synthetic OCR
-            // result regardless of whether an OCR model file is present. This makes
-            // TDD-style OCR integration tests deterministic in offline environments.
-            String syntheticText = properties.isSyntheticFallbacks() ? "Line 1\nLine 2\nLine 3" : "no_text";
-            OcrCapability.TextDetection synthetic = new OcrCapability.TextDetection(
-                syntheticText,
-                modelFilesPresent ? 0.6 : 0.0,
-                bbox,
-                attributes);
-
-            return List.of(synthetic);
+            throw new VisionBackendException("OCR model not initialized", "not_initialized", "OCR");
         }
 
         try {
@@ -1886,35 +1702,11 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // If offline mode or auto-download disabled, return synthetic result
-            boolean shouldUseSynthetic = djlOffline || !properties.isAutoDownload();
-
-            if (shouldUseSynthetic) {
-                logger.info(
-                    "Classification model not loaded (offline/test mode); returning synthetic classification result");
-
-                if (!properties.isSyntheticFallbacks()) {
-                    logger.info("Synthetic fallbacks disabled via properties; throwing classification_failed");
-                    throw new VisionBackendException(
-                        "Classification model not initialized",
-                        "classification_failed",
-                        null);
-                }
-
-                List<ImageClassificationCapability.Classification> results = new ArrayList<>();
-                Map<String, Object> attrs = new HashMap<>();
-                attrs.put("backend", BACKEND_ID);
-                attrs.put("model", "synthetic");
-
-                results.add(new ImageClassificationCapability.Classification("generic", 0.6, attrs));
-
-                Map<String, Object> metadata = new HashMap<>();
-                metadata.put("correlationId", correlationId);
-                metadata.put("topK", topK);
-                metadata.put("fallback", "synthetic");
-                metadata.put("totalClasses", 1);
-
-                return new ImageClassificationCapability.ClassificationResult(results, metadata);
+            if (djlOffline || !properties.isAutoDownload()) {
+                throw new VisionBackendException(
+                    "Classification model not initialized",
+                    "classification_failed",
+                    null);
             }
 
             // Load image classification model on demand
@@ -2060,10 +1852,6 @@ public class DjlVisionBackend implements VisionBackend,
      */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
-    }
-
-    private boolean shouldUseSynthetic() {
-        return (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
     }
 
     // ==================== BarcodeCapability Implementation ====================
@@ -2468,11 +2256,15 @@ public class DjlVisionBackend implements VisionBackend,
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            // Apply annotation based on action
             switch (request.getAction()) {
-                case MARK -> drawMarkings(g2d, image.getWidth(), image.getHeight());
                 case TAG -> drawTags(g2d, image.getWidth(), image.getHeight(), request.getLabel());
-                case OBSCURE -> applyObscuring(g2d, image.getWidth(), image.getHeight());
+                default -> {
+                    g2d.dispose();
+                    throw new VisionUnsupportedException(
+                        "Annotation action '" + request.getAction() + "' is not supported",
+                        "annotate",
+                        null);
+                }
             }
 
             g2d.dispose();
@@ -2487,24 +2279,6 @@ public class DjlVisionBackend implements VisionBackend,
         } catch (IOException e) {
             throw new VisionProcessingException("Failed to annotate image", e);
         }
-    }
-
-    /**
-     * Draws bounding box markings on the image.
-     */
-    private void drawMarkings(Graphics2D g2d, int width, int height) {
-        // Set drawing properties
-        g2d.setColor(Color.GREEN);
-        g2d.setStroke(new BasicStroke(3.0f));
-
-        // This is a placeholder - in a real implementation, you would draw
-        // bounding boxes for detected objects. For now, draw a sample box.
-        int boxWidth = width / 4;
-        int boxHeight = height / 4;
-        int x = (width - boxWidth) / 2;
-        int y = (height - boxHeight) / 2;
-
-        g2d.drawRect(x, y, boxWidth, boxHeight);
     }
 
     /**
@@ -2531,355 +2305,54 @@ public class DjlVisionBackend implements VisionBackend,
         g2d.drawString(label, x, y);
     }
 
-    /**
-     * Applies obscuring effects to regions of the image.
-     */
-    private void applyObscuring(Graphics2D g2d, int width, int height) {
-        // Set semi-transparent overlay
-        g2d.setColor(new Color(0, 0, 0, 128)); // 50% transparent black
+    // ==================== HandDetectionCapability Implementation ====================
 
-        // This is a placeholder - in a real implementation, you would blur
-        // specific regions. For now, draw a semi-transparent overlay.
-        int boxWidth = width / 4;
-        int boxHeight = height / 4;
-        int x = (width - boxWidth) / 2;
-        int y = (height - boxHeight) / 2;
-
-        g2d.fillRect(x, y, boxWidth, boxHeight);
-    }
-
-    // ==================== HandDetectionCapability Implementation
-    // ====================
-
-    /**
-     * Detects hands in an image.
-     *
-     * <p>
-     * Intended model: DamarJati/face-hand-YOLOv5 (PyTorch YOLO)
-     * </p>
-     * <p>
-     * Current implementation: Uses generic object detection as placeholder
-     * </p>
-     */
     @Override
     public List<Detection> detectHands(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        logger.debug("Starting hand detection (placeholder using object detection)");
-
-        try {
-            // Use object detection capability to detect hands
-            // In a full implementation, load dedicated hand detection model:
-            // DamarJati/face-hand-YOLOv5
-            List<Detection> allDetections = detectObjects(imageData);
-
-            // Filter for hand-related detections
-            // Note: Generic object detection may not have 'hand' class
-            // This is a placeholder until dedicated hand model is loaded
-            List<Detection> handDetections = allDetections.stream()
-                .filter(d -> d.label().toLowerCase().contains("hand") ||
-                    d.label().toLowerCase().contains("person"))
-                .toList();
-
-            logger.info("Hand detection completed: {} potential hands detected", handDetections.size());
-            return handDetections;
-
-        } catch (Exception e) {
-            logger.error("Hand detection failed: {}", e.getMessage(), e);
-            throw new VisionProcessingException("Hand detection failed", e);
-        }
+        throw new VisionUnsupportedException(
+            "Hand detection requires a dedicated model (DamarJati/face-hand-YOLOv5) that is not yet integrated",
+            "detectHands",
+            "HAND");
     }
 
-    // ==================== DemographicsCapability Implementation
-    // ====================
+    // ==================== DemographicsCapability Implementation ====================
 
-    /**
-     * Detects demographics (age and gender) from faces.
-     *
-     * <p>
-     * Intended model: abhilash88/age-gender-prediction (Vision Transformer, 94.3%
-     * gender accuracy)
-     * </p>
-     * <p>
-     * Current implementation: Placeholder using face detection + mock demographics
-     * </p>
-     */
     @Override
     public List<Detection> detectDemographics(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        logger.debug("Starting demographics detection (placeholder)");
-
-        try {
-            // Detect faces first
-            List<Detection> faces = detectFaces(imageData);
-
-            // Create Detection for each face with demographic attributes
-            // In full implementation, use dedicated age-gender model:
-            // abhilash88/age-gender-prediction
-            List<Detection> demographics = new ArrayList<>();
-
-            for (int i = 0; i < faces.size(); i++) {
-                Detection face = faces.get(i);
-
-                // Placeholder values - would come from actual model
-                int estimatedAge = 25 + (i * 5); // Mock ages
-                String gender = (i % 2 == 0) ? "Male" : "Female";
-                double genderConfidence = 0.75 + (Math.random() * 0.20);
-                double ageError = 4.5; // MAE from model spec
-
-                Map<String, Object> attributes = new HashMap<>();
-                attributes.put("age", estimatedAge);
-                attributes.put("ageRange", getAgeRange(estimatedAge));
-                attributes.put("gender", gender);
-                attributes.put("genderConfidence", genderConfidence);
-                attributes.put("ageError", ageError);
-                attributes.put("faceIndex", i);
-                attributes.put("backend", BACKEND_ID);
-                attributes.put("model", "placeholder");
-                attributes.put("note",
-                    "Using placeholder demographics until dedicated model loaded: abhilash88/age-gender-prediction");
-
-                demographics.add(new Detection(
-                    gender, // label is the gender
-                    genderConfidence,
-                    face.boundingBox(),
-                    attributes));
-            }
-
-            logger.info("Demographics detection completed: {} face(s) analyzed", faces.size());
-            return demographics;
-
-        } catch (Exception e) {
-            logger.error("Demographics detection failed: {}", e.getMessage(), e);
-            throw new VisionProcessingException("Demographics detection failed", e);
-        }
+        throw new VisionUnsupportedException(
+            "Demographics detection requires a dedicated model (abhilash88/age-gender-prediction) that is not yet integrated",
+            "detectDemographics",
+            "DEMOGRAPHICS");
     }
 
-    private String getAgeRange(int age) {
-        if (age < 18)
-            return "0-17";
-        if (age < 25)
-            return "18-24";
-        if (age < 35)
-            return "25-34";
-        if (age < 45)
-            return "35-44";
-        if (age < 55)
-            return "45-54";
-        if (age < 65)
-            return "55-64";
-        return "65+";
-    }
+    // ==================== NSFWDetectionCapability Implementation ====================
 
-    // ==================== NSFWDetectionCapability Implementation
-    // ====================
-
-    /**
-     * Detects NSFW content in images.
-     *
-     * <p>
-     * Intended model: Falconsai/nsfw_image_detection (Vision Transformer, ~98%
-     * accuracy)
-     * </p>
-     * <p>
-     * Current implementation: Uses generic image classification
-     * </p>
-     */
     @Override
     public List<Detection> detectNSFW(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        logger.debug("Starting NSFW detection (placeholder)");
-
-        try {
-            // Use generic image classification
-            // In full implementation, load dedicated NSFW detection model:
-            // Falconsai/nsfw_image_detection
-            ImageClassificationCapability.ClassificationResult classificationResult = classifyImage(imageData, 2);
-
-            // Parse classification results
-            boolean isNSFW = false;
-            double confidence = 0.5;
-            String classification = "normal";
-
-            if (!classificationResult.classifications().isEmpty()) {
-                ImageClassificationCapability.Classification topResult = classificationResult.classifications().get(0);
-                String label = topResult.label().toLowerCase();
-
-                // Check if label indicates NSFW content
-                if (label.contains("nsfw") || label.contains("adult") ||
-                    label.contains("explicit") || label.contains("inappropriate")) {
-                    isNSFW = true;
-                    classification = "nsfw";
-                    confidence = topResult.confidence();
-                } else {
-                    classification = "normal";
-                    confidence = 1.0 - topResult.confidence();
-                }
-            }
-
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("isNSFW", isNSFW);
-            attributes.put("classification", classification);
-            attributes.put("backend", BACKEND_ID);
-            attributes.put("model", "generic-classifier");
-            attributes.put("note",
-                "Using generic classification until dedicated NSFW model loaded: Falconsai/nsfw_image_detection");
-
-            logger.info("NSFW detection completed: classification={}, confidence={}", classification, confidence);
-
-            // Return single detection with classification result
-            // Use empty bounding box for whole-image classification
-            BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-            return List.of(new Detection(
-                classification, // label is "normal" or "nsfw"
-                confidence,
-                wholeBbox, // whole image bounding box
-                attributes));
-
-        } catch (Exception e) {
-            logger.error("NSFW detection failed: {}", e.getMessage(), e);
-            throw new VisionProcessingException("NSFW detection failed", e);
-        }
+        throw new VisionUnsupportedException(
+            "NSFW detection requires a dedicated model (Falconsai/nsfw_image_detection) that is not yet integrated",
+            "detectNSFW",
+            "NSFW");
     }
 
-    // ==================== EmotionDetectionCapability Implementation
-    // ====================
+    // ==================== EmotionDetectionCapability Implementation ====================
 
-    /**
-     * Detects emotions from facial expressions.
-     *
-     * <p>
-     * Intended model: abhilash88/face-emotion-detection (Vision Transformer, 71.55%
-     * on FER2013)
-     * </p>
-     * <p>
-     * Current implementation: Placeholder using face detection + mock emotions
-     * </p>
-     */
     @Override
     public List<Detection> detectEmotions(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        logger.debug("Starting emotion detection (placeholder)");
-
-        try {
-            // Detect faces first
-            List<Detection> faces = detectFaces(imageData);
-
-            // Create Detection for each face with emotion
-            // In full implementation, use dedicated emotion detection model:
-            // abhilash88/face-emotion-detection
-            String[] emotionLabels = {"happy", "sad", "angry", "neutral", "surprise", "fear", "disgust"};
-            List<Detection> emotions = new ArrayList<>();
-
-            for (int i = 0; i < faces.size(); i++) {
-                Detection face = faces.get(i);
-
-                // Assign placeholder emotion (would come from model)
-                String emotion = emotionLabels[i % emotionLabels.length];
-                double confidence = 0.60 + (Math.random() * 0.30);
-
-                Map<String, Object> attributes = new HashMap<>();
-                attributes.put("emotion", emotion);
-                attributes.put("faceIndex", i);
-                attributes.put("backend", BACKEND_ID);
-                attributes.put("model", "placeholder");
-                attributes.put("emotionClasses", Arrays.asList(emotionLabels));
-                attributes.put("note",
-                    "Using placeholder emotions until dedicated model loaded: abhilash88/face-emotion-detection");
-
-                emotions.add(new Detection(
-                    emotion, // label is the emotion
-                    confidence,
-                    face.boundingBox(),
-                    attributes));
-            }
-
-            logger.info("Emotion detection completed: {} face(s) analyzed", faces.size());
-            return emotions;
-
-        } catch (Exception e) {
-            logger.error("Emotion detection failed: {}", e.getMessage(), e);
-            throw new VisionProcessingException("Emotion detection failed", e);
-        }
+        throw new VisionUnsupportedException(
+            "Emotion detection requires a dedicated model (abhilash88/face-emotion-detection) that is not yet integrated",
+            "detectEmotions",
+            "EMOTION");
     }
 
-    // ==================== DeepfakeDetectionCapability Implementation
-    // ====================
+    // ==================== DeepfakeDetectionCapability Implementation ====================
 
-    /**
-     * Detects deepfake/manipulated images.
-     *
-     * <p>
-     * Intended model: prithivMLmods/deepfake-detector-model-v1 (SigLIP, 94.44%
-     * accuracy)
-     * </p>
-     * <p>
-     * Current implementation: Uses generic image classification
-     * </p>
-     */
     @Override
     public List<Detection> detectDeepfake(ImageData imageData) throws BaseVisionException {
-        Objects.requireNonNull(imageData, "ImageData cannot be null");
-        logger.debug("Starting deepfake detection (placeholder)");
-
-        try {
-            // Use generic image classification
-            // In full implementation, load dedicated deepfake detection model:
-            // prithivMLmods/deepfake-detector-model-v1
-            ImageClassificationCapability.ClassificationResult classificationResult = classifyImage(imageData, 2);
-
-            // Parse classification results
-            boolean isFake = false;
-            double confidence = 0.5;
-            String classification = "real";
-            String manipulationType = null;
-
-            if (!classificationResult.classifications().isEmpty()) {
-                ImageClassificationCapability.Classification topResult = classificationResult.classifications().get(0);
-                String label = topResult.label().toLowerCase();
-
-                // Check if label indicates fake content
-                if (label.contains("fake") || label.contains("synthetic") ||
-                    label.contains("generated") || label.contains("deepfake")) {
-                    isFake = true;
-                    classification = "fake";
-                    confidence = topResult.confidence();
-                    manipulationType = "unknown";
-                } else {
-                    classification = "real";
-                    confidence = 1.0 - topResult.confidence();
-                }
-            }
-
-            Map<String, Object> attributes = new HashMap<>();
-            attributes.put("isFake", isFake);
-            attributes.put("classification", classification);
-            attributes.put("manipulationType", manipulationType);
-            attributes.put("backend", BACKEND_ID);
-            attributes.put("model", "generic-classifier");
-            attributes.put("note",
-                "Using generic classification until dedicated deepfake model loaded: prithivMLmods/deepfake-detector-model-v1");
-
-            logger.info("Deepfake detection completed: classification={}, confidence={}", classification, confidence);
-
-            // Return single detection with classification result
-            // Use empty bounding box for whole-image classification
-            BoundingBox wholeBbox = new BoundingBox(0.0, 0.0, 1.0, 1.0);
-            try {
-                return List.of(new Detection(
-                    classification, // label is "real" or "fake"
-                    confidence,
-                    wholeBbox, // whole image bounding box
-                    attributes));
-            } catch (Exception ex) {
-                logger.warn("Failed to create deepfake detection: {}", ex.getMessage());
-                // Return empty list as safe fallback
-                return List.of();
-            }
-
-        } catch (Exception e) {
-            logger.error("Deepfake detection failed: {}", e.getMessage(), e);
-            throw new VisionProcessingException("Deepfake detection failed", e);
-        }
+        throw new VisionUnsupportedException(
+            "Deepfake detection requires a dedicated model (prithivMLmods/deepfake-detector-model-v1) that is not yet integrated",
+            "detectDeepfake",
+            "DEEPFAKE");
     }
 
     // ==================== FallDetectionCapability Implementation

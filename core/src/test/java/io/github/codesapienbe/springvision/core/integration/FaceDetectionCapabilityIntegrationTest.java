@@ -59,9 +59,6 @@ public class FaceDetectionCapabilityIntegrationTest {
         properties.getFaceDetection().setConfidenceThreshold(0.5f);
         properties.getFaceDetection().setMaxFaces(10);
 
-        // Disable synthetic fallbacks to ensure real model usage
-        properties.setSyntheticFallbacks(false);
-
         backend = new DjlVisionBackend(properties);
 
         // Initialize backend - should load RetinaFace model offline
