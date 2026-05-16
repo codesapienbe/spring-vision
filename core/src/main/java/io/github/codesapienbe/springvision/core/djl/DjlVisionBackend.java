@@ -183,6 +183,9 @@ public class DjlVisionBackend implements VisionBackend,
     private final Semaphore inferenceSemaphore;
     private final int maxConcurrentInferences;
 
+    // Read once at construction; avoids re-reading the system property on every inference call
+    private final boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
+
     // Functional callback for predictor usage
     @FunctionalInterface
     private interface PredictorCallback<I, O, R> {
@@ -822,7 +825,6 @@ public class DjlVisionBackend implements VisionBackend,
             // detection.
             // If no models are loaded (e.g., offline/test mode), return synthetic fallback if enabled.
             if (faceDetectionModel == null && objectDetectionModel == null) {
-                boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
                 boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
 
                 if (shouldUseSynthetic) {
@@ -834,8 +836,10 @@ public class DjlVisionBackend implements VisionBackend,
                     return List.of(synthetic);
                 }
 
-                logger.info("No face/object detection models loaded; returning empty face list");
-                return Collections.emptyList();
+                throw new VisionBackendException(
+                    "Face detection models not initialized",
+                    "model_not_initialized",
+                    null);
             }
 
             ZooModel<Image, DetectedObjects> modelToUse = (faceDetectionModel != null) ? faceDetectionModel
@@ -933,7 +937,6 @@ public class DjlVisionBackend implements VisionBackend,
             // If object detection model isn't loaded (offline/test mode), return synthetic
             // detection
             if (objectDetectionModel == null) {
-                boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
                 boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
 
                 if (shouldUseSynthetic) {
@@ -972,8 +975,10 @@ public class DjlVisionBackend implements VisionBackend,
                     return syntheticList;
                 }
 
-                logger.info("No object detection model loaded; returning empty object list");
-                return Collections.emptyList();
+                throw new VisionBackendException(
+                    "Object detection model not initialized",
+                    "model_not_initialized",
+                    null);
             }
 
             List<Detection> results = withPredictor(objectDetectionModel, predictor -> {
@@ -1021,7 +1026,6 @@ public class DjlVisionBackend implements VisionBackend,
 
         // If pose model not loaded, return synthetic pose/person detection if in offline/test mode
         if (poseEstimationModel == null) {
-            boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
             boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
 
             if (shouldUseSynthetic) {
@@ -1152,7 +1156,6 @@ public class DjlVisionBackend implements VisionBackend,
         // If action model not loaded, try synthetic fallback when model files are
         // present
         if (actionRecognitionModel == null) {
-            boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
             if (djlOffline || !properties.isAutoDownload()) {
                 logger.info(
                     "Action recognition model not loaded; returning synthetic action detection in offline/test mode");
@@ -1743,7 +1746,6 @@ public class DjlVisionBackend implements VisionBackend,
         String correlationId = generateCorrelationId();
 
         // If DJL is offline or auto-downloads are disabled, attempt safe fallbacks
-        boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
         if (djlOffline || !properties.isAutoDownload()) {
             // Avoid calling native Tess4J in offline/test environments (can abort JVM)
             // Provide a deterministic synthetic OCR result so integration tests can
@@ -1896,14 +1898,12 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // Check if we're in offline mode or auto-download is disabled
-            boolean djlOffline = Boolean.parseBoolean(System.getProperty("ai.djl.offline", "false"));
+            // If offline mode or auto-download disabled, return synthetic result
             boolean shouldUseSynthetic = djlOffline || !properties.isAutoDownload();
 
-            // If offline mode or auto-download disabled, return synthetic result
             if (shouldUseSynthetic) {
                 logger.info(
-                    "Classification model files present but model not loaded; returning synthetic classification result");
+                    "Classification model not loaded (offline/test mode); returning synthetic classification result");
 
                 if (!properties.isSyntheticFallbacks()) {
                     logger.info("Synthetic fallbacks disabled via properties; throwing classification_failed");

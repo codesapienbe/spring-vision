@@ -33,14 +33,6 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <repositories>
-    <repository>
-      <id>central</id>
-      <name>Maven Central</name>
-      <url>https://repo.maven.apache.org/maven2</url>
-    </repository>
-  </repositories>
-
   <dependencies>
     <!-- Spring Boot Starter -->
     <dependency>
@@ -150,7 +142,8 @@
       <version>3.24ea4</version>
     </dependency>
 
-    <!-- LZ4 compression for efficient index storage - using yawkat fork with security fixes -->
+    <!-- LZ4 compression - yawkat fork contains security patches not yet in upstream org.lz4:lz4-java.
+         Document the specific CVE fixed here before upgrading or reverting to upstream. -->
     <dependency>
       <groupId>at.yawk.lz4</groupId>
       <artifactId>lz4-java</artifactId>

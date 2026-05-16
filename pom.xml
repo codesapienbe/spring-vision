@@ -208,7 +208,6 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>${maven-compiler-plugin.version}</version>
           <configuration>
-            <release>21</release>
             <compilerArgs>
               <arg>-parameters</arg>
               <!-- Enable targeted linting for code quality -->
@@ -388,7 +387,7 @@
     </pluginManagement>
 
     <plugins>
-      <!-- Enforce Java 21 -->
+      <!-- Enforce Java 25 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -402,7 +401,7 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[21,)</version>
+                  <version>[25,)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
