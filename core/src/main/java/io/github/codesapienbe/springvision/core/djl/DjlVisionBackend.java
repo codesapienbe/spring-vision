@@ -164,6 +164,7 @@ public class DjlVisionBackend implements VisionBackend,
     // Models
     private ZooModel<Image, DetectedObjects> faceDetectionModel;
     private ZooModel<Image, float[]> faceRecognitionModel;
+    private ZooModel<Image, float[]> emotionModel;
     private ZooModel<Image, DetectedObjects> objectDetectionModel;
     private ZooModel<Image, Joints> poseEstimationModel;
     private ZooModel<Image, float[]> actionRecognitionModel;
@@ -496,6 +497,12 @@ public class DjlVisionBackend implements VisionBackend,
                 }
             }
 
+            try {
+                loadEmotionModel();
+            } catch (Exception e) {
+                logger.warn("Failed to load emotion model: {}. Emotion detection will be unavailable.", e.getMessage());
+            }
+
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
             healthErrorMessage = null;
@@ -593,6 +600,27 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info(
             "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + FaceFeatureNet embeddings)",
             faceRecognitionModel.getName());
+    }
+
+    private void loadEmotionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading FER+ emotion detection model (OnnxRuntime, 8-class)");
+        String localUrl = YoloModelLoader.getModelUrl("emotion-ferplus/emotion-ferplus-8.onnx");
+        String modelUrl = (localUrl != null) ? localUrl
+            : "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx";
+
+        Criteria<Image, float[]> criteria = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(modelUrl)
+            .optModelName("emotion-ferplus-8")
+            .optTranslator(new FerPlusTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
+            .build();
+
+        emotionModel = criteria.loadModel();
+        modelCache.put("emotion", emotionModel);
+        logger.info("FER+ emotion model loaded: {}", emotionModel.getName());
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1622,6 +1650,68 @@ public class DjlVisionBackend implements VisionBackend,
         };
     }
 
+    // Translator for the emotion-ferplus-8 ONNX model.
+    // Input:  DJL Image (face crop pre-resized to 64x64 grayscale)
+    // Output: float[8] softmax probabilities for the 8 FER+ emotion classes
+    private static final class FerPlusTranslator implements Translator<Image, float[]> {
+
+        static final String[] LABELS = {
+            "neutral", "happiness", "surprise", "sadness",
+            "anger", "disgust", "fear", "contempt"
+        };
+
+        @Override
+        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
+            NDManager mgr = ctx.getNDManager();
+            // Decode as grayscale — DJL gives shape [H, W, 1] or [H, W]; values 0-255
+            NDArray gray = input.toNDArray(mgr, Image.Flag.GRAYSCALE).toType(DataType.FLOAT32, false);
+            // Ensure shape is [H, W] (drop trailing 1 if present)
+            if (gray.getShape().dimension() == 3) {
+                gray = gray.squeeze(-1);
+            }
+            // emotion-ferplus-8 expects [batch, 1, 64, 64] with pixel values 0-255
+            gray = gray.expandDims(0).expandDims(0); // [1, 1, 64, 64]
+            return new NDList(gray);
+        }
+
+        @Override
+        public float[] processOutput(TranslatorContext ctx, NDList list) {
+            float[] logits = list.getFirst().toFloatArray(); // length 8
+            return softmax(logits);
+        }
+
+        @Override
+        public Batchifier getBatchifier() {
+            return null;
+        }
+
+        private static float[] softmax(float[] logits) {
+            float max = logits[0];
+            for (float v : logits) {
+                if (v > max) max = v;
+            }
+            float sum = 0f;
+            float[] out = new float[logits.length];
+            for (int i = 0; i < logits.length; i++) {
+                out[i] = (float) Math.exp(logits[i] - max);
+                sum += out[i];
+            }
+            for (int i = 0; i < out.length; i++) {
+                out[i] /= sum;
+            }
+            return out;
+        }
+    }
+
+    private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
+        BufferedImage gray = new BufferedImage(64, 64, BufferedImage.TYPE_BYTE_GRAY);
+        Graphics2D g = gray.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(src, 0, 0, 64, 64, null);
+        g.dispose();
+        return gray;
+    }
+
     private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = resizedImage.createGraphics();
@@ -2404,10 +2494,121 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public List<Detection> detectEmotions(ImageData imageData) throws BaseVisionException {
-        throw new VisionUnsupportedException(
-            "Emotion detection requires a dedicated model (abhilash88/face-emotion-detection) that is not yet integrated",
-            "detectEmotions",
-            "EMOTION");
+        if (!initialized) {
+            throw new VisionBackendException(
+                "Backend not initialized",
+                "not_initialized",
+                null);
+        }
+
+        if (emotionModel == null) {
+            throw new VisionBackendException(
+                "Emotion model not available. Run 'mvn clean install -Pdownload-models' to download emotion-ferplus-8.onnx.",
+                "model_not_initialized",
+                null);
+        }
+
+        if (imageData == null) {
+            throw new VisionProcessingException("Image data must not be null", "null_input", null);
+        }
+
+        if (imageData.data() == null || imageData.data().length == 0) {
+            throw new VisionProcessingException("Image data is empty", "empty_input", null);
+        }
+
+        if (imageData.data().length > 50 * 1024 * 1024) {
+            throw new VisionProcessingException("Image size exceeds maximum limit of 50MB", "image_too_large", null);
+        }
+
+        String correlationId = generateCorrelationId();
+
+        try {
+            logger.debug("DJL emotion detection requested: correlationId={}", correlationId);
+
+            // Detect faces to get bounding boxes
+            List<Detection> faceDetections = detectFaces(imageData);
+
+            // Decode full image for cropping
+            java.awt.image.BufferedImage fullImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+            if (fullImage == null) {
+                throw new IOException("Unable to decode image for emotion detection");
+            }
+            int imgW = fullImage.getWidth();
+            int imgH = fullImage.getHeight();
+
+            List<java.awt.image.BufferedImage> crops = new ArrayList<>();
+            List<io.github.codesapienbe.springvision.core.BoundingBox> boxes = new ArrayList<>();
+
+            if (faceDetections.isEmpty()) {
+                // No faces detected — run on full image
+                crops.add(fullImage);
+                boxes.add(new io.github.codesapienbe.springvision.core.BoundingBox(0, 0, 1, 1));
+            } else {
+                for (Detection det : faceDetections) {
+                    io.github.codesapienbe.springvision.core.BoundingBox bbox = det.boundingBox();
+                    if (bbox == null) continue;
+                    int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                    int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                    int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                    int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+                    int padX = (int) (w * 0.1);
+                    int padY = (int) (h * 0.1);
+                    int sx = Math.max(0, x - padX);
+                    int sy = Math.max(0, y - padY);
+                    int sw = Math.min(imgW - sx, w + padX * 2);
+                    int sh = Math.min(imgH - sy, h + padY * 2);
+                    try {
+                        crops.add(fullImage.getSubimage(sx, sy, sw, sh));
+                        boxes.add(bbox);
+                    } catch (java.awt.image.RasterFormatException rfe) {
+                        logger.warn("Invalid crop for face in emotion detection - skipping: {}", rfe.getMessage());
+                    }
+                }
+            }
+
+            List<Detection> results = new ArrayList<>();
+            for (int i = 0; i < crops.size(); i++) {
+                java.awt.image.BufferedImage gray64 = resizeToGrayscale64x64(crops.get(i));
+                java.io.ByteArrayOutputStream faceBaos = new java.io.ByteArrayOutputStream();
+                ImageIO.write(gray64, "png", faceBaos);
+                Image faceImage = ImageFactory.getInstance()
+                    .fromInputStream(new ByteArrayInputStream(faceBaos.toByteArray()));
+
+                try {
+                    float[] probs = withPredictor(emotionModel, predictor -> predictor.predict(faceImage));
+
+                    int argmax = 0;
+                    for (int j = 1; j < probs.length; j++) {
+                        if (probs[j] > probs[argmax]) argmax = j;
+                    }
+                    String label = FerPlusTranslator.LABELS[argmax];
+                    float confidence = probs[argmax];
+
+                    java.util.Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+                    attrs.put("faceIndex", i);
+                    for (int j = 0; j < FerPlusTranslator.LABELS.length; j++) {
+                        attrs.put(FerPlusTranslator.LABELS[j], probs[j]);
+                    }
+
+                    results.add(new Detection(label, confidence, boxes.get(i), attrs));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new VisionBackendException("Emotion inference interrupted", "interrupted", null, ie);
+                } catch (Exception ex) {
+                    logger.warn("Failed to detect emotion for face {}: {}", i, ex.getMessage());
+                }
+            }
+
+            logger.info("DJL emotion detection completed: faces={}, correlationId={}", results.size(), correlationId);
+            return results;
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Image decoding failed during emotion detection: " + e.getMessage(),
+                "io_error",
+                null,
+                e);
+        }
     }
 
     // ==================== DeepfakeDetectionCapability Implementation ====================

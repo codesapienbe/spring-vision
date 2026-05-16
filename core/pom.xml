@@ -22,7 +22,7 @@
     <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
     <!-- Directory where build-time downloaded models are stored -->
     <models.directory>${project.basedir}/models</models.directory>
-    <yolo.version>v8.3.0</yolo.version>
+    <yolo.version>v8.4.0</yolo.version>
   </properties>
 
   <pluginRepositories>
@@ -167,11 +167,10 @@
       <version>2.19.0</version>
     </dependency>
 
-    <!-- ONNX Runtime for CPU (default profile) -->
+    <!-- ONNX Runtime for CPU (used by emotion detection and any future ONNX models) -->
     <dependency>
       <groupId>com.microsoft.onnxruntime</groupId>
       <artifactId>onnxruntime</artifactId>
-      <optional>true</optional>
     </dependency>
 
     <!-- Tesseract OCR (migrated from tesseract module) -->
@@ -250,11 +249,10 @@
       <artifactId>opencv</artifactId>
     </dependency>
 
-    <!-- DJL ONNX Runtime Engine (for ONNX models) -->
+    <!-- DJL ONNX Runtime Engine (for ONNX models, e.g. emotion-ferplus) -->
     <dependency>
       <groupId>ai.djl.onnxruntime</groupId>
       <artifactId>onnxruntime-engine</artifactId>
-      <optional>true</optional>
     </dependency>
 
     <!-- DJL HuggingFace Tokenizers (for HuggingFace model support) -->
@@ -604,6 +602,20 @@
                           <url>https://resources.djl.ai/test-models/pytorch/face_feature.zip</url>
                           <outputDirectory>${models.directory}/face_feature</outputDirectory>
                           <outputFileName>face_feature.zip</outputFileName>
+                      </configuration>
+                  </execution>
+                  <!-- FER+ Emotion Detection Model (ONNX, 8 classes: neutral/happiness/surprise/sadness/anger/disgust/fear/contempt) -->
+                  <execution>
+                      <id>download-emotion-ferplus</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx</url>
+                          <outputDirectory>${models.directory}/emotion-ferplus</outputDirectory>
+                          <outputFileName>emotion-ferplus-8.onnx</outputFileName>
+                          <skipCache>false</skipCache>
                       </configuration>
                   </execution>
               </executions>
