@@ -59,19 +59,27 @@ format:
 	@echo "Formatting completed successfully"
 
 SPRINGVISION_DIR ?= $(HOME)/.springvision
+MCP_JAR         := $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
+MCP_ENTRY       := {"command":"java","args":["$(MCP_JAR)"]}
+
+# Helper: upsert spring-vision entry into any JSON file that has a top-level mcpServers object
+define upsert-mcp
+	@if [ -f $(1) ]; then \
+		jq --argjson entry '$(MCP_ENTRY)' '.mcpServers["spring-vision"] = $$entry' \
+			$(1) > /tmp/_mcp_sync.tmp && mv /tmp/_mcp_sync.tmp $(1); \
+		echo "  ✓ $(1)"; \
+	else \
+		echo "  – $(1) not found, skipping"; \
+	fi
+endef
 
 sync:
 	@echo "Building and syncing MCP jar for local testing..."
 	mvn -pl mcp clean package -DskipTests -q || ( echo "MCP build failed!" && exit 1 )
 	mkdir -p $(SPRINGVISION_DIR)
-	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
-	@echo "MCP jar synced to $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar"
-	@if [ -f $(HOME)/.cursor/mcp.json ]; then \
-		echo "Updating version in ~/.cursor/mcp.json..."; \
-		jq --arg version "$(SPRING_VISION_VERSION)" --arg dir "$(SPRINGVISION_DIR)" \
-			'.mcpServers."spring-vision".args[0] = $$dir + "/mcp-" + $$version + ".jar"' \
-			$(HOME)/.cursor/mcp.json > /tmp/mcp.json.tmp && mv /tmp/mcp.json.tmp $(HOME)/.cursor/mcp.json; \
-		echo "Updated ~/.cursor/mcp.json with version $(SPRING_VISION_VERSION)"; \
-	else \
-		echo "~/.cursor/mcp.json not found, skipping version update"; \
-	fi
+	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCP_JAR)
+	@echo "Jar → $(MCP_JAR)"
+	@echo "Registering spring-vision MCP server in agent configs:"
+	$(call upsert-mcp,$(HOME)/.claude/settings.json)
+	$(call upsert-mcp,$(HOME)/.cursor/mcp.json)
+	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
