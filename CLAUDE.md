@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Modules
 
 | Module | Artifact | Role |
-|--------|----------|------|
+| --- | --- | --- |
 | `core` | `spring-vision-core` | Domain model, `VisionBackend` SPI, `VisionTemplate`, DJL backend, capability interfaces |
 | `starter` | `spring-vision-starter` | Spring Boot auto-configuration, REST API (`/api/vision/*`), async config |
 | `mcp` | `spring-vision-mcp` | MCP server application; exposes `VisionTool` via Spring AI `@Tool` |
@@ -64,7 +64,7 @@ mvn clean install -DskipTests -Dgpg.skip=true -Pdownload-models
 
 `VisionTemplate` (a Java `record`) is the consumer-facing API. It uses `instanceof`-pattern-matched capability checks and throws `VisionUnsupportedException` when the active backend doesn't implement a requested capability.
 
-```
+```text
 VisionTemplate
     └── delegates via capability instanceof checks to:
             └── DjlVisionBackend (implements VisionBackend + all capabilities)
@@ -87,7 +87,7 @@ VisionTemplate
 - **Checkstyle** (`checkstyle.xml`): no star imports, `NeedBraces` required, `EmptyBlock` forbidden. Runs at `validate` phase.
 - **Spotless**: removes unused imports, enforces import order (`java,javax,org,com`). Run `mvn spotless:apply` before committing.
 - **JaCoCo**: 90% instruction/branch/line coverage enforced at `verify` phase.
-- Java 21+ required (enforced by `maven-enforcer-plugin`); source compiled to `--release 21`.
+- Java 25+ required (enforced by `maven-enforcer-plugin`); source compiled to `--release 25`.
 - Tests needing heavy memory use JUnit 5 tag `memory-intensive` and are excluded by default.
 
 ## Key Conventions
