@@ -938,12 +938,6 @@ public class DjlVisionBackend implements VisionBackend,
                 if (shouldUseSynthetic()) {
                     logger.info(
                         "Object detection model not loaded (offline/test mode); returning synthetic object detection");
-                    // Small artificial delay to emulate real inference cost for integration tests
-                    try {
-                        Thread.sleep(20);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
                     // Produce multiple synthetic detections to satisfy integration tests that
                     // expect many outputs
                     int syntheticCount = 10; // default
@@ -1919,13 +1913,6 @@ public class DjlVisionBackend implements VisionBackend,
                 metadata.put("topK", topK);
                 metadata.put("fallback", "synthetic");
                 metadata.put("totalClasses", 1);
-
-                // Small artificial delay to emulate real inference cost
-                try {
-                    Thread.sleep(15);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
 
                 return new ImageClassificationCapability.ClassificationResult(results, metadata);
             }

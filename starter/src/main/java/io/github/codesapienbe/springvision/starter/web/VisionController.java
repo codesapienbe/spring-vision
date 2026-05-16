@@ -591,12 +591,7 @@ public class VisionController {
                     emotion.put("faceIndex", detection.attributes().get("faceIndex"));
 
                     if (detection.boundingBox() != null) {
-                        emotion.put("boundingBox", Map.of(
-                            "x", detection.boundingBox().x(),
-                            "y", detection.boundingBox().y(),
-                            "width", detection.boundingBox().width(),
-                            "height", detection.boundingBox().height()
-                        ));
+                        emotion.put("boundingBox", boundingBoxMap(detection.boundingBox()));
                     }
                     emotions.add(emotion);
                 }
