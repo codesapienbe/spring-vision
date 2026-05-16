@@ -60,7 +60,7 @@ format:
 
 SPRINGVISION_DIR ?= $(HOME)/.springvision
 MCP_JAR         := $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
-MCP_ENTRY       := {"command":"java","args":["$(MCP_JAR)"]}
+MCP_ENTRY       := {"command":"java","args":["-jar","$(MCP_JAR)"]}
 
 # Helper: upsert spring-vision entry into any JSON file that has a top-level mcpServers object
 define upsert-mcp
