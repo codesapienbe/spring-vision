@@ -901,35 +901,16 @@ public class DjlVisionBackend implements VisionBackend,
             Image djlImage = ImageFactory.getInstance()
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            // Prefer specialized face detection model when available, fall back to object detection.
-            if (faceDetectionModel == null && objectDetectionModel == null) {
+            if (faceDetectionModel == null) {
                 throw new VisionBackendException(
-                    "Face detection models not initialized",
+                    "RetinaFace model not initialized. Run 'mvn clean install -Pdownload-models' to download it.",
                     "model_not_initialized",
                     null);
             }
 
-            ZooModel<Image, DetectedObjects> modelToUse = (faceDetectionModel != null) ? faceDetectionModel
-                : objectDetectionModel;
-
-            List<Detection> faceDetections = withPredictor(modelToUse, predictor -> {
+            List<Detection> faceDetections = withPredictor(faceDetectionModel, predictor -> {
                 DetectedObjects detections = predictor.predict(djlImage);
-
-                // If using object detector as fallback, filter 'person' or 'face' class labels;
-                // otherwise use all classes as faces
-                List<Detection> allDetections = convertDetections(detections, query);
-                if (modelToUse == objectDetectionModel) {
-                    return allDetections.stream()
-                        .filter(d -> {
-                            String lbl = d.label() == null ? "" : d.label().toLowerCase();
-                            return lbl.contains("person") || lbl.contains("face") || lbl.contains("head")
-                                || lbl.contains("human");
-                        })
-                        .toList();
-                } else {
-                    // face detector returns face classes - return as-is
-                    return allDetections;
-                }
+                return convertDetections(detections, query);
             });
 
             logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
@@ -2595,8 +2576,15 @@ public class DjlVisionBackend implements VisionBackend,
                     Thread.currentThread().interrupt();
                     throw new VisionBackendException("Emotion inference interrupted", "interrupted", null, ie);
                 } catch (Exception ex) {
-                    logger.warn("Failed to detect emotion for face {}: {}", i, ex.getMessage());
+                    logger.warn("Failed to detect emotion for face {}", i, ex);
                 }
+            }
+
+            if (!crops.isEmpty() && results.isEmpty()) {
+                throw new VisionProcessingException(
+                    "Emotion inference failed for all " + crops.size() + " detected faces",
+                    "inference_failed",
+                    null);
             }
 
             logger.info("DJL emotion detection completed: faces={}, correlationId={}", results.size(), correlationId);
