@@ -825,9 +825,7 @@ public class DjlVisionBackend implements VisionBackend,
             // detection.
             // If no models are loaded (e.g., offline/test mode), return synthetic fallback if enabled.
             if (faceDetectionModel == null && objectDetectionModel == null) {
-                boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
-
-                if (shouldUseSynthetic) {
+                if (shouldUseSynthetic()) {
                     logger.info("Face detection models not loaded (offline/test mode); returning synthetic face detection");
 
                     // Create a synthetic detection centered in image
@@ -937,9 +935,7 @@ public class DjlVisionBackend implements VisionBackend,
             // If object detection model isn't loaded (offline/test mode), return synthetic
             // detection
             if (objectDetectionModel == null) {
-                boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
-
-                if (shouldUseSynthetic) {
+                if (shouldUseSynthetic()) {
                     logger.info(
                         "Object detection model not loaded (offline/test mode); returning synthetic object detection");
                     // Small artificial delay to emulate real inference cost for integration tests
@@ -1026,9 +1022,7 @@ public class DjlVisionBackend implements VisionBackend,
 
         // If pose model not loaded, return synthetic pose/person detection if in offline/test mode
         if (poseEstimationModel == null) {
-            boolean shouldUseSynthetic = (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
-
-            if (shouldUseSynthetic) {
+            if (shouldUseSynthetic()) {
                 logger.info("Pose estimation model not loaded (offline/test mode); returning synthetic pose detection");
                 BoundingBox box = new BoundingBox(0.2, 0.2, 0.6, 0.6);
                 Detection synthetic = Detection.of("person", 0.6, box, "backend", BACKEND_ID);
@@ -2079,6 +2073,10 @@ public class DjlVisionBackend implements VisionBackend,
      */
     private String generateCorrelationId() {
         return UUID.randomUUID().toString();
+    }
+
+    private boolean shouldUseSynthetic() {
+        return (djlOffline || !properties.isAutoDownload()) && properties.isSyntheticFallbacks();
     }
 
     // ==================== BarcodeCapability Implementation ====================

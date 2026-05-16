@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import io.github.codesapienbe.springvision.core.BoundingBox;
 import io.github.codesapienbe.springvision.core.DetectionCategory;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
@@ -337,12 +338,7 @@ public class VisionController {
                     item.put("text", text);
                     item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
                     if (detection.boundingBox() != null) {
-                        item.put("boundingBox", Map.of(
-                            "x", detection.boundingBox().x(),
-                            "y", detection.boundingBox().y(),
-                            "width", detection.boundingBox().width(),
-                            "height", detection.boundingBox().height()
-                        ));
+                        item.put("boundingBox", boundingBoxMap(detection.boundingBox()));
                     }
                     detections.add(item);
                     if (text != null) {
@@ -396,12 +392,7 @@ public class VisionController {
                     barcodeInfo.put("content", detection.attributes().get("content"));
                     barcodeInfo.put("confidence", detection.confidence());
                     if (detection.boundingBox() != null) {
-                        barcodeInfo.put("location", Map.of(
-                            "x", detection.boundingBox().x(),
-                            "y", detection.boundingBox().y(),
-                            "width", detection.boundingBox().width(),
-                            "height", detection.boundingBox().height()
-                        ));
+                        barcodeInfo.put("location", boundingBoxMap(detection.boundingBox()));
                     }
                     barcodes.add(barcodeInfo);
                 }
@@ -630,6 +621,10 @@ public class VisionController {
     }
 
     // ========== Helper Methods ==========
+
+    private Map<String, Object> boundingBoxMap(BoundingBox box) {
+        return Map.of("x", box.x(), "y", box.y(), "width", box.width(), "height", box.height());
+    }
 
     /**
      * Resolve image source from URL or uploaded file.
