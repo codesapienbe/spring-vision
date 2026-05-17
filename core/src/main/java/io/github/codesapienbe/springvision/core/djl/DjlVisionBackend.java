@@ -3519,8 +3519,10 @@ public class DjlVisionBackend implements VisionBackend,
         List<String> indicators = new ArrayList<>();
         double baseStress = 0.0;
 
+        // Labels are normalised to the noun forms FER+ emits
+        // (neutral, happiness, surprise, sadness, anger, disgust, fear, contempt).
         switch (emotion) {
-            case "angry":
+            case "anger":
                 baseStress = 0.85;
                 indicators.add("high_negative_emotion");
                 indicators.add("potential_frustration");
@@ -3530,13 +3532,17 @@ public class DjlVisionBackend implements VisionBackend,
                 indicators.add("high_negative_emotion");
                 indicators.add("anxiety_detected");
                 break;
-            case "sad":
+            case "sadness":
                 baseStress = 0.70;
                 indicators.add("negative_emotion");
                 indicators.add("low_mood");
                 break;
             case "disgust":
                 baseStress = 0.65;
+                indicators.add("negative_emotion");
+                break;
+            case "contempt":
+                baseStress = 0.60;
                 indicators.add("negative_emotion");
                 break;
             case "surprise":
@@ -3547,7 +3553,7 @@ public class DjlVisionBackend implements VisionBackend,
                 baseStress = 0.25;
                 indicators.add("calm_expression");
                 break;
-            case "happy":
+            case "happiness":
                 baseStress = 0.15;
                 indicators.add("positive_emotion");
                 indicators.add("relaxed_state");
