@@ -632,6 +632,21 @@
                           <skipCache>false</skipCache>
                       </configuration>
                   </execution>
+                  <!-- NSFW Detection Model (ViT fp16 ONNX, onnx-community/nsfw_image_detection-ONNX) -->
+                  <!-- 2-class binary classifier: normal vs nsfw. Input 224x224. -->
+                  <execution>
+                      <id>download-nsfw-detection</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <outputDirectory>${models.directory}/nsfw-detection</outputDirectory>
+                          <outputFileName>nsfw-detection-vit-fp16.onnx</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
                   <!-- Action Recognition Model (ViT fp16 ONNX, onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX) -->
                   <!-- 15-class classifier: Calling, Clapping, Cycling, Dancing, Drinking, Eating, Fighting, Hugging,
                        Laughing, Listening Music, Running, Sitting, Sleeping, Texting, Using Laptop. Input 224x224. -->

@@ -171,6 +171,7 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, float[]> ageModel;
     private ZooModel<Image, float[]> genderModel;
     private ZooModel<Image, float[]> deepfakeModel;
+    private ZooModel<Image, float[]> nsfwModel;
     private ZooModel<Image, float[]> handDetectionModel;
     private ZooModel<Image, DetectedObjects> objectDetectionModel;
     private ZooModel<Image, Joints[]> poseEstimationModel;
@@ -539,6 +540,13 @@ public class DjlVisionBackend implements VisionBackend,
                     e.getMessage(), e);
             }
 
+            try {
+                loadNsfwModel();
+            } catch (Exception e) {
+                logger.warn("Failed to load NSFW detection model: {}. NSFW detection will be unavailable.",
+                    e.getMessage(), e);
+            }
+
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
             healthErrorMessage = null;
@@ -693,6 +701,26 @@ public class DjlVisionBackend implements VisionBackend,
             .loadModel();
         modelCache.put("gender", genderModel);
         logger.info("Gender model loaded: {}", genderModel.getName());
+    }
+
+    private void loadNsfwModel() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading NSFW detection model (Falconsai ViT fp16 ONNX)");
+        String url = YoloModelLoader.getModelUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
+        if (url == null) {
+            url = "https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_fp16.onnx";
+        }
+        // Same preprocessing as action recognition (resize 224, normalize to [-1,1], softmax)
+        nsfwModel = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(url)
+            .optModelName("nsfw-detection-vit")
+            .optTranslator(new ActionRecognitionTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build()
+            .loadModel();
+        modelCache.put("nsfw_detection", nsfwModel);
+        logger.info("NSFW detection model loaded: {}", nsfwModel.getName());
     }
 
     private void loadHandDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -3003,10 +3031,60 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public List<Detection> detectNSFW(ImageData imageData) throws BaseVisionException {
-        throw new VisionUnsupportedException(
-            "NSFW detection requires a dedicated model (Falconsai/nsfw_image_detection) that is not yet integrated",
-            "detectNSFW",
-            "NSFW");
+        if (!initialized) {
+            throw new VisionBackendException("Backend not initialized", "not_initialized", null);
+        }
+        if (nsfwModel == null) {
+            throw new VisionBackendException(
+                "NSFW detection model not initialized. Run 'mvn clean install -Pdownload-models' to download nsfw-detection-vit-fp16.onnx.",
+                "model_not_initialized", null);
+        }
+        if (imageData == null || imageData.data() == null || imageData.data().length == 0) {
+            throw new VisionProcessingException("Image data must not be null or empty", "null_input", null);
+        }
+
+        String correlationId = generateCorrelationId();
+        logger.debug("DJL NSFW detection requested: correlationId={}", correlationId);
+
+        try {
+            Image djlImage = ImageFactory.getInstance()
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
+            float[] probs = withPredictor(nsfwModel, p -> p.predict(djlImage));
+
+            // 2-class softmax: index 0 = "normal", index 1 = "nsfw"
+            float normalProb = probs.length > 0 ? probs[0] : 0f;
+            float nsfwProb   = probs.length > 1 ? probs[1] : 0f;
+            boolean isNsfw   = nsfwProb > normalProb;
+
+            Map<String, Object> attrs = new HashMap<>();
+            attrs.put("type", DetectionType.OBJECT);
+            attrs.put("backend", BACKEND_ID);
+            attrs.put("model", nsfwModel.getName());
+            attrs.put("normalScore", normalProb);
+            attrs.put("nsfwScore", nsfwProb);
+
+            Detection result = new Detection(
+                isNsfw ? "nsfw" : "normal",
+                isNsfw ? nsfwProb : normalProb,
+                new BoundingBox(0.0, 0.0, 1.0, 1.0),
+                attrs);
+
+            logger.info("DJL NSFW detection completed: label={}, conf={}, correlationId={}",
+                result.label(), result.confidence(), correlationId);
+            return java.util.Collections.singletonList(result);
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Image decoding failed during NSFW detection: " + e.getMessage(),
+                "image_load_failed", "NSFW", e);
+        } catch (TranslateException e) {
+            throw new VisionProcessingException(
+                "NSFW detection inference failed: " + e.getMessage(),
+                "inference_failed", "NSFW", e);
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "NSFW detection failed: " + e.getMessage(),
+                "detection_failed", null, e);
+        }
     }
 
     // ==================== EmotionDetectionCapability Implementation ====================
