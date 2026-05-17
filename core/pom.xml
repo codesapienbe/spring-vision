@@ -632,6 +632,21 @@
                           <skipCache>false</skipCache>
                       </configuration>
                   </execution>
+                  <!-- Hand Detection Model (MediaPipe Palm Detector ONNX, from opencv/palm_detection_mediapipe) -->
+                  <!-- Anchor-based palm detector; 3.7 MB; outputs (1, 2016, 18) box+landmark deltas and (1, 2016, 1) score logits. -->
+                  <execution>
+                      <id>download-palm-detection</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://huggingface.co/opencv/palm_detection_mediapipe/resolve/main/palm_detection_mediapipe_2023feb.onnx</url>
+                          <outputDirectory>${models.directory}/palm-detection</outputDirectory>
+                          <outputFileName>palm_detection_mediapipe.onnx</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
                   <!-- Deepfake Detection Model (ViT fp16 ONNX, onnx-community/Deep-Fake-Detector-v2-Model-ONNX) -->
                   <execution>
                       <id>download-deepfake-detector</id>
