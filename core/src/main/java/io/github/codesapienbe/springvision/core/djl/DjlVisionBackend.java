@@ -74,6 +74,8 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import io.github.codesapienbe.springvision.core.AnnotationRequest;
 import io.github.codesapienbe.springvision.core.BackendHealthInfo;
+import io.github.codesapienbe.springvision.core.auth.EnrolledUserStore;
+import io.github.codesapienbe.springvision.core.auth.SqliteEnrolledUserStore;
 import io.github.codesapienbe.springvision.core.BoundingBox;
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.DetectionCategory;
@@ -177,6 +179,13 @@ public class DjlVisionBackend implements VisionBackend,
 
     private final DjlProperties properties;
     private final Device device;
+
+    /**
+     * Store of enrolled biometric identities. Lazily initialized to a SQLite-backed
+     * store at {@code ~/.springvision/db/auth.db} on first use. Tests/applications
+     * may inject a different implementation via {@link #setEnrolledUserStore}.
+     */
+    private volatile EnrolledUserStore enrolledUserStore;
 
     // Lifecycle and health tracking
     private boolean initialized = false;
@@ -3800,12 +3809,12 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (faces.isEmpty()) {
                 logger.warn("Authentication failed: No face detected");
-                return createAuthResult(false, null, null, 0.0, 0.0, "NO_FACE_DETECTED");
+                return createAuthResult(false, null, null, null, 0.0, 0.0, "NO_FACE_DETECTED");
             }
 
             if (faces.size() > 1) {
                 logger.warn("Authentication failed: Multiple faces detected ({})", faces.size());
-                return createAuthResult(false, null, null, 0.0, 0.0, "MULTIPLE_FACES_DETECTED");
+                return createAuthResult(false, null, null, null, 0.0, 0.0, "MULTIPLE_FACES_DETECTED");
             }
 
             Detection face = faces.get(0);
@@ -3813,14 +3822,14 @@ public class DjlVisionBackend implements VisionBackend,
             // Step 2: Check face quality
             if (face.confidence() < 0.7) {
                 logger.warn("Authentication failed: Low face detection confidence ({})", face.confidence());
-                return createAuthResult(false, null, null, face.confidence(), 0.0, "LOW_QUALITY_IMAGE");
+                return createAuthResult(false, null, null, null, face.confidence(), 0.0, "LOW_QUALITY_IMAGE");
             }
 
             // Step 3: Extract face embedding
             List<float[]> embeddingsList = extractFaceEmbeddings(imageData);
             if (embeddingsList == null || embeddingsList.isEmpty()) {
                 logger.warn("Authentication failed: Could not extract face embedding");
-                return createAuthResult(false, null, null, face.confidence(), 0.0, "EMBEDDING_EXTRACTION_FAILED");
+                return createAuthResult(false, null, null, null, face.confidence(), 0.0, "EMBEDDING_EXTRACTION_FAILED");
             }
 
             float[] embedding = embeddingsList.get(0);
@@ -3837,18 +3846,18 @@ public class DjlVisionBackend implements VisionBackend,
             if (authorized) {
                 logger.info("Access AUTHORIZED for user: {} (match score: {}, confidence: {})",
                     match.userName, match.matchScore, face.confidence());
-                return createAuthResult(true, match.userId, match.userName,
+                return createAuthResult(true, match.userId, match.userName, match.remoteId,
                     face.confidence(), match.matchScore, null);
             } else {
                 logger.info("Access DENIED - No matching authorized user (best match score: {})",
                     match.matchScore);
-                return createAuthResult(false, null, null, face.confidence(),
+                return createAuthResult(false, null, null, null, face.confidence(),
                     match.matchScore, "UNAUTHORIZED_USER");
             }
 
         } catch (Exception e) {
             logger.error("Authentication failed with error: {}", e.getMessage(), e);
-            return createAuthResult(false, null, null, 0.0, 0.0,
+            return createAuthResult(false, null, null, null, 0.0, 0.0,
                 "AUTHENTICATION_ERROR: " + e.getMessage());
         }
     }
@@ -3867,20 +3876,42 @@ public class DjlVisionBackend implements VisionBackend,
      * </p>
      */
     private AuthenticationMatch matchAgainstAuthorizedUsers(float[] embedding) {
-        throw new VisionUnsupportedException(
-            "Face authentication requires a configured authorized-user store. "
-            + "Integrate VectorStoreCapability with a secure biometric database "
-            + "before enabling this feature in production.",
-            "face_auth_not_configured",
-            null);
+        EnrolledUserStore store = getEnrolledUserStore();
+        double threshold = properties.getFaceRecognition().getSimilarityThreshold();
+        return store.findBestMatch(embedding, threshold)
+            .map(m -> new AuthenticationMatch(m.userId(), m.userName(), m.remoteId(), m.similarity()))
+            .orElseGet(() -> new AuthenticationMatch(null, null, null, 0.0));
+    }
+
+    /**
+     * Returns the enrolled-user store, creating the default SQLite store on first
+     * access. Exposed so MCP tools can perform enrollment / listing / deletion.
+     */
+    public EnrolledUserStore getEnrolledUserStore() {
+        EnrolledUserStore local = enrolledUserStore;
+        if (local == null) {
+            synchronized (this) {
+                local = enrolledUserStore;
+                if (local == null) {
+                    local = new SqliteEnrolledUserStore();
+                    enrolledUserStore = local;
+                }
+            }
+        }
+        return local;
+    }
+
+    public void setEnrolledUserStore(EnrolledUserStore store) {
+        this.enrolledUserStore = store;
     }
 
     /**
      * Creates authentication result detection.
      */
     private List<Detection> createAuthResult(boolean authorized, String userId,
-                                             String userName, double confidence,
-                                             double matchScore, String reason) {
+                                             String userName, String remoteId,
+                                             double confidence, double matchScore,
+                                             String reason) {
         Map<String, Object> attributes = new java.util.HashMap<>();
         attributes.put("authorized", authorized);
         attributes.put("confidence", confidence);
@@ -3892,6 +3923,9 @@ public class DjlVisionBackend implements VisionBackend,
         if (authorized && userId != null) {
             attributes.put("userId", userId);
             attributes.put("userName", userName);
+            if (remoteId != null) {
+                attributes.put("remoteId", remoteId);
+            }
         }
 
         if (reason != null) {
@@ -3916,11 +3950,13 @@ public class DjlVisionBackend implements VisionBackend,
     private static class AuthenticationMatch {
         final String userId;
         final String userName;
+        final String remoteId;
         final double matchScore;
 
-        AuthenticationMatch(String userId, String userName, double matchScore) {
+        AuthenticationMatch(String userId, String userName, String remoteId, double matchScore) {
             this.userId = userId;
             this.userName = userName;
+            this.remoteId = remoteId;
             this.matchScore = matchScore;
         }
     }

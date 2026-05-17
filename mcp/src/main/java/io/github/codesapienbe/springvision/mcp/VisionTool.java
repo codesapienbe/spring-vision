@@ -28,12 +28,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.auth.EnrolledUserStore;
+import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 import net.logstash.logback.argument.StructuredArguments;
 
 /**
@@ -2944,6 +2948,7 @@ public class VisionTool {
             String timestamp = (String) authResult.attributes().get("timestamp");
             String userId = (String) authResult.attributes().get("userId");
             String userName = (String) authResult.attributes().get("userName");
+            String remoteId = (String) authResult.attributes().get("remoteId");
             String reason = (String) authResult.attributes().get("reason");
 
             long processingTime = System.currentTimeMillis() - startTime;
@@ -2960,6 +2965,9 @@ public class VisionTool {
             if (Boolean.TRUE.equals(authorized)) {
                 response.put("userId", userId);
                 response.put("userName", userName);
+                if (remoteId != null) {
+                    response.put("remoteId", remoteId);
+                }
                 response.put("message", "Access granted for user: " + userName);
             } else {
                 response.put("reason", reason);
@@ -2983,6 +2991,219 @@ public class VisionTool {
         } catch (Exception e) {
             log.error("Failed to authenticate access", e);
             throw new VisionProcessingException("Failed to authenticate access: " + e.getMessage(), e);
+        }
+    }
+
+    // =====================================================================
+    // Identity enrollment (face authentication setup)
+    // =====================================================================
+
+    private EnrolledUserStore enrolledStore() {
+        VisionBackend backend = visionTemplate.backend();
+        if (!(backend instanceof DjlVisionBackend djl)) {
+            throw new VisionUnsupportedException(
+                "Active backend does not expose an enrolled-user store",
+                "store_unavailable", null);
+        }
+        return djl.getEnrolledUserStore();
+    }
+
+    @Tool(name = "preview_faces_u", description = "Detect faces in an image and return each face cropped as a base64 PNG so you can decide who is who before enrolling. Returns a list of {index, boundingBox, confidence, cropDataUri}.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> previewFaces(String imageUrl) {
+        log.info("previewFaces called",
+            StructuredArguments.keyValue("event", "preview_faces_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "imageUrl is required");
+                response.put("faces", List.of());
+                return response;
+            }
+
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.detectFaces(imgData);
+            List<Detection> faces = result.detections();
+
+            BufferedImage full = ImageIO.read(new java.io.ByteArrayInputStream(imgData.data()));
+            if (full == null) {
+                throw new VisionProcessingException("Could not decode image for cropping", null);
+            }
+            int iw = full.getWidth();
+            int ih = full.getHeight();
+
+            List<Map<String, Object>> outFaces = new ArrayList<>();
+            for (int i = 0; i < faces.size(); i++) {
+                Detection face = faces.get(i);
+                var bbox = face.boundingBox();
+                if (bbox == null) continue;
+
+                int x = Math.max(0, (int) Math.floor(bbox.x() * iw));
+                int y = Math.max(0, (int) Math.floor(bbox.y() * ih));
+                int w = Math.max(1, (int) Math.ceil(bbox.width() * iw));
+                int h = Math.max(1, (int) Math.ceil(bbox.height() * ih));
+                int padX = (int) (w * 0.1);
+                int padY = (int) (h * 0.1);
+                int sx = Math.max(0, x - padX);
+                int sy = Math.max(0, y - padY);
+                int sw = Math.min(iw - sx, w + padX * 2);
+                int sh = Math.min(ih - sy, h + padY * 2);
+
+                BufferedImage crop;
+                try {
+                    crop = full.getSubimage(sx, sy, sw, sh);
+                } catch (java.awt.image.RasterFormatException rfe) {
+                    log.warn("Skipping face {} - invalid crop region: {}", i, rfe.getMessage());
+                    continue;
+                }
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(crop, "png", baos);
+                String dataUri = "data:image/png;base64," + Base64.getEncoder().encodeToString(baos.toByteArray());
+
+                Map<String, Object> faceOut = new HashMap<>();
+                faceOut.put("index", i);
+                faceOut.put("confidence", Math.round(face.confidence() * 10000.0) / 10000.0);
+                Map<String, Object> boxOut = new HashMap<>();
+                boxOut.put("x", bbox.x());
+                boxOut.put("y", bbox.y());
+                boxOut.put("width", bbox.width());
+                boxOut.put("height", bbox.height());
+                faceOut.put("boundingBox", boxOut);
+                faceOut.put("cropDataUri", dataUri);
+                outFaces.add(faceOut);
+            }
+
+            response.put("status", "success");
+            response.put("count", outFaces.size());
+            response.put("faces", outFaces);
+            response.put("hint", outFaces.isEmpty()
+                ? "No faces detected. Try a clearer front-facing image."
+                : "Render each cropDataUri to the user, ask who they are, then call store_identity_u with the chosen index, userId, and userName.");
+            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to preview faces", e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to preview faces", e);
+            throw new VisionProcessingException("Failed to preview faces: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "store_identity_u", description = "Enroll a face from an image into the authentication store. Use preview_faces_u first to pick faceIndex. Stores (userId, userName, remoteId, embedding) so authenticate_access can later recognize the person. remoteId is optional and reserved for linking to an external identity provider (e.g. Keycloak subject UUID).")
+    @SuppressWarnings("unused")
+    public Map<String, Object> storeIdentity(String imageUrl, Integer faceIndex, String userId, String userName, String remoteId) {
+        log.info("storeIdentity called",
+            StructuredArguments.keyValue("event", "store_identity_start"),
+            StructuredArguments.keyValue("userId", userId));
+
+        Map<String, Object> response = new HashMap<>();
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "imageUrl is required");
+                return response;
+            }
+            if (userId == null || userId.isBlank()) {
+                response.put("status", "error");
+                response.put("message", "userId is required");
+                return response;
+            }
+            int idx = faceIndex == null ? 0 : faceIndex;
+
+            ImageData imgData = resolveImage(imageUrl.trim());
+            List<Detection> faces = visionTemplate.detectFaces(imgData).detections();
+            List<float[]> embeddings = extractEmbeddingsFromTemplate(imgData,
+                io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
+
+            if (faces.isEmpty() || embeddings.isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "No faces detected in the image");
+                return response;
+            }
+            if (idx < 0 || idx >= embeddings.size()) {
+                response.put("status", "error");
+                response.put("message", "faceIndex " + idx + " is out of range (found " + embeddings.size() + " embeddings)");
+                response.put("faceCount", embeddings.size());
+                return response;
+            }
+
+            float[] embedding = embeddings.get(idx);
+            Detection face = idx < faces.size() ? faces.get(idx) : null;
+            double faceConf = face != null ? face.confidence() : 0.0;
+
+            String name = (userName == null || userName.isBlank()) ? userId : userName;
+            String trimmedRemote = (remoteId == null || remoteId.isBlank()) ? null : remoteId.trim();
+            enrolledStore().enroll(userId, name, trimmedRemote, embedding);
+
+            response.put("status", "success");
+            response.put("userId", userId);
+            response.put("userName", name);
+            if (trimmedRemote != null) {
+                response.put("remoteId", trimmedRemote);
+            }
+            response.put("embeddingDim", embedding.length);
+            response.put("faceConfidence", Math.round(faceConf * 10000.0) / 10000.0);
+            response.put("message", "Enrolled " + name + " (userId=" + userId + ") from face index " + idx);
+            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to store identity", e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to store identity", e);
+            throw new VisionProcessingException("Failed to store identity: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "list_identities", description = "List all enrolled identities (userId, userName, createdAt) in the authentication store.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> listIdentities() {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            List<EnrolledUserStore.EnrolledUser> users = enrolledStore().list();
+            List<Map<String, Object>> outUsers = new ArrayList<>();
+            for (var u : users) {
+                Map<String, Object> m = new HashMap<>();
+                m.put("userId", u.userId());
+                m.put("userName", u.userName());
+                if (u.remoteId() != null) {
+                    m.put("remoteId", u.remoteId());
+                }
+                m.put("createdAt", u.createdAt());
+                outUsers.add(m);
+            }
+            response.put("status", "success");
+            response.put("count", users.size());
+            response.put("users", outUsers);
+            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to list identities", e);
+            throw e;
+        }
+    }
+
+    @Tool(name = "delete_identity", description = "Remove an enrolled identity from the authentication store by userId. Returns whether a row was deleted.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> deleteIdentity(String userId) {
+        Map<String, Object> response = new HashMap<>();
+        if (userId == null || userId.isBlank()) {
+            response.put("status", "error");
+            response.put("message", "userId is required");
+            return response;
+        }
+        try {
+            boolean removed = enrolledStore().delete(userId);
+            response.put("status", "success");
+            response.put("userId", userId);
+            response.put("deleted", removed);
+            response.put("message", removed ? "Removed " + userId : "No enrolled user with userId " + userId);
+            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to delete identity", e);
+            throw e;
         }
     }
 }
