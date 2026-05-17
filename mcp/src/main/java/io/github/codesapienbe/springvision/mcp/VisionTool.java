@@ -1,5 +1,7 @@
 package io.github.codesapienbe.springvision.mcp;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -10,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import javax.imageio.ImageIO;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -1804,13 +1808,40 @@ public class VisionTool {
             throw new IOException("Image bytes are required and cannot be empty");
         if (imageBytes.length > MAX_IMAGE_SIZE_BYTES)
             throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
-        return ImageData.fromBytes(imageBytes);
+        return ImageData.fromBytes(normalizeToJpeg(imageBytes));
     }
 
     // Helper: resolve a string reference (http(s)/data/file/local path) into ImageData
     private ImageData resolveImage(String imageRef) throws IOException {
         byte[] bytes = downloadImageFromUrl(imageRef);
-        return ImageData.fromBytes(bytes);
+        return ImageData.fromBytes(normalizeToJpeg(bytes));
+    }
+
+    /**
+     * Converts WebP (and any other format DJL/OpenCV can't read) to JPEG.
+     * Uses TwelveMonkeys ImageIO for WebP decoding — RIFF magic bytes are the detection signal.
+     * JPEG/PNG/GIF pass through unchanged.
+     */
+    private byte[] normalizeToJpeg(byte[] imageBytes) throws IOException {
+        // WebP magic: "RIFF" at offset 0, "WEBP" at offset 8
+        boolean isWebP = imageBytes.length > 11
+            && imageBytes[0] == 'R' && imageBytes[1] == 'I'
+            && imageBytes[2] == 'F' && imageBytes[3] == 'F'
+            && imageBytes[8] == 'W' && imageBytes[9] == 'E'
+            && imageBytes[10] == 'B' && imageBytes[11] == 'P';
+        if (!isWebP) {
+            return imageBytes;
+        }
+        ImageIO.scanForPlugins();
+        BufferedImage bi = ImageIO.read(new java.io.ByteArrayInputStream(imageBytes));
+        if (bi == null) {
+            throw new IOException("Could not decode WebP image — TwelveMonkeys plugin may be missing");
+        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        if (!ImageIO.write(bi, "jpg", baos)) {
+            throw new IOException("Could not re-encode WebP image as JPEG");
+        }
+        return baos.toByteArray();
     }
 
     /** Returns "available", "not_loaded", "unsupported", or "unknown" for the embedding model. */

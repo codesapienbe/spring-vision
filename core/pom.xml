@@ -261,6 +261,13 @@
       <artifactId>tokenizers</artifactId>
       <version>${djl.version}</version>
     </dependency>
+
+    <!-- WebP decoding via TwelveMonkeys ImageIO -->
+    <dependency>
+      <groupId>com.twelvemonkeys.imageio</groupId>
+      <artifactId>imageio-webp</artifactId>
+      <version>3.11.0</version>
+    </dependency>
   </dependencies>
 
   <build>

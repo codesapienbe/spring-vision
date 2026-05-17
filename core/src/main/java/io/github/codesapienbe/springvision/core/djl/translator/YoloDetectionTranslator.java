@@ -24,10 +24,6 @@ public class YoloDetectionTranslator implements Translator<Image, DetectedObject
     public NDList processInput(TranslatorContext ctx, Image input) {
         NDManager manager = ctx.getNDManager();
 
-        // Store original image dimensions for scaling in processOutput
-        ctx.setAttachment("originalWidth", input.getWidth());
-        ctx.setAttachment("originalHeight", input.getHeight());
-
         // Resize image to YOLO input size
         Image resized = input.resize(INPUT_SIZE, INPUT_SIZE, true);
 
@@ -50,70 +46,54 @@ public class YoloDetectionTranslator implements Translator<Image, DetectedObject
     public DetectedObjects processOutput(TranslatorContext ctx, NDList list) {
         NDArray output = list.singletonOrThrow();
 
-        // Get original image dimensions for coordinate scaling
-        int originalWidth = (int) ctx.getAttachment("originalWidth");
-        int originalHeight = (int) ctx.getAttachment("originalHeight");
+        // YOLOv8 output: [1, 84, num_anchors] — channel-major, batch dim present from Batchifier.STACK
+        // 84 = 4 bbox coords (cx, cy, w, h in pixel space 0-INPUT_SIZE) + 80 class probs (sigmoid)
+        if (output.getShape().dimension() == 3) {
+            output = output.squeeze(0); // [84, num_anchors]
+        }
 
-        // YOLOv8 output shape is [1, 84, 8400] for COCO dataset
-        // Where 84 = 4 bbox coords + 80 classes, 8400 = 80x80 + 40x40 + 20x20 grids
-
+        int numAnchors = (int) output.getShape().get(1);
         float[] data = output.toFloatArray();
-        int numPredictions = data.length / 85; // 80 classes + 5 (bbox + conf)
 
         List<String> classNames = new ArrayList<>();
         List<Double> probabilities = new ArrayList<>();
         List<ai.djl.modality.cv.output.BoundingBox> boundingBoxes = new ArrayList<>();
 
-        for (int i = 0; i < numPredictions; i++) {
-            int baseIdx = i * 85;
+        for (int a = 0; a < numAnchors; a++) {
+            // Channel-major: data[channel * numAnchors + anchor]
+            float cx = data[0 * numAnchors + a];
+            float cy = data[1 * numAnchors + a];
+            float w  = data[2 * numAnchors + a];
+            float h  = data[3 * numAnchors + a];
 
-            // Extract bbox coordinates (cx, cy, w, h)
-            float cx = data[baseIdx];
-            float cy = data[baseIdx + 1];
-            float w = data[baseIdx + 2];
-            float h = data[baseIdx + 3];
-
-            // Extract confidence
-            float conf = data[baseIdx + 4];
-
-            // Find the class with highest probability
-            float maxClassProb = 0;
-            int maxClassIdx = -1;
-            for (int j = 0; j < 80; j++) { // COCO has 80 classes
-                float classProb = data[baseIdx + 5 + j] * conf;
-                if (classProb > maxClassProb) {
-                    maxClassProb = classProb;
-                    maxClassIdx = j;
+            // Find highest-scoring class (no separate objectness in YOLOv8)
+            float maxProb = 0;
+            int maxClass = -1;
+            for (int j = 0; j < 80; j++) {
+                float p = data[(4 + j) * numAnchors + a];
+                if (p > maxProb) {
+                    maxProb = p;
+                    maxClass = j;
                 }
             }
 
-            // Apply confidence threshold
-            if (maxClassProb > CONFIDENCE_THRESHOLD) {
-                // Convert from center/width/height to corner coordinates
-                float x1 = cx - w / 2;
-                float y1 = cy - h / 2;
-                float x2 = cx + w / 2;
-                float y2 = cy + h / 2;
-
-                // YOLO outputs coordinates normalized to INPUT_SIZE (640x640)
-                // Scale to normalized coordinates relative to original image dimensions
-                float scaleX = (float) originalWidth / INPUT_SIZE;
-                float scaleY = (float) originalHeight / INPUT_SIZE;
-
-                float scaledX1 = x1 * scaleX;
-                float scaledY1 = y1 * scaleY;
-                float scaledX2 = x2 * scaleX;
-                float scaledY2 = y2 * scaleY;
-
-                // Ensure coordinates stay within [0, 1] bounds
-                boundingBoxes.add(new ai.djl.modality.cv.output.Rectangle(
-                    Math.max(0, scaledX1), Math.max(0, scaledY1),
-                    Math.min(1.0f, scaledX2 - scaledX1), Math.min(1.0f, scaledY2 - scaledY1)
-                ));
-
-                classNames.add(getCocoClassName(maxClassIdx));
-                probabilities.add((double) maxClassProb);
+            if (maxProb < CONFIDENCE_THRESHOLD || maxClass < 0) {
+                continue;
             }
+
+            // Normalize pixel coords to [0, 1]
+            float x1 = Math.max(0f, (cx - w / 2f) / INPUT_SIZE);
+            float y1 = Math.max(0f, (cy - h / 2f) / INPUT_SIZE);
+            float bw = Math.min(1f - x1, w / INPUT_SIZE);
+            float bh = Math.min(1f - y1, h / INPUT_SIZE);
+
+            if (bw <= 0 || bh <= 0) {
+                continue;
+            }
+
+            boundingBoxes.add(new ai.djl.modality.cv.output.Rectangle(x1, y1, bw, bh));
+            classNames.add(getCocoClassName(maxClass));
+            probabilities.add((double) maxProb);
         }
 
         return new DetectedObjects(classNames, probabilities, boundingBoxes);

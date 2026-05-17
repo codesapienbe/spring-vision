@@ -440,6 +440,8 @@ public class DjlVisionBackend implements VisionBackend,
     @Override
     public void initialize() throws BaseVisionException {
         logger.info("Initializing DJL vision backend with all capabilities");
+        // Register ImageIO plugins (TwelveMonkeys WebP etc.) — needed for Spring Boot nested JARs
+        javax.imageio.ImageIO.scanForPlugins();
         try {
             // Load face detector first for accurate face counts
             try {
@@ -765,20 +767,7 @@ public class DjlVisionBackend implements VisionBackend,
         Criteria<Image, DetectedObjects> criteria;
         String modelType = properties.getObjectDetection().getModel();
 
-        if ("yolo".equalsIgnoreCase(modelType)) {
-            // Use YOLOv8 model via YoloLoader (default)
-            logger.info("Using YOLOv8 object detection model");
-            criteria = YoloModelLoader.createDetectionCriteria();
-
-            // Check if YOLO model is available
-            if (!YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt")) {
-                logger.warn(
-                    "YOLOv8 model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to SSD model in configuration.");
-                throw new ModelNotFoundException(
-                    "YOLOv8 model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
-            }
-        } else if ("ssd".equalsIgnoreCase(modelType)) {
-            // Use SSD model as fallback
+        if ("ssd".equalsIgnoreCase(modelType)) {
             logger.info("Using SSD object detection model with {} backbone",
                 properties.getObjectDetection().getBackbone());
             criteria = Criteria.builder()
@@ -789,21 +778,13 @@ public class DjlVisionBackend implements VisionBackend,
                 .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
         } else {
-            // Default to YOLO for any other value
-            logger.info("Unknown object detection model '{}', defaulting to YOLOv8", modelType);
-            criteria = YoloModelLoader.createDetectionCriteria();
-
-            if (!YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt")) {
-                logger.warn(
-                    "YOLOv8 model not found, falling back to SSD model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
-                criteria = Criteria.builder()
-                    .optApplication(Application.CV.OBJECT_DETECTION)
-                    .setTypes(Image.class, DetectedObjects.class)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
+            // YOLOv8s with YoloDetectionTranslator — resizes to 640x640 before inference
+            logger.info("Using YOLOv8s object detection model");
+            if (!YoloLoader.isModelAvailable("yolov8/yolov8s.pt")) {
+                throw new ModelNotFoundException(
+                    "YOLOv8s model not available. Run 'mvn clean install -Pdownload-models' to download models.");
             }
+            criteria = YoloLoader.createDetectionCriteria("s");
         }
 
         objectDetectionModel = criteria.loadModel();
@@ -1028,7 +1009,7 @@ public class DjlVisionBackend implements VisionBackend,
             return detectObjects(imageData, query);
         } catch (BaseVisionException e) {
             throw new io.github.codesapienbe.springvision.core.exception.VisionBackendException(
-                "Object detection failed",
+                "Object detection failed: " + e.getMessage(),
                 "detect_objects",
                 null,
                 e);
