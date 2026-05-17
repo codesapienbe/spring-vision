@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
 default: build
 
-.PHONY: build clean release test sync verify format default coco8
+.PHONY: build clean release test sync verify format default
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -83,19 +83,3 @@ sync:
 	$(call upsert-mcp,$(HOME)/.claude.json)
 	$(call upsert-mcp,$(HOME)/.cursor/mcp.json)
 	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
-
-# COCO8 reference dataset for object-detection regression. The 8 images are
-# checked into datasets/coco8/, but this target re-downloads them if missing.
-coco8:
-	@if [ -d datasets/coco8/images ]; then \
-		echo "datasets/coco8 already present — skipping download"; \
-	else \
-		echo "Downloading COCO8 (~430 KB) from Ultralytics..."; \
-		mkdir -p datasets; \
-		curl -sL -o datasets/coco8.zip \
-			https://github.com/ultralytics/assets/releases/download/v0.0.0/coco8.zip; \
-		unzip -q -o datasets/coco8.zip -d datasets; \
-		rm datasets/coco8.zip; \
-		echo "Extracted to datasets/coco8/"; \
-	fi
-	@echo "Ground truth: datasets/coco8-ground-truth.md"

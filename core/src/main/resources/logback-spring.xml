@@ -3,6 +3,10 @@
 
   <!-- Spring Vision Framework Logging Configuration -->
 
+  <!-- All file appenders write under ~/.springvision/ so logs are predictable
+       regardless of the working directory the app was launched from. -->
+  <property name="LOG_HOME" value="${user.home}/.springvision"/>
+
   <!-- Console Appender with JSON Format -->
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
@@ -19,9 +23,9 @@
 
   <!-- File Appender with JSON Format -->
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/spring-vision.log</file>
+    <file>${LOG_HOME}/spring-vision.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/spring-vision.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/spring-vision.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
         <maxFileSize>100MB</maxFileSize>
       </timeBasedFileNamingAndTriggeringPolicy>
@@ -41,14 +45,14 @@
 
   <!-- Error File Appender -->
   <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/spring-vision-error.log</file>
+    <file>${LOG_HOME}/spring-vision-error.log</file>
     <filter class="ch.qos.logback.classic.filter.LevelFilter">
       <level>ERROR</level>
       <onMatch>ACCEPT</onMatch>
       <onMismatch>DENY</onMismatch>
     </filter>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/spring-vision-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/spring-vision-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
         <maxFileSize>50MB</maxFileSize>
       </timeBasedFileNamingAndTriggeringPolicy>
@@ -68,9 +72,9 @@
 
   <!-- Performance Metrics Appender -->
   <appender name="METRICS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/spring-vision-metrics.log</file>
+    <file>${LOG_HOME}/spring-vision-metrics.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/spring-vision-metrics.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/spring-vision-metrics.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
         <maxFileSize>50MB</maxFileSize>
       </timeBasedFileNamingAndTriggeringPolicy>
@@ -89,9 +93,9 @@
 
   <!-- Security Events Appender -->
   <appender name="SECURITY" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/spring-vision-security.log</file>
+    <file>${LOG_HOME}/spring-vision-security.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/spring-vision-security.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/spring-vision-security.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
         <maxFileSize>50MB</maxFileSize>
       </timeBasedFileNamingAndTriggeringPolicy>

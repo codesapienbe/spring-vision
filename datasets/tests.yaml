@@ -1,0 +1,46 @@
+# Reference test fixtures for the spring-vision MCP tools.
+#
+# Each top-level key is a tool name (without the _b/_u suffix).
+# Each test case carries the image path (relative to repo root) and the
+# expected truth. Use this file as the oracle when running smoke tests against
+# the running MCP server; mismatches are model/threshold issues, not dataset bugs.
+#
+# Dataset attributions:
+#   - datasets/coco8/: Ultralytics COCO8 (AGPL-3.0), first 8 images from COCO train2017.
+#     YOLO-format labels under labels/<split>/<basename>.txt give pixel-precise truth.
+
+detect_objects:
+  - image: datasets/coco8/images/train/000000000009.jpg
+    expect: { bowl: 3, orange: 4, broccoli: 1 }
+  - image: datasets/coco8/images/train/000000000025.jpg
+    expect: { giraffe: 2 }
+  - image: datasets/coco8/images/train/000000000030.jpg
+    expect: { potted plant: 1, vase: 1 }
+  - image: datasets/coco8/images/train/000000000034.jpg
+    expect: { zebra: 1 }
+  - image: datasets/coco8/images/val/000000000036.jpg
+    expect: { person: 1, umbrella: 1 }
+  - image: datasets/coco8/images/val/000000000042.jpg
+    expect: { dog: 1 }
+  - image: datasets/coco8/images/val/000000000049.jpg
+    expect: { person: 6, horse: 2, potted plant: 1 }
+  - image: datasets/coco8/images/val/000000000061.jpg
+    expect: { person: 3, elephant: 2 }
+
+count_faces:
+  - image: datasets/coco8/images/val/000000000036.jpg
+    expect: 1
+  - image: datasets/coco8/images/val/000000000049.jpg
+    expect: 6
+  - image: datasets/coco8/images/val/000000000061.jpg
+    expect: 3
+
+# Add new tools below as fixtures become available. Example shape:
+#
+# extract_text:
+#   - image: datasets/<some-receipt>.jpg
+#     expect_contains: ["TOTAL", "2026"]
+#
+# scan_barcode:
+#   - image: datasets/<some-qr>.png
+#     expect: { format: QR_CODE, payload: "hello" }

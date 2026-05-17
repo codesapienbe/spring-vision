@@ -465,8 +465,7 @@ public class DjlVisionBackend implements VisionBackend,
             try {
                 loadObjectDetectionModel();
             } catch (Exception e) {
-                logger.warn("Failed to load object detection model: {}. Proceeding without object model.",
-                    e.getMessage());
+                logger.warn("Failed to load object detection model: {}. Proceeding without object model.", e.getMessage(), e);
             }
 
             // Only load optional models if configured
@@ -777,14 +776,17 @@ public class DjlVisionBackend implements VisionBackend,
         String modelType = properties.getObjectDetection().getModel();
 
         if ("ssd".equalsIgnoreCase(modelType)) {
-            logger.info("Using SSD object detection model with {} backbone",
-                properties.getObjectDetection().getBackbone());
+            // DJL mlrepo ships YOLOv8n via OnnxRuntime. We resolve it through the
+            // zoo by group/artifact so DJL reads metadata.json and applies the
+            // bundled YoloV8TranslatorFactory automatically.
+            logger.info("Using YOLOv8n object detection model (DJL zoo, OnnxRuntime)");
             criteria = Criteria.builder()
-                .optApplication(Application.CV.OBJECT_DETECTION)
                 .setTypes(Image.class, DetectedObjects.class)
-                .optEngine(properties.getEngine())
+                .optApplication(Application.CV.OBJECT_DETECTION)
+                .optGroupId("ai.djl.onnxruntime")
+                .optArtifactId("yolov8n")
+                .optEngine("OnnxRuntime")
                 .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
                 .build();
         } else {
             // YOLOv8s with YoloDetectionTranslator — resizes to 640x640 before inference
@@ -1069,13 +1071,15 @@ public class DjlVisionBackend implements VisionBackend,
                 e);
         } catch (TranslateException e) {
             throw new VisionProcessingException(
-                "Failed to process image",
+                "Failed to process image: " + e.getMessage(),
                 "inference_failed",
                 DetectionType.OBJECT.name(),
                 e);
+        } catch (BaseVisionException e) {
+            throw e; // already typed; do not lose the root message
         } catch (Exception e) {
             throw new VisionBackendException(
-                "Object detection failed",
+                "Object detection failed: " + e.getMessage(),
                 "detection_failed",
                 null,
                 e);

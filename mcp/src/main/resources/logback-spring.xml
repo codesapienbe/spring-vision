@@ -10,6 +10,13 @@
     - All logs use JSON format to prevent any parsing issues
   -->
 
+  <!--
+    Anchor log files in ~/.springvision/ regardless of where Claude/Cursor/Gemini
+    launches the MCP server from. Without this, files land in whatever cwd the
+    parent process happens to be in (often the workspace root).
+  -->
+  <property name="LOG_HOME" value="${user.home}/.springvision"/>
+
   <springProfile name="default">
     <!-- Console Appender - JSON format to STDERR -->
     <!-- CRITICAL: target="System.err" ensures logs don't interfere with MCP stdio protocol on stdout -->
@@ -46,9 +53,9 @@
 
     <!-- File Appender - JSON format for persistence and debugging -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <file>logs/mcp.json.log</file>
+      <file>${LOG_HOME}/mcp.log</file>
       <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-        <fileNamePattern>logs/mcp.%d{yyyy-MM-dd}.%i.json.log.gz</fileNamePattern>
+        <fileNamePattern>${LOG_HOME}/mcp.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
         <maxFileSize>50MB</maxFileSize>
         <maxHistory>30</maxHistory>
         <totalSizeCap>1GB</totalSizeCap>
@@ -83,12 +90,12 @@
 
     <!-- Error File Appender - Separate file for errors with JSON format -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <file>logs/mcp-error.json.log</file>
+      <file>${LOG_HOME}/mcp.error.log</file>
       <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
         <level>ERROR</level>
       </filter>
       <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-        <fileNamePattern>logs/mcp-error.%d{yyyy-MM-dd}.%i.json.log.gz</fileNamePattern>
+        <fileNamePattern>${LOG_HOME}/mcp.error.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
         <maxFileSize>50MB</maxFileSize>
         <maxHistory>90</maxHistory>
         <totalSizeCap>2GB</totalSizeCap>
