@@ -30,3 +30,6 @@ logs/
 # Other
 *.log
 
+# Transient dataset archives — extracted contents under datasets/ are committed
+datasets/*.zip
+
