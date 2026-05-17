@@ -618,6 +618,20 @@
                           <skipCache>false</skipCache>
                       </configuration>
                   </execution>
+                  <!-- Deepfake Detection Model (ViT fp16 ONNX, onnx-community/Deep-Fake-Detector-v2-Model-ONNX) -->
+                  <execution>
+                      <id>download-deepfake-detector</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://huggingface.co/onnx-community/Deep-Fake-Detector-v2-Model-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <outputDirectory>${models.directory}/deepfake-detector</outputDirectory>
+                          <outputFileName>deepfake-detector-fp16.onnx</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
                   <!-- Age/Gender Demographics Models (ONNX, GoogLeNet-based from ONNX Model Zoo) -->
                   <execution>
                       <id>download-age-googlenet</id>

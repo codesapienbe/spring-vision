@@ -168,6 +168,7 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, float[]> emotionModel;
     private ZooModel<Image, float[]> ageModel;
     private ZooModel<Image, float[]> genderModel;
+    private ZooModel<Image, float[]> deepfakeModel;
     private ZooModel<Image, DetectedObjects> objectDetectionModel;
     private ZooModel<Image, Joints> poseEstimationModel;
     private ZooModel<Image, float[]> actionRecognitionModel;
@@ -513,6 +514,13 @@ public class DjlVisionBackend implements VisionBackend,
                     e.getMessage());
             }
 
+            try {
+                loadDeepfakeModel();
+            } catch (Exception e) {
+                logger.warn("Failed to load deepfake detection model: {}. Deepfake detection will be unavailable.",
+                    e.getMessage());
+            }
+
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
             healthErrorMessage = null;
@@ -667,6 +675,25 @@ public class DjlVisionBackend implements VisionBackend,
             .loadModel();
         modelCache.put("gender", genderModel);
         logger.info("Gender model loaded: {}", genderModel.getName());
+    }
+
+    private void loadDeepfakeModel() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading deepfake detection model (ViT fp16 ONNX)");
+        String url = YoloModelLoader.getModelUrl("deepfake-detector/deepfake-detector-fp16.onnx");
+        if (url == null) {
+            url = "https://huggingface.co/onnx-community/Deep-Fake-Detector-v2-Model-ONNX/resolve/main/onnx/model_fp16.onnx";
+        }
+        deepfakeModel = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(url)
+            .optModelName("deepfake-detector-fp16")
+            .optTranslator(new DeepfakeTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build()
+            .loadModel();
+        modelCache.put("deepfake", deepfakeModel);
+        logger.info("Deepfake detection model loaded: {}", deepfakeModel.getName());
     }
 
     private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1787,6 +1814,61 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
+    // Translator for onnx-community/Deep-Fake-Detector-v2-Model-ONNX (ViT-based binary classifier).
+    // Input:  pixel_values [1, 3, 224, 224], normalized (pixel/255 - 0.5) / 0.5
+    // Output: logits [1, 2] — index 0 = Realism, index 1 = Deepfake
+    private static final class DeepfakeTranslator implements Translator<Image, float[]> {
+
+        static final String[] LABELS = {"Realism", "Deepfake"};
+
+        @Override
+        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
+            float[] rgb = input.toNDArray(ctx.getNDManager(), Image.Flag.COLOR)
+                .toType(DataType.FLOAT32, false).toFloatArray();
+            int pixels = rgb.length / 3;
+            float[] data = new float[rgb.length];
+            for (int i = 0; i < pixels; i++) {
+                // Normalize: (pixel/255 - 0.5) / 0.5 = pixel/127.5 - 1
+                data[i]               = rgb[i * 3]     / 127.5f - 1f; // R → channel 0
+                data[pixels + i]      = rgb[i * 3 + 1] / 127.5f - 1f; // G → channel 1
+                data[2 * pixels + i]  = rgb[i * 3 + 2] / 127.5f - 1f; // B → channel 2
+            }
+            long h = input.getHeight();
+            long w = input.getWidth();
+            NDArray tensor = ctx.getNDManager().create(data, new Shape(1, 3, h, w));
+            tensor.setName("pixel_values");
+            return new NDList(tensor);
+        }
+
+        @Override
+        public float[] processOutput(TranslatorContext ctx, NDList list) {
+            float[] logits = list.getFirst().toFloatArray();
+            return softmax(logits);
+        }
+
+        @Override
+        public Batchifier getBatchifier() {
+            return null;
+        }
+
+        private static float[] softmax(float[] logits) {
+            float max = logits[0];
+            for (float v : logits) {
+                if (v > max) max = v;
+            }
+            float sum = 0f;
+            float[] out = new float[logits.length];
+            for (int i = 0; i < logits.length; i++) {
+                out[i] = (float) Math.exp(logits[i] - max);
+                sum += out[i];
+            }
+            for (int i = 0; i < out.length; i++) {
+                out[i] /= sum;
+            }
+            return out;
+        }
+    }
+
     private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         BufferedImage gray = new BufferedImage(64, 64, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D g = gray.createGraphics();
@@ -2795,10 +2877,86 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public List<Detection> detectDeepfake(ImageData imageData) throws BaseVisionException {
-        throw new VisionUnsupportedException(
-            "Deepfake detection requires a dedicated model (prithivMLmods/deepfake-detector-model-v1) that is not yet integrated",
-            "detectDeepfake",
-            "DEEPFAKE");
+        if (!initialized) {
+            throw new VisionBackendException("Backend not initialized", "not_initialized", null);
+        }
+        if (deepfakeModel == null) {
+            throw new VisionBackendException(
+                "Deepfake model not available. Run 'mvn clean install -Pdownload-models' to download deepfake-detector-fp16.onnx.",
+                "model_not_initialized",
+                null);
+        }
+        if (imageData == null || imageData.data() == null || imageData.data().length == 0) {
+            throw new VisionProcessingException("Image data must not be null or empty", "null_input", null);
+        }
+
+        String correlationId = generateCorrelationId();
+        logger.debug("DJL deepfake detection requested: correlationId={}", correlationId);
+
+        try {
+            List<Detection> faceDetections = detectFaces(imageData);
+            List<Detection> results = new ArrayList<>();
+
+            if (faceDetections.isEmpty()) {
+                // No faces — analyse the full image
+                BufferedImage full = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+                try {
+                    results.add(classifyDeepfake(resizeImage(full, 224, 224), null, 0));
+                } catch (Exception ex) {
+                    logger.warn("Failed to classify deepfake for full image", ex);
+                }
+            } else {
+                BufferedImage fullImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
+                int imgW = fullImage.getWidth();
+                int imgH = fullImage.getHeight();
+
+                for (int i = 0; i < faceDetections.size(); i++) {
+                    io.github.codesapienbe.springvision.core.BoundingBox bbox = faceDetections.get(i).boundingBox();
+                    if (bbox == null) continue;
+                    int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                    int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                    int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                    int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+                    int padX = (int) (w * 0.15);
+                    int padY = (int) (h * 0.15);
+                    int sx = Math.max(0, x - padX);
+                    int sy = Math.max(0, y - padY);
+                    int sw = Math.min(imgW - sx, w + padX * 2);
+                    int sh = Math.min(imgH - sy, h + padY * 2);
+                    try {
+                        BufferedImage crop = fullImage.getSubimage(sx, sy, sw, sh);
+                        results.add(classifyDeepfake(resizeImage(crop, 224, 224), bbox, i));
+                    } catch (java.awt.image.RasterFormatException rfe) {
+                        logger.warn("Invalid crop for face {} in deepfake detection - skipping", i);
+                    } catch (Exception ex) {
+                        logger.warn("Failed to classify deepfake for face {}", i, ex);
+                    }
+                }
+            }
+
+            logger.info("DJL deepfake detection completed: faces={}, correlationId={}", results.size(), correlationId);
+            return results;
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Image decoding failed during deepfake detection: " + e.getMessage(),
+                "io_error", null, e);
+        }
+    }
+
+    private Detection classifyDeepfake(BufferedImage crop224, io.github.codesapienbe.springvision.core.BoundingBox bbox,
+                                        int faceIndex) throws Exception {
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        ImageIO.write(crop224, "png", baos);
+        Image faceImage = ImageFactory.getInstance().fromInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        float[] probs = withPredictor(deepfakeModel, p -> p.predict(faceImage));
+        int argmax = probs[1] > probs[0] ? 1 : 0;
+        String label = DeepfakeTranslator.LABELS[argmax];
+        java.util.Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+        attrs.put("faceIndex", faceIndex);
+        attrs.put("realismScore", probs[0]);
+        attrs.put("deepfakeScore", probs[1]);
+        return new Detection(label, probs[argmax], bbox, attrs);
     }
 
     // ==================== FallDetectionCapability Implementation
