@@ -849,17 +849,20 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadActionRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading action recognition model with DJL");
-
-        Criteria<Image, float[]> criteria = Criteria.builder()
-            .optApplication(Application.CV.ACTION_RECOGNITION)
+        logger.info("Loading action recognition model (ViT fp16 ONNX, 15-class human actions)");
+        String url = YoloModelLoader.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
+        if (url == null) {
+            url = "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/main/onnx/model_fp16.onnx";
+        }
+        actionRecognitionModel = Criteria.builder()
             .setTypes(Image.class, float[].class)
-            .optEngine(properties.getEngine())
+            .optModelUrls(url)
+            .optModelName("action-recognition-vit")
+            .optTranslator(new ActionRecognitionTranslator())
+            .optEngine("OnnxRuntime")
             .optDevice(device)
-            .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-            .build();
-
-        actionRecognitionModel = criteria.loadModel();
+            .build()
+            .loadModel();
         modelCache.put("action_recognition", actionRecognitionModel);
         logger.info("Action recognition model loaded: {}", actionRecognitionModel.getName());
     }
@@ -1255,11 +1258,15 @@ public class DjlVisionBackend implements VisionBackend,
         List<Detection> results = new ArrayList<>();
         float threshold = properties.getActionRecognition().getConfidenceThreshold();
 
-        // Common action labels (can be customized based on model)
-        String[] actionLabels = {
-            "walking", "running", "sitting", "standing", "jumping",
-            "waving", "clapping", "reading", "writing", "eating"
+        // 15 classes from onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX
+        final String[] actionLabels = {
+            "Calling", "Clapping", "Cycling", "Dancing", "Drinking",
+            "Eating", "Fighting", "Hugging", "Laughing", "Listening Music",
+            "Running", "Sitting", "Sleeping", "Texting", "Using Laptop"
         };
+
+        // Action recognition is whole-image — bbox spans the entire frame.
+        BoundingBox fullImage = new BoundingBox(0.0, 0.0, 1.0, 1.0);
 
         for (int i = 0; i < Math.min(predictions.length, actionLabels.length); i++) {
             if (predictions[i] >= threshold) {
@@ -1271,7 +1278,7 @@ public class DjlVisionBackend implements VisionBackend,
                 Detection detection = new Detection(
                     actionLabels[i],
                     predictions[i],
-                    null,
+                    fullImage,
                     attributes);
                 results.add(detection);
             }
@@ -1848,6 +1855,58 @@ public class DjlVisionBackend implements VisionBackend,
                 out[i] /= sum;
             }
             return out;
+        }
+    }
+
+    /**
+     * Translator for the ViT-based action-recognition ONNX model
+     * ({@code onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX}).
+     * Resizes to 224×224, normalises to {@code [-1, 1]} via {@code (pixel/255 - 0.5)/0.5},
+     * returns the softmax probabilities across the 15 action classes.
+     */
+    private static final class ActionRecognitionTranslator implements Translator<Image, float[]> {
+        static final int INPUT_SIZE = 224;
+
+        @Override
+        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
+            Image resized = input.resize(INPUT_SIZE, INPUT_SIZE, false);
+            float[] rgb = resized.toNDArray(ctx.getNDManager(), Image.Flag.COLOR)
+                .toType(DataType.FLOAT32, false).toFloatArray();
+            int pixels = rgb.length / 3;
+            float[] data = new float[rgb.length];
+            for (int i = 0; i < pixels; i++) {
+                data[i]              = rgb[i * 3]     / 127.5f - 1f;
+                data[pixels + i]     = rgb[i * 3 + 1] / 127.5f - 1f;
+                data[2 * pixels + i] = rgb[i * 3 + 2] / 127.5f - 1f;
+            }
+            NDArray tensor = ctx.getNDManager().create(data, new Shape(1, 3, INPUT_SIZE, INPUT_SIZE));
+            tensor.setName("pixel_values");
+            return new NDList(tensor);
+        }
+
+        @Override
+        public float[] processOutput(TranslatorContext ctx, NDList list) {
+            float[] logits = list.getFirst().toFloatArray();
+            // Softmax
+            float max = logits[0];
+            for (float v : logits) {
+                if (v > max) max = v;
+            }
+            float sum = 0f;
+            float[] out = new float[logits.length];
+            for (int i = 0; i < logits.length; i++) {
+                out[i] = (float) Math.exp(logits[i] - max);
+                sum += out[i];
+            }
+            for (int i = 0; i < out.length; i++) {
+                out[i] /= sum;
+            }
+            return out;
+        }
+
+        @Override
+        public Batchifier getBatchifier() {
+            return null;
         }
     }
 

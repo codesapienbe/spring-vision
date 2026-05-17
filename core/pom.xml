@@ -632,6 +632,22 @@
                           <skipCache>false</skipCache>
                       </configuration>
                   </execution>
+                  <!-- Action Recognition Model (ViT fp16 ONNX, onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX) -->
+                  <!-- 15-class classifier: Calling, Clapping, Cycling, Dancing, Drinking, Eating, Fighting, Hugging,
+                       Laughing, Listening Music, Running, Sitting, Sleeping, Texting, Using Laptop. Input 224x224. -->
+                  <execution>
+                      <id>download-action-recognition</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <outputDirectory>${models.directory}/action-recognition</outputDirectory>
+                          <outputFileName>action-recognition-vit-fp16.onnx</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
                   <!-- Hand Detection Model (MediaPipe Palm Detector ONNX, from opencv/palm_detection_mediapipe) -->
                   <!-- Anchor-based palm detector; 3.7 MB; outputs (1, 2016, 18) box+landmark deltas and (1, 2016, 1) score logits. -->
                   <execution>
