@@ -173,7 +173,7 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, float[]> deepfakeModel;
     private ZooModel<Image, float[]> handDetectionModel;
     private ZooModel<Image, DetectedObjects> objectDetectionModel;
-    private ZooModel<Image, Joints> poseEstimationModel;
+    private ZooModel<Image, Joints[]> poseEstimationModel;
     private ZooModel<Image, float[]> actionRecognitionModel;
     private ZooModel<Image, CategoryMask> semanticSegmentationModel;
     private ZooModel<Image, DetectedObjects> instanceSegmentationModel;
@@ -831,82 +831,21 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading pose estimation model with DJL");
-
-        String modelType = properties.getPoseEstimation().getModel();
-
-        if ("yolo".equalsIgnoreCase(modelType)) {
-            // Use YOLOv8 pose estimation model via YoloLoader (default)
-            logger.info("Using YOLOv8 pose estimation model");
-            Criteria<Image, Joints> criteria = YoloModelLoader.createPoseCriteria();
-
-            // Check if YOLO pose model is available
-            if (!YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
-                logger.warn(
-                    "YOLOv8 pose model not found in classpath. Run 'mvn clean compile -Pdownload-models' to download models, or switch to simple_pose model in configuration.");
-                throw new ModelNotFoundException(
-                    "YOLOv8 pose model not available. Run 'mvn clean compile -Pdownload-models' to download models.");
-            }
-
-            poseEstimationModel = criteria.loadModel();
-            modelCache.put("pose_estimation", poseEstimationModel);
-            logger.info("YOLOv8 pose estimation model loaded: {} - optimized for pose detection",
-                poseEstimationModel.getName());
-        } else if ("simple_pose".equalsIgnoreCase(modelType)) {
-            // Use simple pose model as fallback
-            logger.info("Using simple pose estimation model");
-            try {
-                Criteria<Image, NDList> criteria = Criteria.builder()
-                    .setTypes(Image.class, NDList.class)
-                    .optApplication(Application.CV.POSE_ESTIMATION)
-                    .optEngine(properties.getEngine()) // Use configured engine instead of hardcoded OnnxRuntime
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
-
-                @SuppressWarnings("unchecked")
-                ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) criteria.loadModel();
-                poseEstimationModel = model;
-
-                modelCache.put("pose_estimation", poseEstimationModel);
-                logger.info("Simple pose estimation model loaded: {} - optimized for pose detection",
-                    poseEstimationModel.getName());
-            } catch (Exception e) {
-                logger.error("Failed to load simple pose estimation model: {}", e.getMessage());
-                throw new ModelNotFoundException("Simple pose estimation model not available", e);
-            }
-        } else {
-            // Default to YOLO for any other value
-            logger.info("Unknown pose estimation model '{}', defaulting to YOLOv8", modelType);
-            Criteria<Image, Joints> criteria = YoloModelLoader.createPoseCriteria();
-
-            if (!YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt")) {
-                logger.warn(
-                    "YOLOv8 pose model not found, falling back to simple pose model. Run 'mvn clean compile -Pdownload-models' to download YOLO models.");
-                try {
-                    Criteria<Image, NDList> fallbackCriteria = Criteria.builder()
-                        .setTypes(Image.class, NDList.class)
-                        .optApplication(Application.CV.POSE_ESTIMATION)
-                        .optEngine(properties.getEngine()) // Use configured engine instead of hardcoded OnnxRuntime
-                        .optDevice(device)
-                        .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                        .build();
-
-                    @SuppressWarnings("unchecked")
-                    ZooModel<Image, Joints> model = (ZooModel<Image, Joints>) (Object) fallbackCriteria.loadModel();
-                    poseEstimationModel = model;
-                    modelCache.put("pose_estimation", poseEstimationModel);
-                    logger.info("Fallback simple pose estimation model loaded: {}", poseEstimationModel.getName());
-                } catch (Exception e) {
-                    logger.error("Failed to load fallback pose estimation model: {}", e.getMessage());
-                    throw new ModelNotFoundException("No pose estimation model available", e);
-                }
-            } else {
-                poseEstimationModel = criteria.loadModel();
-                modelCache.put("pose_estimation", poseEstimationModel);
-                logger.info("YOLOv8 pose estimation model loaded: {}", poseEstimationModel.getName());
-            }
-        }
+        // DJL mlrepo ships YOLOv8n-pose as ONNX (~11.5 MB) with YoloPoseTranslatorFactory
+        // pre-wired. Same pattern as object detection — the bundled .pt files are
+        // pickle checkpoints that DJL cannot load directly.
+        logger.info("Loading YOLOv8n-pose estimation model (DJL zoo, OnnxRuntime)");
+        Criteria<Image, Joints[]> criteria = Criteria.builder()
+            .setTypes(Image.class, Joints[].class)
+            .optApplication(Application.CV.POSE_ESTIMATION)
+            .optGroupId("ai.djl.onnxruntime")
+            .optArtifactId("yolov8n-pose")
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build();
+        poseEstimationModel = criteria.loadModel();
+        modelCache.put("pose_estimation", poseEstimationModel);
+        logger.info("Pose estimation model loaded: {}", poseEstimationModel.getName());
     }
 
     private void loadActionRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -1142,8 +1081,14 @@ public class DjlVisionBackend implements VisionBackend,
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             List<Detection> results = withPredictor(poseEstimationModel, predictor -> {
-                Joints joints = predictor.predict(djlImage);
-                return convertJointsToDetections(joints);
+                Joints[] persons = predictor.predict(djlImage);
+                List<Detection> all = new ArrayList<>();
+                if (persons != null) {
+                    for (Joints person : persons) {
+                        all.addAll(convertJointsToDetections(person));
+                    }
+                }
+                return all;
             });
 
             logger.info("DJL pose estimation completed: {} poses detected, correlationId={}",
@@ -1185,6 +1130,8 @@ public class DjlVisionBackend implements VisionBackend,
         poseAttributes.put("totalJoints", jointsList.size());
 
         List<Map<String, Object>> jointsData = new ArrayList<>();
+        double minX = 1.0, minY = 1.0, maxX = 0.0, maxY = 0.0;
+        boolean haveJoint = false;
 
         for (int i = 0; i < jointsList.size(); i++) {
             Joints.Joint joint = jointsList.get(i);
@@ -1197,16 +1144,30 @@ public class DjlVisionBackend implements VisionBackend,
                 jointData.put("y", joint.getY());
                 jointData.put("confidence", joint.getConfidence());
                 jointsData.add(jointData);
+
+                minX = Math.min(minX, joint.getX());
+                minY = Math.min(minY, joint.getY());
+                maxX = Math.max(maxX, joint.getX());
+                maxY = Math.max(maxY, joint.getY());
+                haveJoint = true;
             }
+        }
+
+        if (!haveJoint) {
+            // No joints cleared the confidence threshold — drop this pose entirely.
+            return results;
         }
 
         poseAttributes.put("joints", jointsData);
 
-        // Create a single detection representing the entire pose
+        // Bounding box is the tight envelope of the confident joints in normalised
+        // image coordinates. Constructor requires non-null bbox.
+        double bw = Math.max(0.0, maxX - minX);
+        double bh = Math.max(0.0, maxY - minY);
         Detection poseDetection = new Detection(
             "person_pose",
             calculateAverageConfidence(jointsData),
-            null, // No bounding box for individual joints
+            new BoundingBox(minX, minY, bw, bh),
             poseAttributes);
 
         results.add(poseDetection);
