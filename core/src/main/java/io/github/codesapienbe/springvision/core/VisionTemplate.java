@@ -29,6 +29,8 @@ import io.github.codesapienbe.springvision.core.capabilities.OcrCapability;
 import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -617,6 +619,39 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
             throw new VisionUnsupportedException("Embedding extraction not supported by backend: " + getBackendId());
         }
         return capability.extractEmbeddings(imageData, category);
+    }
+
+    /**
+     * Detects vehicles in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing vehicle detections with type metadata
+     * @throws VisionUnsupportedException if backend doesn't support vehicle detection
+     */
+    public VisionResult detectVehicles(ImageData imageData) {
+        if (!(backend instanceof VehicleDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Vehicle detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectVehicles(imageData);
+        return buildResult(DetectionType.VEHICLE, detections, startTime);
+    }
+
+    /**
+     * Detects damage on vehicles found in an image.
+     *
+     * @param imageData the image data to process
+     * @return VisionResult containing damage detections per vehicle
+     * @throws VisionUnsupportedException if backend doesn't support vehicle damage detection
+     *         or the damage model is not available
+     */
+    public VisionResult detectVehicleDamages(ImageData imageData) {
+        if (!(backend instanceof VehicleDamageDetectionCapability capability)) {
+            throw new VisionUnsupportedException("Vehicle damage detection not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.detectVehicleDamages(imageData);
+        return buildResult(DetectionType.VEHICLE_DAMAGE, detections, startTime);
     }
 
     // ============================================================================

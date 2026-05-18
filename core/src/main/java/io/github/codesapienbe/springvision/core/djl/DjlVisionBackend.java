@@ -156,7 +156,9 @@ public class DjlVisionBackend implements VisionBackend,
     StressAnalysisCapability,
     HeartRateCapability,
     ThreatDetectionCapability,
-    AccessAuthenticationCapability {
+    AccessAuthenticationCapability,
+    io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability,
+    io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -178,6 +180,15 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, float[]> actionRecognitionModel;
     private ZooModel<Image, CategoryMask> semanticSegmentationModel;
     private ZooModel<Image, DetectedObjects> instanceSegmentationModel;
+    private ZooModel<Image, float[]> vehicleDamageModel;
+
+    private static final Set<String> VEHICLE_CLASSES = Set.of(
+        "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat");
+
+    private static final String[] VEHICLE_DAMAGE_CLASSES = {
+        "no_damage", "minor_scratch", "deep_scratch", "dent",
+        "crack", "broken_glass", "flat_tire", "severe_damage"
+    };
 
     private final DjlProperties properties;
     private final Device device;
@@ -547,6 +558,13 @@ public class DjlVisionBackend implements VisionBackend,
                     e.getMessage(), e);
             }
 
+            try {
+                loadVehicleDamageModel();
+            } catch (Exception e) {
+                logger.warn("Failed to load vehicle damage detection model: {}. Vehicle damage detection will be unavailable.",
+                    e.getMessage(), e);
+            }
+
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
             healthErrorMessage = null;
@@ -721,6 +739,28 @@ public class DjlVisionBackend implements VisionBackend,
             .loadModel();
         modelCache.put("nsfw_detection", nsfwModel);
         logger.info("NSFW detection model loaded: {}", nsfwModel.getName());
+    }
+
+    private void loadVehicleDamageModel() throws ModelNotFoundException, MalformedModelException, IOException {
+        logger.info("Loading vehicle damage detection model (ONNX classifier)");
+        String url = YoloModelLoader.getModelUrl("vehicle-damage/vehicle-damage-classifier.onnx");
+        if (url == null) {
+            logger.warn("Vehicle damage detection model not found in classpath at "
+                + "'/models/vehicle-damage/vehicle-damage-classifier.onnx'. "
+                + "Bundle the ONNX model and rebuild to enable vehicle damage detection.");
+            return;
+        }
+        vehicleDamageModel = Criteria.builder()
+            .setTypes(Image.class, float[].class)
+            .optModelUrls(url)
+            .optModelName("vehicle-damage-classifier")
+            .optTranslator(new ActionRecognitionTranslator())
+            .optEngine("OnnxRuntime")
+            .optDevice(device)
+            .build()
+            .loadModel();
+        modelCache.put("vehicle_damage", vehicleDamageModel);
+        logger.info("Vehicle damage detection model loaded: {}", vehicleDamageModel.getName());
     }
 
     private void loadHandDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
@@ -4352,6 +4392,167 @@ public class DjlVisionBackend implements VisionBackend,
         initialized = false;
         healthStatus = BackendHealthInfo.HealthStatus.UNKNOWN;
         logger.info("DJL vision backend cleanup completed");
+    }
+
+    // ============================================================================
+    // VehicleDetectionCapability Implementation
+    // ============================================================================
+
+    @Override
+    public List<Detection> detectVehicles(ImageData imageData) {
+        if (!initialized) {
+            throw new VisionBackendException("Backend not initialized", "not_initialized", null);
+        }
+        if (objectDetectionModel == null) {
+            throw new VisionBackendException(
+                "Object detection model not initialized — vehicle detection requires it",
+                "model_not_initialized", null);
+        }
+
+        List<Detection> allObjects = detectObjects(imageData);
+        List<Detection> vehicles = new ArrayList<>();
+        for (Detection obj : allObjects) {
+            String label = obj.label().toLowerCase();
+            if (VEHICLE_CLASSES.contains(label)) {
+                Map<String, Object> attrs = new java.util.LinkedHashMap<>(obj.attributes());
+                attrs.put("vehicleType", label);
+                attrs.put("vehicleCategory", resolveVehicleCategory(label));
+                vehicles.add(new Detection(obj.label(), obj.confidence(), obj.boundingBox(), attrs));
+            }
+        }
+
+        logger.info("Vehicle detection completed: {} vehicles found", vehicles.size());
+        return vehicles;
+    }
+
+    @Override
+    public boolean isVehicleDetectionModelAvailable() {
+        return objectDetectionModel != null;
+    }
+
+    private String resolveVehicleCategory(String label) {
+        return switch (label) {
+            case "car" -> "passenger_vehicle";
+            case "truck" -> "commercial_vehicle";
+            case "bus" -> "public_transport";
+            case "motorcycle", "bicycle" -> "two_wheeler";
+            case "airplane" -> "aircraft";
+            case "boat" -> "watercraft";
+            case "train" -> "rail_vehicle";
+            default -> "vehicle";
+        };
+    }
+
+    // ============================================================================
+    // VehicleDamageDetectionCapability Implementation
+    // ============================================================================
+
+    @Override
+    public List<Detection> detectVehicleDamages(ImageData imageData) {
+        if (!initialized) {
+            throw new VisionBackendException("Backend not initialized", "not_initialized", null);
+        }
+        if (vehicleDamageModel == null) {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Vehicle damage detection model not available. "
+                + "Bundle the ONNX model at '/models/vehicle-damage/vehicle-damage-classifier.onnx' "
+                + "and rebuild with 'mvn clean install -Pdownload-models'.");
+        }
+
+        List<Detection> vehicles = detectVehicles(imageData);
+        if (vehicles.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            java.awt.image.BufferedImage fullImage = ImageIO.read(
+                new ByteArrayInputStream(imageData.data()));
+            int imgW = fullImage.getWidth();
+            int imgH = fullImage.getHeight();
+
+            List<Detection> damages = new ArrayList<>();
+            for (int i = 0; i < vehicles.size(); i++) {
+                Detection vehicle = vehicles.get(i);
+                io.github.codesapienbe.springvision.core.BoundingBox bbox = vehicle.boundingBox();
+                if (bbox == null) {
+                    continue;
+                }
+
+                int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+                w = Math.min(w, imgW - x);
+                h = Math.min(h, imgH - y);
+                if (w <= 0 || h <= 0) {
+                    continue;
+                }
+
+                java.awt.image.BufferedImage crop;
+                try {
+                    crop = fullImage.getSubimage(x, y, w, h);
+                } catch (java.awt.image.RasterFormatException rfe) {
+                    logger.warn("Invalid crop for vehicle {} in damage detection — skipping: {}", i, rfe.getMessage());
+                    continue;
+                }
+
+                java.awt.image.BufferedImage crop224 = resizeImage(crop, 224, 224);
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                ImageIO.write(crop224, "png", baos);
+                Image vehicleRegion = ImageFactory.getInstance()
+                    .fromInputStream(new ByteArrayInputStream(baos.toByteArray()));
+
+                float[] probs = withPredictor(vehicleDamageModel, p -> p.predict(vehicleRegion));
+                if (probs == null || probs.length == 0) {
+                    continue;
+                }
+
+                int maxIdx = 0;
+                for (int j = 1; j < probs.length; j++) {
+                    if (probs[j] > probs[maxIdx]) maxIdx = j;
+                }
+                String damageLabel = maxIdx < VEHICLE_DAMAGE_CLASSES.length
+                    ? VEHICLE_DAMAGE_CLASSES[maxIdx] : "unknown";
+                double confidence = probs[maxIdx];
+
+                Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+                attrs.put("vehicleType", vehicle.attributes().get("vehicleType"));
+                attrs.put("vehicleLabel", vehicle.label());
+                attrs.put("vehicleConfidence", vehicle.confidence());
+                attrs.put("damageType", damageLabel);
+                attrs.put("severity", resolveDamageSeverity(damageLabel));
+
+                damages.add(new Detection(damageLabel, confidence, vehicle.boundingBox(), attrs));
+            }
+
+            logger.info("Vehicle damage detection completed: {} damage assessments for {} vehicles",
+                damages.size(), vehicles.size());
+            return damages;
+
+        } catch (IOException e) {
+            throw new VisionProcessingException(
+                "Failed to load image for vehicle damage detection: " + e.getMessage(),
+                "image_load_failed", DetectionType.VEHICLE_DAMAGE.name(), e);
+        } catch (Exception e) {
+            throw new VisionBackendException(
+                "Vehicle damage detection failed: " + e.getMessage(),
+                "detection_failed", null, e);
+        }
+    }
+
+    @Override
+    public boolean isVehicleDamageDetectionModelAvailable() {
+        return vehicleDamageModel != null;
+    }
+
+    private String resolveDamageSeverity(String damageLabel) {
+        return switch (damageLabel) {
+            case "no_damage" -> "NONE";
+            case "minor_scratch" -> "MINOR";
+            case "deep_scratch", "dent", "flat_tire" -> "MODERATE";
+            case "crack", "broken_glass", "severe_damage" -> "SEVERE";
+            default -> "UNKNOWN";
+        };
     }
 
     /**

@@ -12,14 +12,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import javax.imageio.ImageIO;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3182,6 +3182,217 @@ public class VisionTool {
         } catch (RuntimeException e) {
             log.error("Failed to list identities", e);
             throw e;
+        }
+    }
+
+    @Tool(name = "detect_vehicle_b", description = "Detect vehicles (cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes) from uploaded image bytes. Returns bounding boxes, vehicle type, and category metadata.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectVehicle(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectVehicles(img);
+
+            List<Map<String, Object>> vehicles = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> v = new HashMap<>();
+                v.put("label", detection.label());
+                v.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    v.put("boundingBox", bbox);
+                }
+                v.put("vehicleType", detection.attributes().get("vehicleType"));
+                v.put("vehicleCategory", detection.attributes().get("vehicleCategory"));
+                vehicles.add(v);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("vehicles", vehicles);
+            response.put("count", vehicles.size());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", result.processingTimeMs());
+            return response;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "detect_vehicle_u", description = "Detect vehicles (cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes) from an image URL. Returns bounding boxes, vehicle type, and category metadata.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectVehicle(String imageUrl) {
+        log.info("detectVehicle called",
+            StructuredArguments.keyValue("event", "detect_vehicle_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required");
+                response.put("vehicles", List.of());
+                return response;
+            }
+
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.detectVehicles(imgData);
+
+            List<Map<String, Object>> vehicles = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> v = new HashMap<>();
+                v.put("label", detection.label());
+                v.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    v.put("boundingBox", bbox);
+                }
+                v.put("vehicleType", detection.attributes().get("vehicleType"));
+                v.put("vehicleCategory", detection.attributes().get("vehicleCategory"));
+                vehicles.add(v);
+            }
+
+            long processingTime = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("vehicles", vehicles);
+            response.put("count", vehicles.size());
+            response.put("averageConfidence", Math.round(result.averageConfidence() * 10000.0) / 10000.0);
+            response.put("processingTimeMs", processingTime);
+            response.put("imageUrl", imageUrl);
+
+            log.info("detectVehicle completed",
+                StructuredArguments.keyValue("event", "detect_vehicle_complete"),
+                StructuredArguments.keyValue("count", vehicles.size()),
+                StructuredArguments.keyValue("processingTimeMs", processingTime));
+
+            return response;
+        } catch (RuntimeException e) {
+            log.error("Failed to detect vehicles from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to detect vehicles from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to detect vehicles: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "detect_vehicle_damages_b", description = "Detect damage on vehicles found in uploaded image bytes. For each detected vehicle, classifies damage type (scratch, dent, crack, broken glass, flat tire, etc.) and severity. Requires the vehicle-damage-classifier.onnx model to be bundled.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectVehicleDamages(byte[] imageBytes) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            VisionResult result = visionTemplate.detectVehicleDamages(img);
+
+            List<Map<String, Object>> damages = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> d = new HashMap<>();
+                d.put("label", detection.label());
+                d.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    d.put("boundingBox", bbox);
+                }
+                d.put("vehicleType", detection.attributes().get("vehicleType"));
+                d.put("vehicleLabel", detection.attributes().get("vehicleLabel"));
+                d.put("vehicleConfidence", detection.attributes().get("vehicleConfidence"));
+                d.put("damageType", detection.attributes().get("damageType"));
+                d.put("severity", detection.attributes().get("severity"));
+                damages.add(d);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("damages", damages);
+            response.put("count", damages.size());
+            response.put("processingTimeMs", result.processingTimeMs());
+            return response;
+        } catch (VisionUnsupportedException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Failed to process uploaded image bytes: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "detect_vehicle_damages_u", description = "Detect damage on vehicles found in an image URL. For each detected vehicle, classifies damage type (scratch, dent, crack, broken glass, flat tire, etc.) and severity. Requires the vehicle-damage-classifier.onnx model to be bundled.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> detectVehicleDamages(String imageUrl) {
+        log.info("detectVehicleDamages called",
+            StructuredArguments.keyValue("event", "detect_vehicle_damages_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                response.put("status", "error");
+                response.put("message", "Image URL is required");
+                response.put("damages", List.of());
+                return response;
+            }
+
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.detectVehicleDamages(imgData);
+
+            List<Map<String, Object>> damages = new ArrayList<>();
+            for (var detection : result.detections()) {
+                Map<String, Object> d = new HashMap<>();
+                d.put("label", detection.label());
+                d.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                if (detection.boundingBox() != null) {
+                    Map<String, Object> bbox = new HashMap<>();
+                    bbox.put("x", detection.boundingBox().x());
+                    bbox.put("y", detection.boundingBox().y());
+                    bbox.put("width", detection.boundingBox().width());
+                    bbox.put("height", detection.boundingBox().height());
+                    d.put("boundingBox", bbox);
+                }
+                d.put("vehicleType", detection.attributes().get("vehicleType"));
+                d.put("vehicleLabel", detection.attributes().get("vehicleLabel"));
+                d.put("vehicleConfidence", detection.attributes().get("vehicleConfidence"));
+                d.put("damageType", detection.attributes().get("damageType"));
+                d.put("severity", detection.attributes().get("severity"));
+                damages.add(d);
+            }
+
+            long processingTime = System.currentTimeMillis() - startTime;
+            response.put("status", "success");
+            response.put("damages", damages);
+            response.put("count", damages.size());
+            response.put("processingTimeMs", processingTime);
+            response.put("imageUrl", imageUrl);
+
+            log.info("detectVehicleDamages completed",
+                StructuredArguments.keyValue("event", "detect_vehicle_damages_complete"),
+                StructuredArguments.keyValue("count", damages.size()),
+                StructuredArguments.keyValue("processingTimeMs", processingTime));
+
+            return response;
+        } catch (VisionUnsupportedException e) {
+            log.warn("Vehicle damage detection model unavailable: {}", e.getMessage());
+            throw e;
+        } catch (RuntimeException e) {
+            log.error("Failed to detect vehicle damages from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to detect vehicle damages from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException("Failed to detect vehicle damages: " + e.getMessage(), e);
         }
     }
 

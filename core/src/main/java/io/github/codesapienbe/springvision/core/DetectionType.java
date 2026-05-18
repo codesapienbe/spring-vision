@@ -245,7 +245,27 @@ public enum DetectionType {
      * <p>This detection type estimates demographic attributes including age and gender
      * from facial features.</p>
      */
-    DEMOGRAPHICS("demographics", "Demographics Detection", false, "Detects age and gender from faces");
+    DEMOGRAPHICS("demographics", "Demographics Detection", false, "Detects age and gender from faces"),
+
+    /**
+     * Vehicle detection - identifies vehicles and classifies their type.
+     *
+     * <p>This detection type uses the COCO-trained YOLO model to locate vehicles
+     * (cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes) and
+     * enriches each detection with vehicle category metadata.</p>
+     */
+    VEHICLE("vehicle", "Vehicle Detection", false, "Detects vehicles and classifies their type"),
+
+    /**
+     * Vehicle damage detection - identifies damage on detected vehicles.
+     *
+     * <p>This detection type first locates vehicles in the image and then runs a
+     * dedicated damage-classification model on each vehicle region to identify damage
+     * such as scratches, dents, cracks, broken glass, and flat tires. Requires the
+     * vehicle-damage-classifier.onnx model to be bundled.</p>
+     */
+    VEHICLE_DAMAGE("vehicle-damage", "Vehicle Damage Detection", false,
+        "Detects damage areas on vehicles (scratches, dents, cracks, etc.)");
 
     private final String code;
     private final String displayName;
