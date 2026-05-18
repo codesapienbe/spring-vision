@@ -692,6 +692,12 @@
                           <skipCache>false</skipCache>
                       </configuration>
                   </execution>
+                  <!-- Vehicle Damage Detection Model (vineetsarpal/yolov11n-car-damage, 14 classes) -->
+                  <!-- Export with: yolo export model=best.pt format=onnx imgsz=640 simplify=True  -->
+                  <!-- Then upload to a stable URL and update this entry.                           -->
+                  <!-- Until a hosted ONNX exists the model must be placed manually at:            -->
+                  <!--   src/main/resources/models/vehicle-damage/yolov11n-car-damage.onnx         -->
+
                   <!-- Age/Gender Demographics Models (ONNX, GoogLeNet-based from ONNX Model Zoo) -->
                   <execution>
                       <id>download-age-googlenet</id>

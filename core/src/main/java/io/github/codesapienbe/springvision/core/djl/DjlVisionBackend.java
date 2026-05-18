@@ -180,14 +180,17 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, float[]> actionRecognitionModel;
     private ZooModel<Image, CategoryMask> semanticSegmentationModel;
     private ZooModel<Image, DetectedObjects> instanceSegmentationModel;
-    private ZooModel<Image, float[]> vehicleDamageModel;
+    private ZooModel<Image, DetectedObjects> vehicleDamageModel;
 
     private static final Set<String> VEHICLE_CLASSES = Set.of(
         "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat");
 
-    private static final String[] VEHICLE_DAMAGE_CLASSES = {
-        "no_damage", "minor_scratch", "deep_scratch", "dent",
-        "crack", "broken_glass", "flat_tire", "severe_damage"
+    // Classes from vineetsarpal/yolov11n-car-damage (YOLOv11n, 14 classes)
+    static final String[] VEHICLE_DAMAGE_CLASSES = {
+        "Front-windscreen-damage", "Headlight-damage", "Rear-windscreen-Damage",
+        "Runningboard-Damage", "Sidemirror-Damage", "Taillight-Damage",
+        "bonnet-dent", "boot-dent", "doorouter-dent", "fender-dent",
+        "front-bumper-dent", "quaterpanel-dent", "rear-bumper-dent", "roof-dent"
     };
 
     private final DjlProperties properties;
@@ -742,19 +745,19 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadVehicleDamageModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading vehicle damage detection model (ONNX classifier)");
-        String url = YoloModelLoader.getModelUrl("vehicle-damage/vehicle-damage-classifier.onnx");
+        logger.info("Loading vehicle damage detection model (vineetsarpal/yolov11n-car-damage ONNX)");
+        String url = YoloModelLoader.getModelUrl("vehicle-damage/yolov11n-car-damage.onnx");
         if (url == null) {
-            logger.warn("Vehicle damage detection model not found in classpath at "
-                + "'/models/vehicle-damage/vehicle-damage-classifier.onnx'. "
-                + "Bundle the ONNX model and rebuild to enable vehicle damage detection.");
+            logger.warn("Vehicle damage detection model not found at classpath '/models/vehicle-damage/yolov11n-car-damage.onnx'. "
+                + "Export it with: yolo export model=best.pt format=onnx imgsz=640 simplify=True "
+                + "(model: huggingface.co/vineetsarpal/yolov11n-car-damage)");
             return;
         }
         vehicleDamageModel = Criteria.builder()
-            .setTypes(Image.class, float[].class)
+            .setTypes(Image.class, DetectedObjects.class)
             .optModelUrls(url)
-            .optModelName("vehicle-damage-classifier")
-            .optTranslator(new ActionRecognitionTranslator())
+            .optModelName("yolov11n-car-damage")
+            .optTranslator(new YoloDamageDetectionTranslator())
             .optEngine("OnnxRuntime")
             .optDevice(device)
             .build()
@@ -2075,6 +2078,117 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
+    /**
+     * Translator for YOLOv11n-car-damage ONNX (vineetsarpal/yolov11n-car-damage).
+     *
+     * <p>Input: letterboxed 640×640 RGB image, normalized [0,1], NCHW layout, tensor named "images".<br>
+     * Output: "output0" shaped [1, 18, 8400] — 4 bbox coords + 14 damage class scores × 8400 anchors.<br>
+     * Post-processing applies a confidence threshold of 0.25 and returns {@link DetectedObjects}.</p>
+     */
+    private static final class YoloDamageDetectionTranslator implements Translator<Image, DetectedObjects> {
+        private static final int INPUT_SIZE = 640;
+        private static final float CONF_THRESHOLD = 0.25f;
+        private static final float IOU_THRESHOLD = 0.45f;
+        private static final int NUM_CLASSES = VEHICLE_DAMAGE_CLASSES.length; // 14
+
+        @Override
+        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
+            // Letterbox-pad to 640×640 preserving aspect ratio
+            int origW = input.getWidth();
+            int origH = input.getHeight();
+            double ratio = Math.min(INPUT_SIZE / (double) origW, INPUT_SIZE / (double) origH);
+            int newW = (int) Math.round(origW * ratio);
+            int newH = (int) Math.round(origH * ratio);
+            int padLeft = (INPUT_SIZE - newW) / 2;
+            int padTop = (INPUT_SIZE - newH) / 2;
+
+            ctx.setAttachment("ratio", ratio);
+            ctx.setAttachment("padLeft", padLeft);
+            ctx.setAttachment("padTop", padTop);
+
+            Image resized = input.resize(newW, newH, false);
+            float[] hwcRgb = resized.toNDArray(ctx.getNDManager(), Image.Flag.COLOR)
+                .toType(DataType.FLOAT32, false).toFloatArray();
+
+            // Place into 640×640 canvas (grey 114 padding, NCHW, normalised 0-1)
+            float[] nchw = new float[3 * INPUT_SIZE * INPUT_SIZE];
+            Arrays.fill(nchw, 114f / 255f);
+            for (int py = 0; py < newH; py++) {
+                for (int px = 0; px < newW; px++) {
+                    int srcIdx = (py * newW + px) * 3;
+                    int dstY = py + padTop;
+                    int dstX = px + padLeft;
+                    int base = dstY * INPUT_SIZE + dstX;
+                    nchw[base] = hwcRgb[srcIdx] / 255f;
+                    nchw[INPUT_SIZE * INPUT_SIZE + base] = hwcRgb[srcIdx + 1] / 255f;
+                    nchw[2 * INPUT_SIZE * INPUT_SIZE + base] = hwcRgb[srcIdx + 2] / 255f;
+                }
+            }
+            NDArray tensor = ctx.getNDManager()
+                .create(nchw, new Shape(1, 3, INPUT_SIZE, INPUT_SIZE));
+            tensor.setName("images");
+            return new NDList(tensor);
+        }
+
+        @Override
+        public DetectedObjects processOutput(TranslatorContext ctx, NDList list) {
+            double ratio = (double) ctx.getAttachment("ratio");
+            int padLeft = (int) ctx.getAttachment("padLeft");
+            int padTop = (int) ctx.getAttachment("padTop");
+
+            // output0: [1, 4+NUM_CLASSES, 8400]
+            float[] raw = list.getFirst().toFloatArray();
+            int numAnchors = raw.length / (4 + NUM_CLASSES);
+
+            List<String> classNames = new ArrayList<>();
+            List<Double> probabilities = new ArrayList<>();
+            List<ai.djl.modality.cv.output.BoundingBox> boxes = new ArrayList<>();
+
+            for (int a = 0; a < numAnchors; a++) {
+                // Find highest class score
+                int bestClass = -1;
+                float bestScore = CONF_THRESHOLD;
+                for (int c = 0; c < NUM_CLASSES; c++) {
+                    float score = raw[(4 + c) * numAnchors + a];
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestClass = c;
+                    }
+                }
+                if (bestClass < 0) {
+                    continue;
+                }
+
+                // cx, cy, w, h in 640×640 space
+                float cx = raw[a];
+                float cy = raw[numAnchors + a];
+                float bw = raw[2 * numAnchors + a];
+                float bh = raw[3 * numAnchors + a];
+
+                // Remove letterbox padding and scale back to original image coordinates (normalised)
+                float x1 = (float) ((cx - bw / 2f - padLeft) / (ratio * (INPUT_SIZE - 2 * padLeft)));
+                float y1 = (float) ((cy - bh / 2f - padTop) / (ratio * (INPUT_SIZE - 2 * padTop)));
+                float w = (float) (bw / (ratio * (INPUT_SIZE - 2 * padLeft)));
+                float h = (float) (bh / (ratio * (INPUT_SIZE - 2 * padTop)));
+
+                x1 = Math.max(0f, x1);
+                y1 = Math.max(0f, y1);
+                w = Math.min(w, 1f - x1);
+                h = Math.min(h, 1f - y1);
+
+                classNames.add(VEHICLE_DAMAGE_CLASSES[bestClass]);
+                probabilities.add((double) bestScore);
+                boxes.add(new ai.djl.modality.cv.output.Rectangle(x1, y1, w, h));
+            }
+            return new DetectedObjects(classNames, probabilities, boxes);
+        }
+
+        @Override
+        public Batchifier getBatchifier() {
+            return null;
+        }
+    }
+
     private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         BufferedImage gray = new BufferedImage(64, 64, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D g = gray.createGraphics();
@@ -2327,6 +2441,7 @@ public class DjlVisionBackend implements VisionBackend,
             String modelName = switch (query.getType()) {
                 case OBJECT -> (objectDetectionModel != null ? objectDetectionModel.getName() : "unknown");
                 case FACE -> (faceDetectionModel != null ? faceDetectionModel.getName() : "unknown");
+                case VEHICLE_DAMAGE -> (vehicleDamageModel != null ? vehicleDamageModel.getName() : "unknown");
                 default -> "unknown";
             };
             attributes.put("model", modelName);
@@ -4455,84 +4570,48 @@ public class DjlVisionBackend implements VisionBackend,
         if (vehicleDamageModel == null) {
             throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
                 "Vehicle damage detection model not available. "
-                + "Bundle the ONNX model at '/models/vehicle-damage/vehicle-damage-classifier.onnx' "
-                + "and rebuild with 'mvn clean install -Pdownload-models'.");
+                + "Export yolov11n-car-damage (huggingface.co/vineetsarpal/yolov11n-car-damage) to ONNX "
+                + "('yolo export model=best.pt format=onnx imgsz=640 simplify=True'), "
+                + "place it at '/models/vehicle-damage/yolov11n-car-damage.onnx' and rebuild.");
         }
 
-        List<Detection> vehicles = detectVehicles(imageData);
-        if (vehicles.isEmpty()) {
-            return List.of();
-        }
+        String correlationId = generateCorrelationId();
+        logger.debug("DJL vehicle damage detection requested: correlationId={}", correlationId);
 
         try {
-            java.awt.image.BufferedImage fullImage = ImageIO.read(
-                new ByteArrayInputStream(imageData.data()));
-            int imgW = fullImage.getWidth();
-            int imgH = fullImage.getHeight();
+            Image djlImage = ImageFactory.getInstance()
+                .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
-            List<Detection> damages = new ArrayList<>();
-            for (int i = 0; i < vehicles.size(); i++) {
-                Detection vehicle = vehicles.get(i);
-                io.github.codesapienbe.springvision.core.BoundingBox bbox = vehicle.boundingBox();
-                if (bbox == null) {
-                    continue;
-                }
+            List<Detection> results = withPredictor(vehicleDamageModel, predictor -> {
+                DetectionQuery query = new DetectionQuery.Builder()
+                    .type(DetectionType.VEHICLE_DAMAGE)
+                    .minConfidence(0.25)
+                    .build();
+                DetectedObjects detections = predictor.predict(djlImage);
+                return convertDetections(detections, query);
+            });
 
-                int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
-                int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
-                int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
-                int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
-                w = Math.min(w, imgW - x);
-                h = Math.min(h, imgH - y);
-                if (w <= 0 || h <= 0) {
-                    continue;
-                }
-
-                java.awt.image.BufferedImage crop;
-                try {
-                    crop = fullImage.getSubimage(x, y, w, h);
-                } catch (java.awt.image.RasterFormatException rfe) {
-                    logger.warn("Invalid crop for vehicle {} in damage detection — skipping: {}", i, rfe.getMessage());
-                    continue;
-                }
-
-                java.awt.image.BufferedImage crop224 = resizeImage(crop, 224, 224);
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                ImageIO.write(crop224, "png", baos);
-                Image vehicleRegion = ImageFactory.getInstance()
-                    .fromInputStream(new ByteArrayInputStream(baos.toByteArray()));
-
-                float[] probs = withPredictor(vehicleDamageModel, p -> p.predict(vehicleRegion));
-                if (probs == null || probs.length == 0) {
-                    continue;
-                }
-
-                int maxIdx = 0;
-                for (int j = 1; j < probs.length; j++) {
-                    if (probs[j] > probs[maxIdx]) maxIdx = j;
-                }
-                String damageLabel = maxIdx < VEHICLE_DAMAGE_CLASSES.length
-                    ? VEHICLE_DAMAGE_CLASSES[maxIdx] : "unknown";
-                double confidence = probs[maxIdx];
-
-                Map<String, Object> attrs = new java.util.LinkedHashMap<>();
-                attrs.put("vehicleType", vehicle.attributes().get("vehicleType"));
-                attrs.put("vehicleLabel", vehicle.label());
-                attrs.put("vehicleConfidence", vehicle.confidence());
-                attrs.put("damageType", damageLabel);
-                attrs.put("severity", resolveDamageSeverity(damageLabel));
-
-                damages.add(new Detection(damageLabel, confidence, vehicle.boundingBox(), attrs));
+            // Enrich each damage detection with severity
+            List<Detection> enriched = new ArrayList<>();
+            for (Detection d : results) {
+                Map<String, Object> attrs = new java.util.LinkedHashMap<>(d.attributes());
+                attrs.put("damageType", d.label());
+                attrs.put("severity", resolveDamageSeverity(d.label()));
+                enriched.add(new Detection(d.label(), d.confidence(), d.boundingBox(), attrs));
             }
 
-            logger.info("Vehicle damage detection completed: {} damage assessments for {} vehicles",
-                damages.size(), vehicles.size());
-            return damages;
+            logger.info("Vehicle damage detection completed: {} damage areas found, correlationId={}",
+                enriched.size(), correlationId);
+            return enriched;
 
         } catch (IOException e) {
             throw new VisionProcessingException(
                 "Failed to load image for vehicle damage detection: " + e.getMessage(),
                 "image_load_failed", DetectionType.VEHICLE_DAMAGE.name(), e);
+        } catch (TranslateException e) {
+            throw new VisionProcessingException(
+                "Failed to process vehicle damage detection: " + e.getMessage(),
+                "inference_failed", DetectionType.VEHICLE_DAMAGE.name(), e);
         } catch (Exception e) {
             throw new VisionBackendException(
                 "Vehicle damage detection failed: " + e.getMessage(),
@@ -4546,13 +4625,24 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private String resolveDamageSeverity(String damageLabel) {
-        return switch (damageLabel) {
-            case "no_damage" -> "NONE";
-            case "minor_scratch" -> "MINOR";
-            case "deep_scratch", "dent", "flat_tire" -> "MODERATE";
-            case "crack", "broken_glass", "severe_damage" -> "SEVERE";
-            default -> "UNKNOWN";
-        };
+        if (damageLabel == null) {
+            return "UNKNOWN";
+        }
+        String lower = damageLabel.toLowerCase();
+        // Glass/windscreen damage = safety hazard → SEVERE
+        if (lower.contains("windscreen") || lower.contains("glass")) {
+            return "SEVERE";
+        }
+        // Structural dents → MODERATE
+        if (lower.contains("dent")) {
+            return "MODERATE";
+        }
+        // Light/mirror/runningboard → MINOR
+        if (lower.contains("headlight") || lower.contains("taillight")
+            || lower.contains("sidemirror") || lower.contains("runningboard")) {
+            return "MINOR";
+        }
+        return "MODERATE";
     }
 
     /**
