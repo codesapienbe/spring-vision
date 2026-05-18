@@ -75,7 +75,7 @@ endef
 
 sync:
 	@echo "Building and syncing MCP jar for local testing..."
-	mvn -pl mcp clean package -DskipTests -q || ( echo "MCP build failed!" && exit 1 )
+	mvn -pl core,mcp -am clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -q || ( echo "MCP build failed!" && exit 1 )
 	mkdir -p $(SPRINGVISION_DIR)
 	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCP_JAR)
 	@echo "Jar → $(MCP_JAR)"

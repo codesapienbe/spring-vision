@@ -110,6 +110,19 @@ public class VisionTool {
 
         String trimmed = imageUrl.trim();
 
+        // Plain base64 string (no URL/path scheme) — decode directly
+        if (!trimmed.startsWith("http") && !trimmed.startsWith("file") && !trimmed.startsWith("data:")) {
+            try {
+                byte[] decoded = Base64.getDecoder().decode(trimmed.replaceAll("\\s", ""));
+                if (decoded.length > MAX_IMAGE_SIZE_BYTES) {
+                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+                }
+                return decoded;
+            } catch (IllegalArgumentException ignored) {
+                // Not valid base64 — fall through to URI/path handling
+            }
+        }
+
         // Support data: URIs (data:image/png;base64,....)
         if (trimmed.startsWith("data:")) {
             int comma = trimmed.indexOf(',');
@@ -253,9 +266,9 @@ public class VisionTool {
     // Overloads: accept raw image bytes (uploaded files) and delegate to existing URL-based methods
     @Tool(name = "count_faces_b", description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
-    public Map<String, Object> countFaces(byte[] imageBytes) {
+    public Map<String, Object> countFacesB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectFaces(img);
 
             Map<String, Object> response = new HashMap<>();
@@ -275,7 +288,7 @@ public class VisionTool {
 
     @Tool(name = "extract_face_embeddings_b", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
-    public Map<String, Object> extractEmbeddings(byte[] imageBytes) {
+    public Map<String, Object> extractEmbeddingsB(String imageBase64) {
         long startTime = System.currentTimeMillis();
         Map<String, Object> response = new HashMap<>();
         try {
@@ -293,7 +306,7 @@ public class VisionTool {
                     "model_not_initialized", null);
             }
 
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(img,
                 io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
             List<Map<String, Object>> out = new ArrayList<>();
@@ -322,9 +335,9 @@ public class VisionTool {
 
     @Tool(name = "extract_text_b", description = "Extract text from uploaded image bytes using OCR. Returns detected text with confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> extractText(byte[] imageBytes) {
+    public Map<String, Object> extractTextB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.extractText(img);
 
             List<Map<String, Object>> detections = new ArrayList<>();
@@ -361,9 +374,9 @@ public class VisionTool {
 
     @Tool(name = "classify_image_b", description = "Classify an uploaded image into categories. Returns top predictions with confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> classifyImage(byte[] imageBytes, Integer topK) {
+    public Map<String, Object> classifyImageB(String imageBase64, Integer topK) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.classifyImage(img, topK == null ? 5 : topK);
 
             List<Map<String, Object>> classifications = new ArrayList<>();
@@ -391,9 +404,9 @@ public class VisionTool {
 
     @Tool(name = "detect_objects_b", description = "Detect objects from uploaded image bytes. Returns detected objects with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectObjects(byte[] imageBytes) {
+    public Map<String, Object> detectObjectsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectObjects(img);
 
             List<Map<String, Object>> objects = new ArrayList<>();
@@ -432,9 +445,9 @@ public class VisionTool {
 
     @Tool(name = "detect_poses_b", description = "Detect poses from uploaded image bytes. Returns detected poses with joint positions and confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectPoses(byte[] imageBytes) {
+    public Map<String, Object> detectPosesB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectPoses(img);
 
             List<Map<String, Object>> poses = new ArrayList<>();
@@ -463,9 +476,9 @@ public class VisionTool {
 
     @Tool(name = "recognize_actions_b", description = "Recognize actions from uploaded image bytes. Returns recognized actions with confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> recognizeActions(byte[] imageBytes) {
+    public Map<String, Object> recognizeActionsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.recognizeActions(img);
 
             List<Map<String, Object>> actions = new ArrayList<>();
@@ -493,9 +506,9 @@ public class VisionTool {
 
     @Tool(name = "detect_nsfw_b", description = "Detect NSFW from uploaded image bytes. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectNSFW(byte[] imageBytes) {
+    public Map<String, Object> detectNSFWB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectNSFW(img);
 
             if (!result.hasDetections()) {
@@ -526,9 +539,9 @@ public class VisionTool {
 
     @Tool(name = "detect_emotions_b", description = "Detect emotions from uploaded image bytes. Returns detected emotions with confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectEmotions(byte[] imageBytes) {
+    public Map<String, Object> detectEmotionsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectEmotions(img);
 
             List<Map<String, Object>> emotions = new ArrayList<>();
@@ -567,9 +580,9 @@ public class VisionTool {
 
     @Tool(name = "detect_deepfake_b", description = "Detect deepfakes from uploaded image bytes. Returns classification as 'real' or 'fake' with confidence score.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectDeepfake(byte[] imageBytes) {
+    public Map<String, Object> detectDeepfakeB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectDeepfake(img);
 
             if (!result.hasDetections()) {
@@ -602,9 +615,9 @@ public class VisionTool {
 
     @Tool(name = "detect_hands_b", description = "Detect hands from uploaded image bytes. Returns detected hands with bounding boxes and confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectHands(byte[] imageBytes) {
+    public Map<String, Object> detectHandsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectHands(img);
 
             List<Map<String, Object>> hands = new ArrayList<>();
@@ -641,9 +654,9 @@ public class VisionTool {
 
     @Tool(name = "detect_demographics_b", description = "Detect demographics from uploaded image bytes. Returns detected demographics with confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectDemographics(byte[] imageBytes) {
+    public Map<String, Object> detectDemographicsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectDemographics(img);
 
             List<Map<String, Object>> demographics = new ArrayList<>();
@@ -685,9 +698,9 @@ public class VisionTool {
 
     @Tool(name = "detect_fall_b", description = "Detect falls from uploaded image bytes. Returns fall risk assessment with body orientation and confidence scores.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectFall(byte[] imageBytes) {
+    public Map<String, Object> detectFallB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectFall(List.of(img));
 
             if (!result.hasDetections()) {
@@ -735,9 +748,9 @@ public class VisionTool {
 
     @Tool(name = "analyze_stress_b", description = "Analyze stress from uploaded image bytes. Returns stress assessment with level, score, and indicators.")
     @SuppressWarnings("unused")
-    public Map<String, Object> analyzeStress(byte[] imageBytes) {
+    public Map<String, Object> analyzeStressB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.analyzeStress(List.of(img));
 
             if (!result.hasDetections()) {
@@ -786,9 +799,9 @@ public class VisionTool {
 
     @Tool(name = "extract_image_metadata_b", description = "Extract metadata from uploaded image bytes including EXIF, GPS, and camera information.")
     @SuppressWarnings("unused")
-    public Map<String, Object> extractImageMetadata(byte[] imageBytes) {
+    public Map<String, Object> extractImageMetadataB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.extractMetadata(img);
 
             Map<String, Map<String, Object>> metadataGroups = new HashMap<>();
@@ -817,9 +830,9 @@ public class VisionTool {
 
     @Tool(name = "scan_barcode_b", description = "Scan and decode barcodes from uploaded image bytes. Returns barcode format, content, and location.")
     @SuppressWarnings("unused")
-    public Map<String, Object> scanBarcode(byte[] imageBytes) {
+    public Map<String, Object> scanBarcodeB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.scanBarcodes(img);
 
             List<Map<String, Object>> barcodes = new ArrayList<>();
@@ -857,9 +870,9 @@ public class VisionTool {
 
     @Tool(name = "detect_threats_b", description = "Detect security threats from uploaded image bytes. Returns detections with severity assessment and metadata.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectThreats(byte[] imageBytes) {
+    public Map<String, Object> detectThreatsB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectThreats(List.of(img));
 
             List<Map<String, Object>> threats = new ArrayList<>();
@@ -907,9 +920,9 @@ public class VisionTool {
 
     @Tool(name = "authenticate_access_b", description = "Authenticate access using raw uploaded image bytes. Returns authorization decision.")
     @SuppressWarnings("unused")
-    public Map<String, Object> authenticateAccess(byte[] imageBytes) {
+    public Map<String, Object> authenticateAccessB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.authenticateAccess(img);
 
             if (!result.hasDetections()) {
@@ -961,10 +974,10 @@ public class VisionTool {
 
     @Tool(name = "estimate_heart_rate_f", description = "Estimate heart rate from uploaded frames provided as raw image bytes.")
     @SuppressWarnings("unused")
-    public Map<String, Object> estimateHeartRateFromBytes(java.util.Collection<byte[]> frames) {
+    public Map<String, Object> estimateHeartRateFromBytes(java.util.Collection<String> frames) {
         try {
             List<ImageData> imageFrames = new ArrayList<>();
-            for (byte[] b : frames) {
+            for (String b : frames) {
                 try {
                     imageFrames.add(resolveImage(b));
                 } catch (Exception ex) {
@@ -1463,27 +1476,27 @@ public class VisionTool {
     // New: support file uploads (raw bytes) for verification
     @Tool(name = "verify_faces_between_bytes", description = "Verify if two face images (uploaded as raw bytes) belong to the same person. Returns similarity score and match result.")
     @SuppressWarnings("unused")
-    public Map<String, Object> verifyFacesFromBytes(byte[] sourceImageBytes, byte[] targetImageBytes) {
+    public Map<String, Object> verifyFacesFromBytes(String sourceImageBase64, String targetImageBase64) {
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
         try {
-            if (sourceImageBytes == null || sourceImageBytes.length == 0) {
+            if (sourceImageBase64 == null || sourceImageBase64.isBlank()) {
                 response.put("status", "error");
-                response.put("message", "Source image bytes are required and cannot be empty");
+                response.put("message", "Source image base64 is required and cannot be empty");
                 response.put("isMatch", false);
                 return response;
             }
 
-            if (targetImageBytes == null || targetImageBytes.length == 0) {
+            if (targetImageBase64 == null || targetImageBase64.isBlank()) {
                 response.put("status", "error");
-                response.put("message", "Target image bytes are required and cannot be empty");
+                response.put("message", "Target image base64 is required and cannot be empty");
                 response.put("isMatch", false);
                 return response;
             }
 
-            ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
-            ImageData targetData = ImageData.fromBytes(targetImageBytes);
+            ImageData sourceData = resolveImage(sourceImageBase64);
+            ImageData targetData = resolveImage(targetImageBase64);
 
             // Use VisionTemplate high-level API
             List<float[]> sourceEmbeddings = extractEmbeddingsFromTemplate(sourceData,
@@ -1668,26 +1681,26 @@ public class VisionTool {
     // New: support file uploads (raw bytes) for lookup
     @Tool(name = "lookup_faces_in_dataset_b", description = "Lookup matching faces in a dataset where images are provided as raw bytes (file uploads). Returns matches sorted by similarity.")
     @SuppressWarnings("unused")
-    public Map<String, Object> lookupFacesFromBytes(byte[] sourceImageBytes, java.util.Collection<byte[]> datasetImageBytes) {
+    public Map<String, Object> lookupFacesFromBytes(String sourceImageBase64, java.util.Collection<String> datasetImageBase64) {
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
         try {
-            if (sourceImageBytes == null || sourceImageBytes.length == 0) {
+            if (sourceImageBase64 == null || sourceImageBase64.isBlank()) {
                 response.put("status", "error");
-                response.put("message", "Source image bytes are required and cannot be empty");
+                response.put("message", "Source image base64 is required and cannot be empty");
                 response.put("matches", List.of());
                 return response;
             }
 
-            if (datasetImageBytes == null || datasetImageBytes.isEmpty()) {
+            if (datasetImageBase64 == null || datasetImageBase64.isEmpty()) {
                 response.put("status", "error");
-                response.put("message", "Dataset image bytes are required and cannot be empty");
+                response.put("message", "Dataset image base64 list is required and cannot be empty");
                 response.put("matches", List.of());
                 return response;
             }
 
-            ImageData sourceData = ImageData.fromBytes(sourceImageBytes);
+            ImageData sourceData = resolveImage(sourceImageBase64);
 
             // Use VisionTemplate high-level API
             List<float[]> sourceEmbeddings = extractEmbeddingsFromTemplate(sourceData,
@@ -1706,9 +1719,9 @@ public class VisionTool {
             int processedCount = 0;
             int errorCount = 0;
 
-            for (byte[] datasetBytes : datasetImageBytes) {
+            for (String datasetBase64 : datasetImageBase64) {
                 try {
-                    ImageData datasetData = ImageData.fromBytes(datasetBytes);
+                    ImageData datasetData = resolveImage(datasetBase64);
                     List<float[]> datasetEmbeddings = extractEmbeddingsFromTemplate(datasetData,
                         io.github.codesapienbe.springvision.core.DetectionCategory.FACE);
 
@@ -1721,7 +1734,7 @@ public class VisionTool {
                         double matchThreshold = this.configuredSimilarityThreshold;
                         if (combinedSimilarity >= matchThreshold) {
                             Map<String, Object> match = new HashMap<>();
-                            match.put("imageBytes", datasetBytes); // retain raw bytes if caller needs them
+                            match.put("imageBase64", datasetBase64);
                             match.put("similarity", Math.round(combinedSimilarity * 10000.0) / 10000.0);
                             match.put("facesDetected", datasetEmbeddings.size());
                             match.put("metrics", Map.of(
@@ -1750,7 +1763,7 @@ public class VisionTool {
             response.put("matches", matches);
             response.put("matchCount", matches.size());
             response.put("sourceFacesCount", sourceEmbeddings.size());
-            response.put("datasetSize", datasetImageBytes.size());
+            response.put("datasetSize", datasetImageBase64.size());
             response.put("processedCount", processedCount);
             response.put("errorCount", errorCount);
             response.put("processingTimeMs", duration);
@@ -2481,7 +2494,7 @@ public class VisionTool {
 
     @Tool(name = "count_faces_b_validated", description = "Count faces from raw image bytes. Returns the number of faces detected.")
     @SuppressWarnings("unused")
-    public Map<String, Object> countFacesFromBytes(byte[] imageBytes) {
+    public Map<String, Object> countFacesFromBytes(String imageBase64) {
         log.info("countFacesFromBytes called",
             StructuredArguments.keyValue("event", "count_faces_b_start"));
 
@@ -2489,21 +2502,14 @@ public class VisionTool {
         long startTime = System.currentTimeMillis();
 
         try {
-            if (imageBytes == null || imageBytes.length == 0) {
+            if (imageBase64 == null || imageBase64.isBlank()) {
                 response.put("status", "error");
                 response.put("count", 0);
-                response.put("message", "Image bytes are required and cannot be empty");
+                response.put("message", "Image base64 is required and cannot be empty");
                 return response;
             }
 
-            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
-                response.put("status", "error");
-                response.put("count", 0);
-                response.put("message", "Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
-                return response;
-            }
-
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageBase64);
 
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.detectFaces(imgData);
@@ -2517,7 +2523,7 @@ public class VisionTool {
             response.put("message", String.format("Detected %d faces", result.detectionCount()));
             log.info("countFaces completed successfully",
                 StructuredArguments.keyValue("event", "count_faces_success"),
-                StructuredArguments.keyValue("bytes", imageBytes.length),
+                StructuredArguments.keyValue("bytes", imageBase64.length()),
                 StructuredArguments.keyValue("count", result.detectionCount()),
                 StructuredArguments.keyValue("duration_ms", duration));
             return response;
@@ -2533,7 +2539,7 @@ public class VisionTool {
 
     @Tool(name = "extract_face_embeddings_b_validated", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
-    public Map<String, Object> extractEmbeddingsFromBytes(byte[] imageBytes) {
+    public Map<String, Object> extractEmbeddingsFromBytes(String imageBase64) {
         log.info("extractEmbeddingsFromBytes called",
             StructuredArguments.keyValue("event", "extract_embeddings_b_start"));
 
@@ -2541,21 +2547,14 @@ public class VisionTool {
         long startTime = System.currentTimeMillis();
 
         try {
-            if (imageBytes == null || imageBytes.length == 0) {
+            if (imageBase64 == null || imageBase64.isBlank()) {
                 response.put("status", "error");
-                response.put("message", "Image bytes are required and cannot be empty");
+                response.put("message", "Image base64 is required and cannot be empty");
                 response.put("embeddings", List.of());
                 return response;
             }
 
-            if (imageBytes.length > MAX_IMAGE_SIZE_BYTES) {
-                response.put("status", "error");
-                response.put("message", "Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
-                response.put("embeddings", List.of());
-                return response;
-            }
-
-            ImageData imgData = ImageData.fromBytes(imageBytes);
+            ImageData imgData = resolveImage(imageBase64);
 
             // Use VisionTemplate high-level API
             List<float[]> rawEmbeddings = extractEmbeddingsFromTemplate(imgData,
@@ -3213,9 +3212,9 @@ public class VisionTool {
 
     @Tool(name = "detect_vehicle_b", description = "Detect vehicles (cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes) from uploaded image bytes. Returns bounding boxes, vehicle type, and category metadata.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectVehicle(byte[] imageBytes) {
+    public Map<String, Object> detectVehicleB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectVehicles(img);
 
             List<Map<String, Object>> vehicles = new ArrayList<>();
@@ -3314,9 +3313,9 @@ public class VisionTool {
 
     @Tool(name = "detect_vehicle_damages_b", description = "Detect damage on vehicles found in uploaded image bytes. For each detected vehicle, classifies damage type (scratch, dent, crack, broken glass, flat tire, etc.) and severity. Requires the vehicle-damage-classifier.onnx model to be bundled.")
     @SuppressWarnings("unused")
-    public Map<String, Object> detectVehicleDamages(byte[] imageBytes) {
+    public Map<String, Object> detectVehicleDamagesB(String imageBase64) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectVehicleDamages(img);
 
             List<Map<String, Object>> damages = new ArrayList<>();
@@ -3482,10 +3481,10 @@ public class VisionTool {
         description = "Submit a labeled vehicle damage image (as bytes) to the online DJL classifier training buffer. " +
             "Same as submit_damage_label_u but accepts raw image bytes.")
     @SuppressWarnings("unused")
-    public Map<String, Object> submitDamageLabelBytes(byte[] imageBytes, String damageClass,
+    public Map<String, Object> submitDamageLabelBytes(String imageBase64, String damageClass,
         Double bboxX, Double bboxY, Double bboxWidth, Double bboxHeight) {
         try {
-            ImageData img = resolveImage(imageBytes);
+            ImageData img = resolveImage(imageBase64);
             io.github.codesapienbe.springvision.core.BoundingBox bbox = null;
             if (bboxX != null && bboxY != null && bboxWidth != null && bboxHeight != null) {
                 bbox = new io.github.codesapienbe.springvision.core.BoundingBox(
