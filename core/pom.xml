@@ -705,7 +705,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://huggingface.co/vineetsarpal/yolov11n-car-damage/resolve/main/best.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov11n-car-damage.onnx</url>
                           <outputDirectory>${models.directory}/vehicle-damage</outputDirectory>
                           <outputFileName>yolov11n-car-damage.onnx</outputFileName>
                           <skipCache>false</skipCache>
