@@ -7,7 +7,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.util.List;
+import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -91,6 +91,17 @@ class VehicleDamageDetectionIntegrationTest {
         assertThat(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES).hasSize(14);
     }
 
+    @Test
+    @DisplayName("EXTENDED_DAMAGE_CLASSES is non-empty and disjoint from VEHICLE_DAMAGE_CLASSES")
+    void extendedDamageClassesAreDisjoint() {
+        assertThat(DjlVisionBackend.EXTENDED_DAMAGE_CLASSES).isNotEmpty();
+        Set<String> trained = Set.of(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES);
+        for (String cls : DjlVisionBackend.EXTENDED_DAMAGE_CLASSES) {
+            assertThat(trained).as("Extended class '%s' should not overlap with trained classes", cls)
+                .doesNotContain(cls);
+        }
+    }
+
     // -----------------------------------------------------------------------
     // Vehicle damage detection — skipped when ONNX model not yet bundled
     // -----------------------------------------------------------------------
@@ -122,7 +133,7 @@ class VehicleDamageDetectionIntegrationTest {
             assertThat(d.attributes()).containsKey("damageType");
             assertThat(d.attributes()).containsKey("severity");
             assertThat(d.attributes().get("severity"))
-                .isIn("NONE", "MINOR", "MODERATE", "SEVERE");
+                .isIn("UNKNOWN", "MINOR", "MODERATE", "SEVERE");
         }
     }
 

@@ -80,6 +80,11 @@ public class DjlProperties {
      * Face recognition settings
      */
     private FaceRecognition faceRecognition = new FaceRecognition();
+
+    /**
+     * Vehicle damage detection settings
+     */
+    private VehicleDamage vehicleDamage = new VehicleDamage();
     // Nested configuration classes
     public static class FaceDetection {
         private String model = "retinaface"; // or "lightface"
@@ -252,6 +257,36 @@ public class DjlProperties {
         }
     }
 
+    public static class VehicleDamage {
+        private double minConfidence = 0.25;
+        private double reliableConfidenceThreshold = 0.60;
+        private float iouThreshold = 0.45f;
+
+        public double getMinConfidence() {
+            return minConfidence;
+        }
+
+        public void setMinConfidence(double minConfidence) {
+            this.minConfidence = minConfidence;
+        }
+
+        public double getReliableConfidenceThreshold() {
+            return reliableConfidenceThreshold;
+        }
+
+        public void setReliableConfidenceThreshold(double reliableConfidenceThreshold) {
+            this.reliableConfidenceThreshold = reliableConfidenceThreshold;
+        }
+
+        public float getIouThreshold() {
+            return iouThreshold;
+        }
+
+        public void setIouThreshold(float iouThreshold) {
+            this.iouThreshold = iouThreshold;
+        }
+    }
+
     // Getters and setters
     public boolean isEnabled() {
         return enabled;
@@ -372,6 +407,14 @@ public class DjlProperties {
 
     public void setFaceRecognition(FaceRecognition faceRecognition) {
         this.faceRecognition = faceRecognition;
+    }
+
+    public VehicleDamage getVehicleDamage() {
+        return vehicleDamage;
+    }
+
+    public void setVehicleDamage(VehicleDamage vehicleDamage) {
+        this.vehicleDamage = vehicleDamage;
     }
 
 }

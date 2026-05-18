@@ -18,7 +18,7 @@ import io.github.codesapienbe.springvision.core.ImageData;
  * <ul>
  *   <li>{@code vehicleType} (String): COCO class of the vehicle, e.g. "car"</li>
  *   <li>{@code damageType} (String): damage class predicted by the model</li>
- *   <li>{@code severity} (String): "NONE", "MINOR", "MODERATE", or "SEVERE"</li>
+ *   <li>{@code severity} (String): "UNKNOWN", "MINOR", "MODERATE", or "SEVERE"</li>
  *   <li>{@code vehicleLabel} (String): original vehicle detection label</li>
  *   <li>{@code vehicleConfidence} (double): confidence of the vehicle detection</li>
  * </ul>

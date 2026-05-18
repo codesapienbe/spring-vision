@@ -67,6 +67,14 @@ public class VisionTool {
     private double configuredSimilarityThreshold = 0.6; // default for direct construction (tests)
 
     private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+    @Value("${spring.vision.djl.vehicle-damage.reliable-confidence-threshold:0.60}")
+    double reliableConfidenceThreshold = 0.60;
+
+    static final List<String> EXTENDED_DAMAGE_CLASSES = List.of(
+        "scratch", "paint-damage", "broken-component",
+        "missing-panel", "flood-damage", "burn-damage", "flat-tire", "cracked-bumper"
+    );
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private final HttpClient httpClient;
 
@@ -222,6 +230,24 @@ public class VisionTool {
         if (url == null) return "null";
         int queryIndex = url.indexOf('?');
         return queryIndex > 0 ? url.substring(0, queryIndex) + "?..." : url;
+    }
+
+    record ReviewFlag(String flag, String reason) {}
+
+    ReviewFlag computeReviewFlag(int detectionCount, double avgConfidence) {
+        if (detectionCount == 0) {
+            return new ReviewFlag("NO_DETECTIONS",
+                "No damage detected by the trained model. Damage types outside the current taxonomy "
+                + "may be present: " + String.join(", ", EXTENDED_DAMAGE_CLASSES)
+                + ". Manual review recommended.");
+        }
+        if (avgConfidence < reliableConfidenceThreshold) {
+            return new ReviewFlag("LOW_CONFIDENCE",
+                String.format("Average confidence %.1f%% is below the reliable threshold of %.0f%%. "
+                    + "Results may be uncertain; manual review recommended.",
+                    avgConfidence * 100, reliableConfidenceThreshold * 100));
+        }
+        return new ReviewFlag("NONE", null);
     }
 
     // Overloads: accept raw image bytes (uploaded files) and delegate to existing URL-based methods
@@ -3314,11 +3340,17 @@ public class VisionTool {
                 damages.add(d);
             }
 
+            ReviewFlag review = computeReviewFlag(damages.size(), result.averageConfidence());
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("damages", damages);
             response.put("count", damages.size());
             response.put("processingTimeMs", result.processingTimeMs());
+            response.put("reviewFlag", review.flag());
+            if (review.reason() != null) {
+                response.put("reviewReason", review.reason());
+            }
+            response.put("extendedTaxonomy", EXTENDED_DAMAGE_CLASSES);
             return response;
         } catch (VisionUnsupportedException e) {
             throw e;
@@ -3372,11 +3404,17 @@ public class VisionTool {
             }
 
             long processingTime = System.currentTimeMillis() - startTime;
+            ReviewFlag review = computeReviewFlag(damages.size(), result.averageConfidence());
             response.put("status", "success");
             response.put("damages", damages);
             response.put("count", damages.size());
             response.put("processingTimeMs", processingTime);
             response.put("imageUrl", imageUrl);
+            response.put("reviewFlag", review.flag());
+            if (review.reason() != null) {
+                response.put("reviewReason", review.reason());
+            }
+            response.put("extendedTaxonomy", EXTENDED_DAMAGE_CLASSES);
 
             log.info("detectVehicleDamages completed",
                 StructuredArguments.keyValue("event", "detect_vehicle_damages_complete"),

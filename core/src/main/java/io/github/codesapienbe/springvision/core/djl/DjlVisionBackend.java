@@ -193,6 +193,33 @@ public class DjlVisionBackend implements VisionBackend,
         "front-bumper-dent", "quaterpanel-dent", "rear-bumper-dent", "roof-dent"
     };
 
+    // Damage types NOT in the current ONNX model — documented for MCP response hints and future retraining
+    static final String[] EXTENDED_DAMAGE_CLASSES = {
+        "scratch", "paint-damage", "broken-component",
+        "missing-panel", "flood-damage", "burn-damage", "flat-tire", "cracked-bumper"
+    };
+
+    private static final Map<String, String> DAMAGE_SEVERITY_MAP;
+
+    static {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("Front-windscreen-damage", "SEVERE");
+        m.put("Rear-windscreen-Damage", "SEVERE");
+        m.put("roof-dent", "SEVERE");
+        m.put("Headlight-damage", "MINOR");
+        m.put("Taillight-Damage", "MINOR");
+        m.put("Sidemirror-Damage", "MINOR");
+        m.put("Runningboard-Damage", "MINOR");
+        m.put("bonnet-dent", "MODERATE");
+        m.put("boot-dent", "MODERATE");
+        m.put("doorouter-dent", "MODERATE");
+        m.put("fender-dent", "MODERATE");
+        m.put("front-bumper-dent", "MODERATE");
+        m.put("quaterpanel-dent", "MODERATE");
+        m.put("rear-bumper-dent", "MODERATE");
+        DAMAGE_SEVERITY_MAP = java.util.Collections.unmodifiableMap(m);
+    }
+
     private final DjlProperties properties;
     private final Device device;
 
@@ -757,7 +784,7 @@ public class DjlVisionBackend implements VisionBackend,
             .setTypes(Image.class, DetectedObjects.class)
             .optModelUrls(url)
             .optModelName("yolov11n-car-damage")
-            .optTranslator(new YoloDamageDetectionTranslator())
+            .optTranslator(new YoloDamageDetectionTranslator((float) properties.getVehicleDamage().getMinConfidence()))
             .optEngine("OnnxRuntime")
             .optDevice(device)
             .build()
@@ -2087,9 +2114,14 @@ public class DjlVisionBackend implements VisionBackend,
      */
     private static final class YoloDamageDetectionTranslator implements Translator<Image, DetectedObjects> {
         private static final int INPUT_SIZE = 640;
-        private static final float CONF_THRESHOLD = 0.25f;
         private static final float IOU_THRESHOLD = 0.45f;
         private static final int NUM_CLASSES = VEHICLE_DAMAGE_CLASSES.length; // 14
+
+        private final float confThreshold;
+
+        YoloDamageDetectionTranslator(float confThreshold) {
+            this.confThreshold = confThreshold;
+        }
 
         @Override
         public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
@@ -2147,7 +2179,7 @@ public class DjlVisionBackend implements VisionBackend,
             for (int a = 0; a < numAnchors; a++) {
                 // Find highest class score
                 int bestClass = -1;
-                float bestScore = CONF_THRESHOLD;
+                float bestScore = confThreshold;
                 for (int c = 0; c < NUM_CLASSES; c++) {
                     float score = raw[(4 + c) * numAnchors + a];
                     if (score > bestScore) {
@@ -4585,7 +4617,7 @@ public class DjlVisionBackend implements VisionBackend,
             List<Detection> results = withPredictor(vehicleDamageModel, predictor -> {
                 DetectionQuery query = new DetectionQuery.Builder()
                     .type(DetectionType.VEHICLE_DAMAGE)
-                    .minConfidence(0.25)
+                    .minConfidence(properties.getVehicleDamage().getMinConfidence())
                     .build();
                 DetectedObjects detections = predictor.predict(djlImage);
                 return convertDetections(detections, query);
@@ -4624,25 +4656,8 @@ public class DjlVisionBackend implements VisionBackend,
         return vehicleDamageModel != null;
     }
 
-    private String resolveDamageSeverity(String damageLabel) {
-        if (damageLabel == null) {
-            return "UNKNOWN";
-        }
-        String lower = damageLabel.toLowerCase();
-        // Glass/windscreen damage = safety hazard → SEVERE
-        if (lower.contains("windscreen") || lower.contains("glass")) {
-            return "SEVERE";
-        }
-        // Structural dents → MODERATE
-        if (lower.contains("dent")) {
-            return "MODERATE";
-        }
-        // Light/mirror/runningboard → MINOR
-        if (lower.contains("headlight") || lower.contains("taillight")
-            || lower.contains("sidemirror") || lower.contains("runningboard")) {
-            return "MINOR";
-        }
-        return "MODERATE";
+    private String resolveDamageSeverity(String label) {
+        return label == null ? "UNKNOWN" : DAMAGE_SEVERITY_MAP.getOrDefault(label, "MODERATE");
     }
 
     /**
