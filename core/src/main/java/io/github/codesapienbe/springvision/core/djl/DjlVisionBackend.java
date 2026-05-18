@@ -158,7 +158,8 @@ public class DjlVisionBackend implements VisionBackend,
     ThreatDetectionCapability,
     AccessAuthenticationCapability,
     io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability,
-    io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability {
+    io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability,
+    io.github.codesapienbe.springvision.core.capabilities.VehicleDamageTrainingCapability {
 
     private static final Logger logger = LoggerFactory.getLogger(DjlVisionBackend.class);
 
@@ -222,6 +223,9 @@ public class DjlVisionBackend implements VisionBackend,
 
     private final DjlProperties properties;
     private final Device device;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private DjlOnlineDamageClassifier onlineClassifier;
 
     /**
      * Store of enrolled biometric identities. Lazily initialized to a SQLite-backed
@@ -4658,6 +4662,53 @@ public class DjlVisionBackend implements VisionBackend,
 
     private String resolveDamageSeverity(String label) {
         return label == null ? "UNKNOWN" : DAMAGE_SEVERITY_MAP.getOrDefault(label, "MODERATE");
+    }
+
+    // ============================================================================
+    // VehicleDamageTrainingCapability Implementation
+    // ============================================================================
+
+    @Override
+    public int submitDamageLabel(ImageData imageData, String damageClass, BoundingBox boundingBox) {
+        if (onlineClassifier == null) {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Online damage classifier is not available");
+        }
+        return onlineClassifier.addSample(imageData, damageClass, boundingBox);
+    }
+
+    @Override
+    public Detection classifyDamageAuxiliary(ImageData imageData) {
+        if (onlineClassifier == null || !onlineClassifier.isReady()) {
+            return null;
+        }
+        return onlineClassifier.classify(imageData);
+    }
+
+    @Override
+    public java.util.Map<String, Long> getDamageDatasetStats() {
+        if (onlineClassifier == null) {
+            return java.util.Map.of();
+        }
+        return onlineClassifier.getDatasetStats();
+    }
+
+    @Override
+    public boolean isAuxiliaryClassifierReady() {
+        return onlineClassifier != null && onlineClassifier.isReady();
+    }
+
+    @Override
+    public void exportClassifierArtifact(java.nio.file.Path targetDir) throws java.io.IOException {
+        if (onlineClassifier == null) {
+            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
+                "Online classifier not available");
+        }
+        onlineClassifier.exportModelArtifact(targetDir);
+    }
+
+    public DjlOnlineDamageClassifier getOnlineClassifier() {
+        return onlineClassifier;
     }
 
     /**

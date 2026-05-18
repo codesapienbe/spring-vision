@@ -85,6 +85,11 @@ public class DjlProperties {
      * Vehicle damage detection settings
      */
     private VehicleDamage vehicleDamage = new VehicleDamage();
+
+    /**
+     * Online damage classifier training settings
+     */
+    private OnlineClassifier onlineClassifier = new OnlineClassifier();
     // Nested configuration classes
     public static class FaceDetection {
         private String model = "retinaface"; // or "lightface"
@@ -257,6 +262,37 @@ public class DjlProperties {
         }
     }
 
+    public static class OnlineClassifier {
+        private boolean enabled = true;
+        private int minBatchSize = 8;
+        private int maxBufferSize = 500;
+        private int epochs = 5;
+        private double learningRate = 0.001;
+        private String checkpointDir = "~/.springvision/";
+        private String datasetDir = "datasets/vehicle-damage";
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+        public int getMinBatchSize() { return minBatchSize; }
+        public void setMinBatchSize(int minBatchSize) { this.minBatchSize = minBatchSize; }
+
+        public int getMaxBufferSize() { return maxBufferSize; }
+        public void setMaxBufferSize(int maxBufferSize) { this.maxBufferSize = maxBufferSize; }
+
+        public int getEpochs() { return epochs; }
+        public void setEpochs(int epochs) { this.epochs = epochs; }
+
+        public double getLearningRate() { return learningRate; }
+        public void setLearningRate(double learningRate) { this.learningRate = learningRate; }
+
+        public String getCheckpointDir() { return checkpointDir; }
+        public void setCheckpointDir(String checkpointDir) { this.checkpointDir = checkpointDir; }
+
+        public String getDatasetDir() { return datasetDir; }
+        public void setDatasetDir(String datasetDir) { this.datasetDir = datasetDir; }
+    }
+
     public static class VehicleDamage {
         private double minConfidence = 0.25;
         private double reliableConfidenceThreshold = 0.60;
@@ -415,6 +451,14 @@ public class DjlProperties {
 
     public void setVehicleDamage(VehicleDamage vehicleDamage) {
         this.vehicleDamage = vehicleDamage;
+    }
+
+    public OnlineClassifier getOnlineClassifier() {
+        return onlineClassifier;
+    }
+
+    public void setOnlineClassifier(OnlineClassifier onlineClassifier) {
+        this.onlineClassifier = onlineClassifier;
     }
 
 }

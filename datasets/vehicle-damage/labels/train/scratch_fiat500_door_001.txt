@@ -1,0 +1,4 @@
+# class cx cy w h  (YOLO normalized format)
+# class 14 = scratch (extended taxonomy, not in original 14-class model)
+# Region: full door panel below window line, heavy multi-directional scratches
+14 0.500 0.675 0.970 0.650

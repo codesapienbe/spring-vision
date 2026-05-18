@@ -1,0 +1,40 @@
+# YOLO dataset config for spring-vision vehicle-damage retraining.
+#
+# Classes 0-13 mirror the original vineetsarpal/yolov11n-car-damage taxonomy.
+# Classes 14-21 are the extended taxonomy from spring-vision EXTENDED_DAMAGE_CLASSES.
+# Annotate new samples using class indices below; export with:
+#   yolo train model=yolov11n.pt data=datasets/vehicle-damage/dataset.yaml imgsz=640
+# Then export to ONNX:
+#   yolo export model=runs/detect/train/weights/best.pt format=onnx imgsz=640 simplify=True
+
+path: datasets/vehicle-damage
+train: images/train
+val: images/val
+
+nc: 22
+
+names:
+  # Original 14 classes (model output indices 0-13)
+  0: Front-windscreen-damage
+  1: Headlight-damage
+  2: Rear-windscreen-Damage
+  3: Runningboard-Damage
+  4: Sidemirror-Damage
+  5: Taillight-Damage
+  6: bonnet-dent
+  7: boot-dent
+  8: doorouter-dent
+  9: fender-dent
+  10: front-bumper-dent
+  11: quaterpanel-dent
+  12: rear-bumper-dent
+  13: roof-dent
+  # Extended taxonomy (classes 14-21)
+  14: scratch
+  15: paint-damage
+  16: broken-component
+  17: missing-panel
+  18: flood-damage
+  19: burn-damage
+  20: flat-tire
+  21: cracked-bumper

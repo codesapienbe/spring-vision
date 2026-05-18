@@ -3416,6 +3416,22 @@ public class VisionTool {
             }
             response.put("extendedTaxonomy", EXTENDED_DAMAGE_CLASSES);
 
+            // Auxiliary classifier enrichment when YOLO is uncertain
+            if (!"NONE".equals(review.flag()) && visionTemplate.isAuxiliaryClassifierReady()) {
+                try {
+                    ImageData imgForAux = resolveImage(imageUrl.trim());
+                    io.github.codesapienbe.springvision.core.Detection aux =
+                        visionTemplate.classifyDamageAuxiliary(imgForAux);
+                    if (aux != null) {
+                        response.put("auxiliaryClass", aux.label());
+                        response.put("auxiliaryConfidence",
+                            Math.round(aux.confidence() * 10000.0) / 10000.0);
+                    }
+                } catch (Exception auxEx) {
+                    log.debug("Auxiliary classification skipped: {}", auxEx.getMessage());
+                }
+            }
+
             log.info("detectVehicleDamages completed",
                 StructuredArguments.keyValue("event", "detect_vehicle_damages_complete"),
                 StructuredArguments.keyValue("count", damages.size()),
@@ -3431,6 +3447,87 @@ public class VisionTool {
         } catch (Exception e) {
             log.error("Failed to detect vehicle damages from URL: {}", sanitizeUrlForLogging(imageUrl), e);
             throw new VisionProcessingException("Failed to detect vehicle damages: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "submit_damage_label_u",
+        description = "Submit a labeled vehicle damage image (by URL or local path) to the online DJL classifier training buffer. " +
+            "Persists the image to the YOLO dataset directory and triggers a training step when the buffer reaches minBatchSize. " +
+            "damageClass must be one of: scratch, paint-damage, broken-component, missing-panel, flood-damage, burn-damage, " +
+            "flat-tire, cracked-bumper (extended taxonomy) or any of the 14 original classes.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> submitDamageLabelUrl(String imageUrl, String damageClass,
+        Double bboxX, Double bboxY, Double bboxWidth, Double bboxHeight) {
+        try {
+            ImageData img = resolveImage(imageUrl.trim());
+            io.github.codesapienbe.springvision.core.BoundingBox bbox = null;
+            if (bboxX != null && bboxY != null && bboxWidth != null && bboxHeight != null) {
+                bbox = new io.github.codesapienbe.springvision.core.BoundingBox(
+                    bboxX, bboxY, bboxWidth, bboxHeight);
+            }
+            int bufferSize = visionTemplate.submitDamageLabel(img, damageClass, bbox);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("damageClass", damageClass);
+            response.put("bufferSize", bufferSize);
+            response.put("classifierReady", visionTemplate.isAuxiliaryClassifierReady());
+            response.put("datasetStats", visionTemplate.getDamageDatasetStats());
+            return response;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Failed to submit damage label: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "submit_damage_label_b",
+        description = "Submit a labeled vehicle damage image (as bytes) to the online DJL classifier training buffer. " +
+            "Same as submit_damage_label_u but accepts raw image bytes.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> submitDamageLabelBytes(byte[] imageBytes, String damageClass,
+        Double bboxX, Double bboxY, Double bboxWidth, Double bboxHeight) {
+        try {
+            ImageData img = resolveImage(imageBytes);
+            io.github.codesapienbe.springvision.core.BoundingBox bbox = null;
+            if (bboxX != null && bboxY != null && bboxWidth != null && bboxHeight != null) {
+                bbox = new io.github.codesapienbe.springvision.core.BoundingBox(
+                    bboxX, bboxY, bboxWidth, bboxHeight);
+            }
+            int bufferSize = visionTemplate.submitDamageLabel(img, damageClass, bbox);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("damageClass", damageClass);
+            response.put("bufferSize", bufferSize);
+            response.put("classifierReady", visionTemplate.isAuxiliaryClassifierReady());
+            response.put("datasetStats", visionTemplate.getDamageDatasetStats());
+            return response;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Failed to submit damage label: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "export_damage_classifier",
+        description = "Export the trained auxiliary damage classifier checkpoint to a target directory for JAR bundling and release. " +
+            "Copies the DJL .params checkpoint so it can be committed to core/models/ and bundled into the next release artifact. " +
+            "Defaults to 'core/models' when targetDir is omitted.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> exportDamageClassifier(String targetDir) {
+        if (!visionTemplate.isAuxiliaryClassifierReady()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "not_ready");
+            response.put("message", "Classifier has not been trained yet. Submit labeled samples first.");
+            return response;
+        }
+        try {
+            java.nio.file.Path dest = java.nio.file.Paths.get(
+                targetDir != null && !targetDir.isBlank() ? targetDir : "core/models");
+            visionTemplate.exportClassifierArtifact(dest);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("exportedTo", dest.resolve("damage-classifier").toAbsolutePath().toString());
+            response.put("message",
+                "Checkpoint exported. Commit core/models/damage-classifier/ and run 'make build' to bundle in the JAR release.");
+            return response;
+        } catch (Exception e) {
+            throw new VisionProcessingException("Failed to export damage classifier: " + e.getMessage(), e);
         }
     }
 

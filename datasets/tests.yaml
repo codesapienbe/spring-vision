@@ -44,3 +44,12 @@ count_faces:
 # scan_barcode:
 #   - image: datasets/<some-qr>.png
 #     expect: { format: QR_CODE, payload: "hello" }
+
+detect_vehicle_damages:
+  - image: datasets/vehicle-damage/images/train/scratch_fiat500_door_001.png
+    # PLACEHOLDER — real photo removed (private, not for public distribution).
+    # Original: heavy multi-directional scratches across Fiat 500e door panel;
+    # model mapped to doorouter-dent (LOW_CONFIDENCE, ~41%); ground truth class 14 (scratch).
+    # Replace this placeholder with a real scratch image to restore the smoke test.
+    skip: true
+    ground_truth_class: scratch

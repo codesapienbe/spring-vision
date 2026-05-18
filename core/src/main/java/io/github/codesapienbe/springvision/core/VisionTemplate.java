@@ -30,6 +30,7 @@ import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapab
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability;
+import io.github.codesapienbe.springvision.core.capabilities.VehicleDamageTrainingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
@@ -652,6 +653,70 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         long startTime = System.currentTimeMillis();
         List<Detection> detections = capability.detectVehicleDamages(imageData);
         return buildResult(DetectionType.VEHICLE_DAMAGE, detections, startTime);
+    }
+
+    /**
+     * Submits a labeled image to the online damage classifier training buffer.
+     *
+     * @param imageData   the image to label
+     * @param damageClass one of the 22 extended taxonomy class names
+     * @param boundingBox normalized bbox, or {@code null} for full-image
+     * @return current buffer size
+     */
+    public int submitDamageLabel(ImageData imageData, String damageClass, BoundingBox boundingBox) {
+        if (!(backend instanceof VehicleDamageTrainingCapability capability)) {
+            throw new VisionUnsupportedException("Damage classifier training not supported by backend: " + getBackendId());
+        }
+        return capability.submitDamageLabel(imageData, damageClass, boundingBox);
+    }
+
+    /**
+     * Runs the auxiliary DJL classifier on the image. Returns {@code null} if not trained yet.
+     *
+     * @param imageData the image to classify
+     * @return auxiliary detection with class + confidence, or {@code null}
+     */
+    public Detection classifyDamageAuxiliary(ImageData imageData) {
+        if (!(backend instanceof VehicleDamageTrainingCapability capability)) {
+            return null;
+        }
+        return capability.classifyDamageAuxiliary(imageData);
+    }
+
+    /**
+     * Returns per-class sample counts from the on-disk training dataset.
+     *
+     * @return map from class name to count
+     */
+    public Map<String, Long> getDamageDatasetStats() {
+        if (!(backend instanceof VehicleDamageTrainingCapability capability)) {
+            return Map.of();
+        }
+        return capability.getDamageDatasetStats();
+    }
+
+    /**
+     * Returns {@code true} when the auxiliary classifier has been trained and can predict.
+     */
+    public boolean isAuxiliaryClassifierReady() {
+        if (!(backend instanceof VehicleDamageTrainingCapability capability)) {
+            return false;
+        }
+        return capability.isAuxiliaryClassifierReady();
+    }
+
+    /**
+     * Exports the trained classifier checkpoint to {@code targetDir} for JAR bundling.
+     *
+     * @param targetDir destination directory (checkpoint written under
+     *                  {@code targetDir/damage-classifier/})
+     * @throws java.io.IOException   on I/O failure
+     */
+    public void exportClassifierArtifact(java.nio.file.Path targetDir) throws java.io.IOException {
+        if (!(backend instanceof VehicleDamageTrainingCapability capability)) {
+            throw new VisionUnsupportedException("Classifier export not supported by backend: " + getBackendId());
+        }
+        capability.exportClassifierArtifact(targetDir);
     }
 
     // ============================================================================
