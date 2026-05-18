@@ -15,10 +15,7 @@ target/
 # VSCode
 .vscode/
 
-# Downloaded models (excluded from git, but included in JAR)
-models/
-*.onnx
-*.pt
+# Model files are tracked via Git LFS (see .gitattributes)
 
 # OS files
 .DS_Store
