@@ -36,4 +36,7 @@ datasets/vehicle-damage/staging/*
 !datasets/vehicle-damage/staging/.gitkeep
 datasets/vehicle-damage/weights/
 datasets/vehicle-damage/runs/
+datasets/vehicle-damage/labels/*.cache
+runs/
+*.pt
 
