@@ -35,6 +35,15 @@ public class DjlAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "spring.vision.djl.online-classifier", name = "enabled",
+            havingValue = "true", matchIfMissing = false)
+    public DjlOnlineDamageClassifier djlOnlineDamageClassifier(DjlProperties properties) {
+        logger.info("Creating online damage classifier (dataset dir: {})",
+                properties.getOnlineClassifier().getDatasetDir());
+        return new DjlOnlineDamageClassifier(properties);
+    }
+
+    @Bean
     public DjlVisionBackend djlVisionBackend(DjlProperties properties) {
         logger.info("Creating DJL vision backend with engine: {}", properties.getEngine());
 

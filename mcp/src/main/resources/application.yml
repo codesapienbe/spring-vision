@@ -67,6 +67,12 @@ spring:
         joints: 17  # COCO 17 keypoints
         confidence-threshold: 0.5
 
+      # Online damage classifier (label submission + incremental training)
+      online-classifier:
+        enabled: true
+        dataset-dir: datasets/vehicle-damage
+        min-batch-size: 8
+
       # Action Recognition Configuration
       action-recognition:
         model: ""
