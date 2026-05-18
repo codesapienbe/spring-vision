@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.core.djl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -14,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
@@ -30,7 +30,7 @@ import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
  *
  * <p>Vehicle detection runs against the bundled YOLOv8n model and is always active.<br>
  * Vehicle damage detection requires {@code yolov11n-car-damage.onnx} to be present in
- * {@code src/main/resources/models/vehicle-damage/} and is skipped when absent.</p>
+ * {@code core/models/vehicle-damage/} and is skipped when absent.</p>
  *
  * <p>To export the damage model:<br>
  * {@code yolo export model=best.pt format=onnx imgsz=640 simplify=True}<br>
@@ -96,9 +96,10 @@ class VehicleDamageDetectionIntegrationTest {
     // -----------------------------------------------------------------------
 
     @Test
-    @EnabledIf("isDamageModelAvailable")
     @DisplayName("detectVehicleDamages returns non-null result when model is loaded")
     void detectVehicleDamagesReturnsResult() {
+        assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
+            "yolov11n-car-damage.onnx not bundled");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.detectVehicleDamages(image);
 
@@ -107,9 +108,10 @@ class VehicleDamageDetectionIntegrationTest {
     }
 
     @Test
-    @EnabledIf("isDamageModelAvailable")
     @DisplayName("damage detections carry required metadata attributes")
     void damageDetectionsHaveMetadata() {
+        assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
+            "yolov11n-car-damage.onnx not bundled");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.detectVehicleDamages(image);
 
@@ -125,17 +127,14 @@ class VehicleDamageDetectionIntegrationTest {
     }
 
     @Test
-    @EnabledIf("isDamageModelAvailable")
     @DisplayName("isVehicleDamageDetectionModelAvailable returns true when model loaded")
     void modelAvailableWhenBundled() {
+        assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
+            "yolov11n-car-damage.onnx not bundled");
         assertThat(backend.isVehicleDamageDetectionModelAvailable()).isTrue();
     }
 
     // -----------------------------------------------------------------------
-
-    boolean isDamageModelAvailable() {
-        return backend != null && backend.isVehicleDamageDetectionModelAvailable();
-    }
 
     private static ImageData solidColorImage(int w, int h, Color color) {
         try {
