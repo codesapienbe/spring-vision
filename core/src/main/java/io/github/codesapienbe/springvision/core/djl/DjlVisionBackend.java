@@ -74,8 +74,6 @@ import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import io.github.codesapienbe.springvision.core.AnnotationRequest;
 import io.github.codesapienbe.springvision.core.BackendHealthInfo;
-import io.github.codesapienbe.springvision.core.auth.EnrolledUserStore;
-import io.github.codesapienbe.springvision.core.auth.SqliteEnrolledUserStore;
 import io.github.codesapienbe.springvision.core.BoundingBox;
 import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.DetectionCategory;
@@ -84,6 +82,8 @@ import io.github.codesapienbe.springvision.core.DetectionType;
 import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
+import io.github.codesapienbe.springvision.core.auth.EnrolledUserStore;
+import io.github.codesapienbe.springvision.core.auth.SqliteEnrolledUserStore;
 import io.github.codesapienbe.springvision.core.capabilities.AccessAuthenticationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ActionRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapability;
@@ -1887,10 +1887,17 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     /**
-     * Translator for the ViT-based action-recognition ONNX model
-     * ({@code onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX}).
+     * Translator for ViT-base-patch16-224 ONNX classifiers that use the standard ViT
+     * image-processor defaults (mean/std = 0.5, bilinear resize to 224×224).
      * Resizes to 224×224, normalises to {@code [-1, 1]} via {@code (pixel/255 - 0.5)/0.5},
-     * returns the softmax probabilities across the 15 action classes.
+     * returns the softmax probabilities across the model's output classes.
+     *
+     * <p>Reused by:</p>
+     * <ul>
+     *   <li>{@code onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX} — 15 action classes</li>
+     *   <li>{@code onnx-community/nsfw_image_detection-ONNX} (Falconsai) — 2 classes {@code [normal, nsfw]}</li>
+     * </ul>
+     * Keep this translator generic: do not bake action-specific labels or class counts into it.
      */
     private static final class ActionRecognitionTranslator implements Translator<Image, float[]> {
         static final int INPUT_SIZE = 224;
@@ -3051,12 +3058,18 @@ public class DjlVisionBackend implements VisionBackend,
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
             float[] probs = withPredictor(nsfwModel, p -> p.predict(djlImage));
 
-            // 2-class softmax: index 0 = "normal", index 1 = "nsfw"
-            float normalProb = probs.length > 0 ? probs[0] : 0f;
-            float nsfwProb   = probs.length > 1 ? probs[1] : 0f;
+            // 2-class softmax: index 0 = "normal", index 1 = "nsfw".
+            // Hard-fail on unexpected shape — silently defaulting to "normal" would be fabricated safe-output.
+            if (probs == null || probs.length < 2) {
+                throw new VisionProcessingException(
+                    "NSFW model returned unexpected output shape: " + (probs == null ? "null" : probs.length),
+                    "inference_failed", "NSFW", null);
+            }
+            float normalProb = probs[0];
+            float nsfwProb   = probs[1];
             boolean isNsfw   = nsfwProb > normalProb;
 
-            Map<String, Object> attrs = new HashMap<>();
+            Map<String, Object> attrs = new LinkedHashMap<>();
             attrs.put("type", DetectionType.OBJECT);
             attrs.put("backend", BACKEND_ID);
             attrs.put("model", nsfwModel.getName());
@@ -3071,7 +3084,7 @@ public class DjlVisionBackend implements VisionBackend,
 
             logger.info("DJL NSFW detection completed: label={}, conf={}, correlationId={}",
                 result.label(), result.confidence(), correlationId);
-            return java.util.Collections.singletonList(result);
+            return List.of(result);
         } catch (IOException e) {
             throw new VisionProcessingException(
                 "Image decoding failed during NSFW detection: " + e.getMessage(),

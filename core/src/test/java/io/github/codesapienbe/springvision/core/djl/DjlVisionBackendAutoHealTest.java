@@ -14,8 +14,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIf;
 
-import io.github.codesapienbe.springvision.core.djl.YoloModelLoader;
-
 import ai.djl.modality.cv.Image;
 import ai.djl.repository.zoo.ZooModel;
 import io.github.codesapienbe.springvision.core.DetectionCategory;
