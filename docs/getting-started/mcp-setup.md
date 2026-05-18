@@ -254,6 +254,10 @@ Once configured, your AI assistant will have access to these Spring Vision tools
 - **Heart Rate Estimation** - rPPG analysis from video
 - **Demographics Analysis** - Age and gender estimation
 
+### Vehicle Analytics Tools
+- **Vehicle Detection** (`detect_vehicle_u`, `detect_vehicle_b`) - Identify cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes with bounding boxes
+- **Vehicle Damage Detection** (`detect_vehicle_damages_u`, `detect_vehicle_damages_b`) - Per-vehicle damage type (scratch, dent, crack, broken glass, flat tire) and severity
+
 ## 🎯 Next Steps
 
 - **[Quick Start](./quick-start.md)** - Basic setup and usage

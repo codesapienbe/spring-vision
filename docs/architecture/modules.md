@@ -78,6 +78,10 @@ Spring Vision provides these built-in detection capabilities:
 - **Heart Rate** - rPPG from faces (`detectHeartRate()`)
 - **Demographics** - Age/gender estimation (`detectDemographics()`)
 
+### 🚗 **Vehicle Analytics**
+- **Vehicle Detection** - YOLO vehicle classes (`detectVehicles()`)
+- **Vehicle Damage Detection** - Per-vehicle damage type & severity via bundled `yolov11n-car-damage` ONNX model (`detectVehicleDamages()`)
+
 ### 🚧 **Placeholder Implementations**
 - **Hand Detection** - Uses object detection (`detectHands()`)
 - **Emotion Detection** - Mock implementation (`detectEmotions()`)

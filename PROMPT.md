@@ -184,6 +184,42 @@ When prompting, just give a URL or file path. The model will pick the right tool
 - Crowd, no threats (control): https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=1200
 - Landscape, no threats (control): https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1000
 
+### `detect_vehicle`
+**Prompt:** "Detect vehicles in `<url>` and tell me the type and bounding box."
+
+**Good test media:**
+- Street scene with multiple vehicle types (car, bus, truck, motorcycle)
+- Single sports car / sedan close-up (sanity check)
+- Bicycle or motorcycle (two-wheeler categories)
+- Aerial / parking lot shot (many cars, varied scale)
+- Landscape with no vehicles (control — should return empty)
+
+**Verified URLs:**
+- Sports car: https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1000
+- Pickup truck: https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b3?w=1000
+- City bus: https://images.unsplash.com/photo-1556122071-e404eaedb77f?w=1000
+- Motorcycle: https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=1000
+- Bicycle: https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800
+- Parking lot (multi-vehicle): https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=1200
+- No vehicles (control): https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1000
+
+### `detect_vehicle_damages`
+**Prompt:** "Find damage on any vehicle in `<url>` — classify type and severity."
+
+**Good test media:**
+- Insurance-claim-style photos: visible dent, scratch, crack, broken glass, flat tire
+- Close-up of a single damaged panel (one clear defect)
+- Multi-damage shot (front-end collision)
+- Pristine vehicle (control — should return no damage or low-confidence)
+- ⚠️ Requires the bundled `yolov11n-car-damage` ONNX model; without it the tool fails loudly
+
+**Verified URLs:**
+- Crashed front-end: https://images.unsplash.com/photo-1597007030739-6d2e7172ee6c?w=1000
+- Dented panel: https://images.unsplash.com/photo-1605152276897-4f618f831968?w=1000
+- Broken windshield: https://images.unsplash.com/photo-1635008860720-69dec5b1f93f?w=1000
+- Flat tire: https://images.unsplash.com/photo-1620626011761-996317b8d101?w=1000
+- Pristine vehicle (control): https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=1000
+
 ### `classify_image`
 **Prompt:** "Classify `<url>` and give me the top 5 predictions with confidence."
 

@@ -246,6 +246,11 @@ Spring Vision 0.0.4 provides these computer vision capabilities (all models incl
 - **Heart Rate** - rPPG analysis from faces
 - **Demographics** - Age/gender estimation
 
+### 🚗 **Vehicle Analytics**
+
+- **Vehicle Detection** - Identify cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes
+- **Vehicle Damage Detection** - Per-vehicle damage type & severity (scratch, dent, crack, broken glass, flat tire) via bundled YOLOv11n ONNX model
+
 ## Architecture
 
 Spring Vision uses a modern, capability-based architecture built on the Deep Java Library (DJL):
