@@ -693,10 +693,24 @@
                       </configuration>
                   </execution>
                   <!-- Vehicle Damage Detection Model (vineetsarpal/yolov11n-car-damage, 14 classes) -->
-                  <!-- Export with: yolo export model=best.pt format=onnx imgsz=640 simplify=True  -->
-                  <!-- Then upload to a stable URL and update this entry.                           -->
-                  <!-- Until a hosted ONNX exists the model must be placed manually at:            -->
-                  <!--   src/main/resources/models/vehicle-damage/yolov11n-car-damage.onnx         -->
+                  <!-- ONNX export of YOLOv11n trained on automobile damage dataset.               -->
+                  <!-- 14 classes: bonnet-dent, doorouter-dent, fender-dent, front-bumper-dent,   -->
+                  <!--   rear-bumper-dent, boot-dent, roof-dent, quaterpanel-dent,                 -->
+                  <!--   Headlight-damage, Taillight-Damage, Sidemirror-Damage,                    -->
+                  <!--   Front-windscreen-damage, Rear-windscreen-Damage, Runningboard-Damage.     -->
+                  <execution>
+                      <id>download-yolov11n-car-damage</id>
+                      <phase>generate-resources</phase>
+                      <goals>
+                          <goal>wget</goal>
+                      </goals>
+                      <configuration>
+                          <url>https://huggingface.co/vineetsarpal/yolov11n-car-damage/resolve/main/best.onnx</url>
+                          <outputDirectory>${models.directory}/vehicle-damage</outputDirectory>
+                          <outputFileName>yolov11n-car-damage.onnx</outputFileName>
+                          <skipCache>false</skipCache>
+                      </configuration>
+                  </execution>
 
                   <!-- Age/Gender Demographics Models (ONNX, GoogLeNet-based from ONNX Model Zoo) -->
                   <execution>
