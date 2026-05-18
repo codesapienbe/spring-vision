@@ -126,6 +126,13 @@ jobs:
           path: cli/target/cli-*.jar
           if-no-files-found: error
 
+      - name: Upload vehicle damage model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vehicle-damage-model
+          path: core/models/vehicle-damage/yolov11n-car-damage.onnx
+          if-no-files-found: error
+
   create-release:
     name: Create GitHub Release
     needs: build-jars
@@ -396,3 +403,33 @@ jobs:
           asset_path: ./cli-${{ env.VERSION }}.jar
           asset_name: cli-${{ env.VERSION }}.jar
           asset_content_type: application/java-archive
+
+  upload-damage-model:
+    name: Upload Vehicle Damage Model
+    needs: [ create-release, upload-cli ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Download vehicle damage model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vehicle-damage-model
+          path: .
+
+      - name: Upload vehicle damage model release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./yolov11n-car-damage.onnx
+          asset_name: yolov11n-car-damage.onnx
+          asset_content_type: application/octet-stream
