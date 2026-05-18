@@ -439,7 +439,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8n.pt</url>
                           <outputDirectory>${models.directory}/yolov8</outputDirectory>
                           <outputFileName>yolov8n.pt</outputFileName>
                           <skipCache>false</skipCache>
@@ -452,7 +452,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8s.pt</url>
                           <outputDirectory>${models.directory}/yolov8</outputDirectory>
                           <outputFileName>yolov8s.pt</outputFileName>
                       </configuration>
@@ -464,7 +464,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8m.pt</url>
                           <outputDirectory>${models.directory}/yolov8</outputDirectory>
                           <outputFileName>yolov8m.pt</outputFileName>
                       </configuration>
@@ -476,7 +476,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8l.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8l.pt</url>
                           <outputDirectory>${models.directory}/yolov8</outputDirectory>
                           <outputFileName>yolov8l.pt</outputFileName>
                       </configuration>
@@ -488,7 +488,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8x.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8x.pt</url>
                           <outputDirectory>${models.directory}/yolov8</outputDirectory>
                           <outputFileName>yolov8x.pt</outputFileName>
                       </configuration>
@@ -501,7 +501,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-seg.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8n-seg.pt</url>
                           <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
                           <outputFileName>yolov8n-seg.pt</outputFileName>
                       </configuration>
@@ -513,7 +513,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s-seg.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8s-seg.pt</url>
                           <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
                           <outputFileName>yolov8s-seg.pt</outputFileName>
                       </configuration>
@@ -525,7 +525,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m-seg.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8m-seg.pt</url>
                           <outputDirectory>${models.directory}/yolov8-seg</outputDirectory>
                           <outputFileName>yolov8m-seg.pt</outputFileName>
                       </configuration>
@@ -538,7 +538,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-pose.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8n-pose.pt</url>
                           <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
                           <outputFileName>yolov8n-pose.pt</outputFileName>
                       </configuration>
@@ -550,7 +550,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8s-pose.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8s-pose.pt</url>
                           <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
                           <outputFileName>yolov8s-pose.pt</outputFileName>
                       </configuration>
@@ -562,7 +562,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8m-pose.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8m-pose.pt</url>
                           <outputDirectory>${models.directory}/yolov8-pose</outputDirectory>
                           <outputFileName>yolov8m-pose.pt</outputFileName>
                       </configuration>
@@ -575,7 +575,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-obb.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8n-obb.pt</url>
                           <outputDirectory>${models.directory}/yolov8-obb</outputDirectory>
                           <outputFileName>yolov8n-obb.pt</outputFileName>
                       </configuration>
@@ -588,7 +588,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://github.com/ultralytics/assets/releases/download/${yolo.version}/yolov8n-cls.pt</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/yolov8n-cls.pt</url>
                           <outputDirectory>${models.directory}/yolov8-cls</outputDirectory>
                           <outputFileName>yolov8n-cls.pt</outputFileName>
                       </configuration>
@@ -601,7 +601,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://resources.djl.ai/test-models/pytorch/retinaface.zip</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/retinaface.zip</url>
                           <outputDirectory>${models.directory}/retinaface</outputDirectory>
                           <outputFileName>retinaface.zip</outputFileName>
                       </configuration>
@@ -613,7 +613,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://resources.djl.ai/test-models/pytorch/face_feature.zip</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/face_feature.zip</url>
                           <outputDirectory>${models.directory}/face_feature</outputDirectory>
                           <outputFileName>face_feature.zip</outputFileName>
                       </configuration>
@@ -626,7 +626,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/emotion-ferplus-8.onnx</url>
                           <outputDirectory>${models.directory}/emotion-ferplus</outputDirectory>
                           <outputFileName>emotion-ferplus-8.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -641,7 +641,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/nsfw-detection-vit-fp16.onnx</url>
                           <outputDirectory>${models.directory}/nsfw-detection</outputDirectory>
                           <outputFileName>nsfw-detection-vit-fp16.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -657,7 +657,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/action-recognition-vit-fp16.onnx</url>
                           <outputDirectory>${models.directory}/action-recognition</outputDirectory>
                           <outputFileName>action-recognition-vit-fp16.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -672,7 +672,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://huggingface.co/opencv/palm_detection_mediapipe/resolve/main/palm_detection_mediapipe_2023feb.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/palm_detection_mediapipe.onnx</url>
                           <outputDirectory>${models.directory}/palm-detection</outputDirectory>
                           <outputFileName>palm_detection_mediapipe.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -686,7 +686,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://huggingface.co/onnx-community/Deep-Fake-Detector-v2-Model-ONNX/resolve/main/onnx/model_fp16.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/deepfake-detector-fp16.onnx</url>
                           <outputDirectory>${models.directory}/deepfake-detector</outputDirectory>
                           <outputFileName>deepfake-detector-fp16.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -720,7 +720,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/age_googlenet.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/age_googlenet.onnx</url>
                           <outputDirectory>${models.directory}/age-gender</outputDirectory>
                           <outputFileName>age_googlenet.onnx</outputFileName>
                           <skipCache>false</skipCache>
@@ -733,7 +733,7 @@
                           <goal>wget</goal>
                       </goals>
                       <configuration>
-                          <url>https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/gender_googlenet.onnx</url>
+                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/gender_googlenet.onnx</url>
                           <outputDirectory>${models.directory}/age-gender</outputDirectory>
                           <outputFileName>gender_googlenet.onnx</outputFileName>
                           <skipCache>false</skipCache>
