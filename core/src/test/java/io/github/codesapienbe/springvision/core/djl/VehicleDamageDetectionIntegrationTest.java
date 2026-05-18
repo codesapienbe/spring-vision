@@ -134,7 +134,7 @@ class VehicleDamageDetectionIntegrationTest {
     // -----------------------------------------------------------------------
 
     boolean isDamageModelAvailable() {
-        return backend.isVehicleDamageDetectionModelAvailable();
+        return backend != null && backend.isVehicleDamageDetectionModelAvailable();
     }
 
     private static ImageData solidColorImage(int w, int h, Color color) {
