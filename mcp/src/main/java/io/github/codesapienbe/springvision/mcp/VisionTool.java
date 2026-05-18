@@ -1,6 +1,14 @@
 package io.github.codesapienbe.springvision.mcp;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -3550,5 +3558,316 @@ public class VisionTool {
             log.error("Failed to delete identity", e);
             throw e;
         }
+    }
+
+    @Tool(name = "annotate_bounding_boxes_u", description = """
+        Draw bounding boxes on an image from a URL. Each box is specified with
+        normalized coordinates (0-1 range) for x, y, width, height, plus an optional
+        label and confidence score. Returns the annotated image as a base64-encoded PNG.
+        Boxes are rendered as colored rectangles with a label banner showing the class
+        name and confidence percentage.
+        """)
+    public Map<String, Object> annotateBoundingBoxesUrl(
+            String imageUrl,
+            List<Map<String, Object>> boxes) {
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            String base64 = annotateBoundingBoxes(imageBytes, boxes);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("imageBase64", base64);
+            response.put("mimeType", "image/png");
+            response.put("boxCount", boxes == null ? 0 : boxes.size());
+            return response;
+        } catch (IOException e) {
+            log.error("Failed to annotate bounding boxes", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(name = "annotate_bounding_boxes_b", description = """
+        Draw bounding boxes on an uploaded image (base64-encoded bytes). Each box is
+        specified with normalized coordinates (0-1 range) for x, y, width, height, plus
+        an optional label and confidence score. Returns the annotated image as a
+        base64-encoded PNG. Boxes are rendered as colored rectangles with a label banner
+        showing the class name and confidence percentage.
+        """)
+    public Map<String, Object> annotateBoundingBoxesBytes(
+            String imageBase64,
+            List<Map<String, Object>> boxes) {
+        try {
+            byte[] imageBytes = Base64.getDecoder().decode(imageBase64.replaceAll("\\s", ""));
+            String base64 = annotateBoundingBoxes(imageBytes, boxes);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("imageBase64", base64);
+            response.put("mimeType", "image/png");
+            response.put("boxCount", boxes == null ? 0 : boxes.size());
+            return response;
+        } catch (IOException e) {
+            log.error("Failed to annotate bounding boxes", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    private String annotateBoundingBoxes(byte[] imageBytes, List<Map<String, Object>> boxes) throws IOException {
+        BufferedImage img = ImageIO.read(new java.io.ByteArrayInputStream(imageBytes));
+        if (img == null) {
+            throw new IOException("Could not decode image");
+        }
+
+        // Work on a copy so the original BufferedImage type is preserved
+        BufferedImage out = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g.drawImage(img, 0, 0, null);
+
+        int W = out.getWidth();
+        int H = out.getHeight();
+
+        // Palette — cycle through distinct colours when no colour is supplied
+        Color[] palette = {
+            new Color(255, 80, 0),
+            new Color(0, 180, 255),
+            new Color(50, 220, 80),
+            new Color(230, 30, 230),
+            new Color(255, 210, 0)
+        };
+
+        Font labelFont = new Font("SansSerif", Font.BOLD, Math.max(12, H / 40));
+
+        if (boxes != null) {
+            for (int i = 0; i < boxes.size(); i++) {
+                Map<String, Object> box = boxes.get(i);
+
+                double nx = toDouble(box.get("x"));
+                double ny = toDouble(box.get("y"));
+                double nw = toDouble(box.get("width"));
+                double nh = toDouble(box.get("height"));
+
+                int x1 = (int) (nx * W);
+                int y1 = (int) (ny * H);
+                int x2 = (int) ((nx + nw) * W);
+                int y2 = (int) ((ny + nh) * H);
+
+                String label = box.containsKey("label") ? String.valueOf(box.get("label")) : "";
+                double conf = box.containsKey("confidence") ? toDouble(box.get("confidence")) : -1;
+                String colorHex = box.containsKey("color") ? String.valueOf(box.get("color")) : null;
+
+                Color boxColor;
+                if (colorHex != null && colorHex.startsWith("#")) {
+                    try {
+                        boxColor = Color.decode(colorHex);
+                    } catch (NumberFormatException ex) {
+                        boxColor = palette[i % palette.length];
+                    }
+                } else {
+                    boxColor = palette[i % palette.length];
+                }
+
+                // Draw box outline (no fill — keeps the image readable)
+                g.setColor(boxColor);
+                g.setStroke(new BasicStroke(Math.max(2, H / 200)));
+                g.drawRect(x1, y1, x2 - x1, y2 - y1);
+
+                // Build label text
+                String text = label;
+                if (conf >= 0) {
+                    text += String.format(" %.0f%%", conf * 100);
+                }
+
+                if (!text.isBlank()) {
+                    g.setFont(labelFont);
+                    FontMetrics fm = g.getFontMetrics();
+                    int textW = fm.stringWidth(text);
+                    int textH = fm.getHeight();
+                    int bannerY = (y1 - textH - 4 < 0) ? y1 : y1 - textH - 4;
+
+                    // Banner background
+                    g.setColor(boxColor);
+                    g.fillRect(x1, bannerY, textW + 8, textH + 4);
+
+                    // Label text
+                    g.setColor(Color.WHITE);
+                    g.drawString(text, x1 + 4, bannerY + fm.getAscent() + 2);
+                }
+            }
+        }
+
+        g.dispose();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(out, "PNG", baos);
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    private static double toDouble(Object v) {
+        if (v == null) return 0.0;
+        if (v instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(v.toString()); } catch (NumberFormatException e) { return 0.0; }
+    }
+
+    @Tool(name = "obscure_regions_u", description = """
+        Obfuscate rectangular regions of an image loaded from a URL. Each region is
+        specified with normalized coordinates (0-1 range) for x, y, width, height.
+        Supports two modes: "pixelate" (default) replaces each block with its average
+        color — strong privacy guarantee suitable for faces and licence plates;
+        "blur" applies a Gaussian-style convolution kernel. The strength parameter
+        (1-100, default 20) controls pixel block size or kernel radius.
+        Returns the obfuscated image as a base64-encoded PNG.
+        """)
+    public Map<String, Object> obscureRegionsUrl(
+            String imageUrl,
+            List<Map<String, Object>> regions,
+            String mode,
+            Integer strength) {
+        try {
+            byte[] imageBytes = downloadImageFromUrl(imageUrl.trim());
+            String base64 = obscureRegions(imageBytes, regions, mode, strength);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("imageBase64", base64);
+            response.put("mimeType", "image/png");
+            response.put("regionCount", regions == null ? 0 : regions.size());
+            return response;
+        } catch (IOException e) {
+            log.error("Failed to obscure regions", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(name = "obscure_regions_b", description = """
+        Obfuscate rectangular regions of an uploaded image (base64-encoded bytes). Each
+        region is specified with normalized coordinates (0-1 range) for x, y, width,
+        height. Supports two modes: "pixelate" (default) replaces each block with its
+        average color — strong privacy guarantee suitable for faces and licence plates;
+        "blur" applies a Gaussian-style convolution kernel. The strength parameter
+        (1-100, default 20) controls pixel block size or kernel radius.
+        Returns the obfuscated image as a base64-encoded PNG.
+        """)
+    public Map<String, Object> obscureRegionsBytes(
+            String imageBase64,
+            List<Map<String, Object>> regions,
+            String mode,
+            Integer strength) {
+        try {
+            byte[] imageBytes = Base64.getDecoder().decode(imageBase64.replaceAll("\\s", ""));
+            String base64 = obscureRegions(imageBytes, regions, mode, strength);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("imageBase64", base64);
+            response.put("mimeType", "image/png");
+            response.put("regionCount", regions == null ? 0 : regions.size());
+            return response;
+        } catch (IOException e) {
+            log.error("Failed to obscure regions", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    private String obscureRegions(byte[] imageBytes, List<Map<String, Object>> regions,
+            String mode, Integer strength) throws IOException {
+        BufferedImage img = ImageIO.read(new java.io.ByteArrayInputStream(imageBytes));
+        if (img == null) {
+            throw new IOException("Could not decode image");
+        }
+
+        BufferedImage out = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = out.createGraphics();
+        g.drawImage(img, 0, 0, null);
+        g.dispose();
+
+        int W = out.getWidth();
+        int H = out.getHeight();
+        int effectiveStrength = (strength == null || strength < 1) ? 20 : Math.min(strength, 100);
+        boolean pixelate = !"blur".equalsIgnoreCase(mode);
+
+        if (regions != null) {
+            for (Map<String, Object> region : regions) {
+                double nx = toDouble(region.get("x"));
+                double ny = toDouble(region.get("y"));
+                double nw = toDouble(region.get("width"));
+                double nh = toDouble(region.get("height"));
+
+                int x1 = Math.max(0, (int) (nx * W));
+                int y1 = Math.max(0, (int) (ny * H));
+                int x2 = Math.min(W, (int) ((nx + nw) * W));
+                int y2 = Math.min(H, (int) ((ny + nh) * H));
+                int rw = x2 - x1;
+                int rh = y2 - y1;
+                if (rw <= 0 || rh <= 0) continue;
+
+                if (pixelate) {
+                    applyPixelate(out, x1, y1, rw, rh, effectiveStrength);
+                } else {
+                    applyBlur(out, x1, y1, rw, rh, effectiveStrength);
+                }
+            }
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(out, "PNG", baos);
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    private void applyPixelate(BufferedImage img, int rx, int ry, int rw, int rh, int blockSize) {
+        // Clamp block size so we always make progress
+        int bs = Math.max(4, (int) (Math.min(rw, rh) * blockSize / 100.0));
+        for (int y = ry; y < ry + rh; y += bs) {
+            for (int x = rx; x < rx + rw; x += bs) {
+                int bw = Math.min(bs, rx + rw - x);
+                int bh = Math.min(bs, ry + rh - y);
+                // Average colour of the block
+                long r = 0, gr = 0, b = 0;
+                int count = 0;
+                for (int dy = 0; dy < bh; dy++) {
+                    for (int dx = 0; dx < bw; dx++) {
+                        int rgb = img.getRGB(x + dx, y + dy);
+                        r += (rgb >> 16) & 0xFF;
+                        gr += (rgb >> 8) & 0xFF;
+                        b += rgb & 0xFF;
+                        count++;
+                    }
+                }
+                int avg = (int) (((r / count) << 16) | ((gr / count) << 8) | (b / count)) | 0xFF000000;
+                for (int dy = 0; dy < bh; dy++) {
+                    for (int dx = 0; dx < bw; dx++) {
+                        img.setRGB(x + dx, y + dy, avg);
+                    }
+                }
+            }
+        }
+    }
+
+    private void applyBlur(BufferedImage img, int rx, int ry, int rw, int rh, int strength) {
+        // Build a box-blur kernel scaled by strength (odd size, max 51)
+        int radius = Math.max(1, strength / 4);
+        int size = Math.min(51, radius * 2 + 1);
+        float weight = 1.0f / (size * size);
+        float[] data = new float[size * size];
+        java.util.Arrays.fill(data, weight);
+        Kernel kernel = new Kernel(size, size, data);
+        ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
+
+        // Extract sub-image, blur it, write it back
+        BufferedImage sub = img.getSubimage(rx, ry, rw, rh);
+        BufferedImage blurred = new BufferedImage(rw, rh, BufferedImage.TYPE_INT_RGB);
+        op.filter(sub, blurred);
+        Graphics2D g = img.createGraphics();
+        g.drawImage(blurred, rx, ry, null);
+        g.dispose();
     }
 }
