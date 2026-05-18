@@ -31,3 +31,9 @@ logs/
 # Transient dataset archives — extracted contents under datasets/ are committed
 datasets/*.zip
 
+# Vehicle damage training pipeline — generated or private content, not committed
+datasets/vehicle-damage/staging/*
+!datasets/vehicle-damage/staging/.gitkeep
+datasets/vehicle-damage/weights/
+datasets/vehicle-damage/runs/
+
