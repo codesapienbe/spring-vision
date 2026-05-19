@@ -67,6 +67,10 @@ spring:
         joints: 17  # COCO 17 keypoints
         confidence-threshold: 0.5
 
+      # Vehicle Damage Detection Configuration
+      vehicle-damage:
+        min-confidence: 0.15
+
       # Online damage classifier (label submission + incremental training)
       online-classifier:
         enabled: true
