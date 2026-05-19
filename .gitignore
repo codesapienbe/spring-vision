@@ -16,7 +16,10 @@ target/
 .vscode/
 
 # Downloaded model binaries — fetched by the download-models Maven profile, not committed
-core/models/
+core/models/**/*.onnx
+core/models/**/*.pt
+core/models/**/*.bin
+core/models/**/*.pb
 
 # OS files
 .DS_Store
