@@ -20,6 +20,7 @@ core/models/**/*.onnx
 core/models/**/*.pt
 core/models/**/*.bin
 core/models/**/*.pb
+core/models/**/*.zip
 
 # OS files
 .DS_Store
@@ -44,6 +45,8 @@ datasets/vehicle-damage/kaggle/img/
 datasets/vehicle-damage/kaggle/test/
 datasets/vehicle-damage/kaggle/train/*.jpg
 datasets/vehicle-damage/kaggle/val/*.jpg
+datasets/vehicle-damage/images/train/*.png
+datasets/vehicle-damage/labels/train/*.txt
 runs/
 *.pt
 
