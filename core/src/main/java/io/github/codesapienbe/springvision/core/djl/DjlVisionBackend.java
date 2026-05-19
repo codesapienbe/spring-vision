@@ -2192,9 +2192,20 @@ public class DjlVisionBackend implements VisionBackend,
             int padLeft = (int) ctx.getAttachment("padLeft");
             int padTop = (int) ctx.getAttachment("padTop");
 
-            // output0: [1, 4+NUM_CLASSES, 8400]
-            float[] raw = list.getFirst().toFloatArray();
-            int numAnchors = raw.length / (4 + NUM_CLASSES);
+            // output0: [1, 4+NUM_CLASSES, 8400] — squeeze batch dim, normalise layout
+            ai.djl.ndarray.NDArray outTensor = list.getFirst();
+            if (outTensor.getShape().dimension() == 3) {
+                outTensor = outTensor.squeeze(0);  // [4+NUM_CLASSES, 8400] or [8400, 4+NUM_CLASSES]
+            }
+            // If anchors are in dim-0 (transposed layout from DJL ONNX), fix orientation
+            long dim0 = outTensor.getShape().get(0);
+            long dim1 = outTensor.getShape().get(1);
+            if (dim0 > dim1) {
+                // [8400, 32] — transpose to [32, 8400]
+                outTensor = outTensor.transpose();
+            }
+            float[] raw = outTensor.toFloatArray();
+            int numAnchors = (int) outTensor.getShape().get(1);
 
             List<String> classNames = new ArrayList<>();
             List<Double> probabilities = new ArrayList<>();
@@ -2221,11 +2232,15 @@ public class DjlVisionBackend implements VisionBackend,
                 float bw = raw[2 * numAnchors + a];
                 float bh = raw[3 * numAnchors + a];
 
-                // Remove letterbox padding and scale back to original image coordinates (normalised)
-                float x1 = (float) ((cx - bw / 2f - padLeft) / (ratio * (INPUT_SIZE - 2 * padLeft)));
-                float y1 = (float) ((cy - bh / 2f - padTop) / (ratio * (INPUT_SIZE - 2 * padTop)));
-                float w = (float) (bw / (ratio * (INPUT_SIZE - 2 * padLeft)));
-                float h = (float) (bh / (ratio * (INPUT_SIZE - 2 * padTop)));
+                // Map from 640×640 letterbox space → normalised [0,1] image coords.
+                // newW = INPUT_SIZE - 2*padLeft, newH = INPUT_SIZE - 2*padTop (content area).
+                // x_norm = (x_640 - padLeft) / newW; no extra ratio factor needed.
+                float contentW = INPUT_SIZE - 2 * padLeft;
+                float contentH = INPUT_SIZE - 2 * padTop;
+                float x1 = (cx - bw / 2f - padLeft) / contentW;
+                float y1 = (cy - bh / 2f - padTop) / contentH;
+                float w = bw / contentW;
+                float h = bh / contentH;
 
                 x1 = Math.max(0f, x1);
                 y1 = Math.max(0f, y1);

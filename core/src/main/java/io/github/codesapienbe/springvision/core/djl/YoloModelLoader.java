@@ -75,11 +75,11 @@ public class YoloModelLoader {
                 baseDir = Paths.get(System.getProperty("user.home"), ".djl.ai", "spring-vision-models");
             }
             Path target = baseDir.resolve(modelPath);
-            if (!Files.exists(target)) {
-                Files.createDirectories(target.getParent());
-                try (InputStream in = resource.openStream()) {
-                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-                }
+            Files.createDirectories(target.getParent());
+            // Always overwrite — JAR is the source of truth; a stale cache would cause
+            // shape mismatches when a bundled model is retrained with a different class count.
+            try (InputStream in = resource.openStream()) {
+                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
             }
             return target.toUri().toString();
         } catch (IOException e) {
