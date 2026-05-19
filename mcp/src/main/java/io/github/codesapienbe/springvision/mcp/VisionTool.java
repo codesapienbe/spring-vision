@@ -27,7 +27,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3869,5 +3873,134 @@ public class VisionTool {
         Graphics2D g = img.createGraphics();
         g.drawImage(blurred, rx, ry, null);
         g.dispose();
+    }
+
+    @Tool(name = "normalize_image_u", description = """
+        Resize and compress an image from a URL to a manageable size for vision analysis.
+        Saves the result as a temporary JPEG file and returns its file:// URL so it can be
+        passed directly to any _u detection tool without embedding large base64 in context.
+        Call delete_temp_image when the analysis is done to clean up.
+        maxDimension: longest edge in pixels (default 640, min 64, max 1920).
+        quality: JPEG quality 1-100 (default 75).
+        """)
+    public Map<String, Object> normalizeImageUrl(String imageUrl, Integer maxDimension, Integer quality) {
+        try {
+            return doNormalizeImage(downloadImageFromUrl(imageUrl), maxDimension, quality);
+        } catch (IOException e) {
+            log.error("Failed to normalize image from URL", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(name = "normalize_image_b", description = """
+        Resize and compress a base64-encoded image to a manageable size for vision analysis.
+        Saves the result as a temporary JPEG file and returns its file:// URL so it can be
+        passed directly to any _u detection tool without embedding large base64 in context.
+        Call delete_temp_image when the analysis is done to clean up.
+        maxDimension: longest edge in pixels (default 640, min 64, max 1920).
+        quality: JPEG quality 1-100 (default 75).
+        """)
+    public Map<String, Object> normalizeImageBytes(String imageBase64, Integer maxDimension, Integer quality) {
+        try {
+            byte[] imageBytes = Base64.getDecoder().decode(imageBase64.replaceAll("\\s", ""));
+            return doNormalizeImage(imageBytes, maxDimension, quality);
+        } catch (IOException e) {
+            log.error("Failed to normalize image from bytes", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    @Tool(name = "delete_temp_image", description = """
+        Delete a temporary image file created by normalize_image_u or normalize_image_b.
+        Pass the fileUrl returned by those tools. Only files whose name starts with 'sv-'
+        (the normalize_image prefix) can be deleted for safety.
+        """)
+    public Map<String, Object> deleteTempImage(String fileUrl) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            URI uri = URI.create(fileUrl);
+            Path path = Paths.get(uri);
+            if (!path.getFileName().toString().startsWith("sv-")) {
+                response.put("status", "error");
+                response.put("message", "Can only delete temporary images created by normalize_image tools (prefix 'sv-')");
+                return response;
+            }
+            boolean deleted = Files.deleteIfExists(path);
+            response.put("status", "success");
+            response.put("deleted", deleted);
+            response.put("fileUrl", fileUrl);
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to delete temp image", e);
+            response.put("status", "error");
+            response.put("message", e.getMessage());
+            return response;
+        }
+    }
+
+    private Map<String, Object> doNormalizeImage(byte[] imageBytes, Integer maxDimension, Integer quality) throws IOException {
+        int maxDim = (maxDimension == null || maxDimension < 64) ? 640 : Math.min(maxDimension, 1920);
+        int q = (quality == null || quality < 1 || quality > 100) ? 75 : quality;
+
+        BufferedImage src = ImageIO.read(new java.io.ByteArrayInputStream(imageBytes));
+        if (src == null) throw new IOException("Could not decode image");
+
+        int origW = src.getWidth();
+        int origH = src.getHeight();
+        int newW = origW;
+        int newH = origH;
+
+        if (origW > maxDim || origH > maxDim) {
+            if (origW >= origH) {
+                newW = maxDim;
+                newH = Math.max(1, Math.round((float) origH / origW * maxDim));
+            } else {
+                newH = maxDim;
+                newW = Math.max(1, Math.round((float) origW / origH * maxDim));
+            }
+        }
+
+        BufferedImage out;
+        if (newW == origW && newH == origH) {
+            out = new BufferedImage(origW, origH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = out.createGraphics();
+            g.drawImage(src, 0, 0, null);
+            g.dispose();
+        } else {
+            out = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = out.createGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.drawImage(src, 0, 0, newW, newH, null);
+            g.dispose();
+        }
+
+        Path tmpFile = Files.createTempFile("sv-", ".jpg");
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(tmpFile.toFile())) {
+            ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+            ImageWriteParam param = writer.getDefaultWriteParam();
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(q / 100.0f);
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(out, null, null), param);
+            writer.dispose();
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("fileUrl", tmpFile.toUri().toString());
+        response.put("originalWidth", origW);
+        response.put("originalHeight", origH);
+        response.put("width", newW);
+        response.put("height", newH);
+        response.put("sizeBytes", Files.size(tmpFile));
+        response.put("format", "jpeg");
+        return response;
     }
 }
