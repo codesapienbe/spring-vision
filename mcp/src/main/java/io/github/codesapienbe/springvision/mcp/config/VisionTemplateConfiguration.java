@@ -14,6 +14,7 @@ import io.github.codesapienbe.springvision.core.VectorService;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.core.djl.DjlOnlineDamageClassifier;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 
 /**
@@ -59,7 +60,8 @@ public class VisionTemplateConfiguration {
     @ConditionalOnMissingBean
     public VisionTemplate visionTemplate(
         VectorService vectorService,
-        @Autowired(required = false) List<VisionBackend> availableBackends) {
+        @Autowired(required = false) List<VisionBackend> availableBackends,
+        @Autowired(required = false) DjlOnlineDamageClassifier onlineClassifier) {
 
         logger.info("Initializing VisionTemplate - scanning for available backends...");
 
@@ -110,6 +112,10 @@ public class VisionTemplateConfiguration {
 
             try {
                 DjlVisionBackend djlBackend = new DjlVisionBackend();
+                if (onlineClassifier != null) {
+                    djlBackend.setOnlineClassifier(onlineClassifier);
+                    logger.info("Online damage classifier attached to DJL backend");
+                }
                 djlBackend.initialize();
                 selectedBackend = djlBackend;
                 logger.info("Default DJL backend initialized successfully");
@@ -117,6 +123,9 @@ public class VisionTemplateConfiguration {
                 logger.error("Failed to initialize default DJL backend", e);
                 throw new RuntimeException("Failed to initialize VisionTemplate - no backends available", e);
             }
+        } else if (selectedBackend instanceof DjlVisionBackend djlBackend && onlineClassifier != null) {
+            djlBackend.setOnlineClassifier(onlineClassifier);
+            logger.info("Online damage classifier attached to existing DJL backend");
         }
 
         // Create VisionTemplate with the selected backend

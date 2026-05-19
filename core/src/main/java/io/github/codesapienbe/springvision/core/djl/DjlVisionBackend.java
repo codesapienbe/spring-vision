@@ -4711,6 +4711,10 @@ public class DjlVisionBackend implements VisionBackend,
         return onlineClassifier;
     }
 
+    public void setOnlineClassifier(DjlOnlineDamageClassifier onlineClassifier) {
+        this.onlineClassifier = onlineClassifier;
+    }
+
     /**
      * Checks if a model file is available in the classpath.
      */

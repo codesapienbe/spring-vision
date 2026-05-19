@@ -68,7 +68,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(embeddingBackend);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the embedding-capable backend
             assertThat(template).isNotNull();
@@ -94,7 +94,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(basicBackend, embeddingBackend);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the embedding-capable backend
             assertThat(template).isNotNull();
@@ -118,7 +118,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(unhealthyEmbeddingBackend, healthyBasicBackend);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the healthy basic backend
             assertThat(template).isNotNull();
@@ -129,7 +129,7 @@ class VisionTemplateConfigurationTest {
         @DisplayName("Should create default DJL backend when no backends available")
         void shouldCreateDefaultDjlBackendWhenNoBackendsAvailable() {
             // When: Creating vision template with no backends
-            VisionTemplate template = configuration.visionTemplate(vectorService, null);
+            VisionTemplate template = configuration.visionTemplate(vectorService, null, null);
 
             // Then: Should create a template (may use DJL backend)
             assertThat(template).isNotNull();
@@ -139,7 +139,7 @@ class VisionTemplateConfigurationTest {
         @DisplayName("Should create default DJL backend when empty backends list")
         void shouldCreateDefaultDjlBackendWhenEmptyBackendsList() {
             // When: Creating vision template with empty backends list
-            VisionTemplate template = configuration.visionTemplate(vectorService, List.of());
+            VisionTemplate template = configuration.visionTemplate(vectorService, List.of(), null);
 
             // Then: Should create a template (may use DJL backend)
             assertThat(template).isNotNull();
@@ -160,7 +160,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(unhealthyBackend1, unhealthyBackend2);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should create a template (may use DJL backend)
             assertThat(template).isNotNull();
@@ -188,7 +188,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(healthyEmbedding, anotherEmbedding);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the first embedding-capable backend
             assertThat(template.getBackendId()).isEqualTo("insightface");
@@ -211,7 +211,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(unhealthyEmbedding, healthyBasic);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the healthy basic backend
             assertThat(template.getBackendId()).isEqualTo("opencv");
@@ -227,7 +227,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = null;
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should create template (with DJL fallback)
             assertThat(template).isNotNull();
@@ -328,7 +328,7 @@ class VisionTemplateConfigurationTest {
             VisionTemplateConfiguration config = new VisionTemplateConfiguration();
 
             // When: Creating template with no backends (forces DJL backend creation)
-            VisionTemplate template = config.visionTemplate(vectorService, null);
+            VisionTemplate template = config.visionTemplate(vectorService, null, null);
 
             // Then: Should create template successfully or handle errors appropriately
             assertThat(template).isNotNull();
@@ -347,7 +347,7 @@ class VisionTemplateConfigurationTest {
             VectorService realVectorService = toolConfig.inMemoryVectorService();
 
             // When: Creating vision template with real vector service
-            VisionTemplate template = configuration.visionTemplate(realVectorService, null);
+            VisionTemplate template = configuration.visionTemplate(realVectorService, null, null);
 
             // Then: Should create template successfully
             assertThat(template).isNotNull();
@@ -377,7 +377,7 @@ class VisionTemplateConfigurationTest {
             List<VisionBackend> backends = List.of(openCv, compreFace, deepFace);
 
             // When: Creating vision template
-            VisionTemplate template = configuration.visionTemplate(vectorService, backends);
+            VisionTemplate template = configuration.visionTemplate(vectorService, backends, null);
 
             // Then: Should select the first embedding-capable backend (compreFace)
             assertThat(template.getBackendId()).isEqualTo("compreface");
