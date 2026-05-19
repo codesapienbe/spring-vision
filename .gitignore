@@ -45,8 +45,8 @@ datasets/vehicle-damage/kaggle/img/
 datasets/vehicle-damage/kaggle/test/
 datasets/vehicle-damage/kaggle/train/*.jpg
 datasets/vehicle-damage/kaggle/val/*.jpg
-datasets/vehicle-damage/images/train/*.png
-datasets/vehicle-damage/labels/train/*.txt
+datasets/vehicle-damage/images/
+datasets/vehicle-damage/labels/
 runs/
 *.pt
 
