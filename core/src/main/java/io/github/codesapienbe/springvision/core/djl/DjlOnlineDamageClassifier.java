@@ -104,7 +104,7 @@ public class DjlOnlineDamageClassifier {
     }
 
     @PostConstruct
-    void initialize() {
+    public void initialize() {
         model = Model.newInstance(MODEL_NAME, "PyTorch");
         model.setBlock(buildBlock());
         Path checkpoint = checkpointPath();

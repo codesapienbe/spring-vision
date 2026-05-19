@@ -17,6 +17,7 @@ import io.github.codesapienbe.springvision.core.VectorService;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 
 /**
  * Comprehensive unit tests for VisionTemplateConfiguration.
@@ -254,7 +255,7 @@ class VisionTemplateConfigurationTest {
         void shouldHaveConditionalOnMissingBeanAnnotationOnVisionTemplateMethod() throws NoSuchMethodException {
             // When: Getting the visionTemplate method
             java.lang.reflect.Method method = VisionTemplateConfiguration.class.getMethod(
-                "visionTemplate", VectorService.class, List.class);
+                "visionTemplate", VectorService.class, List.class, DjlProperties.class);
 
             // Then: Method should have ConditionalOnMissingBean annotation
             assertThat(method.isAnnotationPresent(
@@ -271,7 +272,7 @@ class VisionTemplateConfigurationTest {
         void shouldHaveCorrectVisionTemplateMethodSignature() throws NoSuchMethodException {
             // When: Getting the visionTemplate method
             java.lang.reflect.Method method = VisionTemplateConfiguration.class.getMethod(
-                "visionTemplate", VectorService.class, List.class);
+                "visionTemplate", VectorService.class, List.class, DjlProperties.class);
 
             // Then: Should have correct return type
             assertThat(method.getReturnType()).isEqualTo(VisionTemplate.class);
@@ -287,7 +288,7 @@ class VisionTemplateConfigurationTest {
         void shouldHaveBeanAnnotationOnVisionTemplateMethod() throws NoSuchMethodException {
             // When: Getting the visionTemplate method
             java.lang.reflect.Method method = VisionTemplateConfiguration.class.getMethod(
-                "visionTemplate", VectorService.class, List.class);
+                "visionTemplate", VectorService.class, List.class, DjlProperties.class);
 
             // Then: Method should have Bean annotation
             assertThat(method.isAnnotationPresent(
@@ -299,7 +300,7 @@ class VisionTemplateConfigurationTest {
         void shouldHaveAutowiredAnnotationOnAvailableBackendsParameter() throws NoSuchMethodException {
             // When: Getting the visionTemplate method
             java.lang.reflect.Method method = VisionTemplateConfiguration.class.getMethod(
-                "visionTemplate", VectorService.class, List.class);
+                "visionTemplate", VectorService.class, List.class, DjlProperties.class);
             java.lang.reflect.Parameter[] parameters = method.getParameters();
 
             // Then: Second parameter should have Autowired annotation

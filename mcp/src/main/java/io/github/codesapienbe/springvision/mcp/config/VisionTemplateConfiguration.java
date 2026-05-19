@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +16,7 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.djl.DjlOnlineDamageClassifier;
+import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 
 /**
@@ -32,6 +34,7 @@ import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
  * in your application configuration with the desired backend.</p>
  */
 @Configuration
+@EnableConfigurationProperties(DjlProperties.class)
 public class VisionTemplateConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionTemplateConfiguration.class);
@@ -61,7 +64,7 @@ public class VisionTemplateConfiguration {
     public VisionTemplate visionTemplate(
         VectorService vectorService,
         @Autowired(required = false) List<VisionBackend> availableBackends,
-        @Autowired(required = false) DjlOnlineDamageClassifier onlineClassifier) {
+        @Autowired(required = false) DjlProperties djlProperties) {
 
         logger.info("Initializing VisionTemplate - scanning for available backends...");
 
@@ -102,6 +105,21 @@ public class VisionTemplateConfiguration {
                             "embedding extraction will fail. Consider enabling InsightFace or CompreFace.",
                         selectedBackend.getBackendId());
                 }
+            }
+        }
+
+        // Build online damage classifier if enabled in config
+        DjlOnlineDamageClassifier onlineClassifier = null;
+        DjlProperties effectiveProps = djlProperties != null ? djlProperties : new DjlProperties();
+        if (effectiveProps.getOnlineClassifier().isEnabled()) {
+            try {
+                onlineClassifier = new DjlOnlineDamageClassifier(effectiveProps);
+                onlineClassifier.initialize();
+                logger.info("Online damage classifier initialized (dataset dir: {})",
+                    effectiveProps.getOnlineClassifier().getDatasetDir());
+            } catch (Exception e) {
+                logger.warn("Failed to initialize online damage classifier — label submission disabled: {}",
+                    e.getMessage());
             }
         }
 
