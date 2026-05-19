@@ -37,6 +37,13 @@ datasets/vehicle-damage/staging/*
 datasets/vehicle-damage/weights/
 datasets/vehicle-damage/runs/
 datasets/vehicle-damage/labels/*.cache
+datasets/vehicle-damage/kaggle/img/
+datasets/vehicle-damage/kaggle/test/
+datasets/vehicle-damage/kaggle/train/*.jpg
+datasets/vehicle-damage/kaggle/val/*.jpg
 runs/
 *.pt
+
+# Claude Code internal files
+.claude/scheduled_tasks.lock
 

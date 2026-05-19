@@ -11,7 +11,7 @@ path: datasets/vehicle-damage
 train: images/train
 val: images/val
 
-nc: 22
+nc: 28
 
 names:
   # Original 14 classes (model output indices 0-13)
@@ -38,3 +38,10 @@ names:
   19: burn-damage
   20: flat-tire
   21: cracked-bumper
+  # Kaggle lplenka/coco-car-damage-detection-dataset (classes 22-27)
+  22: headlamp
+  23: rear_bumper
+  24: door
+  25: hood
+  26: front_bumper
+  27: damaged-area

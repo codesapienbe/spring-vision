@@ -1,0 +1,2 @@
+# class cx cy w h  (YOLO normalized)
+14 0.500000 0.675000 0.970000 0.650000

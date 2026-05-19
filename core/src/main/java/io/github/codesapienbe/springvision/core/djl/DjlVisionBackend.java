@@ -186,15 +186,20 @@ public class DjlVisionBackend implements VisionBackend,
     private static final Set<String> VEHICLE_CLASSES = Set.of(
         "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat");
 
-    // Classes from vineetsarpal/yolov11n-car-damage (YOLOv11n, 14 classes)
+    // Classes 0-13: vineetsarpal/yolov11n-car-damage original taxonomy
+    // Classes 14-21: spring-vision extended taxonomy
+    // Classes 22-27: lplenka/coco-car-damage-detection-dataset (Kaggle, fine-tuned yolov8n)
     static final String[] VEHICLE_DAMAGE_CLASSES = {
         "Front-windscreen-damage", "Headlight-damage", "Rear-windscreen-Damage",
         "Runningboard-Damage", "Sidemirror-Damage", "Taillight-Damage",
         "bonnet-dent", "boot-dent", "doorouter-dent", "fender-dent",
-        "front-bumper-dent", "quaterpanel-dent", "rear-bumper-dent", "roof-dent"
+        "front-bumper-dent", "quaterpanel-dent", "rear-bumper-dent", "roof-dent",
+        "scratch", "paint-damage", "broken-component", "missing-panel",
+        "flood-damage", "burn-damage", "flat-tire", "cracked-bumper",
+        "headlamp", "rear_bumper", "door", "hood", "front_bumper", "damaged-area"
     };
 
-    // Damage types NOT in the current ONNX model — documented for MCP response hints and future retraining
+    // Extended taxonomy surfaced in MCP hints (subset of VEHICLE_DAMAGE_CLASSES 14-21)
     static final String[] EXTENDED_DAMAGE_CLASSES = {
         "scratch", "paint-damage", "broken-component",
         "missing-panel", "flood-damage", "burn-damage", "flat-tire", "cracked-bumper"
@@ -218,6 +223,22 @@ public class DjlVisionBackend implements VisionBackend,
         m.put("front-bumper-dent", "MODERATE");
         m.put("quaterpanel-dent", "MODERATE");
         m.put("rear-bumper-dent", "MODERATE");
+        // Extended taxonomy (classes 14-21)
+        m.put("scratch", "MINOR");
+        m.put("paint-damage", "MINOR");
+        m.put("broken-component", "MODERATE");
+        m.put("missing-panel", "MODERATE");
+        m.put("flood-damage", "SEVERE");
+        m.put("burn-damage", "SEVERE");
+        m.put("flat-tire", "MODERATE");
+        m.put("cracked-bumper", "MODERATE");
+        // Kaggle part classes (classes 22-27)
+        m.put("headlamp", "MINOR");
+        m.put("rear_bumper", "MODERATE");
+        m.put("door", "MODERATE");
+        m.put("hood", "MODERATE");
+        m.put("front_bumper", "MODERATE");
+        m.put("damaged-area", "MODERATE");
         DAMAGE_SEVERITY_MAP = java.util.Collections.unmodifiableMap(m);
     }
 
@@ -776,12 +797,11 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadVehicleDamageModel() throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading vehicle damage detection model (vineetsarpal/yolov11n-car-damage ONNX)");
+        logger.info("Loading vehicle damage detection model (yolov8n fine-tuned, 28 classes)");
         String url = YoloModelLoader.getModelUrl("vehicle-damage/yolov11n-car-damage.onnx");
         if (url == null) {
             logger.warn("Vehicle damage detection model not found at classpath '/models/vehicle-damage/yolov11n-car-damage.onnx'. "
-                + "Export it with: yolo export model=best.pt format=onnx imgsz=640 simplify=True "
-                + "(model: huggingface.co/vineetsarpal/yolov11n-car-damage)");
+                + "Export it with: yolo export model=best.pt format=onnx imgsz=640 simplify=True");
             return;
         }
         vehicleDamageModel = Criteria.builder()
