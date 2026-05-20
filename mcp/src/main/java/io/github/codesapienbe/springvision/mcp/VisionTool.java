@@ -384,6 +384,44 @@ public class VisionTool {
         }
     }
 
+    @Tool(name = "recognize_identity_card_b",
+        description = "Recognize a national identity card from uploaded image bytes and return parsed fields "
+            + "(surname, given names, document number, dates) plus isValid / isExpired flags. "
+            + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeIdentityCardB(String imageBase64, String countryHint) {
+        long startTime = System.currentTimeMillis();
+        try {
+            ImageData img = resolveImage(imageBase64);
+            VisionResult result = visionTemplate.recognizeIdentityCard(img, blankToNull(countryHint));
+            return buildDocumentResponse(result, startTime);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException(
+                "Failed to recognize identity card: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "recognize_driver_license_b",
+        description = "Recognize a driving license from uploaded image bytes and return parsed fields "
+            + "(surname, given names, license number, categories, issue/expiry dates) plus isValid / isExpired flags. "
+            + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeDriverLicenseB(String imageBase64, String countryHint) {
+        long startTime = System.currentTimeMillis();
+        try {
+            ImageData img = resolveImage(imageBase64);
+            VisionResult result = visionTemplate.recognizeDriverLicense(img, blankToNull(countryHint));
+            return buildDocumentResponse(result, startTime);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException(
+                "Failed to recognize driver license: " + e.getMessage(), e);
+        }
+    }
+
     @Tool(name = "classify_image_b", description = "Classify an uploaded image into categories. Returns top predictions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> classifyImageB(String imageBase64, Integer topK) {
@@ -1205,6 +1243,70 @@ public class VisionTool {
         }
     }
 
+    @Tool(name = "recognize_identity_card_u",
+        description = "Recognize a national identity card from an image URL and return parsed fields "
+            + "(surname, given names, document number, dates) plus isValid / isExpired flags. "
+            + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeIdentityCard(String imageUrl, String countryHint) {
+        log.info("recognizeIdentityCard called",
+            StructuredArguments.keyValue("event", "recognize_identity_card_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
+            StructuredArguments.keyValue("countryHint", countryHint));
+
+        long startTime = System.currentTimeMillis();
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("status", "error");
+                err.put("message", "Image URL is required and cannot be empty");
+                return err;
+            }
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.recognizeIdentityCard(imgData, blankToNull(countryHint));
+            return buildDocumentResponse(result, startTime);
+        } catch (RuntimeException e) {
+            log.error("Failed to recognize identity card from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to recognize identity card from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException(
+                "Failed to recognize identity card: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "recognize_driver_license_u",
+        description = "Recognize a driving license from an image URL and return parsed fields "
+            + "(surname, given names, license number, categories, issue/expiry dates) plus isValid / isExpired flags. "
+            + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeDriverLicense(String imageUrl, String countryHint) {
+        log.info("recognizeDriverLicense called",
+            StructuredArguments.keyValue("event", "recognize_driver_license_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
+            StructuredArguments.keyValue("countryHint", countryHint));
+
+        long startTime = System.currentTimeMillis();
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("status", "error");
+                err.put("message", "Image URL is required and cannot be empty");
+                return err;
+            }
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.recognizeDriverLicense(imgData, blankToNull(countryHint));
+            return buildDocumentResponse(result, startTime);
+        } catch (RuntimeException e) {
+            log.error("Failed to recognize driver license from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to recognize driver license from URL: {}", sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException(
+                "Failed to recognize driver license: " + e.getMessage(), e);
+        }
+    }
+
     @Tool(name = "classify_image_u", description = "Classify an image into categories. Returns top predictions with confidence scores.")
     @SuppressWarnings("unused")
     public Map<String, Object> classifyImage(String imageUrl, Integer topK) {
@@ -1855,6 +1957,38 @@ public class VisionTool {
             out[i * 4 + 3] = (byte) (bits & 0xFF);
         }
         return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildDocumentResponse(VisionResult result, long startTime) {
+        Map<String, Object> response = new HashMap<>();
+        if (result == null || result.detections().isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "No document recognized");
+            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+            return response;
+        }
+        Detection det = result.detections().getFirst();
+        Map<String, Object> attrs = det.attributes();
+
+        Map<String, Object> validation = new HashMap<>();
+        validation.put("isValid", attrs.get("isValid"));
+        validation.put("isExpired", attrs.get("isExpired"));
+        validation.put("expiresInDays", attrs.get("expiresInDays"));
+        validation.put("errors", attrs.getOrDefault("validationErrors", List.of()));
+
+        response.put("status", "success");
+        response.put("documentType", attrs.get("documentType"));
+        response.put("fields", attrs.getOrDefault("fields", Map.of()));
+        response.put("validation", validation);
+        response.put("rawText", attrs.get("rawText"));
+        response.put("languages", attrs.get("languages"));
+        response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+        return response;
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
     }
 
     // Helper: create ImageData directly from bytes (no temp files)

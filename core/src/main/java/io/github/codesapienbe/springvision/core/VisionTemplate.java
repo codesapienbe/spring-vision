@@ -15,12 +15,14 @@ import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapabilit
 import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DriverLicenseRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability;
+import io.github.codesapienbe.springvision.core.capabilities.IdentityCardRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability;
@@ -341,7 +343,7 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         }
         long startTime = System.currentTimeMillis();
         List<OcrCapability.TextDetection> textDetections = capability.extractText(imageData);
-        
+
         // Convert TextDetection to Detection
         List<Detection> detections = textDetections.stream()
             .map(td -> new Detection(
@@ -351,7 +353,43 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
                 Map.of("text", td.text(), "attributes", td.attributes())
             ))
             .toList();
-        
+
+        return buildResult(DetectionType.TEXT, detections, startTime);
+    }
+
+    /**
+     * Recognises a national identity card and returns parsed fields plus validity flags.
+     *
+     * @param imageData the image to process
+     * @param countryHint ISO 3166-1 alpha-2 ({@code "BE"}, {@code "NL"}, {@code "LU"}), or {@code null} to auto-detect
+     * @return VisionResult containing a single Detection with the parsed fields in attributes
+     * @throws VisionUnsupportedException if the backend does not support identity card recognition
+     */
+    public VisionResult recognizeIdentityCard(ImageData imageData, String countryHint) {
+        if (!(backend instanceof IdentityCardRecognitionCapability capability)) {
+            throw new VisionUnsupportedException(
+                "Identity card recognition not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.recognizeIdentityCard(imageData, countryHint);
+        return buildResult(DetectionType.TEXT, detections, startTime);
+    }
+
+    /**
+     * Recognises a driving license and returns parsed fields plus validity flags.
+     *
+     * @param imageData the image to process
+     * @param countryHint ISO 3166-1 alpha-2 ({@code "BE"}, {@code "NL"}, {@code "LU"}), or {@code null} to auto-detect
+     * @return VisionResult containing a single Detection with the parsed fields in attributes
+     * @throws VisionUnsupportedException if the backend does not support driver license recognition
+     */
+    public VisionResult recognizeDriverLicense(ImageData imageData, String countryHint) {
+        if (!(backend instanceof DriverLicenseRecognitionCapability capability)) {
+            throw new VisionUnsupportedException(
+                "Driver license recognition not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.recognizeDriverLicense(imageData, countryHint);
         return buildResult(DetectionType.TEXT, detections, startTime);
     }
 

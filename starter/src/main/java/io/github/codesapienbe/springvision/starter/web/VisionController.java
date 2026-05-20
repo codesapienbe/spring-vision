@@ -368,6 +368,98 @@ public class VisionController {
     }
 
     /**
+     * Recognize a national identity card and return parsed structured fields.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @param countryHint ISO 3166-1 alpha-2 ("BE", "NL", "LU"); optional
+     * @return JSON containing documentType, fields, validation (isValid, isExpired, expiresInDays, errors)
+     */
+    @PostMapping(value = "/documents/identity-card", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> recognizeIdentityCard(
+            @RequestParam(required = false) String imageUrl,
+            @RequestParam(required = false) String countryHint,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.recognizeIdentityCard(imgData, blankToNull(countryHint));
+                return ResponseEntity.ok(buildDocumentResponse(result, startTime));
+            } catch (Exception e) {
+                log.error("Failed to recognize identity card", e);
+                Map<String, Object> err = new HashMap<>();
+                err.put("status", "error");
+                err.put("message", e.getMessage());
+                err.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    /**
+     * Recognize a driving license and return parsed structured fields.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @param countryHint ISO 3166-1 alpha-2 ("BE", "NL", "LU"); optional
+     * @return JSON containing documentType, fields, validation
+     */
+    @PostMapping(value = "/documents/driver-license", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> recognizeDriverLicense(
+            @RequestParam(required = false) String imageUrl,
+            @RequestParam(required = false) String countryHint,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.recognizeDriverLicense(imgData, blankToNull(countryHint));
+                return ResponseEntity.ok(buildDocumentResponse(result, startTime));
+            } catch (Exception e) {
+                log.error("Failed to recognize driver license", e);
+                Map<String, Object> err = new HashMap<>();
+                err.put("status", "error");
+                err.put("message", e.getMessage());
+                err.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private Map<String, Object> buildDocumentResponse(VisionResult result, long startTime) {
+        Map<String, Object> response = new HashMap<>();
+        if (result == null || result.detections().isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "No document recognized");
+            response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+            return response;
+        }
+        var det = result.detections().getFirst();
+        var attrs = det.attributes();
+        Map<String, Object> validation = new HashMap<>();
+        validation.put("isValid", attrs.get("isValid"));
+        validation.put("isExpired", attrs.get("isExpired"));
+        validation.put("expiresInDays", attrs.get("expiresInDays"));
+        validation.put("errors", attrs.getOrDefault("validationErrors", List.of()));
+
+        response.put("status", "success");
+        response.put("documentType", attrs.get("documentType"));
+        response.put("fields", attrs.getOrDefault("fields", Map.of()));
+        response.put("validation", validation);
+        response.put("rawText", attrs.get("rawText"));
+        response.put("languages", attrs.get("languages"));
+        response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+        return response;
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
+    }
+
+    /**
      * Scan and decode barcodes/QR codes from an image.
      *
      * @param imageUrl Optional image URL

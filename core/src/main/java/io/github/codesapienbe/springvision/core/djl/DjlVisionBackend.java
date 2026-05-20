@@ -9,7 +9,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -90,12 +89,14 @@ import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapabilit
 import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DriverLicenseRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FaceDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.FallDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability;
+import io.github.codesapienbe.springvision.core.capabilities.IdentityCardRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability;
@@ -106,6 +107,9 @@ import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapabil
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
 import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
+import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocessor;
+import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
+import io.github.codesapienbe.springvision.core.document.ParsedDocument;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
@@ -157,6 +161,8 @@ public class DjlVisionBackend implements VisionBackend,
     HeartRateCapability,
     ThreatDetectionCapability,
     AccessAuthenticationCapability,
+    IdentityCardRecognitionCapability,
+    DriverLicenseRecognitionCapability,
     io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability,
     io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetectionCapability,
     io.github.codesapienbe.springvision.core.capabilities.VehicleDamageTrainingCapability {
@@ -266,6 +272,9 @@ public class DjlVisionBackend implements VisionBackend,
 
     // Concurrency control
     private final Semaphore inferenceSemaphore;
+
+    // OCR engine for identity-document recognition. Initialised lazily from environment.
+    private volatile TesseractRunner tesseractRunner;
     private final int maxConcurrentInferences;
 
     // Read once at construction; avoids re-reading the system property on every inference call
@@ -2342,12 +2351,17 @@ public class DjlVisionBackend implements VisionBackend,
         } catch (IOException | TranslateException e) {
             // Try Tess4J as a fallback when DJL OCR failed
             logger.warn("DJL OCR failed, attempting Tess4J fallback: {}", e.getMessage());
+            TesseractRunner runner = getOrInitTesseractRunner();
+            if (!runner.isAvailable()) {
+                throw new VisionProcessingException(
+                    "OCR model not available and Tess4J not on classpath",
+                    "ocr_unavailable",
+                    "OCR",
+                    e);
+            }
             try {
-                Class<?> tesseractClass = Class.forName("net.sourceforge.tess4j.Tesseract");
-                Object tess = tesseractClass.getConstructor().newInstance();
+                String tessText = runner.extractText(imageData.data());
                 BufferedImage buf = ImageIO.read(new ByteArrayInputStream(imageData.data()));
-                Method doOCR = tesseractClass.getMethod("doOCR", BufferedImage.class);
-                String tessText = (String) doOCR.invoke(tess, buf);
 
                 Map<String, Object> attributes = new HashMap<>();
                 attributes.put("backend", BACKEND_ID);
@@ -2357,8 +2371,8 @@ public class DjlVisionBackend implements VisionBackend,
                 Map<String, Object> bbox = new HashMap<>();
                 bbox.put("x", 0);
                 bbox.put("y", 0);
-                bbox.put("width", buf.getWidth());
-                bbox.put("height", buf.getHeight());
+                bbox.put("width", buf != null ? buf.getWidth() : 0);
+                bbox.put("height", buf != null ? buf.getHeight() : 0);
 
                 OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
                     tessText,
@@ -2370,12 +2384,6 @@ public class DjlVisionBackend implements VisionBackend,
                     tessText.length(), correlationId);
 
                 return List.of(textDetection);
-            } catch (ClassNotFoundException cnf) {
-                throw new VisionProcessingException(
-                    "OCR model not available and Tess4J not on classpath",
-                    "ocr_unavailable",
-                    "OCR",
-                    e);
             } catch (Exception ex) {
                 throw new VisionProcessingException(
                     "Fallback OCR failed",
@@ -4767,5 +4775,121 @@ public class DjlVisionBackend implements VisionBackend,
         for (int i = 0; i < v.length; i++)
             out[i] = (float) (v[i] / norm);
         return out;
+    }
+
+    // ==========================
+    // Identity-document recognition
+    // ==========================
+
+    private TesseractRunner getOrInitTesseractRunner() {
+        TesseractRunner runner = this.tesseractRunner;
+        if (runner != null) {
+            return runner;
+        }
+        synchronized (this) {
+            if (this.tesseractRunner == null) {
+                this.tesseractRunner = TesseractRunner.fromEnvironment();
+            }
+            return this.tesseractRunner;
+        }
+    }
+
+    /** Allows starter / tests to inject a pre-configured runner with property-driven language packs. */
+    public void setTesseractRunner(TesseractRunner runner) {
+        this.tesseractRunner = runner;
+    }
+
+    @Override
+    public boolean isIdentityCardRecognitionAvailable() {
+        return initialized && getOrInitTesseractRunner().isAvailable();
+    }
+
+    @Override
+    public boolean isDriverLicenseRecognitionAvailable() {
+        return initialized && getOrInitTesseractRunner().isAvailable();
+    }
+
+    @Override
+    public List<Detection> recognizeIdentityCard(ImageData imageData, String countryHint) {
+        return recognizeDocument(imageData, countryHint, /*driverLicense*/ false);
+    }
+
+    @Override
+    public List<Detection> recognizeDriverLicense(ImageData imageData, String countryHint) {
+        return recognizeDocument(imageData, countryHint, /*driverLicense*/ true);
+    }
+
+    private List<Detection> recognizeDocument(ImageData imageData, String countryHint, boolean driverLicense) {
+        if (!initialized) {
+            throw new VisionBackendException(
+                "Backend not initialized", "not_initialized",
+                driverLicense ? "DRIVER_LICENSE" : "IDENTITY_CARD");
+        }
+        TesseractRunner runner = getOrInitTesseractRunner();
+        if (!runner.isAvailable()) {
+            throw new VisionProcessingException(
+                "Document recognition requires Tess4J on the classpath",
+                "tesseract_unavailable",
+                driverLicense ? "DRIVER_LICENSE" : "IDENTITY_CARD", null);
+        }
+
+        String languages = languagesForHint(countryHint, runner.defaultLanguages());
+        String correlationId = generateCorrelationId();
+
+        try {
+            byte[] enhanced = DocumentImagePreprocessor.enhanceForOcr(imageData.data());
+            String rawText = runner.extractText(enhanced, languages);
+
+            java.util.Optional<ParsedDocument> parsed = driverLicense
+                ? DocumentRegistry.parseDriverLicense(rawText, countryHint)
+                : DocumentRegistry.parseIdentityCard(rawText, countryHint);
+
+            if (parsed.isEmpty()) {
+                throw new VisionProcessingException(
+                    driverLicense
+                        ? "Could not recognize driver license layout for any supported country"
+                        : "Could not recognize identity card layout for any supported country",
+                    "document_unrecognized",
+                    driverLicense ? "DRIVER_LICENSE" : "IDENTITY_CARD", null);
+            }
+            ParsedDocument pd = parsed.get();
+
+            Map<String, Object> attrs = new HashMap<>();
+            attrs.put("documentType", pd.type().name());
+            attrs.put("fields", pd.fields());
+            attrs.put("isValid", pd.isValid());
+            attrs.put("isExpired", pd.isExpired());
+            attrs.put("expiresInDays", pd.expiresInDays());
+            attrs.put("validationErrors", pd.validationErrors());
+            attrs.put("rawText", rawText);
+            attrs.put("backend", BACKEND_ID);
+            attrs.put("model", "tess4j");
+            attrs.put("languages", languages);
+            attrs.put("correlationId", correlationId);
+
+            Detection det = new Detection(pd.type().name(), 1.0, new BoundingBox(0, 0, 0, 0), attrs);
+            logger.info("Document recognized: type={}, isValid={}, isExpired={}, correlationId={}",
+                pd.type(), pd.isValid(), pd.isExpired(), correlationId);
+            return List.of(det);
+        } catch (VisionProcessingException | VisionBackendException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new VisionProcessingException(
+                "Document recognition failed: " + ex.getMessage(),
+                "document_recognition_failed",
+                driverLicense ? "DRIVER_LICENSE" : "IDENTITY_CARD", ex);
+        }
+    }
+
+    private static String languagesForHint(String countryHint, String defaultLanguages) {
+        if (countryHint == null) {
+            return defaultLanguages != null ? defaultLanguages : "fra+nld+deu+eng";
+        }
+        return switch (countryHint.trim().toUpperCase()) {
+            case "BE" -> "fra+nld+deu+eng";
+            case "NL" -> "nld+eng";
+            case "LU" -> "fra+deu+eng";
+            default -> defaultLanguages != null ? defaultLanguages : "fra+nld+deu+eng";
+        };
     }
 }
