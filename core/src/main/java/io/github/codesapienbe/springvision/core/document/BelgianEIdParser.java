@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -104,10 +105,16 @@ public final class BelgianEIdParser implements IdentityDocumentParser {
 
         Map<String, String> fields = new HashMap<>();
         if (mrz.isPresent()) {
-            // Trust MRZ for these.
-            fields.putAll(mrz.get().fields());
-            // Map MRZ-only key to the canonical "documentNumber" name our validator expects.
-            fields.putIfAbsent("documentNumberMrz", mrz.get().fields().get("documentNumber"));
+            // Trust MRZ for personal data, but keep the doc-number under a distinct key
+            // because the MRZ form ([A-Z0-9]{1,9}) differs from the printed card-number
+            // format (\d{3}-\d{7}-\d{2}). The label-anchored CARD_NUMBER match below
+            // fills "documentNumber" if the front of the card is also visible.
+            Map<String, String> mrzFields = new HashMap<>(mrz.get().fields());
+            String mrzDocNumber = mrzFields.remove("documentNumber");
+            fields.putAll(mrzFields);
+            if (mrzDocNumber != null) {
+                fields.put("documentNumberMrz", mrzDocNumber);
+            }
         }
 
         // Always augment with front-of-card extras.
@@ -123,8 +130,10 @@ public final class BelgianEIdParser implements IdentityDocumentParser {
         addDateFromLabel(rawText, DOB_LABEL, fields, "dateOfBirth");
         addDateFromLabel(rawText, EXPIRY_LABEL, fields, "expiryDate");
 
-        // Without a card number or a national register number, we don't have enough to claim recognition.
-        if (!fields.containsKey("documentNumber") && !fields.containsKey("nationalRegisterNumber")) {
+        // Without any identifying number (printed card, NN, or MRZ-form), we don't have enough.
+        if (!fields.containsKey("documentNumber")
+                && !fields.containsKey("nationalRegisterNumber")
+                && !fields.containsKey("documentNumberMrz")) {
             return Optional.empty();
         }
 
@@ -136,7 +145,19 @@ public final class BelgianEIdParser implements IdentityDocumentParser {
 
     private ParsedDocument buildValidatedDocument(Map<String, String> fields) {
         List<String> errors = new ArrayList<>();
-        Map<String, Pattern> required = FieldValidators.requiredFields(TYPE);
+        Map<String, Pattern> required = new LinkedHashMap<>(FieldValidators.requiredFields(TYPE));
+
+        // When MRZ supplied the identifying number, the printed-card regex would
+        // false-flag a clean MRZ-only back-of-card read. Swap in the MRZ-form
+        // validator and drop the NN requirement (NN isn't encoded in TD1).
+        boolean hasMrzDocNumber = fields.containsKey("documentNumberMrz");
+        boolean hasPrintedDocNumber = fields.containsKey("documentNumber");
+        if (hasMrzDocNumber && !hasPrintedDocNumber) {
+            required.remove("documentNumber");
+            required.remove("nationalRegisterNumber");
+            required.put("documentNumberMrz", FieldValidators.MRZ_DOCUMENT_NUMBER);
+        }
+
         for (Map.Entry<String, Pattern> req : required.entrySet()) {
             String key = req.getKey();
             String val = fields.get(key);

@@ -22,6 +22,14 @@ public final class FieldValidators {
     public static final Pattern BELGIAN_EID_CARD_NUMBER =
         Pattern.compile("^\\d{3}-\\d{7}-\\d{2}$");
 
+    /**
+     * MRZ-form document number after stripping filler {@code <}: 1–9 uppercase
+     * alphanumeric characters. ICAO 9303 TD1 reserves 9 columns for the document
+     * number with {@code <} as right-pad filler; we strip the filler before storing.
+     */
+    public static final Pattern MRZ_DOCUMENT_NUMBER =
+        Pattern.compile("^[A-Z0-9]{1,9}$");
+
     /** Belgian driving licence number: 10 alphanumeric uppercase characters. */
     public static final Pattern BELGIAN_DRIVER_LICENSE_NUMBER =
         Pattern.compile("^[A-Z0-9]{10}$");

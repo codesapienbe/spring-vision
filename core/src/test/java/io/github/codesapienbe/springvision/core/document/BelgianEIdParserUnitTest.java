@@ -92,6 +92,25 @@ class BelgianEIdParserUnitTest {
     }
 
     @Test
+    void mrzOnlyBackOfCardIsValidWithoutPrintedNumberOrNn() {
+        // Back-of-card photo: only the MRZ is visible. The MRZ doc number is in
+        // alphanumeric form (591123456), and the printed card-number + NN aren't
+        // captured. The parser should still report isValid=true.
+        String mrzOnly = "BELGIQUE\n"
+            + "CARTE D'IDENTITE\n"
+            + VALID_MRZ;
+
+        ParsedDocument doc = parser.tryParse(mrzOnly).orElseThrow();
+        assertThat(doc.isValid())
+            .as("MRZ-only back-of-card should validate via documentNumberMrz")
+            .isTrue();
+        assertThat(doc.validationErrors()).isEmpty();
+        assertThat(doc.fields().get("documentNumberMrz")).isEqualTo("591123456");
+        assertThat(doc.fields()).doesNotContainKey("documentNumber");
+        assertThat(doc.fields()).doesNotContainKey("nationalRegisterNumber");
+    }
+
+    @Test
     void invalidNationalRegisterNumberFlagsValidationError() {
         // NN with wrong shape — passes the loose capture but fails strict validation.
         String text =
