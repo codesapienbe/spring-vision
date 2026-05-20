@@ -160,13 +160,6 @@
         <scope>runtime</scope>
     </dependency>
 
-    <!-- Tess4J for Tesseract OCR fallback used by identity-document and driver-license recognition.
-         Declared optional in core; the MCP server brings the native bridge into the runtime classpath. -->
-    <dependency>
-      <groupId>net.sourceforge.tess4j</groupId>
-      <artifactId>tess4j</artifactId>
-      <version>5.9.0</version>
-    </dependency>
   </dependencies>
 
   <build>

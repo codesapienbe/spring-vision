@@ -199,6 +199,19 @@
         <artifactId>byte-buddy</artifactId>
         <version>1.14.12</version>
       </dependency>
+
+      <!-- JNA pinned to a version with Apple Silicon (arm64) native libs.
+           hnswlib-jna pulls 5.5.0 transitively, which only ships i386/x86_64. -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna-platform</artifactId>
+        <version>5.14.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

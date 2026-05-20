@@ -173,12 +173,11 @@
       <artifactId>onnxruntime</artifactId>
     </dependency>
 
-    <!-- Tesseract OCR (migrated from tesseract module) -->
+    <!-- Tesseract OCR — mandatory for OCR and identity-document recognition. -->
     <dependency>
       <groupId>net.sourceforge.tess4j</groupId>
       <artifactId>tess4j</artifactId>
       <version>5.9.0</version>
-      <optional>true</optional>
     </dependency>
 
     <!-- OpenPnP OpenCV for YOLO (migrated from yolo module) -->

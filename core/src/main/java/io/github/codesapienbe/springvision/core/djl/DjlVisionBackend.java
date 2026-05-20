@@ -2348,17 +2348,11 @@ public class DjlVisionBackend implements VisionBackend,
                 return List.of(textDetection);
             }
 
-        } catch (IOException | TranslateException e) {
-            // Try Tess4J as a fallback when DJL OCR failed
+        } catch (Exception e) {
+            // Fall back to Tess4J for any DJL failure (missing model, decode error,
+            // translate error, etc.). Tess4J is a mandatory dependency.
             logger.warn("DJL OCR failed, attempting Tess4J fallback: {}", e.getMessage());
             TesseractRunner runner = getOrInitTesseractRunner();
-            if (!runner.isAvailable()) {
-                throw new VisionProcessingException(
-                    "OCR model not available and Tess4J not on classpath",
-                    "ocr_unavailable",
-                    "OCR",
-                    e);
-            }
             try {
                 String tessText = runner.extractText(imageData.data());
                 BufferedImage buf = ImageIO.read(new ByteArrayInputStream(imageData.data()));
@@ -2386,17 +2380,11 @@ public class DjlVisionBackend implements VisionBackend,
                 return List.of(textDetection);
             } catch (Exception ex) {
                 throw new VisionProcessingException(
-                    "Fallback OCR failed",
+                    "OCR failed via DJL and Tess4J fallback",
                     "ocr_failed",
                     "OCR",
                     ex);
             }
-        } catch (Exception e) {
-            throw new VisionBackendException(
-                "OCR failed",
-                "ocr_failed",
-                null,
-                e);
         }
     }
 
