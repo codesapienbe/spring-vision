@@ -13,10 +13,9 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
-
-import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 
 /**
  * Direct wrapper around Tess4J. Tess4J is a mandatory dependency of

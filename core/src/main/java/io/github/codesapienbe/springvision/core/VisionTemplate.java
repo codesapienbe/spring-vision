@@ -24,6 +24,7 @@ import io.github.codesapienbe.springvision.core.capabilities.HandDetectionCapabi
 import io.github.codesapienbe.springvision.core.capabilities.HeartRateCapability;
 import io.github.codesapienbe.springvision.core.capabilities.IdentityCardRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ImageClassificationCapability;
+import io.github.codesapienbe.springvision.core.capabilities.LicensePlateRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.MetaDataExtractionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.NSFWDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ObjectDetectionCapability;
@@ -391,6 +392,26 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
         long startTime = System.currentTimeMillis();
         List<Detection> detections = capability.recognizeDriverLicense(imageData, countryHint);
         return buildResult(DetectionType.TEXT, detections, startTime);
+    }
+
+    /**
+     * Detects vehicle license plates and reads their text.
+     *
+     * @param imageData the image to process
+     * @return VisionResult containing one Detection per plate, with the plate
+     *         text as {@code label} and the raw OCR output / detector confidence
+     *         in {@code attributes}
+     * @throws VisionUnsupportedException if the backend does not implement
+     *         license-plate recognition (e.g. the detector model is not bundled)
+     */
+    public VisionResult recognizeLicensePlates(ImageData imageData) {
+        if (!(backend instanceof LicensePlateRecognitionCapability capability)) {
+            throw new VisionUnsupportedException(
+                "License plate recognition not supported by backend: " + getBackendId());
+        }
+        long startTime = System.currentTimeMillis();
+        List<Detection> detections = capability.recognizeLicensePlates(imageData);
+        return buildResult(DetectionType.LICENSE_PLATE, detections, startTime);
     }
 
     /**

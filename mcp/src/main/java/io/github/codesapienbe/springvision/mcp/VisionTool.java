@@ -3595,6 +3595,103 @@ public class VisionTool {
         }
     }
 
+    @Tool(name = "recognize_license_plate_b",
+        description = "Detect vehicle license plates in uploaded image bytes and read each plate's text. "
+            + "Runs a dedicated YOLO plate detector, crops each plate region, and OCRs the crop. "
+            + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
+            + "and the plate's normalised bounding box. Requires the license-plate detection ONNX model "
+            + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeLicensePlateB(String imageBase64) {
+        long startTime = System.currentTimeMillis();
+        try {
+            ImageData img = resolveImage(imageBase64);
+            VisionResult result = visionTemplate.recognizeLicensePlates(img);
+            return buildPlateResponse(result, startTime, null);
+        } catch (VisionUnsupportedException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new VisionProcessingException(
+                "Failed to recognize license plate: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "recognize_license_plate_u",
+        description = "Detect vehicle license plates in an image URL and read each plate's text. "
+            + "Runs a dedicated YOLO plate detector, crops each plate region, and OCRs the crop. "
+            + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
+            + "and the plate's normalised bounding box. Requires the license-plate detection ONNX model "
+            + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> recognizeLicensePlate(String imageUrl) {
+        log.info("recognizeLicensePlate called",
+            StructuredArguments.keyValue("event", "recognize_license_plate_start"),
+            StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
+        long startTime = System.currentTimeMillis();
+
+        try {
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("status", "error");
+                error.put("message", "Image URL is required");
+                error.put("plates", List.of());
+                return error;
+            }
+            ImageData imgData = resolveImage(imageUrl.trim());
+            VisionResult result = visionTemplate.recognizeLicensePlates(imgData);
+            Map<String, Object> response = buildPlateResponse(result, startTime, imageUrl);
+            log.info("recognizeLicensePlate completed",
+                StructuredArguments.keyValue("event", "recognize_license_plate_complete"),
+                StructuredArguments.keyValue("count", result.detectionCount()),
+                StructuredArguments.keyValue("processingTimeMs",
+                    System.currentTimeMillis() - startTime));
+            return response;
+        } catch (VisionUnsupportedException e) {
+            log.warn("License plate model unavailable: {}", e.getMessage());
+            throw e;
+        } catch (RuntimeException e) {
+            log.error("Failed to recognize license plate from URL: {}",
+                sanitizeUrlForLogging(imageUrl), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to recognize license plate from URL: {}",
+                sanitizeUrlForLogging(imageUrl), e);
+            throw new VisionProcessingException(
+                "Failed to recognize license plate: " + e.getMessage(), e);
+        }
+    }
+
+    private Map<String, Object> buildPlateResponse(VisionResult result, long startTime, String imageUrl) {
+        List<Map<String, Object>> plates = new ArrayList<>();
+        for (var detection : result.detections()) {
+            Map<String, Object> p = new HashMap<>();
+            String text = detection.label();
+            p.put("text", text);
+            p.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            if (detection.boundingBox() != null) {
+                Map<String, Object> bbox = new HashMap<>();
+                bbox.put("x", detection.boundingBox().x());
+                bbox.put("y", detection.boundingBox().y());
+                bbox.put("width", detection.boundingBox().width());
+                bbox.put("height", detection.boundingBox().height());
+                p.put("boundingBox", bbox);
+            }
+            p.put("rawOcrText", detection.attributes().get("rawOcrText"));
+            plates.add(p);
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("plates", plates);
+        response.put("count", plates.size());
+        response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+        if (imageUrl != null) {
+            response.put("imageUrl", imageUrl);
+        }
+        return response;
+    }
+
     @Tool(name = "submit_damage_label_u",
         description = "Submit a labeled vehicle damage image (by URL or local path) to the online DJL classifier training buffer. " +
             "Persists the image to the YOLO dataset directory and triggers a training step when the buffer reaches minBatchSize. " +

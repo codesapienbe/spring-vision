@@ -429,6 +429,53 @@ public class VisionController {
         }).subscribeOn(Schedulers.boundedElastic());
     }
 
+    /**
+     * Detect vehicle license plates and read the text on each plate.
+     *
+     * @param imageUrl Optional image URL
+     * @param file Optional uploaded image file
+     * @return JSON with a {@code plates} array of {@code {text, confidence, boundingBox, rawOcrText}}
+     */
+    @PostMapping(value = "/vehicles/license-plates", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Map<String, Object>>> recognizeLicensePlates(
+            @RequestParam(required = false) String imageUrl,
+            @RequestPart(required = false) MultipartFile file) {
+
+        return Mono.fromCallable(() -> {
+            long startTime = System.currentTimeMillis();
+            Map<String, Object> response = new HashMap<>();
+            try {
+                ImageData imgData = resolveImageSource(imageUrl, file);
+                VisionResult result = visionTemplate.recognizeLicensePlates(imgData);
+
+                List<Map<String, Object>> plates = new ArrayList<>();
+                for (var detection : result.detections()) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("text", detection.label());
+                    item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+                    if (detection.boundingBox() != null) {
+                        item.put("boundingBox", boundingBoxMap(detection.boundingBox()));
+                    }
+                    item.put("rawOcrText", detection.attributes().get("rawOcrText"));
+                    plates.add(item);
+                }
+
+                response.put("status", "success");
+                response.put("plates", plates);
+                response.put("count", plates.size());
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
+                log.error("Failed to recognize license plates", e);
+                response.put("status", "error");
+                response.put("message", e.getMessage());
+                response.put("plates", List.of());
+                response.put("processingTimeMs", System.currentTimeMillis() - startTime);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
     private Map<String, Object> buildDocumentResponse(VisionResult result, long startTime) {
         Map<String, Object> response = new HashMap<>();
         if (result == null || result.detections().isEmpty()) {
