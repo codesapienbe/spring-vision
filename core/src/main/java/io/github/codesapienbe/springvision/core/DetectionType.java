@@ -265,7 +265,18 @@ public enum DetectionType {
      * vehicle-damage-classifier.onnx model to be bundled.</p>
      */
     VEHICLE_DAMAGE("vehicle-damage", "Vehicle Damage Detection", false,
-        "Detects damage areas on vehicles (scratches, dents, cracks, etc.)");
+        "Detects damage areas on vehicles (scratches, dents, cracks, etc.)"),
+
+    /**
+     * License plate recognition - detects vehicle number plates and reads their text.
+     *
+     * <p>A dedicated YOLO single-class detector locates plate regions; each crop is
+     * then passed through the OCR pipeline to recover the plate string. Requires the
+     * license-plate detection ONNX model to be bundled at
+     * {@code classpath:/models/license-plate/yolov8n-license-plate.onnx}.</p>
+     */
+    LICENSE_PLATE("license-plate", "License Plate Recognition", false,
+        "Detects vehicle license plates and extracts the plate text");
 
     private final String code;
     private final String displayName;
