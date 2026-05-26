@@ -1,39 +1,29 @@
-# Quick Start Guide
+# 🚀 Quick Start Guide
 
 [Docs Home](../index.md) · [MCP Setup](./mcp-setup.md) · [MCP Testing](./mcp-testing.md) · [API Usage](../development/API_USAGE.md)
 
-This guide helps you go from zero to your first detection in minutes. Whether you want to use Spring Vision as a library in your Spring Boot application or as an MCP server, this guide covers both approaches.
+Welcome! This guide helps you go from zero to your first AI detection in minutes. No PhD in AI required! 😉
 
-## Prerequisites
+You have two awesome ways to use Spring Vision. Choose your adventure:
 
-- Java 21+
-- Maven 3.9+
-- Spring Boot 3.2+
-- Optional: NVIDIA GPU + CUDA for acceleration (see [GPU Acceleration](../configuration/gpu.md))
+---
 
-## 🚀 Option 1: Use as MCP Server (Recommended)
+## 🦸‍♂️ Option 1: Use as an AI Assistant Tool (MCP Server)
+*Recommended if you want Claude, Cursor, or other AI agents to "see" images.*
 
-The easiest way to get started is using Spring Vision as an MCP (Model Context Protocol) server, which works with AI assistants like Claude, Cursor, and other MCP-compatible tools.
+The easiest way to get started is using Spring Vision as an MCP (Model Context Protocol) server.
 
-### 1. Install with CLI Tool
-
-For the easiest installation experience, run our CLI setup tool directly with JBang:
+### 1. The Magic One-Liner 🪄
+Run our setup tool directly in your terminal. It downloads and configures everything automatically!
 
 ```bash
-# Run the CLI setup tool to automatically download and configure everything
 jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar
 ```
 
-That's it! The CLI tool will automatically:
-- ✅ Check for JBang installation and guide you if needed
-- 📦 Download the latest Spring Vision MCP Server JAR (~983MB)
-- 💾 Store it locally in `~/.springvision/` (no re-downloads needed!)
-- ℹ️ Show you how to configure your MCP client
-- 🚀 Set up everything automatically with no manual steps required!
+The tool will grab the latest server (it's about ~1GB because of the AI models) and save it to `~/.springvision/`. 
 
-### 2. Configure Your MCP Client
-
-After running the CLI tool, configure your MCP client (Claude Desktop, VS Code, Cursor, etc.) using the configuration shown by the CLI tool. Here's an example:
+### 2. Configure Your AI Client
+The CLI tool will print out a configuration snippet. Just copy and paste it into your MCP client (like Claude Desktop or Cursor). It looks like this:
 
 ```json
 {
@@ -46,25 +36,25 @@ After running the CLI tool, configure your MCP client (Claude Desktop, VS Code, 
 }
 ```
 
-### 3. Test the Setup
+### 3. Test it out!
+Restart your AI client and try asking it: *"Count the number of faces in this image: [URL]"*
 
-After configuration, restart your MCP client. You should now have access to Spring Vision tools for:
-- Face detection and recognition
-- Object detection
-- Image classification
-- Text extraction (OCR)
-- Barcode/QR code scanning
-- And many more capabilities!
+---
 
-Try asking your AI assistant: *"Count the number of faces in this image: [URL]"*
+## 🛠️ Option 2: Add to Your Spring Boot App (The Easy Way)
+*Recommended if you want to build computer vision directly into your own code!*
 
-## 🏗️ Option 2: Use as Spring Boot Library
+If you want to make your own Spring Boot application "see", follow these steps. 
 
-If you want to build Spring Vision directly into your Spring Boot application, use it as a library dependency.
+### Prerequisites
+- **Java 25+** (We use the latest Java features for top performance!)
+- **Spring Boot 3.2+**
+- A sense of adventure!
 
-### 1. Add Repository
+### Step 1: The Magic Dependency 📦
+Just like adding a database driver, we add the Spring Vision Starter. 
 
-Spring Vision artifacts are published to GitHub Packages. Add the repository to your POM:
+First, tell Maven where to find it (we use GitHub Packages) in your `pom.xml`:
 
 ```xml
 <repositories>
@@ -76,7 +66,7 @@ Spring Vision artifacts are published to GitHub Packages. Add the repository to 
 </repositories>
 ```
 
-### 2. Add Dependency
+Next, add the dependency:
 
 ```xml
 <dependency>
@@ -86,150 +76,131 @@ Spring Vision artifacts are published to GitHub Packages. Add the repository to 
 </dependency>
 ```
 
-### 3. Basic Configuration
+> **💡 Junior Tip:** The `starter` package automatically brings in everything you need, including the core vision logic and web capabilities!
 
-Spring Vision works out of the box with minimal configuration. Add this to your `application.yml`:
+### Step 2: Tell Spring It Exists ⚙️
+Open your `application.yml` and turn on the AI engine:
 
 ```yaml
 spring:
   vision:
     djl:
-      enabled: true
-      engine: pytorch
-      device: cpu  # or gpu for GPU acceleration
+      enabled: true      # Turn on the AI engine!
 ```
 
-### 4. Use in Your Code
+### Step 3: Your First Vision Service 🧠
+The heart of Spring Vision is the `VisionTemplate`. It works just like `RestTemplate` or `JdbcTemplate`.
 
-Inject the `VisionTemplate` and start using computer vision features:
+Create a new Service class:
 
 ```java
-@RestController
-public class VisionController {
+import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
+import org.springframework.stereotype.Service;
+import java.io.File;
+import java.nio.file.Files;
 
-    @Autowired
-    private VisionTemplate visionTemplate;
+@Service
+public class MyAwesomeVisionService {
 
-    @PostMapping("/detect-faces")
-    public ResponseEntity<Map<String, Object>> detectFaces(@RequestParam("file") MultipartFile file) {
-        try {
-            VisionResult result = visionTemplate.detectFaces(ImageData.fromBytes(file.getBytes()));
-            return ResponseEntity.ok(Map.of(
-                "faces", result.detections(),
-                "count", result.detectionCount(),
-                "confidence", result.averageConfidence()
-            ));
-        } catch (IOException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    // 1. Inject the template!
+    private final VisionTemplate visionTemplate;
+
+    public MyAwesomeVisionService(VisionTemplate visionTemplate) {
+        this.visionTemplate = visionTemplate;
     }
 
-    @PostMapping("/analyze-image")
-    public ResponseEntity<Map<String, Object>> analyzeImage(@RequestParam("file") MultipartFile file) {
-        try {
-            // Advanced analysis combining multiple capabilities
-            VisionResult faces = visionTemplate.detectFaces(ImageData.fromBytes(file.getBytes()));
-            VisionResult objects = visionTemplate.detectObjects(ImageData.fromBytes(file.getBytes()));
-            VisionResult emotions = visionTemplate.detectEmotions(ImageData.fromBytes(file.getBytes()));
+    // 2. Write a method to process an image
+    public void findFacesInImage(String filePath) throws Exception {
+        
+        // A. Load your image into our special ImageData wrapper
+        byte[] bytes = Files.readAllBytes(new File(filePath).toPath());
+        ImageData image = ImageData.fromBytes(bytes);
 
-            return ResponseEntity.ok(Map.of(
-                "faces", faces.detections(),
-                "objects", objects.detections(),
-                "emotions", emotions.detections(),
-                "totalDetections", faces.detectionCount() + objects.detectionCount() + emotions.detectionCount()
-            ));
-        } catch (IOException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        System.out.println("🤖 Processing image...");
+
+        // B. Ask the VisionTemplate to detect faces
+        VisionResult result = visionTemplate.detectFaces(image);
+
+        // C. Print out the results!
+        if (result.hasDetections()) {
+            System.out.println("🎉 Found " + result.detectionCount() + " faces!");
+            result.detections().forEach(face -> {
+                System.out.println("- Face confidence: " + (face.confidence() * 100) + "%");
+            });
         }
     }
 }
 ```
 
-### 5. Run and Test
+### 🦸‍♂️ What Else Can `VisionTemplate` Do?
+Just type `visionTemplate.` in your IDE to see the magic:
+- `.detectObjects(image)` -> Finds dogs, cars, cups, etc.
+- `.extractText(image)` -> Reads text from images (OCR).
+- `.detectEmotions(image)` -> Is the person happy or sad?
+- `.scanBarcodes(image)` -> Reads QR codes and barcodes.
 
-Start your Spring Boot application:
+---
 
-```bash
-./mvnw spring-boot:run
+## 🌟 Specialized Detections (For your first project!)
+Since you are starting a project that needs deep analysis, here is how to use our most advanced features:
+
+### 1. National ID & Driver Licenses 🪪
+Extract structured data from Belgian or Dutch ID cards and licenses.
+
+```java
+// Pass "BE" or "NL" as a hint, or null to auto-detect
+VisionResult idResult = visionTemplate.recognizeIdentityCard(image, "BE");
+
+idResult.detections().forEach(doc -> {
+    Map<String, Object> attrs = doc.attributes();
+    System.out.println("Document: " + attrs.get("documentType"));
+    System.out.println("Name: " + attrs.get("surname") + " " + attrs.get("givenNames"));
+    System.out.println("Valid: " + attrs.get("isValid"));
+});
 ```
 
-Test the endpoints:
+### 2. Vehicle Detection 🚗
+Detects cars, trucks, motorcycles, and more with specific categories.
 
-```bash
-# Health check
-curl -s http://localhost:8080/actuator/health
+```java
+VisionResult vehicles = visionTemplate.detectVehicles(image);
 
-# Test face detection (upload an image with faces)
-curl -X POST -F "file=@face_image.jpg" http://localhost:8080/api/vision/faces
-
-# Test object detection (upload any image)
-curl -X POST -F "file=@any_image.jpg" http://localhost:8080/api/vision/objects
+vehicles.detections().forEach(v -> {
+    String type = (String) v.attributes().get("vehicleType"); // e.g., "truck"
+    String category = (String) v.attributes().get("vehicleCategory"); // e.g., "commercial_vehicle"
+    System.out.println("Found a " + type + " (" + category + ")");
+});
 ```
 
-## ⚙️ Advanced Configuration
+### 3. Vehicle Damage Analysis 💥
+Our "Magic" feature: it first finds vehicles and then looks for scratches, dents, or broken glass.
 
-Customize model settings in `application.yml`:
+```java
+VisionResult damageResult = visionTemplate.detectVehicleDamages(image);
 
-```yaml
-spring:
-  vision:
-    djl:
-      face-detection:
-        model: mtcnn  # or retinaface for better accuracy
-        confidence-threshold: 0.7
-      object-detection:
-        model: ssd
-        backbone: resnet50
-        confidence-threshold: 0.6
+damageResult.detections().forEach(dmg -> {
+    String damage = (String) dmg.attributes().get("damageType");
+    String severity = (String) dmg.attributes().get("severity"); // MINOR, MODERATE, SEVERE
+    System.out.println("⚠️ Damage detected: " + damage + " | Severity: " + severity);
+});
 ```
 
-## 🌐 GPU Acceleration (Optional)
+---
 
-For GPU acceleration, use the `gpu` profile:
+## ⚠️ Common Gotchas (Troubleshooting)
 
-```yaml
-spring:
-  config:
-    activate:
-      on-profile: gpu
-  vision:
-    djl:
-      device: gpu
-```
+1. **"It's taking a long time to start!"**
+   - *Why?* The first time you run your app, Spring Vision downloads the AI models (around 1GB). Be patient on the first boot!
+   
+2. **`OutOfMemoryError`**
+   - *Why?* AI models need room to breathe.
+   - *Fix:* Increase your memory limit. Add `-Xmx4g` to your JVM arguments to give it 4GB of RAM.
 
-Or build and run with GPU support:
+3. **`UnsupportedClassVersionError`**
+   - *Fix:* Update your JDK to version 25 or higher!
 
-```bash
-# Build with GPU support
-mvn clean package -P gpu
+---
 
-# Run with GPU profile
-java -jar target/your-app.jar --spring.profiles.active=gpu
-```
-
-**Details:** [GPU Acceleration Guide](../configuration/gpu.md)
-
-## 🛠️ Manual Build (Developers)
-
-If you want to build from source:
-
-```bash
-# Clone the repository
-git clone https://github.com/codesapienbe/spring-vision.git
-cd spring-vision
-
-# Build with models (downloads YOLO/RetinaFace during build)
-mvn clean install -Pdownload-models
-
-# Or use the Makefile (includes model download):
-make build  # Downloads and bundles models
-make run    # Runs the MCP server
-```
-
-## Next Steps
-
-- **[MCP Setup Guide](./mcp-setup.md)** - Detailed MCP server configuration
-- **[MCP Testing Guide](./mcp-testing.md)** - Test all MCP tools with examples
-- **[API Reference](../development/API_USAGE.md)** - Complete REST API documentation
-- **[Architecture](../architecture/architecture.md)** - Understand the framework design
-- **[Configuration](../configuration/config.md)** - Fine-tune settings for your environment
+**Next Steps:** Check out the [API Usage Guide](../development/API_USAGE.md) for more advanced tricks and techniques! Happy coding! 🎈

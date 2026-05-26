@@ -1,4 +1,4 @@
-[Docs Home](./index.md) · [Getting Started](./start.md) · [Config](./config.md) · [Runtime](./runtime.md)
+[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [Config](./config.md) · [Runtime](./runtime.md)
 
 # GPU Acceleration Support
 
@@ -536,4 +536,4 @@ For issues related to GPU support:
 
 ---
 
-See also: [Getting Started](./start.md) · [Configuration](./config.md) · [Models Guide](./models.md) · [Maven Model Download](./downloads.md) · [Runtime](./runtime.md)
+See also: [Getting Started](../getting-started/quick-start.md) · [Configuration](./config.md) · [Models Guide](./models.md) · [Maven Model Download](./downloads.md) · [Runtime](./runtime.md)

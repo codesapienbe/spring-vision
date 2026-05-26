@@ -99,7 +99,7 @@ Built on the Deep Java Library (DJL), Spring Vision provides a unified API for m
 
 ---
 
-**Ready to get started?** → [Quick Start Guide](./getting-started/start.md)
+**Ready to get started?** → [Quick Start Guide](./getting-started/quick-start.md)
 
 **Need help?** → [FAQ](./project/faq.md)
 

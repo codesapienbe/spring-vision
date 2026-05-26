@@ -1,6 +1,6 @@
 # FAQ
 
-[Docs Home](./index.md) · [Getting Started](./start.md) · [GPU](./gpu.md)
+[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [GPU](./gpu.md)
 
 ## What Java and Spring versions are required?
 
@@ -25,4 +25,4 @@ See [Modules Overview](./modules.md).
 
 ## Is there a starter for zero config?
 
-Yes: add the `starter` dependency and use `VisionTemplate`. See [Getting Started](./start.md).
+Yes: add the `starter` dependency and use `VisionTemplate`. See [Getting Started](../getting-started/quick-start.md).

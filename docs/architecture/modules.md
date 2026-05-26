@@ -1,4 +1,4 @@
-[Docs Home](../index.md) · [Getting Started](../getting-started/start.md) · [Architecture](./architecture.md) · [Config](../configuration/config.md)
+[Docs Home](../index.md) · [Getting Started](../getting-started/quick-start.md) · [Architecture](./architecture.md) · [Config](../configuration/config.md)
 
 # Spring Vision Architecture & Capabilities
 
@@ -186,7 +186,7 @@ Spring Vision 0.0.4 provides a modern, capability-based architecture with:
 - **🤖 DJL-powered** AI models with automatic management
 - **🔄 Backward compatibility** with legacy backends
 
-**Ready to build?** → [Getting Started Guide](../getting-started/start.md)
+**Ready to build?** → [Getting Started Guide](../getting-started/quick-start.md)
 
 **Need the full API?** → [API Reference](../development/API_USAGE.md)
 
@@ -599,7 +599,7 @@ A well-aligned module should enable:
 
 ---
 
-See also: [Getting Started](./start.md) · [Configuration](./config.md) · [Runtime](./runtime.md) · [Roadmap](./roadmap.md)
+See also: [Getting Started](../getting-started/quick-start.md) · [Configuration](./config.md) · [Runtime](./runtime.md) · [Roadmap](./roadmap.md)
 
 **Status**: This guide is the source of truth for module alignment.
 

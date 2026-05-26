@@ -1,4 +1,4 @@
-[Docs Home](./index.md) · [Getting Started](./start.md) · [Modules](./modules.md) · [Maven Model Download](./downloads.md)
+[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [Modules](./modules.md) · [Maven Model Download](./downloads.md)
 
 # Models Guide
 

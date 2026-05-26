@@ -1,6 +1,6 @@
 # Architecture
 
-[Docs Home](../index.md) · [Getting Started](../getting-started/start.md) · [Modules](./modules.md)
+[Docs Home](../index.md) · [Getting Started](../getting-started/quick-start.md) · [Modules](./modules.md)
 
 High-level view of Spring Vision's architecture.
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-[Docs Home](./index.md) · [Getting Started](./start.md) · [Contributing](./contributing.md)
+[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [Contributing](./contributing.md)
 
 ## 1.1 (Released)
 
