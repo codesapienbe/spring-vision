@@ -17,7 +17,7 @@ The easiest way to get started is using Spring Vision as an MCP (Model Context P
 Run our setup tool directly in your terminal. It downloads and configures everything automatically!
 
 ```bash
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar
 ```
 
 The tool will grab the latest server (it's about ~1GB because of the AI models) and save it to `~/.springvision/`. 
@@ -30,7 +30,7 @@ The CLI tool will print out a configuration snippet. Just copy and paste it into
   "mcpServers": {
     "spring-vision": {
       "command": "jbang",
-      "args": ["/home/youruser/.springvision/mcp-0.0.4.jar"]
+      "args": ["/home/youruser/.springvision/mcp-0.0.5.jar"]
     }
   }
 }
@@ -72,7 +72,7 @@ Next, add the dependency:
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 

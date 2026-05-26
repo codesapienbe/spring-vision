@@ -24,7 +24,7 @@ After making changes to the MCP server, the typical loop is:
 1. `mvn -pl core install -DskipTests -P'!download-models' -q` (only if `core` changed)
 2. `make sync` — repackages `mcp` and copies the jar to `~/.springvision/mcp-<version>.jar`
 3. The user runs `/mcp` to reconnect — that starts a fresh server process with the new jar.
-4. Old MCP processes do NOT auto-shut down. If logs look stale, check `ps aux | grep mcp-0.0.4.jar` — the newest PID is the one Claude is talking to.
+4. Old MCP processes do NOT auto-shut down. If logs look stale, check `ps aux | grep mcp-0.0.5.jar` — the newest PID is the one Claude is talking to.
 
 The MCP server's working directory is whatever the parent process (Claude Code,
 Cursor, etc.) is launched from, so anchoring logs under `~/.springvision/`

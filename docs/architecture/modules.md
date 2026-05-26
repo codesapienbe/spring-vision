@@ -2,7 +2,7 @@
 
 # Spring Vision Architecture & Capabilities
 
-**Version**: 0.0.4
+**Version**: 0.0.5
 **Last Updated**: October 21, 2025
 
 ## Overview
@@ -11,7 +11,7 @@ Spring Vision uses a modern, capability-based architecture built on the Deep Jav
 
 ## Current Architecture
 
-Spring Vision 0.0.4 consists of these main components:
+Spring Vision 0.0.5 consists of these main components:
 
 ### Core Components
 
@@ -25,7 +25,7 @@ Spring Vision 0.0.4 consists of these main components:
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 </dependency>
 ```
 
@@ -178,7 +178,7 @@ See [Configuration Guide](../configuration/config.md) for detailed migration ste
 
 ## Summary
 
-Spring Vision 0.0.4 provides a modern, capability-based architecture with:
+Spring Vision 0.0.5 provides a modern, capability-based architecture with:
 
 - **🎯 Single dependency** for all computer vision features
 - **🚀 Zero-configuration** setup with intelligent defaults
