@@ -2,10 +2,10 @@ package io.github.codesapienbe.springvision.mcp.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -18,22 +18,29 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private final KeycloakRealmRoleConverter realmRoleConverter;
+
     /**
-     * Default constructor for {@link SecurityConfig}.
+     * Creates a {@link SecurityConfig}.
+     * @param realmRoleConverter maps Keycloak's {@code realm_access.roles} claim to authorities.
      */
-    public SecurityConfig() {
-        // Default constructor
+    public SecurityConfig(KeycloakRealmRoleConverter realmRoleConverter) {
+        this.realmRoleConverter = realmRoleConverter;
     }
 
     /**
      * Defines the security filter chain: public health checks, authenticated everything else,
-     * JWTs validated against Keycloak's JWKS endpoint.
+     * JWTs validated against Keycloak's JWKS endpoint with realm roles mapped to authorities
+     * (see {@link KeycloakRealmRoleConverter}) so {@code VisionTool}'s admin-tier checks work.
      * @param http the {@link HttpSecurity} to configure.
      * @return the built {@link SecurityFilterChain}.
      * @throws Exception if the security configuration cannot be built.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(realmRoleConverter);
+
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
@@ -41,7 +48,7 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)));
         return http.build();
     }
 }

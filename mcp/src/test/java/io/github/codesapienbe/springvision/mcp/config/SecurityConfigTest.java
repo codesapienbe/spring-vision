@@ -24,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
  * and never actually invokes the decoder.
  */
 @WebMvcTest(controllers = SecurityConfigTest.ProbeController.class)
-@Import({SecurityConfig.class, SecurityConfigTest.ProbeController.class, SecurityConfigTest.StubJwtDecoderConfig.class})
+@Import({SecurityConfig.class, KeycloakRealmRoleConverter.class, SecurityConfigTest.ProbeController.class,
+        SecurityConfigTest.StubJwtDecoderConfig.class})
 class SecurityConfigTest {
 
     @Autowired

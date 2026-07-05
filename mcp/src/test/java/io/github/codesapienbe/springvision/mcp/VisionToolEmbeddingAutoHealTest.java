@@ -13,10 +13,13 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.github.codesapienbe.springvision.core.DetectionCategory;
 import io.github.codesapienbe.springvision.core.ImageData;
@@ -55,6 +58,15 @@ class VisionToolEmbeddingAutoHealTest {
         when(vectorService.embeddingToBytes(any())).thenReturn(new byte[0]);
         VisionTemplate template = new VisionTemplate(embeddingBackend, vectorService);
         visionTool = new VisionTool(template);
+        // These tests exercise embedding extraction directly, which now requires the
+        // mcp-admin role (see VisionTool#requireAdminRole) - not what's under test here.
+        SecurityContextHolder.getContext().setAuthentication(
+            new TestingAuthenticationToken("test-admin", "n/a", "ROLE_mcp-admin"));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     // ============================= embeddingModelStatus =============================

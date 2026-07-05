@@ -49,8 +49,8 @@ every request to `/mcp` — there's no unauthenticated access, by design (see
 `keycloak/README.md`). For local dev:
 
 ```bash
-# 1. Start local Keycloak (imports the spring-vision realm automatically)
-make keycloak-up   # done for you by `make run` too
+# 1. Start local Keycloak (imports the spring-vision realm automatically) — `make run` does this too
+docker compose up -d keycloak
 
 # 2. Fetch a token for your client (client_credentials grant, no user password involved)
 curl -s -X POST http://localhost:8180/realms/spring-vision/protocol/openid-connect/token \
@@ -63,6 +63,13 @@ curl -s -X POST http://localhost:8180/realms/spring-vision/protocol/openid-conne
 The desktop client's tokens expire in 1 hour — re-run the curl command to get a fresh one
 when your MCP client reports authentication failures. See `keycloak/README.md` for the
 mobile client (longer-lived tokens) and how to rotate the dev secrets.
+
+**Tool tiers**: a valid token from either client unlocks general-purpose tools
+(`mcp-user` role). Sensitive tools — biometric auth/enrollment, threat detection,
+deepfake detection, face verification/1:N search, raw embeddings, and ID/driver-license/
+license-plate recognition — additionally require the `mcp-admin` role, which only the
+desktop client's service account has by default (see `keycloak/README.md`). Calling one
+of those tools without `mcp-admin` returns an access-denied error, not tool output.
 
 ## ⚙️ MCP Client Configuration
 

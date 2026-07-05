@@ -7,7 +7,11 @@
     "realm": [
       {
         "name": "mcp-user",
-        "description": "Baseline role for Spring Vision MCP clients (groundwork for future per-tool RBAC; not yet enforced by app code)"
+        "description": "Grants access to general-purpose vision tools (object/pose/OCR/etc.)."
+      },
+      {
+        "name": "mcp-admin",
+        "description": "Grants access to sensitive tools in addition to mcp-user: biometric auth/enrollment, threat detection, deepfake detection, face verification/1:N search, raw embeddings, and ID/driver-license/license-plate recognition. Enforced in VisionTool via requireAdminRole()."
       }
     ]
   },
@@ -50,7 +54,7 @@
       "username": "service-account-spring-vision-mcp-desktop",
       "enabled": true,
       "serviceAccountClientId": "spring-vision-mcp-desktop",
-      "realmRoles": ["mcp-user"]
+      "realmRoles": ["mcp-user", "mcp-admin"]
     },
     {
       "username": "service-account-spring-vision-mcp-mobile",

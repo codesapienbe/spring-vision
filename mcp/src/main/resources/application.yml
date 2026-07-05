@@ -99,7 +99,7 @@ spring:
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
   # MCP auth: OAuth2 Resource Server validating Keycloak-issued JWTs (see keycloak/README.md).
-  # Defaults to the local dev Keycloak started via `make keycloak-up`; override KEYCLOAK_ISSUER_URI
+  # Defaults to the local dev Keycloak started via `make run`; override KEYCLOAK_ISSUER_URI
   # to point at a different realm (e.g. a future production Keycloak).
   security:
     oauth2:
