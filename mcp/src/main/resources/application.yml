@@ -7,7 +7,7 @@ spring:
 
   # Main application settings
   main:
-    web-application-type: none  # Disable web for stdio transport
+    web-application-type: servlet  # Servlet stack required for Streamable-HTTP MCP transport
     banner-mode: off  # Disable banner for cleaner output
 
   # Jackson JSON configuration
@@ -88,19 +88,26 @@ spring:
         model: instance_segmentation
         instance-level: true
 
-  # MCP Server Configuration (Spring AI 1.0.0 - stdio transport)
+  # MCP Server Configuration (Spring AI 1.1.0 - Streamable-HTTP transport)
   ai:
     mcp:
       server:
         enabled: true
-        transport: stdio
+        protocol: STREAMABLE
         name: spring-vision
         version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
+server:
+  port: 8080  # Internal port; a reverse proxy (e.g. Caddy) should terminate TLS in front of this
+
+# Spring Vision MCP auth (bearer token, checked by SpringVisionMcpAuthFilter)
+springvision:
+  mcp:
+    auth:
+      token: ${SPRING_VISION_MCP_TOKEN}
+
 # Logging configuration - JSON format via logback-spring.xml
-# CRITICAL: All logs go to stderr (console) or files, NOT stdout
-# stdout is RESERVED for MCP JSON-RPC protocol messages only
 logging:
   level:
     root: INFO

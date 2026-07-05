@@ -80,12 +80,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Spring Boot WebFlux Starter for reactive web -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
-    </dependency>
-
     <!-- Spring Boot Actuator for health checks -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -105,10 +99,10 @@
       <version>7.4</version>
     </dependency>
 
-    <!-- Spring AI MCP Server (stdio-only starter) -->
+    <!-- Spring AI MCP Server (Streamable-HTTP, servlet-based) -->
     <dependency>
       <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-starter-mcp-server</artifactId>
+      <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
     </dependency>
 
     <!-- Spring Boot Test Starter for testing -->

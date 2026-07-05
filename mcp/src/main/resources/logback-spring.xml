@@ -4,10 +4,10 @@
   <!--
     Spring Vision MCP Server Logging Configuration
 
-    CRITICAL: This MCP server uses stdio (stdin/stdout) transport.
-    - stdout is RESERVED for MCP protocol JSON-RPC messages
-    - All logs MUST go to stderr (console) or files to avoid protocol interference
-    - All logs use JSON format to prevent any parsing issues
+    This MCP server uses Streamable-HTTP transport (MCP messages travel over HTTP, not stdio).
+    Console logging still targets stderr for consistency with prior deployments and to keep
+    stdout free in case a client ever launches this process directly.
+    All logs use JSON format to prevent any parsing issues.
   -->
 
   <!--
@@ -19,7 +19,6 @@
 
   <springProfile name="default">
     <!-- Console Appender - JSON format to STDERR -->
-    <!-- CRITICAL: target="System.err" ensures logs don't interfere with MCP stdio protocol on stdout -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
       <target>System.err</target>
       <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">

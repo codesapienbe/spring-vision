@@ -11,8 +11,8 @@ import jakarta.annotation.PostConstruct;
 import net.logstash.logback.argument.StructuredArguments;
 
 /**
- * Emits structured JSON logs at startup for the MCP server using stdio transport.
- * All logs are JSON formatted and sent to stderr to avoid interfering with MCP protocol on stdout.
+ * Emits structured JSON logs at startup for the MCP server using Streamable-HTTP transport.
+ * All logs are JSON formatted and sent to stderr/file, consistent with the rest of the app.
  */
 @Component
 public class StartupLogger {
@@ -25,19 +25,20 @@ public class StartupLogger {
     @Value("${spring.ai.mcp.server.version:1.0.5}")
     private String serverVersion = "1.0.5";
 
-    @Value("${spring.ai.mcp.server.transport:stdio}")
-    private String transport = "stdio";
+    @Value("${spring.ai.mcp.server.protocol:STREAMABLE}")
+    private String protocol = "STREAMABLE";
+
+    @Value("${server.port:8080}")
+    private String serverPort = "8080";
 
     @PostConstruct
     public void onStartup() {
         // Log startup with structured JSON format
-        log.info("Spring Vision MCP Server starting", 
+        log.info("Spring Vision MCP Server starting",
             StructuredArguments.keyValue("event", "mcp_server_startup"),
             StructuredArguments.keyValue("server_name", serverName),
             StructuredArguments.keyValue("server_version", serverVersion),
-            StructuredArguments.keyValue("transport", transport),
-            StructuredArguments.keyValue("protocol", "stdio"),
-            StructuredArguments.keyValue("stdout_reserved_for", "MCP JSON-RPC messages"),
+            StructuredArguments.keyValue("protocol", protocol),
             StructuredArguments.keyValue("logs_output", "stderr and file (JSON format)")
         );
 
@@ -53,12 +54,11 @@ public class StartupLogger {
             ))
         );
 
-        // Log stdio transport configuration
-        log.info("MCP stdio transport configured",
+        // Log Streamable-HTTP transport configuration
+        log.info("MCP Streamable-HTTP transport configured",
             StructuredArguments.keyValue("event", "transport_config"),
-            StructuredArguments.keyValue("stdin", "MCP JSON-RPC requests"),
-            StructuredArguments.keyValue("stdout", "MCP JSON-RPC responses"),
-            StructuredArguments.keyValue("stderr", "Application logs (JSON)"),
+            StructuredArguments.keyValue("endpoint", "/mcp"),
+            StructuredArguments.keyValue("port", serverPort),
             StructuredArguments.keyValue("log_files", new String[]{
                 "logs/mcp.json.log",
                 "logs/mcp-error.json.log"
