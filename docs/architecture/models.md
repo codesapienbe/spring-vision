@@ -96,7 +96,7 @@ Core models are downloaded and bundled during the Maven build:
 mvn clean install -Pdownload-models
 
 # Or with Makefile
-make build
+make install
 ```
 
 This includes:

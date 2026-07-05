@@ -98,14 +98,17 @@ spring:
         version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
+  # MCP auth: OAuth2 Resource Server validating Keycloak-issued JWTs (see keycloak/README.md).
+  # Defaults to the local dev Keycloak started via `make keycloak-up`; override KEYCLOAK_ISSUER_URI
+  # to point at a different realm (e.g. a future production Keycloak).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/spring-vision}
+
 server:
   port: 8080  # Internal port; a reverse proxy (e.g. Caddy) should terminate TLS in front of this
-
-# Spring Vision MCP auth (bearer token, checked by SpringVisionMcpAuthFilter)
-springvision:
-  mcp:
-    auth:
-      token: ${SPRING_VISION_MCP_TOKEN}
 
 # Logging configuration - JSON format via logback-spring.xml
 logging:

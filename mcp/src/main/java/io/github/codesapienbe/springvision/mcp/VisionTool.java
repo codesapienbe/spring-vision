@@ -3766,7 +3766,7 @@ public class VisionTool {
             response.put("status", "success");
             response.put("exportedTo", dest.resolve("damage-classifier").toAbsolutePath().toString());
             response.put("message",
-                "Checkpoint exported. Commit core/models/damage-classifier/ and run 'make build' to bundle in the JAR release.");
+                "Checkpoint exported. Commit core/models/damage-classifier/ and run 'make install' to bundle in the JAR release.");
             return response;
         } catch (Exception e) {
             throw new VisionProcessingException("Failed to export damage classifier: " + e.getMessage(), e);

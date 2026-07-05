@@ -1,7 +1,7 @@
 # Download all dependencies for offline use
-default: build
+default: install
 
-.PHONY: build clean release test sync verify format default
+.PHONY: install clean release test sync verify format bundle default run
 
 # Load version from VERSION file
 SPRING_VISION_VERSION := $(shell cat VERSION)
@@ -13,17 +13,26 @@ GPG_SKIP ?= true
 clean:
 	mvn clean -q
 
-build:
+install:
 	@echo "Building project: Maven install - Version: $(SPRING_VISION_VERSION)";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true;
 	mvn clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -Pdownload-models || ( echo "Maven install failed!" && exit 1 );
 
 run:
+	@echo "Starting local dev services (Keycloak, see keycloak/README.md)...";
+	docker compose up -d keycloak || ( echo "Failed to start Keycloak" && exit 1 );
 	@echo "Running Spring Vision MCP server locally with JBang";
 	# Ensure the project is built
-	$(MAKE) build || ( echo "Build failed" && exit 1 );
+	$(MAKE) install || ( echo "Build failed" && exit 1 );
 	# Run the MCP server using JBang runner
 	jbang run.java;
+
+bundle:
+	@echo "Building mcp module and bundling it into a Docker image...";
+	$(MAKE) install || ( echo "Build failed" && exit 1 );
+	docker build --build-arg SPRING_VISION_VERSION=$(SPRING_VISION_VERSION) -t spring-vision-mcp:$(SPRING_VISION_VERSION) .;
+	@echo "Built image: spring-vision-mcp:$(SPRING_VISION_VERSION)";
+	@echo "Run it with: docker run --rm -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> spring-vision-mcp:$(SPRING_VISION_VERSION)"
 
 release:
 	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \

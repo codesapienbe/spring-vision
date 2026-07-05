@@ -1,0 +1,62 @@
+{
+  "realm": "spring-vision",
+  "enabled": true,
+  "sslRequired": "external",
+  "accessTokenLifespan": 3600,
+  "roles": {
+    "realm": [
+      {
+        "name": "mcp-user",
+        "description": "Baseline role for Spring Vision MCP clients (groundwork for future per-tool RBAC; not yet enforced by app code)"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "spring-vision-mcp-desktop",
+      "name": "Spring Vision MCP - Desktop (Claude Desktop / Claude Code)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "desktop-dev-secret-change-me",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
+    },
+    {
+      "clientId": "spring-vision-mcp-mobile",
+      "name": "Spring Vision MCP - Mobile (Google AI Edge Gallery)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "mobile-dev-secret-change-me",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "86400"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-spring-vision-mcp-desktop",
+      "enabled": true,
+      "serviceAccountClientId": "spring-vision-mcp-desktop",
+      "realmRoles": ["mcp-user"]
+    },
+    {
+      "username": "service-account-spring-vision-mcp-mobile",
+      "enabled": true,
+      "serviceAccountClientId": "spring-vision-mcp-mobile",
+      "realmRoles": ["mcp-user"]
+    }
+  ]
+}
