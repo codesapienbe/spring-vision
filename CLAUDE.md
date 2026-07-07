@@ -99,6 +99,12 @@ VisionTemplate
 ## Agent Rules
 
 - **No data is better than wrong data.** If a tool, model, or capability is non-functional, incomplete, or returning placeholder/synthetic values, it must fail loudly with an exception rather than silently returning fabricated results. A `VisionProcessingException` or `VisionUnsupportedException` with a clear message is always preferable to a response that looks successful but contains invented data. This applies everywhere: backend methods, MCP tool handlers, REST controllers, and capability stubs.
+- **Keep `docs/rbac/index.html` in sync with security config.** That page is a hand-maintained snapshot of the mcp-user/mcp-admin tool matrix and the JWT claims the server reads — it does not regenerate automatically. Whenever a change touches any of the following, update the page's claims table, client cards, and/or the JS `categories` array driving the tool matrix in the same commit:
+  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/VisionTool.java` — any `requireAdminRole()` call added/removed changes which tools are admin-tier.
+  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/SecurityConfig.java` — authorization rules (public vs. authenticated paths).
+  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/KeycloakRealmRoleConverter.java` — which JWT claims get mapped to authorities.
+  - `keycloak/realm-spring-vision.json` — realm roles, client role assignments, or token lifespans.
+  - the `spring.security.oauth2.resourceserver` block in `mcp/src/main/resources/application.yml`.
 
 ## Key Conventions
 
