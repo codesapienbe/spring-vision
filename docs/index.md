@@ -40,6 +40,7 @@ Setup, configuration, and operational guides
 - **[Model Downloads](./configuration/downloads.md)** - Download and manage models
 - **[Logging Guide](./configuration/logging.md)** - Logging configuration and monitoring
 - **[Runtime Operations](./configuration/runtime.md)** - Production deployment and operations
+- **[RBAC & Token Reference](./rbac/index.html)** - What the Keycloak-issued JWT contains and the full mcp-user/mcp-admin tool access matrix
 
 ### 💻 [Development](./development/)
 Developer resources and API documentation

@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring Vision MCP — Token Contents &amp; Tool Access Matrix</title>
+<style>
+  :root {
+    --surface: #fcfcfb;
+    --surface-raised: #f3f2ee;
+    --ink-primary: #0b0b0b;
+    --ink-secondary: #52514e;
+    --ink-muted: #8a887f;
+    --border: #e2e0d8;
+    --accent: #2a78d6;
+    --good-bg: #e5f6e5;
+    --good-ink: #0ca30c;
+    --good-icon: #0ca30c;
+    --admin-bg: #fbe9e9;
+    --admin-ink: #d03b3b;
+    --admin-icon: #d03b3b;
+    --code-bg: #f1f0ec;
+    --shadow: 0 1px 2px rgba(16,24,40,0.06);
+  }
+  :root[data-theme="dark"] {
+    --surface: #1a1a19;
+    --surface-raised: #232320;
+    --ink-primary: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #8a887f;
+    --border: #34332e;
+    --accent: #3987e5;
+    --good-bg: #10280f;
+    --good-ink: #0ca30c;
+    --good-icon: #0ca30c;
+    --admin-bg: #341615;
+    --admin-ink: #d03b3b;
+    --admin-icon: #d03b3b;
+    --code-bg: #23231f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: #1a1a19;
+      --surface-raised: #232320;
+      --ink-primary: #ffffff;
+      --ink-secondary: #c3c2b7;
+      --ink-muted: #8a887f;
+      --border: #34332e;
+      --accent: #3987e5;
+      --good-bg: #10280f;
+      --good-ink: #0ca30c;
+      --good-icon: #0ca30c;
+      --admin-bg: #341615;
+      --admin-ink: #d03b3b;
+      --admin-icon: #d03b3b;
+      --code-bg: #23231f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+  }
+
+  body {
+    background: var(--surface);
+    color: var(--ink-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    padding: 2rem clamp(1rem, 4vw, 3rem) 4rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  h2 { font-size: 1.1rem; margin-top: 2.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  .subtitle { color: var(--ink-secondary); font-size: 0.95rem; margin-bottom: 1.5rem; }
+  code {
+    background: var(--code-bg);
+    color: var(--ink-primary);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    border: 1px solid var(--border);
+  }
+  pre code { background: none; padding: 0; }
+
+  .claim-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.88rem;
+  }
+  .claim-table th, .claim-table td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .claim-table th { color: var(--ink-secondary); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .used-badge, .unused-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .used-badge { background: var(--good-bg); color: var(--good-ink); }
+  .unused-badge { background: var(--surface-raised); color: var(--ink-muted); border: 1px solid var(--border); }
+
+  .client-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 2rem;
+  }
+  .client-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    box-shadow: var(--shadow);
+  }
+  .client-card h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+  .client-card dl { margin: 0; font-size: 0.85rem; }
+  .client-card dt { color: var(--ink-muted); margin-top: 0.5rem; }
+  .client-card dd { margin: 0; color: var(--ink-primary); }
+  .roles-line { margin-top: 0.6rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+  .role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .role-pill.user { background: var(--good-bg); color: var(--good-ink); }
+  .role-pill.admin { background: var(--admin-bg); color: var(--admin-ink); }
+
+  table.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  table.matrix th {
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--ink-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+  }
+  table.matrix td {
+    padding: 0.45rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+  }
+  table.matrix td.tool-name code { font-size: 0.8rem; }
+  tr.category-row td {
+    background: var(--surface-raised);
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ink-secondary);
+    padding-top: 0.7rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td.access-cell { text-align: center; white-space: nowrap; }
+  .grant, .deny {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+  .grant { color: var(--good-ink); }
+  .deny { color: var(--ink-muted); }
+  .grant .icon { color: var(--good-icon); }
+  .deny .icon { color: var(--ink-muted); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: var(--ink-secondary);
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+
+  .callout {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+    color: var(--ink-secondary);
+  }
+  .callout strong { color: var(--ink-primary); }
+
+  .counts { display: flex; gap: 1.5rem; margin: 0.5rem 0 1.5rem; flex-wrap: wrap; }
+  .count-tile {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1.2rem;
+    min-width: 120px;
+  }
+  .count-tile .num { font-size: 1.5rem; font-weight: 700; line-height: 1.1; }
+  .count-tile .label { font-size: 0.75rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.15rem; }
+</style>
+</head>
+<body>
+
+<h1>What the token stores, and who can call what</h1>
+<p class="subtitle">Reflects the current state of <code>keycloak/realm-spring-vision.json</code>, <code>KeycloakRealmRoleConverter</code>, and the <code>requireAdminRole()</code> gates in <code>VisionTool.java</code> — verified against the actual code, not the plan. Regenerate this page by hand whenever those files change; nothing wires it up automatically.</p>
+
+<h2>1. What's actually in the access token</h2>
+<p>Keycloak issues a standard JWT via the <code>client_credentials</code> grant (no human user or password involved — the caller <em>is</em> a service account tied to a client). A real token carries far more than <code>realm_access.roles</code>, but the app only reads one claim:</p>
+
+<table class="claim-table">
+  <thead><tr><th>Claim</th><th>Example value</th><th>Read by the app?</th></tr></thead>
+  <tbody>
+    <tr><td><code>iss</code></td><td><code>http://localhost:8180/realms/spring-vision</code></td><td><span class="used-badge">✓ validated</span> — must match <code>issuer-uri</code></td></tr>
+    <tr><td><code>exp</code> / <code>iat</code></td><td>Unix timestamps</td><td><span class="used-badge">✓ validated</span> — Spring rejects expired tokens automatically</td></tr>
+    <tr><td>Signature (JWKS)</td><td>RS256 over the header+payload</td><td><span class="used-badge">✓ validated</span> — fetched from Keycloak's JWKS endpoint</td></tr>
+    <tr><td><code>realm_access.roles</code></td><td><code>["mcp-user","mcp-admin"]</code></td><td><span class="used-badge">✓ this is the only claim RBAC decisions are based on</span></td></tr>
+    <tr><td><code>sub</code></td><td><code>service-account-spring-vision-mcp-desktop</code></td><td><span class="unused-badge">not used</span></td></tr>
+    <tr><td><code>azp</code> / <code>clientId</code></td><td><code>spring-vision-mcp-desktop</code></td><td><span class="unused-badge">not used</span></td></tr>
+    <tr><td><code>scope</code></td><td><code>email profile</code></td><td><span class="unused-badge">not used</span> — this is what Spring Security's <em>default</em> converter reads; we replaced it because Keycloak roles live elsewhere</td></tr>
+    <tr><td><code>resource_access.*.roles</code></td><td>(client roles, unused)</td><td><span class="unused-badge">not used</span> — only <em>realm</em> roles are assigned in the realm export</td></tr>
+    <tr><td><code>aud</code></td><td>—</td><td><span class="unused-badge">not checked</span> — no audience restriction configured</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Practical effect:</strong> anything with a validly-signed, non-expired token from this realm is "authenticated." Whether it can call a <em>specific</em> tool comes down entirely to whether <code>realm_access.roles</code> contains <code>mcp-admin</code> — checked by a manual <code>SecurityContextHolder</code> read in <code>VisionTool.requireAdminRole()</code>, not by Spring's declarative <code>@PreAuthorize</code> (unreliable on <code>@Tool</code> methods in current Spring AI — see the code comment referencing spring-projects/spring-ai#2356).
+</div>
+
+<h2>2. The two clients and what they're issued</h2>
+<div class="client-cards">
+  <div class="client-card">
+    <h3>spring-vision-mcp-desktop</h3>
+    <dl>
+      <dt>Used by</dt><dd>Claude Desktop / Claude Code</dd>
+      <dt>Token lifespan</dt><dd>1 hour (<code>access.token.lifespan: 3600</code>)</dd>
+      <dt>Client secret</dt><dd><code>desktop-dev-secret-change-me</code> (dev placeholder)</dd>
+    </dl>
+    <div class="roles-line">
+      <span class="role-pill user">mcp-user</span>
+      <span class="role-pill admin">mcp-admin</span>
+    </div>
+  </div>
+  <div class="client-card">
+    <h3>spring-vision-mcp-mobile</h3>
+    <dl>
+      <dt>Used by</dt><dd>Google AI Edge Gallery (Android)</dd>
+      <dt>Token lifespan</dt><dd>24 hours (<code>access.token.lifespan: 86400</code>) — long-lived because the app can't refresh tokens</dd>
+      <dt>Client secret</dt><dd><code>mobile-dev-secret-change-me</code> (dev placeholder)</dd>
+    </dl>
+    <div class="roles-line">
+      <span class="role-pill user">mcp-user</span>
+    </div>
+  </div>
+</div>
+<div class="callout">
+  <strong>Design intent:</strong> mobile deliberately does <em>not</em> get <code>mcp-admin</code>. Its token lives 24× longer than desktop's, so if it ever leaked, the blast radius is capped to general-purpose tools only — biometric enrollment, threat detection, and PII-document recognition stay off it.
+</div>
+
+<h2>3. Full tool access matrix (68 tools)</h2>
+<div class="counts">
+  <div class="count-tile"><div class="num">44</div><div class="label">mcp-user only</div></div>
+  <div class="count-tile"><div class="num">24</div><div class="label">mcp-admin required</div></div>
+  <div class="count-tile"><div class="num">68</div><div class="label">total tools</div></div>
+</div>
+<div class="legend">
+  <div class="legend-item"><span class="grant">✓ Allowed</span></div>
+  <div class="legend-item"><span class="deny">— Denied</span></div>
+</div>
+
+<div class="table-scroll">
+<table class="matrix">
+  <thead>
+    <tr><th>Tool (<code>@Tool name</code>)</th><th class="access-cell">mcp-user</th><th class="access-cell">mcp-admin</th></tr>
+  </thead>
+  <tbody id="matrix-body"></tbody>
+</table>
+</div>
+
+<script>
+const categories = [
+  { name: "Face detection — general", tier: "user", tools: [
+    "count_faces_b", "count_faces_u", "count_faces_b_validated", "preview_faces_u"
+  ]},
+  { name: "Biometric identity — sensitive", tier: "admin", tools: [
+    "extract_face_embeddings_b", "extract_face_embeddings_u", "extract_face_embeddings_b_validated",
+    "verify_faces_between_urls", "verify_faces_between_bytes",
+    "lookup_faces_in_dataset_u", "lookup_faces_in_dataset_b",
+    "store_identity_u", "list_identities", "delete_identity",
+    "authenticate_access_b", "authenticate_access_u (no @Tool name= — description-only)"
+  ]},
+  { name: "ID documents & license plates — PII", tier: "admin", tools: [
+    "recognize_identity_card_b", "recognize_identity_card_u",
+    "recognize_driver_license_b", "recognize_driver_license_u",
+    "recognize_license_plate_b", "recognize_license_plate_u"
+  ]},
+  { name: "Content safety & threats — sensitive", tier: "admin", tools: [
+    "detect_nsfw_b", "detect_nsfw_u",
+    "detect_deepfake_b", "detect_deepfake_u",
+    "detect_threats_b", "detect_threats_u (no @Tool name= — description-only)"
+  ]},
+  { name: "OCR, barcode & metadata", tier: "user", tools: [
+    "extract_text_b", "extract_text_u",
+    "extract_image_metadata_b", "extract_image_metadata_u",
+    "scan_barcode_b", "scan_barcode_u"
+  ]},
+  { name: "General detection & classification", tier: "user", tools: [
+    "classify_image_b", "classify_image_u",
+    "detect_objects_b", "detect_objects_u",
+    "detect_poses_b", "detect_poses_u",
+    "recognize_actions_b", "recognize_actions_u",
+    "detect_emotions_b", "detect_emotions_u",
+    "detect_hands_b", "detect_hands_u",
+    "detect_demographics_b", "detect_demographics_u"
+  ]},
+  { name: "Health & wellness (non-medical)", tier: "user", tools: [
+    "detect_fall_b", "detect_fall_u",
+    "analyze_stress_b", "analyze_stress_u",
+    "estimate_heart_rate_f", "estimate_heart_rate_u"
+  ]},
+  { name: "Vehicle analytics", tier: "user", tools: [
+    "detect_vehicle_b", "detect_vehicle_u",
+    "detect_vehicle_damages_b", "detect_vehicle_damages_u",
+    "submit_damage_label_u", "submit_damage_label_b",
+    "export_damage_classifier"
+  ]},
+  { name: "Image utilities", tier: "user", tools: [
+    "annotate_bounding_boxes_u", "annotate_bounding_boxes_b",
+    "obscure_regions_u", "obscure_regions_b",
+    "normalize_image_u", "normalize_image_b",
+    "delete_temp_image"
+  ]}
+];
+
+const tbody = document.getElementById("matrix-body");
+const grant = '<span class="grant"><span class="icon">✓</span>Allowed</span>';
+const deny = '<span class="deny"><span class="icon">—</span>Denied</span>';
+
+for (const cat of categories) {
+  const catRow = document.createElement("tr");
+  catRow.className = "category-row";
+  catRow.innerHTML = `<td colspan="3">${cat.name}</td>`;
+  tbody.appendChild(catRow);
+
+  for (const tool of cat.tools) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="tool-name"><code>${tool}</code></td>
+      <td class="access-cell">${cat.tier === "admin" ? deny : grant}</td>
+      <td class="access-cell">${grant}</td>
+    `;
+    tbody.appendChild(row);
+  }
+}
+</script>
+
+<div class="callout">
+  <strong>Reading the matrix:</strong> <code>mcp-admin</code> is a superset — anyone with it can call all 68 tools. The "mcp-user" column shows whether the <em>general</em> role alone is enough; where it says "Denied," that tool needs <code>mcp-admin</code> specifically. Only the desktop client currently holds <code>mcp-admin</code>.
+</div>
+
+</body>
+</html>

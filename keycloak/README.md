@@ -30,6 +30,9 @@ running the server (or run `docker compose up -d keycloak` directly). It auto-im
     if leaked, so keeping biometric/threat tools off it is a real security boundary, not
     an arbitrary restriction.
 
+See [`docs/rbac/index.html`](../docs/rbac/index.html) for the full per-tool access matrix
+and a breakdown of exactly which JWT claims the app reads versus ignores.
+
 ## Client secrets
 
 The secrets in `realm-spring-vision.json` (`desktop-dev-secret-change-me`,
