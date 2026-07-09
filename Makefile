@@ -10,29 +10,43 @@ SPRING_VISION_VERSION := $(shell cat VERSION)
 LOCAL_REPO ?= $(CURDIR)/target/local-repo
 GPG_SKIP ?= true
 
+# Set GPU=true (e.g. `make install GPU=true`, `make bundle GPU=true`) to build every
+# native library that has a CUDA variant — DJL PyTorch and ONNX Runtime — against it
+# instead of CPU-only. One flag for both, instead of remembering `-P gpu` yourself.
+# See docs/configuration/gpu.md. Requires a Linux/Windows x86_64 host — neither DJL nor
+# ONNX Runtime publish macOS or ARM64 CUDA builds.
+GPU ?= false
+GPU_PROFILE := $(if $(filter true,$(GPU)),-Pgpu,)
+IMAGE_TAG := spring-vision-mcp:$(SPRING_VISION_VERSION)$(if $(filter true,$(GPU)),-gpu,)
+
 clean:
 	mvn clean -q
 
 install:
-	@echo "Building project: Maven install - Version: $(SPRING_VISION_VERSION)";
+	@echo "Building project: Maven install - Version: $(SPRING_VISION_VERSION) (GPU=$(GPU))";
 	mvn versions:set -DnewVersion=$(SPRING_VISION_VERSION) -DgenerateBackupPoms=false -DprocessAllModules=true;
-	mvn clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -Pdownload-models || ( echo "Maven install failed!" && exit 1 );
+	mvn clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -Pdownload-models $(GPU_PROFILE) || ( echo "Maven install failed!" && exit 1 );
 
 run:
 	@echo "Starting local dev services (Keycloak, see keycloak/README.md)...";
 	docker compose up -d keycloak || ( echo "Failed to start Keycloak" && exit 1 );
-	@echo "Running Spring Vision MCP server locally with JBang";
+	@echo "Running Spring Vision MCP server locally with JBang (GPU=$(GPU))";
 	# Ensure the project is built
-	$(MAKE) install || ( echo "Build failed" && exit 1 );
+	$(MAKE) install GPU=$(GPU) || ( echo "Build failed" && exit 1 );
 	# Run the MCP server using JBang runner
 	jbang run.java;
 
 bundle:
-	@echo "Building mcp module and bundling it into a Docker image...";
-	$(MAKE) install || ( echo "Build failed" && exit 1 );
-	docker build --build-arg SPRING_VISION_VERSION=$(SPRING_VISION_VERSION) -t spring-vision-mcp:$(SPRING_VISION_VERSION) .;
-	@echo "Built image: spring-vision-mcp:$(SPRING_VISION_VERSION)";
-	@echo "Run it with: docker run --rm -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> spring-vision-mcp:$(SPRING_VISION_VERSION)"
+	@echo "Building mcp module and bundling it into a Docker image (GPU=$(GPU))...";
+	$(MAKE) install GPU=$(GPU) || ( echo "Build failed" && exit 1 );
+	docker build --build-arg SPRING_VISION_VERSION=$(SPRING_VISION_VERSION) -t $(IMAGE_TAG) .;
+	@echo "Built image: $(IMAGE_TAG)";
+ifeq ($(GPU),true)
+	@echo "Run it with: docker run --rm --gpus all -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> $(IMAGE_TAG)"
+	@echo "(requires the NVIDIA driver + NVIDIA Container Toolkit on the host — see docs/configuration/gpu.md)"
+else
+	@echo "Run it with: docker run --rm -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> $(IMAGE_TAG)"
+endif
 
 release:
 	@echo "Releasing all modules to GitHub Packages with version $(SPRING_VISION_VERSION)..."; \
