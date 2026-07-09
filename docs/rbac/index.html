@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Spring Vision MCP — Token &amp; Tool Access Reference</title>
+<style>
+  /* ---------- Tokens ---------- */
+  :root {
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --surface: #f9fafc;
+    --surface-raised: #eef1f6;
+    --surface-sunken: #f2f4f8;
+    --ink-primary: #10141c;
+    --ink-secondary: #4a5568;
+    --ink-muted: #8892a0;
+    --border: #dde2ea;
+    --border-strong: #c6cdda;
+
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --accent-wash: #e8f0fc;
+
+    --good: #0ca30c;
+    --good-wash: #e5f6e5;
+    --critical: #d03b3b;
+    --critical-wash: #fbe9e9;
+
+    --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
+    --shadow-md: 0 4px 14px rgba(16,24,40,0.08);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #0d1117;
+      --surface-raised: #161b22;
+      --surface-sunken: #10141a;
+      --ink-primary: #e6edf3;
+      --ink-secondary: #9aa6b5;
+      --ink-muted: #6b7684;
+      --border: #2a313c;
+      --border-strong: #3a4250;
+
+      --accent: #3987e5;
+      --accent-ink: #ffffff;
+      --accent-wash: #132540;
+
+      --good: #0ca30c;
+      --good-wash: #0f2a12;
+      --critical: #d03b3b;
+      --critical-wash: #391616;
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: #0d1117;
+    --surface-raised: #161b22;
+    --surface-sunken: #10141a;
+    --ink-primary: #e6edf3;
+    --ink-secondary: #9aa6b5;
+    --ink-muted: #6b7684;
+    --border: #2a313c;
+    --border-strong: #3a4250;
+    --accent: #3987e5;
+    --accent-ink: #ffffff;
+    --accent-wash: #132540;
+    --good: #0ca30c;
+    --good-wash: #0f2a12;
+    --critical: #d03b3b;
+    --critical-wash: #391616;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  :root[data-theme="light"] {
+    --surface: #f9fafc;
+    --surface-raised: #eef1f6;
+    --surface-sunken: #f2f4f8;
+    --ink-primary: #10141c;
+    --ink-secondary: #4a5568;
+    --ink-muted: #8892a0;
+    --border: #dde2ea;
+    --border-strong: #c6cdda;
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --accent-wash: #e8f0fc;
+    --good: #0ca30c;
+    --good-wash: #e5f6e5;
+    --critical: #d03b3b;
+    --critical-wash: #fbe9e9;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,0.05);
+    --shadow-md: 0 4px 14px rgba(16,24,40,0.08);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+  }
+
+  /* ---------- Base ---------- */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--surface);
+    color: var(--ink-primary);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+
+  code, .mono {
+    font-family: var(--font-mono);
+  }
+  code {
+    background: var(--surface-sunken);
+    color: var(--ink-primary);
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    font-size: 0.85em;
+    border: 1px solid var(--border);
+  }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- Header ---------- */
+  header.page {
+    border-bottom: 1px solid var(--border);
+    padding: clamp(1.75rem, 5vw, 2.75rem) 0 1.5rem;
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+  h1 {
+    font-family: var(--font-mono);
+    font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5rem;
+    text-wrap: balance;
+  }
+  .lede {
+    color: var(--ink-secondary);
+    font-size: 0.95rem;
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ---------- Sticky sub-nav ---------- */
+  nav.subnav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav.subnav .wrap {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    overflow-x: auto;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+  nav.subnav a {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+    padding: 0.3rem 0.1rem;
+    border-bottom: 2px solid transparent;
+  }
+  nav.subnav a:hover { color: var(--ink-primary); }
+  nav.subnav a:focus-visible { outline-offset: 4px; }
+
+  main { padding-bottom: 5rem; }
+
+  section { padding-top: clamp(2.25rem, 5vw, 3rem); scroll-margin-top: 3.5rem; }
+
+  h2 {
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0 0 0.4rem;
+  }
+  h2 .step {
+    color: var(--accent);
+    font-size: 0.85em;
+  }
+  .section-intro {
+    color: var(--ink-secondary);
+    font-size: 0.92rem;
+    max-width: 68ch;
+    margin: 0 0 1.25rem;
+  }
+  .section-intro em { color: var(--ink-primary); font-style: normal; font-weight: 600; }
+
+  /* ---------- Callouts ---------- */
+  .callout {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 1.25rem 0;
+    font-size: 0.88rem;
+    color: var(--ink-secondary);
+    display: flex;
+    gap: 0.7rem;
+  }
+  .callout .glyph { font-family: var(--font-mono); color: var(--accent); font-weight: 700; flex-shrink: 0; }
+  .callout strong { color: var(--ink-primary); }
+
+  /* ---------- Claims table ---------- */
+  .scroll-x { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+  table.claims { width: 100%; border-collapse: collapse; font-size: 0.87rem; min-width: 560px; }
+  table.claims th {
+    text-align: left;
+    padding: 0.6rem 0.9rem;
+    background: var(--surface-raised);
+    color: var(--ink-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  table.claims td {
+    padding: 0.65rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.claims tr:last-child td { border-bottom: none; }
+  table.claims tr:hover td { background: var(--surface-sunken); }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+  }
+  .status-chip.used { background: var(--good-wash); color: var(--good); }
+  .status-chip.unused { background: var(--surface-sunken); color: var(--ink-muted); border: 1px solid var(--border); }
+
+  /* ---------- Client spec cards ---------- */
+  .client-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+  .client-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .client-card .card-head {
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-sunken);
+  }
+  .client-card .card-head .name { font-family: var(--font-mono); font-weight: 700; font-size: 0.92rem; }
+  .client-card .card-head .used-by { color: var(--ink-muted); font-size: 0.78rem; margin-top: 0.15rem; }
+  .spec-rows { padding: 0.9rem 1.1rem; display: grid; gap: 0.55rem; }
+  .spec-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+  .spec-row dt { color: var(--ink-muted); }
+  .spec-row dd { margin: 0; font-family: var(--font-mono); text-align: right; color: var(--ink-primary); }
+  .roles-line { padding: 0 1.1rem 1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+  .role-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .role-pill.user { background: var(--good-wash); color: var(--good); }
+  .role-pill.admin { background: var(--critical-wash); color: var(--critical); }
+
+  /* ---------- Stat strip ---------- */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 0.85rem;
+    margin: 1.25rem 0 1rem;
+  }
+  .stat-tile {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.8rem 1rem;
+  }
+  .stat-tile .n { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+  .stat-tile .l { font-size: 0.72rem; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.3rem; }
+  .stat-tile.user .n { color: var(--good); }
+  .stat-tile.admin .n { color: var(--critical); }
+
+  .split-bar {
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid var(--border);
+    margin: 0.75rem 0 1.5rem;
+  }
+  .split-bar .seg.user { background: var(--good); }
+  .split-bar .seg.admin { background: var(--critical); }
+  .split-caption { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--ink-muted); margin-top: -1.1rem; margin-bottom: 1.5rem; }
+  .split-caption span:first-child::before { content: "●"; color: var(--good); margin-right: 0.35rem; }
+  .split-caption span:last-child::before { content: "●"; color: var(--critical); margin-right: 0.35rem; }
+
+  /* ---------- Matrix controls ---------- */
+  .matrix-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .search-box {
+    position: relative;
+    flex: 1 1 220px;
+  }
+  .search-box input {
+    width: 100%;
+    font: inherit;
+    font-size: 0.88rem;
+    padding: 0.5rem 0.75rem 0.5rem 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink-primary);
+  }
+  .search-box input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .search-box::before {
+    content: "🔍";
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    opacity: 0.6;
+  }
+  .filter-pills { display: flex; gap: 0.4rem; }
+  .filter-pill {
+    font: inherit;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 600;
+    padding: 0.42rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-raised);
+    color: var(--ink-secondary);
+    cursor: pointer;
+  }
+  .filter-pill:hover { border-color: var(--accent); color: var(--ink-primary); }
+  .filter-pill[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .result-count { font-size: 0.78rem; color: var(--ink-muted); margin-bottom: 0.6rem; }
+
+  /* ---------- Matrix table ---------- */
+  table.matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.matrix thead th {
+    text-align: left;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--ink-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 3rem;
+    background: var(--surface);
+  }
+  table.matrix td { padding: 0.5rem 0.9rem; border-bottom: 1px solid var(--border); }
+  table.matrix tbody tr:not(.category-row):hover td { background: var(--surface-sunken); }
+  table.matrix td.tool-name code { font-size: 0.79rem; border: none; background: none; padding: 0; }
+  tr.category-row td {
+    background: var(--surface-raised);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-secondary);
+    padding-top: 0.65rem;
+    padding-bottom: 0.35rem;
+  }
+  td.access-cell { text-align: center; white-space: nowrap; }
+  .grant, .deny {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 700;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+  }
+  .grant { color: var(--good); }
+  .deny { color: var(--ink-muted); }
+
+  .hidden-row { display: none !important; }
+
+  /* Card layout under the breakpoint — real responsiveness, not just horizontal scroll */
+  @media (max-width: 640px) {
+    table.matrix, table.matrix tbody, table.matrix tr, table.matrix td { display: block; width: 100%; }
+    table.matrix thead { display: none; }
+    table.matrix tbody tr:not(.category-row) {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      padding: 0.15rem 0.85rem;
+      background: var(--surface-raised);
+    }
+    table.matrix tbody tr.category-row { border-radius: 6px; margin: 1rem 0 0.4rem; }
+    table.matrix td { border-bottom: none; padding: 0.4rem 0; }
+    table.matrix td.access-cell { display: flex; justify-content: space-between; align-items: center; text-align: left; }
+    table.matrix td.access-cell::before {
+      content: attr(data-label);
+      font-family: var(--font-sans);
+      color: var(--ink-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+    }
+  }
+
+  footer.page {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 0 3rem;
+    color: var(--ink-muted);
+    font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <div class="wrap">
+    <div class="eyebrow">Spring Vision MCP · Security Reference</div>
+    <h1>What the token stores, and who can call what</h1>
+    <p class="lede">Reflects the actual state of <code>keycloak/realm-spring-vision.json</code>, <code>KeycloakRealmRoleConverter</code>, and the <code>requireAdminRole()</code> gates in <code>VisionTool.java</code> — checked against the code, not the plan. This is a hand-maintained snapshot; re-verify it if those files change.</p>
+  </div>
+</header>
+
+<nav class="subnav" aria-label="Section navigation">
+  <div class="wrap">
+    <a href="#token">Token contents</a>
+    <a href="#clients">Clients</a>
+    <a href="#matrix">Access matrix</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="token">
+    <h2><span class="step">01</span> What's actually in the access token</h2>
+    <p class="section-intro">Keycloak issues a standard JWT via the <code>client_credentials</code> grant — no human user or password involved, the caller <em>is</em> a service account tied to a client. A real token carries far more than <code>realm_access.roles</code>, but the app only reads one of these claims.</p>
+
+    <div class="scroll-x">
+      <table class="claims">
+        <thead><tr><th>Claim</th><th>Example value</th><th>Read by the app?</th></tr></thead>
+        <tbody>
+          <tr><td><code>iss</code></td><td><code>http://localhost:8180/realms/spring-vision</code></td><td><span class="status-chip used">✓ validated</span></td></tr>
+          <tr><td><code>exp</code> / <code>iat</code></td><td>Unix timestamps</td><td><span class="status-chip used">✓ validated</span></td></tr>
+          <tr><td>Signature</td><td>RS256, verified via JWKS</td><td><span class="status-chip used">✓ validated</span></td></tr>
+          <tr><td><code>realm_access.roles</code></td><td><code>["mcp-user","mcp-admin"]</code></td><td><span class="status-chip used">✓ drives every RBAC decision</span></td></tr>
+          <tr><td><code>sub</code></td><td><code>service-account-spring-vision-mcp-desktop</code></td><td><span class="status-chip unused">not used</span></td></tr>
+          <tr><td><code>azp</code> / <code>clientId</code></td><td><code>spring-vision-mcp-desktop</code></td><td><span class="status-chip unused">not used</span></td></tr>
+          <tr><td><code>scope</code></td><td><code>email profile</code></td><td><span class="status-chip unused">not used</span></td></tr>
+          <tr><td><code>resource_access.*.roles</code></td><td>(client roles)</td><td><span class="status-chip unused">not used</span></td></tr>
+          <tr><td><code>aud</code></td><td>—</td><td><span class="status-chip unused">not checked</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="glyph">→</span>
+      <span><strong>Practical effect:</strong> any validly-signed, non-expired token from this realm counts as "authenticated." Whether it can call a <em>specific</em> tool comes down entirely to whether <code>realm_access.roles</code> contains <code>mcp-admin</code> — checked by a manual <code>SecurityContextHolder</code> read in <code>VisionTool.requireAdminRole()</code>, not Spring's declarative <code>@PreAuthorize</code> (unreliable on <code>@Tool</code> methods in current Spring AI — see spring-projects/spring-ai#2356).</span>
+    </div>
+  </section>
+
+  <section id="clients">
+    <h2><span class="step">02</span> The two clients and what they're issued</h2>
+    <p class="section-intro">Same realm, deliberately different risk profiles — token lifetime is a security decision here, not a convenience setting.</p>
+
+    <div class="client-grid">
+      <div class="client-card">
+        <div class="card-head">
+          <div class="name">spring-vision-mcp-desktop</div>
+          <div class="used-by">Claude Desktop / Claude Code</div>
+        </div>
+        <dl class="spec-rows">
+          <div class="spec-row"><dt>Token lifespan</dt><dd class="num">1 hour</dd></div>
+          <div class="spec-row"><dt>Grant type</dt><dd>client_credentials</dd></div>
+          <div class="spec-row"><dt>Secret</dt><dd>desktop-dev-secret-change-me</dd></div>
+        </dl>
+        <div class="roles-line">
+          <span class="role-pill user">mcp-user</span>
+          <span class="role-pill admin">mcp-admin</span>
+        </div>
+      </div>
+      <div class="client-card">
+        <div class="card-head">
+          <div class="name">spring-vision-mcp-mobile</div>
+          <div class="used-by">Google AI Edge Gallery (Android)</div>
+        </div>
+        <dl class="spec-rows">
+          <div class="spec-row"><dt>Token lifespan</dt><dd class="num">24 hours</dd></div>
+          <div class="spec-row"><dt>Grant type</dt><dd>client_credentials</dd></div>
+          <div class="spec-row"><dt>Secret</dt><dd>mobile-dev-secret-change-me</dd></div>
+        </dl>
+        <div class="roles-line">
+          <span class="role-pill user">mcp-user</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="glyph">→</span>
+      <span><strong>Design intent:</strong> mobile's token lives 24× longer than desktop's because the app has no refresh flow — so it deliberately does <em>not</em> get <code>mcp-admin</code>. If it ever leaked, the blast radius stays capped to general-purpose tools; biometric enrollment, threat detection, and PII-document recognition stay off it.</span>
+    </div>
+  </section>
+
+  <section id="matrix">
+    <h2><span class="step">03</span> Full tool access matrix</h2>
+    <p class="section-intro">68 <code>@Tool</code> methods in <code>VisionTool.java</code>. <code>mcp-admin</code> is a strict superset — everything below is reachable with it. The columns show whether <code>mcp-user</code> alone is enough.</p>
+
+    <div class="stat-strip">
+      <div class="stat-tile user"><div class="n num">44</div><div class="l">mcp-user only</div></div>
+      <div class="stat-tile admin"><div class="n num">24</div><div class="l">mcp-admin required</div></div>
+      <div class="stat-tile"><div class="n num">68</div><div class="l">total tools</div></div>
+    </div>
+    <div class="split-bar" role="img" aria-label="44 of 68 tools need only mcp-user, 24 of 68 require mcp-admin">
+      <div class="seg user" style="width:64.7%"></div>
+      <div class="seg admin" style="width:35.3%"></div>
+    </div>
+    <div class="split-caption"><span>mcp-user only (44)</span><span>mcp-admin required (24)</span></div>
+
+    <div class="matrix-controls">
+      <div class="search-box">
+        <input type="search" id="tool-search" placeholder="Filter by tool or category…" aria-label="Filter tools by name or category">
+      </div>
+      <div class="filter-pills" role="group" aria-label="Filter by required role">
+        <button type="button" class="filter-pill" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="filter-pill" data-filter="user" aria-pressed="false">mcp-user</button>
+        <button type="button" class="filter-pill" data-filter="admin" aria-pressed="false">mcp-admin</button>
+      </div>
+    </div>
+    <p class="result-count" id="result-count" aria-live="polite"></p>
+
+    <div class="scroll-x">
+      <table class="matrix">
+        <thead>
+          <tr><th>Tool</th><th class="access-cell">mcp-user</th><th class="access-cell">mcp-admin</th></tr>
+        </thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page">
+  <div class="wrap">
+    Source of truth: <code>VisionTool.java</code>, <code>KeycloakRealmRoleConverter.java</code>, <code>keycloak/realm-spring-vision.json</code>. This page doesn't regenerate automatically — update it by hand when those change.
+  </div>
+</footer>
+
+<script>
+const categories = [
+  { name: "Face detection — general", tier: "user", tools: [
+    "count_faces_b", "count_faces_u", "count_faces_b_validated", "preview_faces_u"
+  ]},
+  { name: "Biometric identity — sensitive", tier: "admin", tools: [
+    "extract_face_embeddings_b", "extract_face_embeddings_u", "extract_face_embeddings_b_validated",
+    "verify_faces_between_urls", "verify_faces_between_bytes",
+    "lookup_faces_in_dataset_u", "lookup_faces_in_dataset_b",
+    "store_identity_u", "list_identities", "delete_identity",
+    "authenticate_access_b", "authenticate_access_u (description-only @Tool)"
+  ]},
+  { name: "ID documents & license plates — PII", tier: "admin", tools: [
+    "recognize_identity_card_b", "recognize_identity_card_u",
+    "recognize_driver_license_b", "recognize_driver_license_u",
+    "recognize_license_plate_b", "recognize_license_plate_u"
+  ]},
+  { name: "Content safety & threats — sensitive", tier: "admin", tools: [
+    "detect_nsfw_b", "detect_nsfw_u",
+    "detect_deepfake_b", "detect_deepfake_u",
+    "detect_threats_b", "detect_threats_u (description-only @Tool)"
+  ]},
+  { name: "OCR, barcode & metadata", tier: "user", tools: [
+    "extract_text_b", "extract_text_u",
+    "extract_image_metadata_b", "extract_image_metadata_u",
+    "scan_barcode_b", "scan_barcode_u"
+  ]},
+  { name: "General detection & classification", tier: "user", tools: [
+    "classify_image_b", "classify_image_u",
+    "detect_objects_b", "detect_objects_u",
+    "detect_poses_b", "detect_poses_u",
+    "recognize_actions_b", "recognize_actions_u",
+    "detect_emotions_b", "detect_emotions_u",
+    "detect_hands_b", "detect_hands_u",
+    "detect_demographics_b", "detect_demographics_u"
+  ]},
+  { name: "Health & wellness (non-medical)", tier: "user", tools: [
+    "detect_fall_b", "detect_fall_u",
+    "analyze_stress_b", "analyze_stress_u",
+    "estimate_heart_rate_f", "estimate_heart_rate_u"
+  ]},
+  { name: "Vehicle analytics", tier: "user", tools: [
+    "detect_vehicle_b", "detect_vehicle_u",
+    "detect_vehicle_damages_b", "detect_vehicle_damages_u",
+    "submit_damage_label_u", "submit_damage_label_b",
+    "export_damage_classifier"
+  ]},
+  { name: "Image utilities", tier: "user", tools: [
+    "annotate_bounding_boxes_u", "annotate_bounding_boxes_b",
+    "obscure_regions_u", "obscure_regions_b",
+    "normalize_image_u", "normalize_image_b",
+    "delete_temp_image"
+  ]}
+];
+
+const tbody = document.getElementById("matrix-body");
+const grant = '<span class="grant">✓ Allowed</span>';
+const deny = '<span class="deny">— Denied</span>';
+let totalToolCount = 0;
+
+for (const cat of categories) {
+  const catRow = document.createElement("tr");
+  catRow.className = "category-row";
+  catRow.dataset.tier = cat.tier;
+  catRow.innerHTML = `<td colspan="3">${cat.name}</td>`;
+  tbody.appendChild(catRow);
+
+  for (const tool of cat.tools) {
+    totalToolCount++;
+    const row = document.createElement("tr");
+    row.dataset.tier = cat.tier;
+    row.dataset.search = (tool + " " + cat.name).toLowerCase();
+    row.innerHTML = `
+      <td class="tool-name"><code>${tool}</code></td>
+      <td class="access-cell" data-label="mcp-user">${cat.tier === "admin" ? deny : grant}</td>
+      <td class="access-cell" data-label="mcp-admin">${grant}</td>
+    `;
+    tbody.appendChild(row);
+  }
+}
+
+const searchInput = document.getElementById("tool-search");
+const pills = document.querySelectorAll(".filter-pill");
+const resultCount = document.getElementById("result-count");
+let activeFilter = "all";
+
+function applyFilters() {
+  const query = searchInput.value.trim().toLowerCase();
+  const rows = tbody.querySelectorAll("tr:not(.category-row)");
+  let visible = 0;
+
+  rows.forEach(row => {
+    const matchesQuery = !query || row.dataset.search.includes(query);
+    const matchesTier = activeFilter === "all" || row.dataset.tier === activeFilter;
+    const show = matchesQuery && matchesTier;
+    row.classList.toggle("hidden-row", !show);
+    if (show) visible++;
+  });
+
+  tbody.querySelectorAll("tr.category-row").forEach(catRow => {
+    let sibling = catRow.nextElementSibling;
+    let anyVisible = false;
+    while (sibling && !sibling.classList.contains("category-row")) {
+      if (!sibling.classList.contains("hidden-row")) anyVisible = true;
+      sibling = sibling.nextElementSibling;
+    }
+    catRow.classList.toggle("hidden-row", !anyVisible);
+  });
+
+  resultCount.textContent = query || activeFilter !== "all"
+    ? `Showing ${visible} of ${totalToolCount} tools`
+    : "";
+}
+
+searchInput.addEventListener("input", applyFilters);
+pills.forEach(pill => {
+  pill.addEventListener("click", () => {
+    pills.forEach(p => p.setAttribute("aria-pressed", "false"));
+    pill.setAttribute("aria-pressed", "true");
+    activeFilter = pill.dataset.filter;
+    applyFilters();
+  });
+});
+</script>
+
+</body>
+</html>

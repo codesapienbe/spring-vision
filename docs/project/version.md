@@ -51,7 +51,7 @@ This script will:
 1. Edit the `VERSION` file and change the version number
 2. Run the build command which will sync Maven POMs:
    ```bash
-   make build
+   make install
    ```
 
 ## Version Usage in Project
@@ -61,19 +61,20 @@ This script will:
 | `VERSION` file   | Single source of truth - manually edited or via script            |
 | Parent `pom.xml` | Updated via `mvn versions:set` (automated in Makefile)            |
 | Submodule POMs   | Inherit from parent `<version>` automatically                     |
-| Docker images    | Use `${project.version}` from Maven (e.g., `spring-vision:1.0.2`) |
+| Docker image     | Tagged with `$SPRING_VISION_VERSION` by `make bundle` (e.g., `spring-vision-mcp:1.0.2`) |
 | Makefile targets | Load from `VERSION` file into `$SPRING_VISION_VERSION` variable   |
 | Maven release    | Uses `$SPRING_VISION_VERSION` from `VERSION` file                 |
 
 ## Build Process
 
-When you run `make build`:
+When you run `make install`:
 
 1. Makefile reads `VERSION` file → `SPRING_VISION_VERSION=1.0.2`
 2. Runs `mvn versions:set -DnewVersion=1.0.2` to sync all POMs
-3. Runs `mvn clean install` which:
-    - Builds all modules with version 1.0.2
-    - Jib plugin builds Docker image as `spring-vision:1.0.2`
+3. Runs `mvn clean install` which builds all modules with version 1.0.2
+
+Running `make bundle` additionally runs `make install`, then builds a Docker image
+tagged `spring-vision-mcp:1.0.2` from the root `Dockerfile`.
 
 ## Release Process
 
@@ -101,7 +102,7 @@ cat VERSION
 ### Build with Current Version
 
 ```bash
-make build
+make install
 # Builds all modules with version from VERSION file
 ```
 
@@ -123,7 +124,7 @@ make run
 ## Important Notes
 
 - Never manually edit `<version>` tags in POMs - let the build system handle it
-- Always use `make build` or `./set-version.sh` to ensure version consistency
+- Always use `make install` or `./set-version.sh` to ensure version consistency
 - The VERSION file should contain only the version number, nothing else
-- Docker images are automatically tagged with the Maven project version
+- The Docker image built by `make bundle` is tagged with the Maven project version
 

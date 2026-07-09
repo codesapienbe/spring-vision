@@ -68,16 +68,16 @@ class StartupLoggerTest {
         }
 
         @Test
-        @DisplayName("Should have default transport value")
-        void shouldHaveDefaultTransportValue() {
+        @DisplayName("Should have default protocol value")
+        void shouldHaveDefaultProtocolValue() {
             // Given: StartupLogger with default values
             StartupLogger logger = new StartupLogger();
 
-            // When: Getting transport field
-            String transport = (String) ReflectionTestUtils.getField(logger, "transport");
+            // When: Getting protocol field
+            String protocol = (String) ReflectionTestUtils.getField(logger, "protocol");
 
             // Then: Should have default value
-            assertThat(transport).isEqualTo("stdio");
+            assertThat(protocol).isEqualTo("STREAMABLE");
         }
 
         @Test
@@ -109,17 +109,17 @@ class StartupLoggerTest {
         }
 
         @Test
-        @DisplayName("Should inject custom transport")
-        void shouldInjectCustomTransport() {
+        @DisplayName("Should inject custom protocol")
+        void shouldInjectCustomProtocol() {
             // Given: StartupLogger
             StartupLogger logger = new StartupLogger();
 
-            // When: Setting custom transport
-            ReflectionTestUtils.setField(logger, "transport", "websocket");
+            // When: Setting custom protocol
+            ReflectionTestUtils.setField(logger, "protocol", "SSE");
 
             // Then: Should have custom value
-            String transport = (String) ReflectionTestUtils.getField(logger, "transport");
-            assertThat(transport).isEqualTo("websocket");
+            String protocol = (String) ReflectionTestUtils.getField(logger, "protocol");
+            assertThat(protocol).isEqualTo("SSE");
         }
     }
 
@@ -156,7 +156,7 @@ class StartupLoggerTest {
             StartupLogger logger = new StartupLogger();
             ReflectionTestUtils.setField(logger, "serverName", "test-server");
             ReflectionTestUtils.setField(logger, "serverVersion", "1.0.0-test");
-            ReflectionTestUtils.setField(logger, "transport", "test-transport");
+            ReflectionTestUtils.setField(logger, "protocol", "test-protocol");
 
             // When: Calling onStartup method
             // Then: Should not throw any exceptions with custom config
@@ -217,10 +217,10 @@ class StartupLoggerTest {
         }
 
         @Test
-        @DisplayName("Should have Value annotation on transport field")
-        void shouldHaveValueAnnotationOnTransportField() throws NoSuchFieldException {
-            // When: Getting the transport field
-            java.lang.reflect.Field field = StartupLogger.class.getDeclaredField("transport");
+        @DisplayName("Should have Value annotation on protocol field")
+        void shouldHaveValueAnnotationOnProtocolField() throws NoSuchFieldException {
+            // When: Getting the protocol field
+            java.lang.reflect.Field field = StartupLogger.class.getDeclaredField("protocol");
 
             // Then: Field should have Value annotation
             assertThat(field.isAnnotationPresent(
@@ -229,7 +229,7 @@ class StartupLoggerTest {
             // Check the default value
             org.springframework.beans.factory.annotation.Value valueAnnotation =
                 field.getAnnotation(org.springframework.beans.factory.annotation.Value.class);
-            assertThat(valueAnnotation.value()).isEqualTo("${spring.ai.mcp.server.transport:stdio}");
+            assertThat(valueAnnotation.value()).isEqualTo("${spring.ai.mcp.server.protocol:STREAMABLE}");
         }
     }
 
@@ -277,24 +277,24 @@ class StartupLoggerTest {
     class McpProtocolAwareness {
 
         @Test
-        @DisplayName("Should be aware of stdio transport requirements")
-        void shouldBeAwareOfStdioTransportRequirements() {
-            // This test verifies that the StartupLogger is designed for stdio transport
-            // by checking the default transport value
+        @DisplayName("Should be aware of Streamable-HTTP transport requirements")
+        void shouldBeAwareOfStreamableHttpTransportRequirements() {
+            // This test verifies that the StartupLogger is designed for Streamable-HTTP transport
+            // by checking the default protocol value
 
             // Given: StartupLogger with default config
             StartupLogger logger = new StartupLogger();
 
-            // When: Getting transport field
-            String transport = (String) ReflectionTestUtils.getField(logger, "transport");
+            // When: Getting protocol field
+            String protocol = (String) ReflectionTestUtils.getField(logger, "protocol");
 
-            // Then: Should default to stdio transport
-            assertThat(transport).isEqualTo("stdio");
+            // Then: Should default to STREAMABLE protocol
+            assertThat(protocol).isEqualTo("STREAMABLE");
         }
 
         @Test
-        @DisplayName("Should log stdout reservation for MCP messages")
-        void shouldLogStdoutReservationForMcpMessages() {
+        @DisplayName("Should log the MCP endpoint and port")
+        void shouldLogMcpEndpointAndPort() {
             // This test verifies the design intent of the StartupLogger
             // The actual logging content is verified by the presence of the logging calls
 
@@ -342,12 +342,12 @@ class StartupLoggerTest {
             // When: Setting properties (simulating Spring injection)
             ReflectionTestUtils.setField(logger, "serverName", "injected-name");
             ReflectionTestUtils.setField(logger, "serverVersion", "injected-version");
-            ReflectionTestUtils.setField(logger, "transport", "injected-transport");
+            ReflectionTestUtils.setField(logger, "protocol", "injected-protocol");
 
             // Then: Should accept the injected values
             assertThat(ReflectionTestUtils.getField(logger, "serverName")).isEqualTo("injected-name");
             assertThat(ReflectionTestUtils.getField(logger, "serverVersion")).isEqualTo("injected-version");
-            assertThat(ReflectionTestUtils.getField(logger, "transport")).isEqualTo("injected-transport");
+            assertThat(ReflectionTestUtils.getField(logger, "protocol")).isEqualTo("injected-protocol");
         }
     }
 }

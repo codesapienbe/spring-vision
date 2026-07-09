@@ -18,9 +18,9 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.core.env.Environment;
 
 /**
- * Main application class for Spring Vision MCP Server using stdio transport.
+ * Main application class for Spring Vision MCP Server using Streamable-HTTP transport.
  * This server provides computer vision operations via the Model Context Protocol (MCP)
- * using standard input/output for communication with MCP clients.
+ * over HTTP, so it can be reached by local and remote MCP clients alike.
  */
 @SpringBootApplication
 public class SpringVisionMcpServerApplication {

@@ -1,0 +1,66 @@
+{
+  "realm": "spring-vision",
+  "enabled": true,
+  "sslRequired": "external",
+  "accessTokenLifespan": 3600,
+  "roles": {
+    "realm": [
+      {
+        "name": "mcp-user",
+        "description": "Grants access to general-purpose vision tools (object/pose/OCR/etc.)."
+      },
+      {
+        "name": "mcp-admin",
+        "description": "Grants access to sensitive tools in addition to mcp-user: biometric auth/enrollment, threat detection, deepfake detection, face verification/1:N search, raw embeddings, and ID/driver-license/license-plate recognition. Enforced in VisionTool via requireAdminRole()."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "spring-vision-mcp-desktop",
+      "name": "Spring Vision MCP - Desktop (Claude Desktop / Claude Code)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "desktop-dev-secret-change-me",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
+    },
+    {
+      "clientId": "spring-vision-mcp-mobile",
+      "name": "Spring Vision MCP - Mobile (Google AI Edge Gallery)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "mobile-dev-secret-change-me",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "attributes": {
+        "access.token.lifespan": "86400"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-spring-vision-mcp-desktop",
+      "enabled": true,
+      "serviceAccountClientId": "spring-vision-mcp-desktop",
+      "realmRoles": ["mcp-user", "mcp-admin"]
+    },
+    {
+      "username": "service-account-spring-vision-mcp-mobile",
+      "enabled": true,
+      "serviceAccountClientId": "spring-vision-mcp-mobile",
+      "realmRoles": ["mcp-user"]
+    }
+  ]
+}

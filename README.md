@@ -75,8 +75,8 @@ jbang run.java
 Or use the Makefile (includes model download):
 
 ```bash
-make build  # Downloads and bundles models
-make run    # Runs the server
+make install  # Downloads and bundles models
+make run      # Starts local Keycloak and runs the server
 ```
 
 ### Using as a Library

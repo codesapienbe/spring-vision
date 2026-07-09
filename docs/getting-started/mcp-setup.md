@@ -36,45 +36,69 @@ git clone https://github.com/codesapienbe/spring-vision.git
 cd spring-vision
 
 # Build with bundled models
-make build
+make install
 
 # Or use Maven directly
 mvn clean install -Pdownload-models
 ```
 
+## 🔑 Authentication (Keycloak)
+
+The MCP server runs over Streamable-HTTP and requires a Keycloak-issued bearer token on
+every request to `/mcp` — there's no unauthenticated access, by design (see
+`keycloak/README.md`). For local dev:
+
+```bash
+# 1. Start local Keycloak (imports the spring-vision realm automatically) — `make run` does this too
+docker compose up -d keycloak
+
+# 2. Fetch a token for your client (client_credentials grant, no user password involved)
+curl -s -X POST http://localhost:8180/realms/spring-vision/protocol/openid-connect/token \
+  -d grant_type=client_credentials \
+  -d client_id=spring-vision-mcp-desktop \
+  -d client_secret=desktop-dev-secret-change-me \
+  | jq -r .access_token
+```
+
+The desktop client's tokens expire in 1 hour — re-run the curl command to get a fresh one
+when your MCP client reports authentication failures. See `keycloak/README.md` for the
+mobile client (longer-lived tokens) and how to rotate the dev secrets.
+
+**Tool tiers**: a valid token from either client unlocks general-purpose tools
+(`mcp-user` role). Sensitive tools — biometric auth/enrollment, threat detection,
+deepfake detection, face verification/1:N search, raw embeddings, and ID/driver-license/
+license-plate recognition — additionally require the `mcp-admin` role, which only the
+desktop client's service account has by default (see `keycloak/README.md`). Calling one
+of those tools without `mcp-admin` returns an access-denied error, not tool output.
+
 ## ⚙️ MCP Client Configuration
 
-After installing Spring Vision, you need to configure your MCP client to use it. Here are the most common clients:
+The server must already be running (`make run`) and reachable at its `/mcp` endpoint —
+unlike the old stdio setup, MCP clients connect to it over HTTP rather than launching it
+themselves.
+
+### Claude Code
+
+```bash
+claude mcp add --scope user --transport http \
+  --header "Authorization: Bearer <token-from-above>" \
+  spring-vision http://localhost:8080/mcp
+```
 
 ### Claude Desktop
 
 **Configuration file location:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-Add this configuration:
+Whether Claude Desktop's config file supports a plain bearer-token header on a custom
+remote server isn't clearly documented — test it directly. If it doesn't work, bridge via
+the community `mcp-remote` stdio proxy:
 
 ```json
 {
   "mcpServers": {
     "spring-vision": {
-      "command": "jbang",
-      "args": ["/home/youruser/.springvision/mcp-0.0.4.jar"]
-    }
-  }
-}
-```
-
-### VS Code / Cursor
-
-**Configuration file location:** `~/.cursor/mcp.json` (or equivalent for your editor)
-
-Add this configuration:
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "jbang",
-      "args": ["/home/youruser/.springvision/mcp-0.0.4.jar"]
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:8080/mcp", "--header", "Authorization: Bearer <token-from-above>"]
     }
   }
 }
@@ -85,7 +109,7 @@ Add this configuration:
 For other MCP-compatible clients:
 
 1. **Find your MCP config file** - Check the client's documentation for the configuration file location
-2. **Add the server configuration** - Use the JSON format above, adjusting the path to match your system
+2. **Point it at `http://localhost:8080/mcp`** (or your deployed server's URL) with an `Authorization: Bearer <token>` header
 3. **Restart the client** - Most clients require a restart to load new MCP servers
 
 ## 🧪 Testing Your Setup
@@ -104,13 +128,13 @@ For detailed testing of all MCP tools, see the **[MCP Testing Guide](./mcp-testi
 
 ## 🛠️ Manual MCP Configuration
 
-If you need to configure the MCP server manually, here's how:
+If you need to run and wire up the MCP server manually, here's how:
 
 ### 1. Build the MCP Server
 
 ```bash
 # Build the project
-make build
+make install
 
 # Or use Maven
 mvn clean install -Pdownload-models
@@ -118,34 +142,32 @@ mvn clean install -Pdownload-models
 
 ### 2. Run the Server Manually
 
+The server is a long-running HTTP process now, not something the MCP client launches
+per-session — start it once and leave it running:
+
 ```bash
-# Run with JBang
-jbang run.java
+# Starts local Keycloak too, then runs the server
+make run
 
-# Or run the JAR directly
-java -jar mcp/target/mcp-0.0.4.jar
+# Or run the JAR directly (Keycloak must already be running — see keycloak/README.md)
+java -jar mcp/target/mcp-0.0.5.jar
 ```
 
-### 3. Configure Client with Custom Path
+### 3. Point clients at a custom URL
 
-If you're running from a custom location, update your MCP configuration:
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "jbang",
-      "args": ["/path/to/your/spring-vision/mcp/target/mcp-0.0.4.jar"]
-    }
-  }
-}
-```
+If the server is running elsewhere (a different port, or a remote deployment), update
+your MCP client's URL/header configuration accordingly — see the Claude Code/Desktop
+examples above, substituting the correct host and a token issued by that deployment's
+Keycloak realm.
 
 ## 🔧 Advanced Configuration
 
 ### Environment Variables
 
-You can customize the MCP server behavior with environment variables:
+Because the server now runs independently of any MCP client, environment variables must
+be set wherever the **server** process runs (your shell before `make run`, a systemd unit,
+or `docker run -e ...` for the image built by `make bundle`) — not in the client's MCP
+config, which no longer launches the process:
 
 ```bash
 # Set custom model directory
@@ -157,27 +179,10 @@ export SPRING_VISION_DJL_DEVICE=gpu
 # Set confidence thresholds
 export SPRING_VISION_DJL_CONFIDENCE_THRESHOLD=0.7
 
-# Run with custom config
-jbang run.java
-```
+# Point at a non-default Keycloak realm
+export KEYCLOAK_ISSUER_URI=https://keycloak.example.com/realms/spring-vision
 
-### Custom MCP Configuration
-
-For advanced users, you can create a custom MCP configuration file:
-
-```json
-{
-  "mcpServers": {
-    "spring-vision": {
-      "command": "jbang",
-      "args": ["/home/user/.springvision/mcp-0.0.4.jar"],
-      "env": {
-        "SPRING_VISION_DJL_DEVICE": "gpu",
-        "SPRING_VISION_DJL_CONFIDENCE_THRESHOLD": "0.8"
-      }
-    }
-  }
-}
+make run
 ```
 
 ## 🚨 Troubleshooting
@@ -192,10 +197,15 @@ source ~/.bashrc  # or restart your terminal
 ```
 
 #### "MCP server not responding"
-1. Check that the JAR file exists: `ls -la ~/.springvision/`
-2. Verify the path in your MCP config is correct
+1. Check the server is actually running: `curl -i http://localhost:8080/mcp` (should return `401`, not connection refused)
+2. Verify the URL/port in your MCP client's config is correct
 3. Restart your MCP client
 4. Check logs: `jbang run.java 2>&1 | head -20`
+
+#### "401 Unauthorized"
+1. Your token likely expired — the desktop client's tokens last 1 hour. Re-fetch one (see **Authentication (Keycloak)** above) and update your client's `Authorization: Bearer` header.
+2. Confirm Keycloak is actually running: `curl http://localhost:8180/realms/spring-vision/.well-known/openid-configuration`
+3. Confirm `KEYCLOAK_ISSUER_URI` (if overridden) matches the realm your token was issued from.
 
 #### "Permission denied"
 ```bash
@@ -207,7 +217,7 @@ chmod +x ~/.springvision/mcp-0.0.4.jar
 ```bash
 # Ensure you have internet access and sufficient disk space (~500MB)
 # Try rebuilding with models
-make clean build
+make clean install
 ```
 
 #### "GPU not working"

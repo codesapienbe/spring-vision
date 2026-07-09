@@ -38,6 +38,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import io.github.codesapienbe.springvision.core.Detection;
@@ -109,6 +112,26 @@ public class VisionTool {
             StructuredArguments.keyValue("backend", visionTemplate.getBackendId()),
             StructuredArguments.keyValue("max_image_size_bytes", MAX_IMAGE_SIZE_BYTES),
             StructuredArguments.keyValue("request_timeout_seconds", REQUEST_TIMEOUT.getSeconds()));
+    }
+
+    private static final String ROLE_MCP_ADMIN = "ROLE_mcp-admin";
+
+    /**
+     * Guards tools that touch biometric templates, identity/PII documents, or security-threat
+     * decisions. Reads the caller's authorities directly from {@link SecurityContextHolder}
+     * rather than relying on {@code @PreAuthorize} — Spring AI's {@code MethodToolCallbackProvider}
+     * invokes {@code @Tool} methods via reflection in a way that does not reliably go through
+     * Spring Security's AOP method-security interceptor (see spring-projects/spring-ai#2356,
+     * #3272), so a manual check here is the mechanism actually verified to work.
+     * @throws AccessDeniedException if the caller lacks the {@code mcp-admin} role.
+     */
+    void requireAdminRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean hasAdminRole = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> ROLE_MCP_ADMIN.equals(authority.getAuthority()));
+        if (!hasAdminRole) {
+            throw new AccessDeniedException("This tool requires the mcp-admin role");
+        }
     }
 
     protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
@@ -301,6 +324,7 @@ public class VisionTool {
     @Tool(name = "extract_face_embeddings_b", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddingsB(String imageBase64) {
+        requireAdminRole();
         long startTime = System.currentTimeMillis();
         Map<String, Object> response = new HashMap<>();
         try {
@@ -390,6 +414,7 @@ public class VisionTool {
             + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeIdentityCardB(String imageBase64, String countryHint) {
+        requireAdminRole();
         long startTime = System.currentTimeMillis();
         try {
             ImageData img = resolveImage(imageBase64);
@@ -409,6 +434,7 @@ public class VisionTool {
             + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeDriverLicenseB(String imageBase64, String countryHint) {
+        requireAdminRole();
         long startTime = System.currentTimeMillis();
         try {
             ImageData img = resolveImage(imageBase64);
@@ -557,6 +583,7 @@ public class VisionTool {
     @Tool(name = "detect_nsfw_b", description = "Detect NSFW from uploaded image bytes. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectNSFWB(String imageBase64) {
+        requireAdminRole();
         try {
             ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectNSFW(img);
@@ -631,6 +658,7 @@ public class VisionTool {
     @Tool(name = "detect_deepfake_b", description = "Detect deepfakes from uploaded image bytes. Returns classification as 'real' or 'fake' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDeepfakeB(String imageBase64) {
+        requireAdminRole();
         try {
             ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectDeepfake(img);
@@ -921,6 +949,7 @@ public class VisionTool {
     @Tool(name = "detect_threats_b", description = "Detect security threats from uploaded image bytes. Returns detections with severity assessment and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectThreatsB(String imageBase64) {
+        requireAdminRole();
         try {
             ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.detectThreats(List.of(img));
@@ -971,6 +1000,7 @@ public class VisionTool {
     @Tool(name = "authenticate_access_b", description = "Authenticate access using raw uploaded image bytes. Returns authorization decision.")
     @SuppressWarnings("unused")
     public Map<String, Object> authenticateAccessB(String imageBase64) {
+        requireAdminRole();
         try {
             ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.authenticateAccess(img);
@@ -1122,6 +1152,7 @@ public class VisionTool {
     @Tool(name = "extract_face_embeddings_u", description = "Extract face embeddings from an image URL. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddings(String imageUrl) {
+        requireAdminRole();
         log.info("extractEmbeddings called",
             StructuredArguments.keyValue("event", "extract_embeddings_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
@@ -1249,6 +1280,7 @@ public class VisionTool {
             + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeIdentityCard(String imageUrl, String countryHint) {
+        requireAdminRole();
         log.info("recognizeIdentityCard called",
             StructuredArguments.keyValue("event", "recognize_identity_card_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
@@ -1281,6 +1313,7 @@ public class VisionTool {
             + "Supported countries: Belgium (BE), Netherlands (NL). Provide countryHint to scope detection.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeDriverLicense(String imageUrl, String countryHint) {
+        requireAdminRole();
         log.info("recognizeDriverLicense called",
             StructuredArguments.keyValue("event", "recognize_driver_license_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)),
@@ -1518,6 +1551,7 @@ public class VisionTool {
     @Tool(name = "verify_faces_between_urls", description = "Verify if two face images belong to the same person. Returns similarity score and match result.")
     @SuppressWarnings("unused")
     public Map<String, Object> verifyFaces(String sourceImageUrl, String targetImageUrl) {
+        requireAdminRole();
         log.info("verifyFaces called",
             StructuredArguments.keyValue("event", "verify_faces_start"),
             StructuredArguments.keyValue("sourceUrl", sanitizeUrlForLogging(sourceImageUrl)),
@@ -1591,6 +1625,7 @@ public class VisionTool {
     @Tool(name = "verify_faces_between_bytes", description = "Verify if two face images (uploaded as raw bytes) belong to the same person. Returns similarity score and match result.")
     @SuppressWarnings("unused")
     public Map<String, Object> verifyFacesFromBytes(String sourceImageBase64, String targetImageBase64) {
+        requireAdminRole();
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
@@ -1683,6 +1718,7 @@ public class VisionTool {
     @Tool(name = "lookup_faces_in_dataset_u", description = "Lookup matching faces in a dataset. Returns URLs of images containing matching faces sorted by similarity.")
     @SuppressWarnings("unused")
     public Map<String, Object> lookupFaces(String sourceImageUrl, java.util.Set<String> datasetImageUrls) {
+        requireAdminRole();
         log.info("lookupFaces called",
             StructuredArguments.keyValue("event", "lookup_faces_start"),
             StructuredArguments.keyValue("sourceUrl", sanitizeUrlForLogging(sourceImageUrl)),
@@ -1796,6 +1832,7 @@ public class VisionTool {
     @Tool(name = "lookup_faces_in_dataset_b", description = "Lookup matching faces in a dataset where images are provided as raw bytes (file uploads). Returns matches sorted by similarity.")
     @SuppressWarnings("unused")
     public Map<String, Object> lookupFacesFromBytes(String sourceImageBase64, java.util.Collection<String> datasetImageBase64) {
+        requireAdminRole();
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
@@ -2122,6 +2159,7 @@ public class VisionTool {
     @Tool(name = "detect_nsfw_u", description = "Detect NSFW (Not Safe For Work) content in an image. Returns classification as 'normal' or 'nsfw' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectNSFW(String imageUrl) {
+        requireAdminRole();
         log.info("detectNSFW called",
             StructuredArguments.keyValue("event", "detect_nsfw_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
@@ -2227,6 +2265,7 @@ public class VisionTool {
     @Tool(name = "detect_deepfake_u", description = "Detect deepfakes in an image. Returns classification as 'real' or 'fake' with confidence score.")
     @SuppressWarnings("unused")
     public Map<String, Object> detectDeepfake(String imageUrl) {
+        requireAdminRole();
         log.info("detectDeepfake called",
             StructuredArguments.keyValue("event", "detect_deepfake_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
@@ -2686,6 +2725,7 @@ public class VisionTool {
     @Tool(name = "extract_face_embeddings_b_validated", description = "Extract face embeddings from raw image bytes. Returns list of embeddings and metadata.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractEmbeddingsFromBytes(String imageBase64) {
+        requireAdminRole();
         log.info("extractEmbeddingsFromBytes called",
             StructuredArguments.keyValue("event", "extract_embeddings_b_start"));
 
@@ -2921,6 +2961,7 @@ public class VisionTool {
         """)
     @SuppressWarnings("unused")
     public Map<String, Object> detectThreats(String imageUrl) {
+        requireAdminRole();
         log.info("detectThreats called",
             StructuredArguments.keyValue("event", "detect_threats_start"),
             StructuredArguments.keyValue("imageUrl", imageUrl));
@@ -3080,6 +3121,7 @@ public class VisionTool {
         """)
     @SuppressWarnings("unused")
     public Map<String, Object> authenticateAccess(String imageUrl) {
+        requireAdminRole();
         log.info("authenticateAccess called",
             StructuredArguments.keyValue("event", "authenticate_access_start"),
             StructuredArguments.keyValue("imageUrl", imageUrl));
@@ -3267,6 +3309,7 @@ public class VisionTool {
     @Tool(name = "store_identity_u", description = "Enroll a face from an image into the authentication store. Use preview_faces_u first to pick faceIndex. Stores (userId, userName, remoteId, embedding) so authenticate_access can later recognize the person. remoteId is optional and reserved for linking to an external identity provider (e.g. Keycloak subject UUID).")
     @SuppressWarnings("unused")
     public Map<String, Object> storeIdentity(String imageUrl, Integer faceIndex, String userId, String userName, String remoteId) {
+        requireAdminRole();
         log.info("storeIdentity called",
             StructuredArguments.keyValue("event", "store_identity_start"),
             StructuredArguments.keyValue("userId", userId));
@@ -3332,6 +3375,7 @@ public class VisionTool {
     @Tool(name = "list_identities", description = "List all enrolled identities (userId, userName, createdAt) in the authentication store.")
     @SuppressWarnings("unused")
     public Map<String, Object> listIdentities() {
+        requireAdminRole();
         Map<String, Object> response = new HashMap<>();
         try {
             List<EnrolledUserStore.EnrolledUser> users = enrolledStore().list();
@@ -3603,6 +3647,7 @@ public class VisionTool {
             + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlateB(String imageBase64) {
+        requireAdminRole();
         long startTime = System.currentTimeMillis();
         try {
             ImageData img = resolveImage(imageBase64);
@@ -3626,6 +3671,7 @@ public class VisionTool {
             + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlate(String imageUrl) {
+        requireAdminRole();
         log.info("recognizeLicensePlate called",
             StructuredArguments.keyValue("event", "recognize_license_plate_start"),
             StructuredArguments.keyValue("url", sanitizeUrlForLogging(imageUrl)));
@@ -3766,7 +3812,7 @@ public class VisionTool {
             response.put("status", "success");
             response.put("exportedTo", dest.resolve("damage-classifier").toAbsolutePath().toString());
             response.put("message",
-                "Checkpoint exported. Commit core/models/damage-classifier/ and run 'make build' to bundle in the JAR release.");
+                "Checkpoint exported. Commit core/models/damage-classifier/ and run 'make install' to bundle in the JAR release.");
             return response;
         } catch (Exception e) {
             throw new VisionProcessingException("Failed to export damage classifier: " + e.getMessage(), e);
@@ -3776,6 +3822,7 @@ public class VisionTool {
     @Tool(name = "delete_identity", description = "Remove an enrolled identity from the authentication store by userId. Returns whether a row was deleted.")
     @SuppressWarnings("unused")
     public Map<String, Object> deleteIdentity(String userId) {
+        requireAdminRole();
         Map<String, Object> response = new HashMap<>();
         if (userId == null || userId.isBlank()) {
             response.put("status", "error");

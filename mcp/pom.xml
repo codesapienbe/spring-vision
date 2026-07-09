@@ -80,12 +80,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <!-- Spring Boot WebFlux Starter for reactive web -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
-    </dependency>
-
     <!-- Spring Boot Actuator for health checks -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -105,16 +99,29 @@
       <version>7.4</version>
     </dependency>
 
-    <!-- Spring AI MCP Server (stdio-only starter) -->
+    <!-- Spring AI MCP Server (Streamable-HTTP, servlet-based) -->
     <dependency>
       <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-starter-mcp-server</artifactId>
+      <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+    </dependency>
+
+    <!-- OAuth2 Resource Server: validates Keycloak-issued JWTs on /mcp (see keycloak/README.md) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
 
     <!-- Spring Boot Test Starter for testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Spring Security Test support (jwt() request post-processor) for testing the resource server -->
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
       <scope>test</scope>
     </dependency>
 
