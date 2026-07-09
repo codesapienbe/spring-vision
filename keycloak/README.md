@@ -33,6 +33,9 @@ running the server (or run `docker compose up -d keycloak` directly). It auto-im
 See [`docs/rbac/index.html`](../docs/rbac/index.html) for the full per-tool access matrix
 and a breakdown of exactly which JWT claims the app reads versus ignores.
 
+For running this (and the `mcp` app) somewhere other than your own machine, see
+[Deploying for Free](../docs/configuration/deploy-free.md).
+
 ## Client secrets
 
 The secrets in `realm-spring-vision.json` (`desktop-dev-secret-change-me`,

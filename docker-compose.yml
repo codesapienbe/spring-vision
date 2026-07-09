@@ -1,3 +1,7 @@
+# `make run` only ever starts the `keycloak` service (local dev runs the app itself
+# outside Docker via jbang, for fast iteration). The `mcp` and `caddy` services below
+# exist for a real remote deployment, where `docker compose up -d` brings up all three
+# together — see docs/configuration/deploy-free.md.
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
@@ -9,3 +13,33 @@ services:
       - "8180:8080" # offset from the mcp server's own 8080
     volumes:
       - ./keycloak/realm-spring-vision.json:/opt/keycloak/data/import/realm-spring-vision.json:ro
+
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SPRING_VISION_VERSION: ${SPRING_VISION_VERSION}
+    depends_on:
+      - keycloak
+    environment:
+      # Internal compose network address, not the host-published 8180 used by local dev.
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/spring-vision
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - mcp
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SPRING_VISION_DOMAIN: ${SPRING_VISION_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

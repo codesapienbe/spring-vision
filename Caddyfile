@@ -1,0 +1,3 @@
+{$SPRING_VISION_DOMAIN} {
+	reverse_proxy mcp:8080
+}

@@ -59,7 +59,7 @@
     <picocli.version>4.7.6</picocli.version>
     <spring-ai.version>1.1.0</spring-ai.version>
 
-    <!-- OpenCV platform selection: default to Linux x86_64. Change this property in CI/builds to target another platform. -->
+    <!-- OpenCV platform selection: default to Linux x86_64. Overridden by the pytorch-linux-aarch64 OS-detection profile below. -->
     <opencv.version>4.9.0-${javacv.version}</opencv.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
 
@@ -531,8 +531,9 @@
       </properties>
     </profile>
 
-    <!-- OS-detection profiles to select the right DJL PyTorch native classifier.
-         Default (linux-x86_64) is set in <properties>; profiles below override per host. -->
+    <!-- OS-detection profiles to select the right DJL PyTorch (and, on Linux aarch64,
+         OpenCV/OpenBLAS) native classifier. Defaults (linux-x86_64) are set in
+         <properties>; profiles below override per host. -->
     <profile>
       <id>pytorch-osx-aarch64</id>
       <activation>
@@ -560,7 +561,7 @@
     </profile>
 
     <profile>
-      <id>pytorch-linux-aarch64</id>
+      <id>linux-aarch64</id>
       <activation>
         <os>
           <family>unix</family>
@@ -570,6 +571,10 @@
       </activation>
       <properties>
         <pytorch.classifier>linux-aarch64</pytorch.classifier>
+        <!-- Bytedeco's own classifier naming for this arch differs from DJL's ("linux-arm64",
+             not "linux-aarch64") — confirmed against the pinned opencv/openblas versions on
+             Maven Central before writing this. -->
+        <opencv.classifier>linux-arm64</opencv.classifier>
       </properties>
     </profile>
 
