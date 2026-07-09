@@ -40,7 +40,7 @@ Setup, configuration, and operational guides
 - **[Model Downloads](./configuration/downloads.md)** - Download and manage models
 - **[Logging Guide](./configuration/logging.md)** - Logging configuration and monitoring
 - **[Runtime Operations](./configuration/runtime.md)** - Production deployment and operations
-- **[Deploying for Free](./configuration/deploy-free.md)** - Run the MCP server + Keycloak on Oracle Cloud's Always Free ARM tier
+- **[Deploying for Free](./configuration/deploy-free.md)** - Self-host on amd64 hardware you own (e.g. an Intel Mac mini) with zero code changes, or run on Oracle Cloud's Always Free ARM tier
 - **[RBAC & Token Reference](./rbac/index.html)** - What the Keycloak-issued JWT contains and the full mcp-user/mcp-admin tool access matrix
 
 ### 💻 [Development](./development/)
