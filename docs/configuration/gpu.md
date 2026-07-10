@@ -61,6 +61,15 @@ engine. The `ai.djl.tensorflow:tensorflow-engine` dependency also exists in
 `core/pom.xml` but isn't actually used by any model-loading code today, so its GPU story
 is out of scope.
 
+**Every live model-loading path honors the device — including YOLOv8s.** The YOLOv8n
+object-detection path resolves through the DJL model zoo (`.optDevice(device)` set
+directly). The YOLOv8s path used to go through `YoloLoader.createDetectionCriteria`,
+which built its `Criteria` without setting a device at all — meaning it silently used
+DJL's own auto-detection instead of `spring.vision.djl.device`, so an explicit
+`device: cpu` could still end up running YOLOv8s on GPU (or vice versa) depending on
+what DJL detected. Fixed: `YoloLoader`'s factory methods now take a `Device` parameter
+and every call site passes the configured device through.
+
 ## Runtime: one property switches every model
 
 `spring.vision.djl.device` (`DjlProperties.device`, default `cpu`) is read once in
@@ -83,9 +92,22 @@ Or via environment variable:
 export SPRING_VISION_DJL_DEVICE=gpu
 ```
 
-If `Device.fromName(...)` fails for any reason (e.g. built without `-P gpu`, or no GPU
-present), `DjlVisionBackend` catches it and falls back to CPU with a warning in the logs
-— it does not crash the application.
+If `Device.fromName(...)` itself fails (e.g. built without `-P gpu`, or no GPU present),
+`DjlVisionBackend` catches it and falls back to CPU for the whole application, with a
+warning in the logs — it does not crash the application.
+
+**Per-model fallback, on top of that.** Even when the device itself resolves fine, an
+individual model can still fail to load on GPU for reasons specific to that model — CUDA
+out of memory, a missing runtime library, or an operator the CUDA execution provider
+doesn't support for that particular architecture. Rather than leave that one tool
+unavailable for the application's whole lifetime when it would have loaded fine on CPU,
+`initialize()` retries a GPU load failure once on CPU before giving up on that model.
+Every model load (13 of them, plus the on-demand face-recognition auto-heal path) goes
+through this fallback — a GPU compatibility problem in one model can't take down other
+tools, and doesn't need the whole application rebuilt or restarted in CPU mode to keep
+working. A model that fell back is recorded and surfaced in health/details reporting
+(the `cpuFallbackModels` key — see below) rather than silently reported as running on
+GPU.
 
 ## Docker / Docker Compose
 
@@ -136,6 +158,11 @@ is `spring.vision.djl.device` actually set to `gpu` at runtime, is the NVIDIA dr
 visible via `nvidia-smi`, and — for Docker — is the NVIDIA Container Toolkit installed
 and `--gpus all` (or the compose device reservation) actually present.
 
+Also check the backend's health/details endpoint for a `cpuFallbackModels` entry — if
+present, those specific models fell back to CPU after a GPU load failure (see above);
+everything else is genuinely on GPU. An empty/absent `cpuFallbackModels` with
+`device: gpu` and `gpuAvailable: true` means every model that loaded, loaded on GPU.
+
 ## FAQ
 
 **Can I use both CPU and GPU on the same running instance?** No — `device` is one value
@@ -145,7 +172,14 @@ for the whole application; run separate instances if you need both.
 GPU artifacts are CUDA-only.
 
 **What if I build with `-P gpu` but run on a machine without a GPU?** `DjlVisionBackend`
-catches the device-initialization failure and falls back to CPU with a logged warning.
+catches the device-initialization failure and falls back to CPU with a logged warning
+for the whole application.
+
+**What if the device itself is GPU but one specific model fails to load on it?** That
+model is retried once on CPU rather than left unavailable — see "Per-model fallback"
+above. Other tools are unaffected either way; each model's own load failure was already
+isolated before this fallback existed (one `try`/`catch` per model in `initialize()`),
+this just adds a second chance on CPU instead of giving up immediately.
 
 ---
 
