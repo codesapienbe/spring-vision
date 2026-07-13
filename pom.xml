@@ -59,12 +59,18 @@
     <picocli.version>4.7.6</picocli.version>
     <spring-ai.version>1.1.0</spring-ai.version>
 
-    <!-- OpenCV platform selection: default to Linux x86_64. Overridden by the pytorch-linux-aarch64 OS-detection profile below. -->
+    <!-- OpenCV platform selection: default to Linux x86_64. Overridden by the linux-aarch64 OS-detection profile below. -->
     <opencv.version>4.9.0-${javacv.version}</opencv.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
 
     <!-- DJL PyTorch native classifier: default to linux-x86_64. Overridden by OS-detection profiles below. -->
     <pytorch.classifier>linux-x86_64</pytorch.classifier>
+
+    <!-- Native artifact selection for the two libraries with separate CPU/GPU builds:
+         default to CPU-only. The gpu profile below overrides both at once, so a single
+         -Pgpu flag switches every native library instead of one at a time. -->
+    <pytorch.native.artifact>pytorch-native-cpu</pytorch.native.artifact>
+    <onnxruntime.artifact>onnxruntime</onnxruntime.artifact>
 
     <!-- Code Quality & Plugins -->
     <checkstyle.version>10.17.0</checkstyle.version>
@@ -507,27 +513,21 @@
     </plugins>
   </build>
 
-  <!-- Profiles for CPU vs GPU ONNX Runtime -->
+  <!-- A single -Pgpu flag switches every native library with a CUDA build (DJL PyTorch,
+       ONNX Runtime) at once — see docs/configuration/gpu.md. No profile (the default)
+       builds CPU-only for both. -->
   <profiles>
-    <!-- CPU Profile (Active by Default) -->
-    <profile>
-      <id>cpu</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <properties>
-        <onnxruntime.provider>cpu</onnxruntime.provider>
-      </properties>
-    </profile>
-
-    <!-- GPU Profile: Uncomment to activate GPU support with ONNX Runtime -->
     <profile>
       <id>gpu</id>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <onnxruntime.provider>cuda</onnxruntime.provider>
+        <!-- Linux/Windows x86_64 only: neither DJL nor ONNX Runtime publish macOS or
+             ARM64 CUDA builds, so combining -Pgpu with a macOS or aarch64 host fails
+             dependency resolution loudly instead of silently falling back to CPU. -->
+        <pytorch.native.artifact>pytorch-native-cu124</pytorch.native.artifact>
+        <onnxruntime.artifact>onnxruntime_gpu</onnxruntime.artifact>
       </properties>
     </profile>
 

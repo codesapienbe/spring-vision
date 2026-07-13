@@ -18,7 +18,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   vision:
  *     enabled: true
  *     backend: opencv
- *     execution-provider: cpu
  *     fail-fast: true
  *     opencv:
  *       enabled: true
@@ -54,13 +53,6 @@ public class VisionProperties {
      * When false, allows fallback to basic implementations in examples.
      */
     private boolean failFast = true;
-
-    /**
-     * ONNX Runtime execution provider selection.
-     * Supported values: cpu (default), gpu
-     * GPU provider requires CUDA-compatible hardware and drivers.
-     */
-    private String executionProvider = "cpu";
 
     /**
      * OpenCV-specific configuration properties.
@@ -129,24 +121,6 @@ public class VisionProperties {
      */
     public void setFailFast(boolean failFast) {
         this.failFast = failFast;
-    }
-
-    /**
-     * Gets the ONNX Runtime execution provider.
-     *
-     * @return the execution provider name
-     */
-    public String getExecutionProvider() {
-        return executionProvider;
-    }
-
-    /**
-     * Sets the ONNX Runtime execution provider.
-     *
-     * @param executionProvider the execution provider name
-     */
-    public void setExecutionProvider(String executionProvider) {
-        this.executionProvider = executionProvider;
     }
 
     /**
@@ -232,11 +206,6 @@ public class VisionProperties {
          * Maximum face size ratio relative to image size.
          */
         private double maxFaceSizeRatio = 0.8;
-
-        /**
-         * Whether to enable GPU acceleration (if available).
-         */
-        private boolean gpuAcceleration = false;
 
         /**
          * Maximum image size in bytes for processing.
@@ -331,24 +300,6 @@ public class VisionProperties {
          */
         public void setMaxFaceSizeRatio(double maxFaceSizeRatio) {
             this.maxFaceSizeRatio = maxFaceSizeRatio;
-        }
-
-        /**
-         * Gets whether GPU acceleration is enabled.
-         *
-         * @return true if GPU acceleration is enabled, false otherwise
-         */
-        public boolean isGpuAcceleration() {
-            return gpuAcceleration;
-        }
-
-        /**
-         * Sets whether GPU acceleration is enabled.
-         *
-         * @param gpuAcceleration whether to enable GPU acceleration
-         */
-        public void setGpuAcceleration(boolean gpuAcceleration) {
-            this.gpuAcceleration = gpuAcceleration;
         }
 
         /**

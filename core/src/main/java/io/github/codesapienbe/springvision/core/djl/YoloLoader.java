@@ -8,6 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import ai.djl.Device;
 import ai.djl.modality.cv.Image;
 import ai.djl.modality.cv.output.DetectedObjects;
 import ai.djl.modality.cv.output.Joints;
@@ -30,7 +31,7 @@ import io.github.codesapienbe.springvision.core.djl.translator.YoloDetectionTran
  *
  * <p>Example usage:</p>
  * <pre>{@code
- * Criteria<Image, DetectedObjects> criteria = YoloLoader.createDetectionCriteria("yolov8n");
+ * Criteria<Image, DetectedObjects> criteria = YoloLoader.createDetectionCriteria("n", Device.cpu());
  * Predictor<Image, DetectedObjects> predictor = criteria.loadModel().newPredictor();
  * }</pre>
  */
@@ -76,9 +77,11 @@ public class YoloLoader {
      * Creates Criteria for YOLOv8 object detection models.
      *
      * @param modelSize Model size: "n" (nano), "s" (small), "m" (medium), "l" (large), "x" (extra large)
+     * @param device Device to load the model onto (CPU or GPU) — without this, DJL falls back to its
+     *     own auto-detection, silently ignoring spring.vision.djl.device.
      * @return Criteria configured for object detection
      */
-    public static Criteria<Image, DetectedObjects> createDetectionCriteria(String modelSize) {
+    public static Criteria<Image, DetectedObjects> createDetectionCriteria(String modelSize, Device device) {
         try {
             String modelPath = "yolov8/yolov8" + modelSize + ".pt";
             String modelUrl = extractToTempFile(modelPath);
@@ -87,6 +90,7 @@ public class YoloLoader {
                 .optModelUrls(modelUrl)
                 .optEngine("PyTorch")
                 .optOption("mapLocation", "true")  // Load to CPU
+                .optDevice(device)
                 .optTranslator(new YoloDetectionTranslator())
                 .build();
         } catch (IOException e) {
@@ -97,19 +101,21 @@ public class YoloLoader {
     /**
      * Creates Criteria for YOLOv8 object detection models with default nano model.
      *
+     * @param device Device to load the model onto
      * @return Criteria configured for object detection using yolov8n.pt
      */
-    public static Criteria<Image, DetectedObjects> createDetectionCriteria() {
-        return createDetectionCriteria("n");
+    public static Criteria<Image, DetectedObjects> createDetectionCriteria(Device device) {
+        return createDetectionCriteria("n", device);
     }
 
     /**
      * Creates Criteria for YOLOv8 segmentation models.
      *
      * @param modelSize Model size: "n" (nano), "s" (small), "m" (medium)
+     * @param device Device to load the model onto
      * @return Criteria configured for image segmentation
      */
-    public static Criteria<Image, Image> createSegmentationCriteria(String modelSize) {
+    public static Criteria<Image, Image> createSegmentationCriteria(String modelSize, Device device) {
         try {
             String modelPath = "yolov8-seg/yolov8" + modelSize + "-seg.pt";
             String modelUrl = extractToTempFile(modelPath);
@@ -117,6 +123,7 @@ public class YoloLoader {
                 .setTypes(Image.class, Image.class)
                 .optModelUrls(modelUrl)
                 .optEngine("PyTorch")
+                .optDevice(device)
                 .build();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load YOLOv8 segmentation model: " + modelSize, e);
@@ -126,19 +133,21 @@ public class YoloLoader {
     /**
      * Creates Criteria for YOLOv8 segmentation models with default nano model.
      *
+     * @param device Device to load the model onto
      * @return Criteria configured for image segmentation using yolov8n-seg.pt
      */
-    public static Criteria<Image, Image> createSegmentationCriteria() {
-        return createSegmentationCriteria("n");
+    public static Criteria<Image, Image> createSegmentationCriteria(Device device) {
+        return createSegmentationCriteria("n", device);
     }
 
     /**
      * Creates Criteria for YOLOv8 pose estimation models.
      *
      * @param modelSize Model size: "n" (nano), "s" (small), "m" (medium)
+     * @param device Device to load the model onto
      * @return Criteria configured for pose estimation
      */
-    public static Criteria<Image, Joints> createPoseCriteria(String modelSize) {
+    public static Criteria<Image, Joints> createPoseCriteria(String modelSize, Device device) {
         try {
             String modelPath = "yolov8-pose/yolov8" + modelSize + "-pose.pt";
             String modelUrl = extractToTempFile(modelPath);
@@ -146,6 +155,7 @@ public class YoloLoader {
                 .setTypes(Image.class, Joints.class)
                 .optModelUrls(modelUrl)
                 .optEngine("PyTorch")
+                .optDevice(device)
                 .build();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load YOLOv8 pose model: " + modelSize, e);
@@ -155,18 +165,20 @@ public class YoloLoader {
     /**
      * Creates Criteria for YOLOv8 pose estimation models with default nano model.
      *
+     * @param device Device to load the model onto
      * @return Criteria configured for pose estimation using yolov8n-pose.pt
      */
-    public static Criteria<Image, Joints> createPoseCriteria() {
-        return createPoseCriteria("n");
+    public static Criteria<Image, Joints> createPoseCriteria(Device device) {
+        return createPoseCriteria("n", device);
     }
 
     /**
      * Creates Criteria for YOLOv8 classification models.
      *
+     * @param device Device to load the model onto
      * @return Criteria configured for image classification using yolov8n-cls.pt
      */
-    public static Criteria<Image, ai.djl.modality.Classifications> createClassificationCriteria() {
+    public static Criteria<Image, ai.djl.modality.Classifications> createClassificationCriteria(Device device) {
         try {
             String modelPath = "yolov8-cls/yolov8n-cls.pt";
             String modelUrl = extractToTempFile(modelPath);
@@ -174,6 +186,7 @@ public class YoloLoader {
                 .setTypes(Image.class, ai.djl.modality.Classifications.class)
                 .optModelUrls(modelUrl)
                 .optEngine("PyTorch")
+                .optDevice(device)
                 .build();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load YOLOv8 classification model", e);
@@ -183,9 +196,10 @@ public class YoloLoader {
     /**
      * Creates Criteria for YOLOv8 oriented bounding box models.
      *
+     * @param device Device to load the model onto
      * @return Criteria configured for oriented bounding box detection using yolov8n-obb.pt
      */
-    public static Criteria<Image, DetectedObjects> createObbCriteria() {
+    public static Criteria<Image, DetectedObjects> createObbCriteria(Device device) {
         try {
             String modelPath = "yolov8-obb/yolov8n-obb.pt";
             String modelUrl = extractToTempFile(modelPath);
@@ -194,6 +208,7 @@ public class YoloLoader {
                 .optModelUrls(modelUrl)
                 .optEngine("PyTorch")
                 .optOption("mapLocation", "true")  // Load to CPU
+                .optDevice(device)
                 .build();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load YOLOv8 OBB model", e);

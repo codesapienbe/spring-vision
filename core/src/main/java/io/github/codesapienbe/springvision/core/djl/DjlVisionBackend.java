@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -275,6 +276,11 @@ public class DjlVisionBackend implements VisionBackend,
     // Model loading cache
     private final Map<String, Object> modelCache = new ConcurrentHashMap<>();
 
+    // Models that failed to load on the configured GPU device and were retried
+    // successfully on CPU during initialize() — surfaced in health/details reporting
+    // so status doesn't claim GPU for a model that's actually running on CPU.
+    private final Set<String> cpuFallbackModels = ConcurrentHashMap.newKeySet();
+
     // Concurrency control
     private final Semaphore inferenceSemaphore;
 
@@ -294,6 +300,39 @@ public class DjlVisionBackend implements VisionBackend,
     @FunctionalInterface
     private interface PredictorCallback<I, O, R> {
         R apply(Predictor<I, O> predictor) throws Exception;
+    }
+
+    // Functional callback for a single model's load method, parameterized by device
+    @FunctionalInterface
+    private interface ModelLoaderFn {
+        void load(Device device) throws Exception;
+    }
+
+    /**
+     * Loads a model on the configured device. If that device is GPU and the attempt
+     * fails (CUDA OOM, missing runtime, an op unsupported by the CUDA execution
+     * provider, etc.), retries once on CPU before giving up — so a GPU-specific
+     * incompatibility in one model doesn't leave that tool unavailable when it would
+     * have loaded fine on CPU. Records a successful CPU retry in
+     * {@link #cpuFallbackModels} so health reporting reflects reality.
+     */
+    private void loadWithGpuFallback(String modelLabel, ModelLoaderFn loader) throws Exception {
+        try {
+            loader.load(device);
+        } catch (Exception primary) {
+            if (device == null || !device.isGpu()) {
+                throw primary;
+            }
+            logger.warn("Failed to load {} on GPU: {}. Retrying on CPU.", modelLabel, primary.getMessage());
+            try {
+                loader.load(Device.cpu());
+                cpuFallbackModels.add(modelLabel);
+                logger.info("{} loaded successfully on CPU after a GPU load failure.", modelLabel);
+            } catch (Exception cpuFailure) {
+                cpuFailure.addSuppressed(primary);
+                throw cpuFailure;
+            }
+        }
     }
 
     // Constructors
@@ -463,7 +502,7 @@ public class DjlVisionBackend implements VisionBackend,
             lastEmbeddingLoadAttemptMs = now;
             logger.info("Auto-healing: loading face recognition (embedding) model on demand");
             try {
-                loadFaceRecognitionModel();
+                loadWithGpuFallback("face recognition model", this::loadFaceRecognitionModel);
             } catch (Exception e) {
                 logger.warn("Auto-healing: failed to load face recognition model: {}", e.getMessage());
             }
@@ -516,6 +555,13 @@ public class DjlVisionBackend implements VisionBackend,
         details.put("gpuAvailable", gpuAvailable);
         details.put("modelsLoaded", modelCache.size());
         details.put("maxConcurrentInferences", this.maxConcurrentInferences);
+        // "device" above is the configured value, not necessarily what every model is
+        // actually running on — a model can fall back to CPU individually if it fails
+        // to load on a configured GPU device (see loadWithGpuFallback). Surface that
+        // explicitly rather than let "device: gpu" imply every model is on GPU.
+        if (!cpuFallbackModels.isEmpty()) {
+            details.put("cpuFallbackModels", new TreeSet<>(cpuFallbackModels));
+        }
 
         if (healthStatus == BackendHealthInfo.HealthStatus.HEALTHY) {
             // Use the overload that accepts metrics so the details map is included
@@ -536,7 +582,7 @@ public class DjlVisionBackend implements VisionBackend,
         try {
             // Load face detector first for accurate face counts
             try {
-                loadFaceDetectionModel();
+                loadWithGpuFallback("face detection model", this::loadFaceDetectionModel);
             } catch (Exception e) {
                 logger.warn(
                     "Failed to load dedicated face detection model: {}. Falling back to generic object detection.",
@@ -545,7 +591,7 @@ public class DjlVisionBackend implements VisionBackend,
 
             // Load core models
             try {
-                loadObjectDetectionModel();
+                loadWithGpuFallback("object detection model", this::loadObjectDetectionModel);
             } catch (Exception e) {
                 logger.warn("Failed to load object detection model: {}. Proceeding without object model.", e.getMessage(), e);
             }
@@ -555,7 +601,7 @@ public class DjlVisionBackend implements VisionBackend,
                 : null;
             if (poseModel != null && !poseModel.isBlank()) {
                 try {
-                    loadPoseEstimationModel();
+                    loadWithGpuFallback("pose estimation model", this::loadPoseEstimationModel);
                 } catch (Exception e) {
                     logger.warn("Failed to load pose estimation model: {}", e.getMessage());
                 }
@@ -568,7 +614,7 @@ public class DjlVisionBackend implements VisionBackend,
                 : null;
             if (actionModel != null && !actionModel.isBlank()) {
                 try {
-                    loadActionRecognitionModel();
+                    loadWithGpuFallback("action recognition model", this::loadActionRecognitionModel);
                 } catch (Exception e) {
                     logger.warn("Failed to load action recognition model: {}", e.getMessage());
                 }
@@ -579,7 +625,7 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (properties.getSegmentation() != null) {
                 try {
-                    loadSegmentationModels();
+                    loadWithGpuFallback("segmentation models", this::loadSegmentationModels);
                 } catch (Exception e) {
                     logger.warn("Failed to load segmentation models: {}", e.getMessage());
                 }
@@ -587,55 +633,55 @@ public class DjlVisionBackend implements VisionBackend,
 
             if (properties.getFaceRecognition() != null) {
                 try {
-                    loadFaceRecognitionModel();
+                    loadWithGpuFallback("face recognition model", this::loadFaceRecognitionModel);
                 } catch (Exception e) {
                     logger.warn("Failed to load face recognition model: {}", e.getMessage());
                 }
             }
 
             try {
-                loadEmotionModel();
+                loadWithGpuFallback("emotion model", this::loadEmotionModel);
             } catch (Exception e) {
                 logger.warn("Failed to load emotion model: {}. Emotion detection will be unavailable.", e.getMessage());
             }
 
             try {
-                loadDemographicsModels();
+                loadWithGpuFallback("demographics models", this::loadDemographicsModels);
             } catch (Exception e) {
                 logger.warn("Failed to load demographics models: {}. Demographics detection will be unavailable.",
                     e.getMessage());
             }
 
             try {
-                loadDeepfakeModel();
+                loadWithGpuFallback("deepfake detection model", this::loadDeepfakeModel);
             } catch (Exception e) {
                 logger.warn("Failed to load deepfake detection model: {}. Deepfake detection will be unavailable.",
                     e.getMessage());
             }
 
             try {
-                loadHandDetectionModel();
+                loadWithGpuFallback("hand detection model", this::loadHandDetectionModel);
             } catch (Exception e) {
                 logger.warn("Failed to load hand detection model: {}. Hand detection will be unavailable.",
                     e.getMessage(), e);
             }
 
             try {
-                loadNsfwModel();
+                loadWithGpuFallback("NSFW detection model", this::loadNsfwModel);
             } catch (Exception e) {
                 logger.warn("Failed to load NSFW detection model: {}. NSFW detection will be unavailable.",
                     e.getMessage(), e);
             }
 
             try {
-                loadVehicleDamageModel();
+                loadWithGpuFallback("vehicle damage detection model", this::loadVehicleDamageModel);
             } catch (Exception e) {
                 logger.warn("Failed to load vehicle damage detection model: {}. Vehicle damage detection will be unavailable.",
                     e.getMessage(), e);
             }
 
             try {
-                loadLicensePlateModel();
+                loadWithGpuFallback("license plate detection model", this::loadLicensePlateModel);
             } catch (Exception e) {
                 logger.warn("Failed to load license plate detection model: {}. License plate recognition will be unavailable.",
                     e.getMessage(), e);
@@ -698,7 +744,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
-    private void loadFaceRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadFaceRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading face recognition model with DJL - pipeline approach with RetinaFace detection");
 
         // Face recognition uses a pipeline approach:
@@ -740,7 +786,7 @@ public class DjlVisionBackend implements VisionBackend,
             faceRecognitionModel.getName());
     }
 
-    private void loadEmotionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadEmotionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading FER+ emotion detection model (OnnxRuntime, 8-class)");
         String localUrl = YoloModelLoader.getModelUrl("emotion-ferplus/emotion-ferplus-8.onnx");
         String modelUrl = (localUrl != null) ? localUrl
@@ -761,7 +807,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("FER+ emotion model loaded: {}", emotionModel.getName());
     }
 
-    private void loadDemographicsModels() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadDemographicsModels(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading age/gender demographics models (OnnxRuntime, GoogLeNet-based)");
 
         String ageUrl = YoloModelLoader.getModelUrl("age-gender/age_googlenet.onnx");
@@ -797,7 +843,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Gender model loaded: {}", genderModel.getName());
     }
 
-    private void loadNsfwModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadNsfwModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading NSFW detection model (Falconsai ViT fp16 ONNX)");
         String url = YoloModelLoader.getModelUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
         if (url == null) {
@@ -817,7 +863,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("NSFW detection model loaded: {}", nsfwModel.getName());
     }
 
-    private void loadVehicleDamageModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadVehicleDamageModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading vehicle damage detection model (yolov8n fine-tuned, 28 classes)");
         String url = YoloModelLoader.getModelUrl("vehicle-damage/yolov11n-car-damage.onnx");
         if (url == null) {
@@ -838,7 +884,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Vehicle damage detection model loaded: {}", vehicleDamageModel.getName());
     }
 
-    private void loadLicensePlateModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadLicensePlateModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading license plate detection model (YOLOv8 single-class)");
         String url = YoloModelLoader.getModelUrl("license-plate/yolov8n-license-plate.onnx");
         if (url == null) {
@@ -861,7 +907,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("License plate detection model loaded: {}", licensePlateModel.getName());
     }
 
-    private void loadHandDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadHandDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading hand detection model (MediaPipe palm detector ONNX)");
         String url = YoloModelLoader.getModelUrl("palm-detection/palm_detection_mediapipe.onnx");
         if (url == null) {
@@ -880,7 +926,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Hand detection model loaded: {}", handDetectionModel.getName());
     }
 
-    private void loadDeepfakeModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadDeepfakeModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading deepfake detection model (ViT fp16 ONNX)");
         String url = YoloModelLoader.getModelUrl("deepfake-detector/deepfake-detector-fp16.onnx");
         if (url == null) {
@@ -899,7 +945,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Deepfake detection model loaded: {}", deepfakeModel.getName());
     }
 
-    private void loadFaceDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadFaceDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading RetinaFace face detection model with DJL - high accuracy face detector");
 
         // Use RetinaFace - production-ready face detection model
@@ -962,7 +1008,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
-    private void loadObjectDetectionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadObjectDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading object detection model with DJL");
 
         Criteria<Image, DetectedObjects> criteria;
@@ -988,7 +1034,7 @@ public class DjlVisionBackend implements VisionBackend,
                 throw new ModelNotFoundException(
                     "YOLOv8s model not available. Run 'mvn clean install -Pdownload-models' to download models.");
             }
-            criteria = YoloLoader.createDetectionCriteria("s");
+            criteria = YoloLoader.createDetectionCriteria("s", device);
         }
 
         objectDetectionModel = criteria.loadModel();
@@ -996,7 +1042,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Object detection model loaded: {} ({})", objectDetectionModel.getName(), modelType);
     }
 
-    private void loadPoseEstimationModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadPoseEstimationModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         // DJL mlrepo ships YOLOv8n-pose as ONNX (~11.5 MB) with YoloPoseTranslatorFactory
         // pre-wired. Same pattern as object detection — the bundled .pt files are
         // pickle checkpoints that DJL cannot load directly.
@@ -1014,7 +1060,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Pose estimation model loaded: {}", poseEstimationModel.getName());
     }
 
-    private void loadActionRecognitionModel() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadActionRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading action recognition model (ViT fp16 ONNX, 15-class human actions)");
         String url = YoloModelLoader.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
         if (url == null) {
@@ -1033,7 +1079,7 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Action recognition model loaded: {}", actionRecognitionModel.getName());
     }
 
-    private void loadSegmentationModels() throws ModelNotFoundException, MalformedModelException, IOException {
+    private void loadSegmentationModels(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading segmentation models with DJL");
 
         // Semantic segmentation

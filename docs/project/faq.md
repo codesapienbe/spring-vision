@@ -8,7 +8,7 @@ Java 21+ and Spring Boot 3.2+.
 
 ## How do I enable GPU acceleration?
 
-Build with `-P gpu` and set `spring.vision.execution-provider=gpu`. See [GPU Acceleration](./gpu.md).
+Build with `-P gpu` (or `make install GPU=true`) and set `spring.vision.djl.device=gpu`. See [GPU Acceleration](./gpu.md).
 
 ## Do I need to download models manually?
 

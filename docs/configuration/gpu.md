@@ -1,539 +1,188 @@
-[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [Config](./config.md) · [Runtime](./runtime.md)
+[Docs Home](./index.md) · [Getting Started](../getting-started/quick-start.md) · [Config](./config.md) · [Runtime](./runtime.md) · [Deploying for Free](./deploy-free.md)
 
-# GPU Acceleration Support
+# GPU Acceleration
 
-This document describes how to enable and use GPU acceleration in Spring Vision for improved inference performance.
+This describes the actual mechanism Spring Vision uses to run its DJL-backed models
+(YOLO object detection, face detection/recognition, pose estimation, emotion,
+demographics, NSFW, vehicle damage, license plate, hand detection, deepfake, and more)
+on an NVIDIA GPU instead of CPU, and how to switch between the two.
 
-## Overview
+There are **two independent knobs**, and both need to point the same direction for GPU
+acceleration to actually happen:
 
-Spring Vision supports GPU-accelerated inference using NVIDIA CUDA through ONNX Runtime. This provides significant performance improvements for deep learning models, especially when processing large batches of images or video streams.
+1. **Build time** — which native libraries get bundled into the jar (`-P gpu` Maven
+   profile).
+2. **Runtime** — which device DJL is told to use (`spring.vision.djl.device`).
 
-## Architecture
+Building with `-P gpu` but leaving `device: cpu` at runtime just leaves the CUDA-capable
+binaries unused. Setting `device: gpu` without having built with `-P gpu` fails, since
+there's no CUDA-capable native library on the classpath to satisfy the request.
 
-The GPU support is implemented through:
+## Build time: one profile switches every native library
 
-1. **Maven Profiles**: Build-time selection between CPU and GPU dependencies
-2. **Runtime Configuration**: Property-based selection of execution provider
-3. **Automatic Fallback**: Graceful degradation to CPU if GPU initialization fails
-
-### Components
-
-- **OnnxRuntimeConfig**: Spring configuration class that creates ONNX Runtime sessions with appropriate execution providers
-- **VisionProperties**: Configuration properties including `execution-provider` setting
-- **OnnxRuntimeGuard**: Reflection-based utility for ONNX Runtime operations
-
-## Building with GPU Support
-
-### Prerequisites
-
-Before building with GPU support, ensure you have:
-
-1. **NVIDIA GPU**: CUDA-compatible GPU (Compute Capability 3.5 or higher)
-2. **CUDA Toolkit**: Version 11.x or 12.x installed
-3. **cuDNN**: Compatible version for your CUDA installation
-4. **Maven**: Version 3.6+
-5. **Java**: JDK 21 or higher
-
-### Build Commands
+`DjlVisionBackend` loads its models through DJL's `Criteria` API, using **two** native
+engines depending on the model: `PyTorch` (face recognition, one face-detection path)
+and `OnnxRuntime` (everything else — emotion, demographics, NSFW, vehicle damage,
+license plate, hand detection, deepfake, pose estimation, most segmentation/
+classification paths, and the primary face-detection path). Both engines have separate
+CPU and CUDA native artifact families on Maven Central, and both are switched by the
+same flag:
 
 ```bash
-# Build entire project with GPU support
-mvn clean install -P gpu
+# CPU-only (default)
+mvn clean install -Pdownload-models
 
-# Build only the core module with GPU support
-cd core
-mvn clean install -P gpu
+# GPU (CUDA) — every native library with a CUDA build switches at once
+mvn clean install -Pdownload-models -Pgpu
 
-# Build with GPU support and skip tests
-mvn clean install -P gpu -DskipTests
-
-# Verify GPU dependency is included
-mvn dependency:tree -P gpu | grep onnxruntime
+# Or via the Makefile, which wraps the same flag:
+make install GPU=true
+make bundle GPU=true
 ```
 
-### Maven Profile Details
+Mechanically: the root `pom.xml`'s `gpu` profile overrides two properties —
+`onnxruntime.artifact` (`onnxruntime` → `onnxruntime_gpu`) and `pytorch.native.artifact`
+(`pytorch-native-cpu` → `pytorch-native-cu124`) — and `core/pom.xml`'s dependency
+declarations for both libraries reference those properties instead of hardcoding an
+artifact name, so one flag controls both. (`core/pom.xml` also excludes the
+`onnxruntime-engine` wrapper's own transitive CPU `onnxruntime` dependency, so exactly
+one ONNX Runtime native library — CPU or CUDA, never both — ends up on the classpath
+either way.)
 
-The `gpu` profile in `core/pom.xml`:
+**Linux/Windows x86_64 only.** Neither DJL nor ONNX Runtime publish macOS or ARM64 CUDA
+builds. Combining `-P gpu` with a macOS build or the `linux-aarch64` OS-detection profile
+(used for Oracle Cloud's free ARM tier — see [Deploying for Free](./deploy-free.md))
+fails Maven dependency resolution loudly, rather than silently falling back to CPU.
 
-```xml
+**Not covered by this switch:** bytedeco's OpenCV/OpenBLAS native libraries (used for
+image I/O and drawing annotations, not model inference) stay CPU-only always — there's
+no GPU-accelerated variant wired up, since this app doesn't run OpenCV as an inference
+engine. The `ai.djl.tensorflow:tensorflow-engine` dependency also exists in
+`core/pom.xml` but isn't actually used by any model-loading code today, so its GPU story
+is out of scope.
 
-<profile>
-    <id>gpu</id>
-    <properties>
-        <onnxruntime.provider>gpu</onnxruntime.provider>
-    </properties>
-    <dependencies>
-        <dependency>
-            <groupId>com.microsoft.onnxruntime</groupId>
-            <artifactId>onnxruntime_gpu</artifactId>
-        </dependency>
-    </dependencies>
-</profile>
-```
+**Every live model-loading path honors the device — including YOLOv8s.** The YOLOv8n
+object-detection path resolves through the DJL model zoo (`.optDevice(device)` set
+directly). The YOLOv8s path used to go through `YoloLoader.createDetectionCriteria`,
+which built its `Criteria` without setting a device at all — meaning it silently used
+DJL's own auto-detection instead of `spring.vision.djl.device`, so an explicit
+`device: cpu` could still end up running YOLOv8s on GPU (or vice versa) depending on
+what DJL detected. Fixed: `YoloLoader`'s factory methods now take a `Device` parameter
+and every call site passes the configured device through.
 
-The `cpu` profile (default):
+## Runtime: one property switches every model
 
-```xml
-
-<profile>
-    <id>cpu</id>
-    <activation>
-        <activeByDefault>true</activeByDefault>
-    </activation>
-    <properties>
-        <onnxruntime.provider>cpu</onnxruntime.provider>
-    </properties>
-</profile>
-```
-
-## Runtime Configuration
-
-### Configuration Properties
-
-Add to your `application.yml`:
+`spring.vision.djl.device` (`DjlProperties.device`, default `cpu`) is read once in
+`DjlVisionBackend` and passed via DJL's `Criteria.optDevice(...)` to every single
+model's loader, regardless of which engine backs it. There's no separate per-model or
+per-engine toggle to remember:
 
 ```yaml
 spring:
   vision:
-    # GPU execution (requires GPU build)
-    execution-provider: gpu
-
-    # CPU execution (default)
-    # execution-provider: cpu
+    djl:
+      device: cpu   # default
+      # device: gpu           # first CUDA device
+      # device: gpu:1         # a specific CUDA device index
 ```
 
-Or using `application.yml`:
-
-```yaml
-spring:
-  vision:
-    execution-provider: gpu  # or 'cpu' for CPU-only
-    backend: opencv
-    enabled: true
-    fail-fast: true
-    opencv:
-      enabled: true
-      confidence-threshold: 0.7
-```
-
-### Environment Variables
-
-You can also configure via environment variables:
+Or via environment variable:
 
 ```bash
-# Set execution provider
-export VISION_EXECUTION_PROVIDER=gpu
-
-# Run your application
-java -jar your-app.jar
+export SPRING_VISION_DJL_DEVICE=gpu
 ```
 
-### Programmatic Configuration
+If `Device.fromName(...)` itself fails (e.g. built without `-P gpu`, or no GPU present),
+`DjlVisionBackend` catches it and falls back to CPU for the whole application, with a
+warning in the logs — it does not crash the application.
 
-```java
+**Per-model fallback, on top of that.** Even when the device itself resolves fine, an
+individual model can still fail to load on GPU for reasons specific to that model — CUDA
+out of memory, a missing runtime library, or an operator the CUDA execution provider
+doesn't support for that particular architecture. Rather than leave that one tool
+unavailable for the application's whole lifetime when it would have loaded fine on CPU,
+`initialize()` retries a GPU load failure once on CPU before giving up on that model.
+Every model load (13 of them, plus the on-demand face-recognition auto-heal path) goes
+through this fallback — a GPU compatibility problem in one model can't take down other
+tools, and doesn't need the whole application rebuilt or restarted in CPU mode to keep
+working. A model that fell back is recorded and surfaced in health/details reporting
+(the `cpuFallbackModels` key — see below) rather than silently reported as running on
+GPU.
 
-@Configuration
-public class VisionConfig {
+## Docker / Docker Compose
 
-    @Bean
-    public VisionProperties visionProperties() {
-        VisionProperties props = new VisionProperties();
-        props.setExecutionProvider("gpu");
-        return props;
-    }
-}
-```
-
-## Verification
-
-### Check GPU Availability
-
-View the logs during application startup:
-
-```
-INFO  OnnxRuntimeConfig - Initializing ONNX Runtime with execution provider: gpu
-INFO  OnnxRuntimeConfig - CUDA provider classes detected. GPU execution will be available.
-INFO  OnnxRuntimeConfig - Successfully configured CUDA execution provider
-```
-
-### Fallback Logging
-
-If GPU initialization fails, you'll see:
-
-```
-WARN  OnnxRuntimeConfig - Failed to configure CUDA execution provider. Falling back to CPU. Reason: CUDA not available
-INFO  OnnxRuntimeConfig - Fallback to CPU execution provider completed
-```
-
-## Performance Benchmarks
-
-Typical performance improvements with GPU acceleration:
-
-| Task                  | CPU (ms) | GPU (ms) | Speedup |
-|-----------------------|----------|----------|---------|
-| Single Face Detection | 45       | 8        | 5.6x    |
-| Batch (10 images)     | 420      | 52       | 8.1x    |
-| Batch (100 images)    | 4200     | 210      | 20.0x   |
-| Object Detection      | 85       | 12       | 7.1x    |
-| Face Recognition      | 120      | 15       | 8.0x    |
-
-*Benchmarks performed on NVIDIA RTX 3080 with CUDA 12.x*
-
-## Troubleshooting
-
-### CUDA Not Found
-
-**Symptom**:
-
-```
-WARN: CUDA provider classes not found
-```
-
-**Solution**:
-
-1. Ensure you built with `-P gpu` profile
-2. Verify CUDA toolkit is installed: `nvcc --version`
-3. Check CUDA libraries are in your PATH/LD_LIBRARY_PATH
-
-### GPU Out of Memory
-
-**Symptom**:
-
-```
-ERROR: CUDA out of memory
-```
-
-**Solution**:
-
-1. Reduce batch size
-2. Use smaller models
-3. Adjust JVM heap size: `-Xmx4g`
-
-### Wrong CUDA Version
-
-**Symptom**:
-
-```
-ERROR: CUDA driver version is insufficient
-```
-
-**Solution**:
-
-1. Check required CUDA version: Usually 11.x or 12.x
-2. Update NVIDIA drivers
-3. Verify with: `nvidia-smi`
-
-### Performance Not Improved
-
-**Symptom**: GPU mode is not faster than CPU
-
-**Possible Causes**:
-
-1. Model size too small (GPU overhead > benefit)
-2. CPU is very powerful (e.g., high-core-count server CPU)
-3. Data transfer bottleneck (optimize batch processing)
-4. GPU is low-end or shared with display
-
-## Best Practices
-
-### 1. Use Batch Processing
-
-GPU acceleration shines with batch processing:
-
-```java
-
-@Service
-public class VisionService {
-
-    @Autowired
-    private VisionTemplate visionTemplate;
-
-    public List<List<Detection>> processBatch(List<byte[]> images) {
-        // Process multiple images to maximize GPU utilization
-        return images.parallelStream()
-                .map(visionTemplate::detectFaces)
-                .collect(Collectors.toList());
-    }
-}
-```
-
-### 2. Warm Up the GPU
-
-The first inference may be slow due to GPU initialization:
-
-```java
-/**
- * Component that warms up the GPU on application startup.
- * This ensures optimal performance for the first inference request.
- *
- * @author Spring Vision Team
- * @since 1.0.0
- */
-@Component
-public class GpuWarmup implements ApplicationRunner {
-
-    private static final Logger logger = LoggerFactory.getLogger(GpuWarmup.class);
-
-    @Autowired
-    private VisionTemplate visionTemplate;
-
-    /**
-     * Executes GPU warmup after application context is fully initialized.
-     *
-     * @param args application arguments
-     * @throws Exception if warmup fails
-     */
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
-        // Warm up with a dummy image
-        byte[] dummyImage = createDummyImage();
-        visionTemplate.detectFaces(dummyImage);
-        logger.info("GPU warmup completed");
-    }
-
-    /**
-     * Creates a dummy image for GPU warmup.
-     *
-     * @return byte array containing a simple test image
-     */
-    private byte[] createDummyImage() {
-        // Create a simple 640x480 RGB image
-        int width = 640;
-        int height = 480;
-        int channels = 3;
-        byte[] image = new byte[width * height * channels];
-        // Fill with neutral gray color
-        Arrays.fill(image, (byte) 128);
-        return image;
-    }
-}
-```
-
-### 3. Monitor GPU Usage
-
-Use NVIDIA tools to monitor:
+The jar itself must already have been built with `-P gpu` — the Dockerfile only copies
+a prebuilt jar, it doesn't invoke Maven — so build first, then bring up the GPU-enabled
+compose stack:
 
 ```bash
-# Monitor GPU usage in real-time
-nvidia-smi -l 1
+make install GPU=true
 
-# Check detailed GPU metrics
-nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv -l 1
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
 ```
 
-### 4. Configuration for Different Environments
-
-Use Spring profiles for environment-specific configuration:
-
-```yaml
-# application-development.yml
-spring:
-  vision:
-    execution-provider: cpu  # Developers may not have GPUs
-
-# application-production.yml
-spring:
-  vision:
-    execution-provider: gpu  # Production servers with GPUs
-```
-
-## Docker Deployment
-
-### GPU-Enabled Dockerfile
-
-```dockerfile
-FROM nvidia/cuda:12.0-runtime-ubuntu22.04
-
-# Install Java 21
-RUN apt-get update && apt-get install -y openjdk-21-jre
-
-# Copy application
-COPY target/your-app.jar /app/app.jar
-
-# Set configuration
-ENV VISION_EXECUTION_PROVIDER=gpu
-
-# Run
-CMD ["java", "-jar", "/app/app.jar"]
-```
-
-### Docker Compose with GPU
-
-```yaml
-version: '3.8'
-services:
-  spring-vision:
-    image: your-spring-vision-app:latest
-    runtime: nvidia
-    environment:
-      - SPRING_VISION_EXECUTION_PROVIDER=gpu
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
-```
-
-### Running with Docker
+`docker-compose.gpu.yml` is an override that adds an NVIDIA device reservation to the
+`mcp` service only — it doesn't change what gets built into the jar. This requires the
+**NVIDIA driver** and the **NVIDIA Container Toolkit** on the host (so Docker can pass
+the driver through to the container via `--gpus all` / the compose device reservation).
+A plain `docker run` equivalent:
 
 ```bash
-# Build with GPU support
-mvn clean package -P gpu
-
-# Build Docker image
-docker build -t spring-vision-gpu .
-
-# Run with GPU access
-docker run --gpus all -p 8080:8080 spring-vision-gpu
+docker run --rm --gpus all -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> spring-vision-mcp:<version>-gpu
 ```
 
-## Kubernetes Deployment
+This is my understanding of how DJL's `pytorch-native-cu124` and ONNX Runtime's
+`onnxruntime_gpu` Java packages are documented to work — they bundle their own CUDA/
+cuDNN runtime shared libraries inside the jar, so the container image itself doesn't
+need to be an `nvidia/cuda` base image, only the host driver needs to be present. This
+hasn't been verified against real GPU hardware from this repo — confirm with `nvidia-smi`
+on the host and inside the running container, and watch the `mcp` service's logs for
+`UnsatisfiedLinkError` before relying on it.
 
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: spring-vision-gpu
-spec:
-  containers:
-    - name: spring-vision
-      image: your-spring-vision-app:gpu
-      env:
-        - name: VISION_EXECUTION_PROVIDER
-          value: "gpu"
-      resources:
-        limits:
-          nvidia.com/gpu: 1
+## Verifying it's actually running on GPU
+
+```bash
+# On the host
+nvidia-smi
+
+# Application logs on startup (DjlVisionBackend)
+# "Initializing DJL Vision Backend - Engine: ..., Device: gpu, Version: ..."
+
+# Inside a running container (if using Docker)
+docker exec -it <container> nvidia-smi
 ```
 
-## Advanced Configuration
+If GPU acceleration isn't engaging, check in this order: was the jar actually built with
+`-P gpu` (`unzip -l app.jar | grep -i onnxruntime_gpu` should show the CUDA jar bundled),
+is `spring.vision.djl.device` actually set to `gpu` at runtime, is the NVIDIA driver
+visible via `nvidia-smi`, and — for Docker — is the NVIDIA Container Toolkit installed
+and `--gpus all` (or the compose device reservation) actually present.
 
-### Custom CUDA Options
-
-For advanced users who need fine-grained control:
-
-```java
-/**
- * Custom ONNX Runtime configuration with fine-grained CUDA control.
- * Extends the default OnnxRuntimeConfig to add custom GPU settings.
- *
- * @author Spring Vision Team
- * @since 1.0.0
- */
-@Configuration
-public class CustomOnnxConfig extends OnnxRuntimeConfig {
-
-    private static final Logger logger = LoggerFactory.getLogger(CustomOnnxConfig.class);
-
-    /**
-     * Constructs custom ONNX configuration.
-     *
-     * @param visionProperties the vision properties
-     */
-    public CustomOnnxConfig(VisionProperties visionProperties) {
-        super(visionProperties);
-    }
-
-    /**
-     * Creates custom OrtSession.SessionOptions with advanced CUDA configuration.
-     *
-     * @return the SessionOptions instance with custom CUDA settings
-     */
-    @Bean
-    @Override
-    public Object ortSessionOptions() {
-        Object options = super.ortSessionOptions();
-
-        try {
-            // Add custom CUDA configuration via reflection
-            // Example: Set GPU device ID, memory limit, etc.
-            Class<?> optionsClass = options.getClass();
-
-            // Set specific GPU device (e.g., device 0)
-            // Method setGpuDeviceId = optionsClass.getMethod("setGpuDeviceId", int.class);
-            // setGpuDeviceId.invoke(options, 0);
-
-            logger.info("Custom CUDA options configured successfully");
-        } catch (Exception e) {
-            logger.warn("Failed to apply custom CUDA options: {}", e.getMessage());
-        }
-
-        return options;
-    }
-}
-```
-
-## Migration Guide
-
-### Upgrading from CPU to GPU
-
-1. **Rebuild the project**:
-   ```bash
-   mvn clean install -P gpu
-   ```
-
-2. **Update configuration**:
-   ```properties
-   vision.execution-provider=gpu
-   ```
-
-3. **Test thoroughly**: Verify output matches CPU results
-
-4. **Monitor performance**: Ensure GPU provides expected speedup
-
-### Downgrading from GPU to CPU
-
-1. **Rebuild without GPU profile**:
-   ```bash
-   mvn clean install
-   ```
-
-2. **Update configuration**:
-   ```yaml
-   spring:
-     vision:
-       execution-provider: cpu
-   ```
+Also check the backend's health/details endpoint for a `cpuFallbackModels` entry — if
+present, those specific models fell back to CPU after a GPU load failure (see above);
+everything else is genuinely on GPU. An empty/absent `cpuFallbackModels` with
+`device: gpu` and `gpuAvailable: true` means every model that loaded, loaded on GPU.
 
 ## FAQ
 
-**Q: Can I use both CPU and GPU at runtime?**  
-A: No, you select one execution provider at application startup.
+**Can I use both CPU and GPU on the same running instance?** No — `device` is one value
+for the whole application; run separate instances if you need both.
 
-**Q: Does GPU support work on AMD GPUs?**  
-A: Currently, only NVIDIA CUDA is supported. AMD ROCm support may be added in future versions.
+**Does this support AMD GPUs?** No, only NVIDIA CUDA — DJL's PyTorch and ONNX Runtime
+GPU artifacts are CUDA-only.
 
-**Q: What if I build with GPU but run on a machine without GPU?**  
-A: The application will automatically fall back to CPU execution with a warning.
+**What if I build with `-P gpu` but run on a machine without a GPU?** `DjlVisionBackend`
+catches the device-initialization failure and falls back to CPU with a logged warning
+for the whole application.
 
-**Q: Can I use multiple GPUs?**  
-A: ONNX Runtime supports multi-GPU, but this requires additional configuration not covered in the current implementation.
-
-**Q: Is GPU support available for all backends?**  
-A: GPU acceleration is available for backends that use ONNX Runtime (FaceBytes, YOLO, certain OpenCV models).
-
-## Support
-
-For issues related to GPU support:
-
-1. Check the [Troubleshooting](#troubleshooting) section
-2. Review logs for error messages
-3. Open an issue on [GitHub](https://github.com/codesapienbe/spring-vision/issues)
-4. Include:
-    - GPU model and driver version
-    - CUDA version
-    - Full error logs
-    - Configuration used
-
-## References
-
-- [ONNX Runtime GPU Execution Provider](https://onnxruntime.ai/docs/execution-providers/CUDA-ExecutionProvider.html)
-- [NVIDIA CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
-- [cuDNN Documentation](https://developer.nvidia.com/cudnn)
-- [Spring Vision Documentation](../README.md)
+**What if the device itself is GPU but one specific model fails to load on it?** That
+model is retried once on CPU rather than left unavailable — see "Per-model fallback"
+above. Other tools are unaffected either way; each model's own load failure was already
+isolated before this fallback existed (one `try`/`catch` per model in `initialize()`),
+this just adds a second chance on CPU instead of giving up immediately.
 
 ---
 
-See also: [Getting Started](../getting-started/quick-start.md) · [Configuration](./config.md) · [Models Guide](./models.md) · [Maven Model Download](./downloads.md) · [Runtime](./runtime.md)
+See also: [Deploying for Free](./deploy-free.md) (Oracle Cloud's free ARM tier has no
+GPU option — this page is for the opposite case, a machine with an NVIDIA GPU) ·
+[Runtime](./runtime.md) · [Configuration](./config.md)

@@ -167,10 +167,12 @@
       <version>2.19.0</version>
     </dependency>
 
-    <!-- ONNX Runtime for CPU (used by emotion detection and any future ONNX models) -->
+    <!-- ONNX Runtime (used by emotion detection and most other DJL models below). Artifact
+         switches between the CPU and CUDA build via the root pom's onnxruntime.artifact
+         property — see the gpu Maven profile. -->
     <dependency>
       <groupId>com.microsoft.onnxruntime</groupId>
-      <artifactId>onnxruntime</artifactId>
+      <artifactId>${onnxruntime.artifact}</artifactId>
     </dependency>
 
     <!-- Tesseract OCR — mandatory for OCR and identity-document recognition. -->
@@ -233,10 +235,12 @@
     </dependency>
 
     <!-- Add an explicit platform-specific PyTorch native library to avoid runtime JNI download in containers.
-         Classifier is auto-selected by OS-detection profiles in the root pom. -->
+         Classifier is auto-selected by the OS-detection profiles in the root pom; the artifact
+         itself (CPU vs CUDA build) switches via the root pom's pytorch.native.artifact
+         property — see the gpu Maven profile. -->
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
-      <artifactId>pytorch-native-cpu</artifactId>
+      <artifactId>${pytorch.native.artifact}</artifactId>
       <version>${pytorch.version}</version>
       <classifier>${pytorch.classifier}</classifier>
       <scope>runtime</scope>
@@ -248,10 +252,19 @@
       <artifactId>opencv</artifactId>
     </dependency>
 
-    <!-- DJL ONNX Runtime Engine (for ONNX models, e.g. emotion-ferplus) -->
+    <!-- DJL ONNX Runtime Engine (for ONNX models, e.g. emotion-ferplus). Excludes its own
+         transitive onnxruntime (CPU) dependency — otherwise it stays on the classpath
+         even under -Pgpu, alongside our explicit ${onnxruntime.artifact} above, putting
+         both the CPU and CUDA native onnxruntime libraries in the same JVM at once. -->
     <dependency>
       <groupId>ai.djl.onnxruntime</groupId>
       <artifactId>onnxruntime-engine</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.microsoft.onnxruntime</groupId>
+          <artifactId>onnxruntime</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- DJL HuggingFace Tokenizers (for HuggingFace model support) -->
@@ -350,34 +363,14 @@
     </resources>
   </build>
 
-  <!-- Profiles for CPU vs GPU ONNX Runtime -->
+  <!-- CPU vs GPU native artifact selection lives in the root pom's single gpu profile
+       (pytorch.native.artifact / onnxruntime.artifact properties, consumed by the
+       dependency declarations above) — see docs/configuration/gpu.md. Previously this
+       module also declared its own gpu profile that *added* onnxruntime_gpu as an extra
+       dependency alongside the always-present CPU onnxruntime jar, putting both native
+       libraries on the classpath at once; that's removed now that the artifactId itself
+       is switched by a property instead. -->
   <profiles>
-    <!-- CPU Profile (Active by Default) -->
-    <profile>
-      <id>cpu</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <properties>
-        <onnxruntime.provider>cpu</onnxruntime.provider>
-      </properties>
-    </profile>
-
-    <!-- GPU Profile (CUDA-enabled) -->
-    <profile>
-      <id>gpu</id>
-      <properties>
-        <onnxruntime.provider>gpu</onnxruntime.provider>
-      </properties>
-      <dependencies>
-        <!-- Replace CPU runtime with GPU runtime -->
-        <dependency>
-          <groupId>com.microsoft.onnxruntime</groupId>
-          <artifactId>onnxruntime_gpu</artifactId>
-        </dependency>
-      </dependencies>
-    </profile>
-
     <!-- Legacy/backends profile: opt-in profile for legacy JavaCV/OpenCV native artifacts.
          Activate with -Plegacy-backends to include JavaCV/OpenCV/OpenBLAS artifacts when you
          need to run the old OpenCV-based backends. Kept opt-in to avoid accidental native blobs

@@ -1,0 +1,18 @@
+# Compose override for GPU deployments — adds NVIDIA device passthrough to the mcp
+# service. Does NOT change what gets built into the jar; run
+# `make install GPU=true` (or `mvn -P gpu install`) first so mcp/target/ actually
+# contains a CUDA-enabled build, then:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+#
+# Requires the NVIDIA driver and the NVIDIA Container Toolkit on the host — see
+# docs/configuration/gpu.md.
+services:
+  mcp:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
