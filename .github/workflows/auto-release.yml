@@ -25,8 +25,12 @@ jobs:
       - name: Verify required secrets and variables
         run: |
           MISSING=()
-          [ -z "$APP_ID" ] && MISSING+=("APP_ID (repository variable)")
-          [ -z "$APP_PRIVATE_KEY" ] && MISSING+=("APP_PRIVATE_KEY (repository secret)")
+          if [ -z "$APP_ID" ]; then
+            MISSING+=("APP_ID (repository variable)")
+          fi
+          if [ -z "$APP_PRIVATE_KEY" ]; then
+            MISSING+=("APP_PRIVATE_KEY (repository secret)")
+          fi
           if [ ${#MISSING[@]} -ne 0 ]; then
             echo "❌ Missing: ${MISSING[*]}"
             exit 1
