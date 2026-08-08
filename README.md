@@ -1,26 +1,26 @@
 <div align="center">
-  <a href="https://github.com/spring-vision/spring-vision">
-    <img src="https://raw.githubusercontent.com/spring-vision/spring-vision/main/assets/logo.png" alt="Spring Vision Logo" width="200">
+  <a href="https://github.com/codesapienbe/spring-vision">
+    <img src="https://raw.githubusercontent.com/codesapienbe/spring-vision/main/assets/logo.png" alt="Spring Vision Logo" width="200">
   </a>
   <h1 align="center">Spring Vision</h1>
   <p align="center">
     <strong>The Ultimate Computer Vision Framework for Spring Boot Applications</strong>
     <br />
     <br />
-    <a href="https://github.com/spring-vision/spring-vision/actions/workflows/build.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/spring-vision/spring-vision/build.yml?branch=main&style=for-the-badge&logo=github" alt="Build Status">
+    <a href="https://github.com/codesapienbe/spring-vision/actions/workflows/auto-release.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/codesapienbe/spring-vision/auto-release.yml?branch=CSNET&style=for-the-badge&logo=github" alt="Build Status">
     </a>
-    <a href="https://search.maven.org/artifact/com.springvision/spring-vision-starter">
-      <img src="https://img.shields.io/maven-central/v/com.springvision/spring-vision-starter.svg?style=for-the-badge&logo=apache-maven" alt="Maven Central">
+    <a href="https://github.com/codesapienbe/spring-vision/packages">
+      <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fcodesapienbe%2Fspring-vision%2Freleases%2Flatest&query=%24.tag_name&label=GitHub%20Packages&style=for-the-badge&logo=apache-maven" alt="GitHub Packages">
     </a>
-    <a href="https://github.com/spring-vision/spring-vision/blob/main/LICENSE">
-      <img src="https://img.shields.io/github/license/spring-vision/spring-vision?style=for-the-badge" alt="License">
+    <a href="https://github.com/codesapienbe/spring-vision/blob/main/LICENSE">
+      <img src="https://img.shields.io/github/license/codesapienbe/spring-vision?style=for-the-badge" alt="License">
     </a>
-    <a href="https://github.com/spring-vision/spring-vision/stargazers">
-      <img src="https://img.shields.io/github/stars/spring-vision/spring-vision?style=for-the-badge&logo=github" alt="GitHub stars">
+    <a href="https://github.com/codesapienbe/spring-vision/stargazers">
+      <img src="https://img.shields.io/github/stars/codesapienbe/spring-vision?style=for-the-badge&logo=github" alt="GitHub stars">
     </a>
-    <a href="https://github.com/spring-vision/spring-vision/network/members">
-      <img src="https://img.shields.io/github/forks/spring-vision/spring-vision?style=for-the-badge&logo=github" alt="GitHub forks">
+    <a href="https://github.com/codesapienbe/spring-vision/network/members">
+      <img src="https://img.shields.io/github/forks/codesapienbe/spring-vision?style=for-the-badge&logo=github" alt="GitHub forks">
     </a>
   </p>
 </div>
@@ -45,7 +45,7 @@ For the easiest installation experience, run our CLI setup tool directly with JB
 
 ```bash
 # Run the CLI setup tool to automatically download and configure everything
-jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/cli-0.0.4.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.6/cli-0.0.6.jar
 ```
 
 That's it! The CLI tool will automatically:
@@ -101,7 +101,7 @@ Spring Vision artifacts are published to GitHub Packages. Add the repository to 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.6</version>
 </dependency>
 ```
 
@@ -136,7 +136,7 @@ The CLI tool will show you the exact configuration. Here's an example:
   "mcpServers": {
     "spring-vision": {
       "command": "jbang",
-      "args": ["/home/youruser/.springvision/mcp-0.0.4.jar"]
+      "args": ["/home/youruser/.springvision/mcp-0.0.6.jar"]
     }
   }
 }
@@ -156,7 +156,7 @@ The CLI tool will show you the exact configuration. Here's an example:
      "mcpServers": {
        "spring-vision": {
          "command": "jbang",
-         "args": ["~/.springvision/mcp-0.0.4.jar"]
+         "args": ["~/.springvision/mcp-0.0.6.jar"]
        }
      }
    }
@@ -213,7 +213,7 @@ spring:
 
 ## Current Capabilities
 
-Spring Vision 0.0.4 provides these computer vision capabilities (all models included in JAR):
+Spring Vision 0.0.6 provides these computer vision capabilities (all models included in JAR):
 
 ### ✅ **Production Ready**
 
@@ -281,29 +281,29 @@ The Spring Vision CLI tool provides several options:
 
 ```bash
 # Basic setup (downloads latest version)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar
 
 # Force re-download even if JAR exists
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --force
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --force
 
 # Show help
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --help
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --help
 
 # Show version
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --version
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --version
 
 # Disable colors (for CI/CD)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --no-color
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --no-color
 
 # Verbose output (for debugging)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --verbose
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --verbose
 ```
 
 ### Managing Your Installation
 
 ```bash
 # Update to latest version
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.4.jar --force
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --force
 
 # Check JAR location
 ls -la ~/.springvision/
