@@ -45,7 +45,7 @@ For the easiest installation experience, run our CLI setup tool directly with JB
 
 ```bash
 # Run the CLI setup tool to automatically download and configure everything
-jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.5/cli-0.0.5.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/download/v0.0.6/cli-0.0.6.jar
 ```
 
 That's it! The CLI tool will automatically:
@@ -101,7 +101,7 @@ Spring Vision artifacts are published to GitHub Packages. Add the repository to 
 <dependency>
     <groupId>io.github.codesapienbe.springvision</groupId>
     <artifactId>starter</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
 </dependency>
 ```
 
@@ -136,7 +136,7 @@ The CLI tool will show you the exact configuration. Here's an example:
   "mcpServers": {
     "spring-vision": {
       "command": "jbang",
-      "args": ["/home/youruser/.springvision/mcp-0.0.5.jar"]
+      "args": ["/home/youruser/.springvision/mcp-0.0.6.jar"]
     }
   }
 }
@@ -156,7 +156,7 @@ The CLI tool will show you the exact configuration. Here's an example:
      "mcpServers": {
        "spring-vision": {
          "command": "jbang",
-         "args": ["~/.springvision/mcp-0.0.5.jar"]
+         "args": ["~/.springvision/mcp-0.0.6.jar"]
        }
      }
    }
@@ -213,7 +213,7 @@ spring:
 
 ## Current Capabilities
 
-Spring Vision 0.0.5 provides these computer vision capabilities (all models included in JAR):
+Spring Vision 0.0.6 provides these computer vision capabilities (all models included in JAR):
 
 ### ✅ **Production Ready**
 
@@ -281,29 +281,29 @@ The Spring Vision CLI tool provides several options:
 
 ```bash
 # Basic setup (downloads latest version)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar
 
 # Force re-download even if JAR exists
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --force
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --force
 
 # Show help
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --help
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --help
 
 # Show version
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --version
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --version
 
 # Disable colors (for CI/CD)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --no-color
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --no-color
 
 # Verbose output (for debugging)
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --verbose
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --verbose
 ```
 
 ### Managing Your Installation
 
 ```bash
 # Update to latest version
-jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.5.jar --force
+jbang https://github.com/codesapienbe/spring-vision/releases/latest/download/cli-0.0.6.jar --force
 
 # Check JAR location
 ls -la ~/.springvision/
