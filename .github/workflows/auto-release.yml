@@ -3,6 +3,9 @@ name: Auto Release on Merge
 # Every push to the default branch (CSNET) auto-bumps the patch version,
 # commits it back, and tags it — the tag push then triggers deploy.yml,
 # which builds, publishes to GitHub Packages, and creates the GitHub Release.
+# The latest `v*` git tag is the single source of truth for the next version
+# number; VERSION and the poms are just kept in sync with it for local
+# tooling (Makefile), never read to decide the next version.
 # Manual releases via `make release` still work unchanged: this workflow only
 # adds an automatic tag on top of ordinary merges.
 on:
@@ -61,13 +64,16 @@ jobs:
       - name: Bump patch version
         id: bump
         run: |
-          CURRENT_VERSION=$(cat VERSION)
+          git fetch --tags --force
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          LATEST_TAG=${LATEST_TAG:-v0.0.0}
+          CURRENT_VERSION=${LATEST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
           NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
           echo "$NEW_VERSION" > VERSION
           mvn -B versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false -DprocessAllModules=true -q
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Bumping $CURRENT_VERSION -> $NEW_VERSION"
+          echo "Bumping $LATEST_TAG -> v$NEW_VERSION"
 
       - name: Configure Git identity
         run: |
