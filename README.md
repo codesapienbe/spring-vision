@@ -7,8 +7,8 @@
     <strong>The Ultimate Computer Vision Framework for Spring Boot Applications</strong>
     <br />
     <br />
-    <a href="https://github.com/codesapienbe/spring-vision/actions/workflows/deploy.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/codesapienbe/spring-vision/deploy.yml?branch=main&style=for-the-badge&logo=github" alt="Build Status">
+    <a href="https://github.com/codesapienbe/spring-vision/actions/workflows/auto-release.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/codesapienbe/spring-vision/auto-release.yml?branch=CSNET&style=for-the-badge&logo=github" alt="Build Status">
     </a>
     <a href="https://github.com/codesapienbe/spring-vision/packages">
       <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fcodesapienbe%2Fspring-vision%2Freleases%2Flatest&query=%24.tag_name&label=GitHub%20Packages&style=for-the-badge&logo=apache-maven" alt="GitHub Packages">
