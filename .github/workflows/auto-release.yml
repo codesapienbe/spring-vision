@@ -33,8 +33,10 @@ jobs:
           fi
           if [ ${#MISSING[@]} -ne 0 ]; then
             echo "❌ Missing: ${MISSING[*]}"
+            echo "Add them under Settings → Secrets and variables → Actions on this repository."
             exit 1
           fi
+          echo "✅ APP_ID and APP_PRIVATE_KEY are present."
         env:
           APP_ID: ${{ vars.APP_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
