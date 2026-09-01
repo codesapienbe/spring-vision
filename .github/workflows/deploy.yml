@@ -262,7 +262,12 @@ jobs:
 
   upload-core:
     name: Upload Core JAR
-    needs: deploy-packages
+    # Must depend on create-release directly (not just transitively via
+    # deploy-packages) because it reads needs.create-release.outputs.upload_url
+    # below — a job's `needs` context only exposes outputs for jobs listed in
+    # its own `needs:`. Without this, upload_url resolved empty and this job
+    # failed on every run, skipping upload-starter/mcp/cli/damage-model after it.
+    needs: [ create-release, deploy-packages ]
     runs-on: ubuntu-latest
     permissions:
       contents: write

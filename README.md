@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/codesapienbe/spring-vision">
-    <img src="https://raw.githubusercontent.com/codesapienbe/spring-vision/main/assets/logo.png" alt="Spring Vision Logo" width="200">
+    <img src="https://raw.githubusercontent.com/codesapienbe/spring-vision/CSNET/assets/logo.png" alt="Spring Vision Logo" width="200">
   </a>
   <h1 align="center">Spring Vision</h1>
   <p align="center">
@@ -13,7 +13,7 @@
     <a href="https://github.com/codesapienbe/spring-vision/packages">
       <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fcodesapienbe%2Fspring-vision%2Freleases%2Flatest&query=%24.tag_name&label=GitHub%20Packages&style=for-the-badge&logo=apache-maven" alt="GitHub Packages">
     </a>
-    <a href="https://github.com/codesapienbe/spring-vision/blob/main/LICENSE">
+    <a href="https://github.com/codesapienbe/spring-vision/blob/CSNET/LICENSE">
       <img src="https://img.shields.io/github/license/codesapienbe/spring-vision?style=for-the-badge" alt="License">
     </a>
     <a href="https://github.com/codesapienbe/spring-vision/stargazers">
@@ -81,9 +81,33 @@ make run      # Starts local Keycloak and runs the server
 
 ### Using as a Library
 
-#### 1. Add Repository
+#### 1. Authenticate to GitHub Packages
 
-Spring Vision artifacts are published to GitHub Packages. Add the repository to your POM (no authentication required for public access):
+Spring Vision artifacts are published to [GitHub Packages](https://github.com/codesapienbe/spring-vision/packages). **GitHub Packages requires authentication to download Maven artifacts, even though this repository and its packages are public** — there is no anonymous/unauthenticated pull, unlike Maven Central. This applies to every consumer, including a private company project depending on `spring-vision-core`.
+
+You need a GitHub [personal access token (classic)](https://github.com/settings/tokens) with at least the `read:packages` scope. Add a matching `<server>` entry to `~/.m2/settings.xml` (or your CI's Maven settings):
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>${env.GITHUB_TOKEN}</password> <!-- PAT with read:packages -->
+    </server>
+  </servers>
+</settings>
+```
+
+```bash
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+```
+
+In a consuming CI pipeline (e.g. your private company repo's build), store the token as a secret and export it the same way before `mvn` runs — the token just needs read access to this repo's packages, which any authenticated GitHub user already has since the repo is public.
+
+#### 2. Add Repository
+
+Add the repository to your POM:
 
 ```xml
 <repositories>
@@ -95,7 +119,7 @@ Spring Vision artifacts are published to GitHub Packages. Add the repository to 
 </repositories>
 ```
 
-#### 2. Add Dependency
+#### 3. Add Dependency
 
 ```xml
 <dependency>
