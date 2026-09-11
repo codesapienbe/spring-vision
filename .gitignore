@@ -53,3 +53,6 @@ runs/
 # Claude Code internal files
 .claude/scheduled_tasks.lock
 
+
+# graphify knowledge graphs
+graphify-out/
