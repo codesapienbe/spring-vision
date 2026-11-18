@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.core.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -20,6 +21,7 @@ import org.springframework.core.env.Environment;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.djl.DjlOnlineDamageClassifier;
 import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -65,8 +67,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  * @see VisionMetrics
  * @since 1.0.0
  */
-@Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(VisionProperties.class)
+@AutoConfiguration
+@EnableConfigurationProperties({VisionProperties.class, DjlProperties.class})
 public class VisionAutoConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(VisionAutoConfiguration.class);
@@ -96,7 +98,7 @@ public class VisionAutoConfiguration {
     @Primary
     @ConditionalOnMissingBean(VisionBackend.class)
     @ConditionalOnExpression("(${spring.vision.enabled:true} and ${spring.vision.fail-fast:true}) or (${vision.enabled:true} and ${vision.fail-fast:true})")
-    public VisionBackend visionBackendFailFast(VisionProperties properties) {
+    public VisionBackend visionBackendFailFast(VisionProperties properties, DjlProperties djlProperties) {
         logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean (fail-fast mode) ===");
 
         // Determine effective settings, preferring spring.vision.* if provided
@@ -113,7 +115,7 @@ public class VisionAutoConfiguration {
             ? "opencv"
             : configuredBackend.trim().toLowerCase();
 
-        return createBackendByName(backendName, properties);
+        return createBackendByName(backendName, properties, djlProperties);
     }
 
     /**
@@ -137,6 +139,16 @@ public class VisionAutoConfiguration {
      * @param backend the configured vision backend
      * @return the vision template
      */
+    /**
+     * Online damage classifier, injected into the DJL backend when enabled.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "spring.vision.djl.online-classifier", name = "enabled", havingValue = "true")
+    public DjlOnlineDamageClassifier djlOnlineDamageClassifier(DjlProperties properties) {
+        return new DjlOnlineDamageClassifier(properties);
+    }
+
     @Bean
     @ConditionalOnMissingBean(VisionTemplate.class)
     @ConditionalOnBean(VisionBackend.class)
@@ -147,23 +159,21 @@ public class VisionAutoConfiguration {
     }
 
     /**
-     * Creates the vision health indicator for Spring Boot Actuator.
-     *
-     * <p>
-     * This health indicator monitors the health of the vision backend and
-     * reports its status to Spring Boot Actuator health endpoints.</p>
-     *
-     * @param backend    the vision backend to monitor
-     * @param properties the vision configuration properties
-     * @return the vision health indicator
+     * The health indicator lives in its own class so that it is only introspected when Actuator is
+     * on the classpath: a bean method returning an Actuator type makes the whole configuration
+     * unloadable in an application without Actuator.
      */
-    @Bean
-    @ConditionalOnClass(name = "org.springframework.boot.actuator.health.HealthIndicator")
-    @ConditionalOnMissingBean(VisionHealthIndicator.class)
-    @ConditionalOnProperty(prefix = "vision.health", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public VisionHealthIndicator visionHealthIndicator(VisionBackend backend, VisionProperties properties) {
-        logger.info("Creating vision health indicator");
-        return new VisionHealthIndicator(backend, properties);
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.boot.actuate.health.HealthIndicator")
+    static class HealthConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean(VisionHealthIndicator.class)
+        @ConditionalOnProperty(prefix = "vision.health", name = "enabled", havingValue = "true", matchIfMissing = true)
+        VisionHealthIndicator visionHealthIndicator(VisionBackend backend, VisionProperties properties) {
+            logger.info("Creating vision health indicator");
+            return new VisionHealthIndicator(backend, properties);
+        }
     }
 
     /**
@@ -199,28 +209,28 @@ public class VisionAutoConfiguration {
      * Create a vision backend by name, using reflection for optional modules to avoid hard dependencies.
      * Falls back to DJL when the requested backend isn't on classpath.
      */
-    private VisionBackend createBackendByName(String backendName, VisionProperties properties) {
+    private VisionBackend createBackendByName(String backendName, VisionProperties properties, DjlProperties djlProperties) {
         return switch (backendName) {
             case "djl" -> {
                 logger.info("Initializing DJL backend (default)");
-                yield createDjlBackend(properties);
+                yield createDjlBackend(djlProperties);
             }
             case "opencv" -> {
                 logger.info("OpenCV backend has been replaced by DJL. Using DJL backend instead.");
-                yield createDjlBackend(properties);
+                yield createDjlBackend(djlProperties);
             }
             case "cyber" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", properties);
+                reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", djlProperties);
             case "robotics" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.robotics.RoboticsBackend", properties);
+                reflectInstantiate("io.github.codesapienbe.springvision.robotics.RoboticsBackend", djlProperties);
             default -> {
                 logger.warn("Backend '{}' not supported or not on classpath. Falling back to DJL.", backendName);
-                yield createDjlBackend(properties);
+                yield createDjlBackend(djlProperties);
             }
         };
     }
 
-    private VisionBackend reflectInstantiate(String className, VisionProperties properties) {
+    private VisionBackend reflectInstantiate(String className, DjlProperties djlProperties) {
         try {
             Class<?> clazz = Class.forName(className);
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -232,7 +242,7 @@ public class VisionAutoConfiguration {
             return (VisionBackend) instance;
         } catch (Throwable t) {
             logger.warn("Could not initialize backend '{}': {}. Falling back to DJL.", className, t.toString());
-            return createDjlBackend(properties);
+            return createDjlBackend(djlProperties);
         }
     }
 
@@ -272,20 +282,15 @@ public class VisionAutoConfiguration {
      * @return the configured DJL backend
      * @throws IllegalStateException if DJL backend cannot be initialized
      */
-    private VisionBackend createDjlBackend(VisionProperties properties) {
+    private VisionBackend createDjlBackend(DjlProperties djlProps) {
         logger.info("Creating DJL vision backend (default)");
-
         try {
-            // Bind DJL-specific properties from the environment.
-            DjlProperties djlProps = new DjlProperties();
-            try {
-                Binder binder = Binder.get(environment);
-                binder.bind("spring.vision.djl", Bindable.ofInstance(djlProps));
-                logger.debug("Bound spring.vision.djl properties for DJL backend");
-            } catch (Exception e) {
-                logger.debug("Failed to bind spring.vision.djl properties: {}", e.getMessage());
+            if (djlProps.getCacheDir() != null) {
+                System.setProperty("ai.djl.repository.cache.dir", djlProps.getCacheDir());
             }
-
+            if (djlProps.getModelZooLocation() != null) {
+                System.setProperty("ai.djl.repository.zoo.location", djlProps.getModelZooLocation());
+            }
             DjlVisionBackend backend = new DjlVisionBackend(djlProps);
             backend.initialize();
             logger.info("DJL backend initialized successfully");

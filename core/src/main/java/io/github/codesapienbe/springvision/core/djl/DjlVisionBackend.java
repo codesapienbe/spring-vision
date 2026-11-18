@@ -27,8 +27,6 @@ import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
@@ -143,8 +141,6 @@ import jakarta.annotation.PreDestroy;
  * @author Spring Vision Team
  * @since 1.0.5
  */
-@Component
-@ConditionalOnProperty(prefix = "spring.vision.djl", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DjlVisionBackend implements VisionBackend,
     FaceDetectionCapability,
     ObjectDetectionCapability,

@@ -104,6 +104,23 @@ which keeps syncing the fork conflict-free.
 </dependency>
 ```
 
+`core` alone gives you a `VisionTemplate` bean through Spring Boot auto-configuration (one backend,
+created once); `starter` adds the optional REST endpoints. Nothing else is added to your application:
+no endpoints, no CORS rules, no logging or `application.yml` overrides.
+
+The `/api/vision/*` endpoints are off until you opt in:
+
+```yaml
+spring:
+  vision:
+    web:
+      enabled: true              # register /api/vision/* (servlet web apps only)
+      remote-image-urls: false   # true lets requests pass an http(s) imageUrl the server fetches
+```
+
+Requests can always upload a file or send a `data:` URI. Server-side file paths are never read, and
+redirects are never followed when remote URLs are enabled.
+
 #### 3. Use in Your Code
 
 ```java

@@ -96,7 +96,9 @@ VisionTemplate
 
 ### REST Layer (`starter` module)
 
-`VisionController` maps `/api/vision/*` to `VisionTemplate` calls, with async support via `AsyncConfig`. DTOs live in `.../starter/web/dto/`.
+`VisionController` maps `/api/vision/*` to `VisionTemplate` calls, with async support via `AsyncConfig`. DTOs live in `.../starter/web/dto/`. It is registered by `VisionWebAutoConfiguration` only when `spring.vision.web.enabled=true`; fetching http(s) `imageUrl`s needs `spring.vision.web.remote-image-urls=true` and server-side paths are never read.
+
+`core` registers `VisionAutoConfiguration` in `META-INF/spring/...AutoConfiguration.imports`; it creates the one `VisionBackend` and `VisionTemplate`. `DjlVisionBackend` is not a `@Component`, so scanning `core` never creates extra backends.
 
 ## Code Quality
 

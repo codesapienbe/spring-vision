@@ -217,14 +217,14 @@ class VisionControllerTest {
         }
 
         @Test
-        @DisplayName("Should have CrossOrigin annotation")
-        void shouldHaveCrossOriginAnnotation() {
+        @DisplayName("Should not open CORS to every origin")
+        void shouldNotHaveCrossOriginAnnotation() {
             // When: Checking for CrossOrigin annotation
             boolean hasCrossOrigin = VisionController.class.isAnnotationPresent(
                 org.springframework.web.bind.annotation.CrossOrigin.class);
 
-            // Then: Should have the annotation
-            assertThat(hasCrossOrigin).isTrue();
+            // Then: CORS is the host application's decision, not the library's
+            assertThat(hasCrossOrigin).isFalse();
         }
     }
 
