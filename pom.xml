@@ -64,6 +64,8 @@
     <opencv.version>4.14.0-${javacpp.version}</opencv.version>
     <openblas.version>0.3.34-${javacpp.version}</openblas.version>
     <!-- Tesseract OCR and Leptonica (bytedeco JavaCPP presets, used under Apache-2.0). -->
+    <!-- JUnit tags surefire skips by default; `make memory-tests` clears it with -Dsurefire.excludedGroups= -->
+    <surefire.excludedGroups>memory-intensive</surefire.excludedGroups>
     <tesseract.version>5.5.3-${javacpp.version}</tesseract.version>
     <leptonica.version>1.87.0-${javacpp.version}</leptonica.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
@@ -271,7 +273,7 @@
               <ai.djl.offline>false</ai.djl.offline>
               <OPT_OUT_TRACKING>true</OPT_OUT_TRACKING>
             </systemPropertyVariables>
-            <excludedGroups>memory-intensive</excludedGroups>
+            <excludedGroups>${surefire.excludedGroups}</excludedGroups>
           </configuration>
         </plugin>
 
