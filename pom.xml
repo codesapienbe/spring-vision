@@ -107,14 +107,9 @@
     </repository>
   </repositories>
 
-  <distributionManagement>
-    <repository>
-      <!-- Publish artifacts to GitHub Packages for the project repository. -->
-      <id>github</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/codesapienbe/spring-vision</url>
-    </repository>
-  </distributionManagement>
+  <!-- No distributionManagement: this repository ships no release pipeline. Whoever publishes
+       (e.g. a fork) passes its own target, e.g.
+       mvn deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/OWNER/REPO -->
 
   <modules>
     <module>core</module>
