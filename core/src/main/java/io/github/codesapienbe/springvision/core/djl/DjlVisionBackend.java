@@ -15,7 +15,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -109,6 +108,7 @@ import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapab
 import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
+import io.github.codesapienbe.springvision.core.document.BelgianPlateFormat;
 import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocessor;
 import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
 import io.github.codesapienbe.springvision.core.document.ParsedDocument;
@@ -119,6 +119,7 @@ import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedExcep
 import io.github.codesapienbe.springvision.core.opencv.HaarFaceDetector;
 import io.github.codesapienbe.springvision.core.opencv.OpenCvImages;
 import io.github.codesapienbe.springvision.core.opencv.PixelRegion;
+import io.github.codesapienbe.springvision.core.opencv.PlateLocator;
 import jakarta.annotation.PreDestroy;
 
 /**
@@ -194,7 +195,6 @@ public class DjlVisionBackend implements VisionBackend,
     private ZooModel<Image, CategoryMask> semanticSegmentationModel;
     private ZooModel<Image, DetectedObjects> instanceSegmentationModel;
     private ZooModel<Image, DetectedObjects> vehicleDamageModel;
-    private ZooModel<Image, DetectedObjects> licensePlateModel;
 
     private static final Set<String> VEHICLE_CLASSES = Set.of(
         "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat");
@@ -2639,7 +2639,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(filter, "Filter cannot be null");
 
-        // Faces are the only detections obscure() draws from today; plates follow with plate detection.
+        // Faces are the only detections obscure() draws from today.
         List<Detection> targets = detectFaces(imageData).stream().filter(filter).toList();
         logger.debug("Obscuring {} face region(s)", targets.size());
         return withFacesPixelated(imageData, targets);
@@ -4603,123 +4603,61 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
     // LicensePlateRecognitionCapability Implementation
     // ============================================================================
 
-    private static final java.util.regex.Pattern PLATE_NORMALISE =
-        java.util.regex.Pattern.compile("[^A-Z0-9 -]");
+    /** Characters a Belgian plate can contain; everything else is noise for the OCR. */
+    private static final String PLATE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
 
     @Override
     public List<Detection> recognizeLicensePlates(ImageData imageData) {
         if (!initialized) {
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
-        if (licensePlateModel == null) {
-            throw new VisionUnsupportedException(
-                "No licence-clean licence-plate detection model is bundled yet; YOLO-based "
-                + "(Ultralytics, AGPL-3.0) plate detectors are not used.");
-        }
         TesseractRunner ocr = getOrInitTesseractRunner();
         if (!ocr.isAvailable()) {
             throw new VisionUnsupportedException(
-                "Tesseract OCR runtime is unavailable; cannot read plate text. "
-                + "Install tessdata or set spring.vision.ocr.* properties.");
+                "Tesseract language data is missing; cannot read plate text. "
+                + "Build with -Pdownload-models or set TESSDATA_PREFIX.");
         }
 
         String correlationId = generateCorrelationId();
-        logger.debug("DJL license plate recognition requested: correlationId={}", correlationId);
+        logger.debug("License plate recognition requested: correlationId={}", correlationId);
 
-        BufferedImage fullImage;
-        try {
-            fullImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
-            if (fullImage == null) {
-                throw new VisionProcessingException(
-                    "Could not decode image for license plate recognition",
-                    "image_decode_failed", DetectionType.LICENSE_PLATE.name(), null);
-            }
-        } catch (IOException e) {
-            throw new VisionProcessingException(
-                "Failed to load image for license plate recognition: " + e.getMessage(),
-                "image_load_failed", DetectionType.LICENSE_PLATE.name(), e);
-        }
-
-        DetectedObjects detected;
-        try {
-            Image djlImage = ImageFactory.getInstance()
-                .fromInputStream(new ByteArrayInputStream(imageData.data()));
-            detected = withPredictor(licensePlateModel, predictor -> predictor.predict(djlImage));
-        } catch (TranslateException e) {
-            throw new VisionProcessingException(
-                "License plate detection inference failed: " + e.getMessage(),
-                "inference_failed", DetectionType.LICENSE_PLATE.name(), e);
-        } catch (Exception e) {
-            throw new VisionBackendException(
-                "License plate detection failed: " + e.getMessage(),
-                "detection_failed", null, e);
-        }
-
-        int imgW = fullImage.getWidth();
-        int imgH = fullImage.getHeight();
         List<Detection> results = new ArrayList<>();
-        int numItems = detected.getNumberOfObjects();
-        for (int i = 0; i < numItems; i++) {
-            DetectedObjects.DetectedObject obj = detected.item(i);
-            ai.djl.modality.cv.output.BoundingBox djlBox = obj.getBoundingBox();
-            ai.djl.modality.cv.output.Rectangle r = djlBox.getBounds();
-            double nx = clamp01(r.getX());
-            double ny = clamp01(r.getY());
-            double nw = clamp01(r.getWidth());
-            double nh = clamp01(r.getHeight());
-            // Expand the detector's tight box by ~15% on each axis so Tesseract has
-            // some quiet zone around the glyphs — empty padding helps the page-segmentation step
-            // far more than the same number of pixels in the centre of the plate.
-            double padX = nw * 0.15;
-            double padY = nh * 0.25;
-            double px = clamp01(nx - padX);
-            double py = clamp01(ny - padY);
-            double pw = clamp01(nw + 2 * padX);
-            double ph = clamp01(nh + 2 * padY);
-            if (px + pw > 1.0) {
-                pw = 1.0 - px;
+        try (org.bytedeco.opencv.opencv_core.Mat image = OpenCvImages.decode(imageData.data())) {
+            int width = image.cols();
+            int height = image.rows();
+            for (PlateLocator.Candidate candidate : PlateLocator.locate(image)) {
+                String rawText;
+                double ocrConfidence;
+                try (org.bytedeco.opencv.opencv_core.Mat forOcr = PlateLocator.ocrImage(image, candidate)) {
+                    TesseractRunner.TextLine line = ocr.readLine(OpenCvImages.encode(forOcr, "png"), "eng", PLATE_CHARACTERS);
+                    rawText = line.text();
+                    ocrConfidence = line.confidence();
+                }
+                String cleaned = BelgianPlateFormat.cleaned(rawText);
+                if (cleaned.replace("-", "").length() < 5) {
+                    continue; // no plate-length text in this region
+                }
+                java.util.Optional<String> plate = BelgianPlateFormat.canonical(rawText);
+                String label = plate.orElse(cleaned);
+                PixelRegion r = candidate.plate();
+                if (results.stream().anyMatch(d -> d.label().equals(label) || overlapsValidPlate(d, r))) {
+                    continue; // the same plate found again, or a fragment of one already read
+                }
+                Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+                attrs.put("plateText", plate.orElse(""));
+                attrs.put("rawOcrText", rawText);
+                attrs.put("formatValid", plate.isPresent());
+                plate.ifPresent(p -> attrs.put("country", "BE"));
+                attrs.put("cue", candidate.cue().name());
+                attrs.put("confidenceKind", "weakest-character");
+                attrs.put("pixelBox", List.of(r.x(), r.y(), r.width(), r.height()));
+                // The confidence is Tesseract's for the weakest character; a read that fails the
+                // format check is reported as such, not corrected.
+                results.add(new Detection(label, ocrConfidence,
+                    new BoundingBox((double) r.x() / width, (double) r.y() / height,
+                        (double) r.width() / width, (double) r.height() / height),
+                    attrs));
             }
-            if (py + ph > 1.0) {
-                ph = 1.0 - py;
-            }
-            int sx = (int) Math.floor(px * imgW);
-            int sy = (int) Math.floor(py * imgH);
-            int sw = (int) Math.ceil(pw * imgW);
-            int sh = (int) Math.ceil(ph * imgH);
-            sw = Math.max(1, Math.min(sw, imgW - sx));
-            sh = Math.max(1, Math.min(sh, imgH - sy));
-
-            BufferedImage crop;
-            try {
-                crop = fullImage.getSubimage(sx, sy, sw, sh);
-            } catch (RasterFormatException rfe) {
-                logger.warn("Invalid crop for plate {} - skipping: {}", i, rfe.getMessage());
-                continue;
-            }
-
-            String rawText = "";
-            try {
-                BufferedImage forOcr = upscaleForOcr(crop, 3);
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                ImageIO.write(forOcr, "png", baos);
-                // English-only — plates use Latin characters and digits regardless of locale,
-                // and dropping the multi-language combo cuts down Tesseract's mis-classifications.
-                rawText = ocr.extractText(baos.toByteArray(), "eng");
-            } catch (IOException ioe) {
-                logger.warn("Plate crop encode failed for plate {}: {}", i, ioe.getMessage());
-            } catch (VisionProcessingException ocrEx) {
-                logger.warn("OCR failed for plate {}: {}", i, ocrEx.getMessage());
-            }
-
-            String plateText = normalisePlateText(rawText);
-            String label = plateText.isEmpty() ? "<unreadable>" : plateText;
-            Map<String, Object> attrs = new java.util.LinkedHashMap<>();
-            attrs.put("plateText", plateText);
-            attrs.put("rawOcrText", rawText == null ? "" : rawText);
-            attrs.put("detectionConfidence", obj.getProbability());
-            attrs.put("readable", !plateText.isEmpty());
-            BoundingBox bbox = new BoundingBox(nx, ny, nw, nh);
-            results.add(new Detection(label, obj.getProbability(), bbox, attrs));
         }
 
         logger.info("License plate recognition completed: {} plates found, correlationId={}",
@@ -4727,40 +4665,19 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         return results;
     }
 
+    private static boolean overlapsValidPlate(Detection plate, PixelRegion candidate) {
+        if (!Boolean.TRUE.equals(plate.attributes().get("formatValid"))) {
+            return false;
+        }
+        @SuppressWarnings("unchecked")
+        List<Integer> box = (List<Integer>) plate.attributes().get("pixelBox");
+        PixelRegion read = new PixelRegion(box.get(0), box.get(1), box.get(2), box.get(3));
+        return candidate.fractionInside(read) > 0.3 || read.fractionInside(candidate) > 0.3;
+    }
+
     @Override
     public boolean isLicensePlateRecognitionAvailable() {
-        return initialized
-            && licensePlateModel != null
-            && getOrInitTesseractRunner().isAvailable();
+        return initialized && getOrInitTesseractRunner().isAvailable();
     }
 
-    private static double clamp01(double v) {
-        return v < 0 ? 0 : (v > 1 ? 1 : v);
-    }
-
-    private static BufferedImage upscaleForOcr(BufferedImage src, int factor) {
-        if (factor <= 1) {
-            return src;
-        }
-        int targetW = src.getWidth() * factor;
-        int targetH = src.getHeight() * factor;
-        BufferedImage out = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
-        java.awt.Graphics2D g = out.createGraphics();
-        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
-            java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
-            java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-        g.drawImage(src, 0, 0, targetW, targetH, null);
-        g.dispose();
-        return out;
-    }
-
-    private static String normalisePlateText(String raw) {
-        if (raw == null) {
-            return "";
-        }
-        String upper = raw.toUpperCase(Locale.ROOT);
-        String alnum = PLATE_NORMALISE.matcher(upper).replaceAll(" ");
-        return alnum.replaceAll("\\s+", " ").trim();
-    }
 }
