@@ -44,15 +44,14 @@
  *   <li>Spring Boot Actuator - Health monitoring and metrics</li>
  *   <li>Micrometer Core - Metrics collection</li>
  *   <li>DJL (Deep Java Library) - default runtime for models</li>
- *   <li>Optional legacy OpenCV/JavaCV artifacts are available using the
- *       {@code -Plegacy-backends} Maven profile and are not included by default</li>
+ *   <li>OpenCV 4.14 (bytedeco JavaCPP presets) with natives for the build host's platform</li>
  * </ul>
  *
  * <h2>Auto-Configuration</h2>
  *
  * <p>The starter automatically configures:</p>
  * <ul>
- *   <li>Vision backend (DJL by default; legacy OpenCV is opt-in via -Plegacy-backends)</li>
+ *   <li>Vision backend (DJL by default)</li>
  *   <li>Vision template for easy access</li>
  *   <li>Health indicators for monitoring</li>
  *   <li>Metrics collection for observability</li>

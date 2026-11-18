@@ -42,8 +42,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <strong>Backend Selection:</strong> DJL (Deep Java Library) is the default
  * backend for model loading and inference. Other backends can be selected via
  * the {@code vision.backend} property (for example: djl, cyber, robotics).
- * Legacy OpenCV-based implementations were removed from the main branch and
- * are available only via the optional {@code legacy-backends} Maven profile.</p>
+ * Legacy OpenCV-based backend implementations were removed from the main branch.</p>
  *
  * <p>
  * Example usage:</p>
