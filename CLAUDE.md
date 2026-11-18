@@ -117,6 +117,7 @@ VisionTemplate
 
 - All configuration properties use prefix `spring.vision.*` (e.g., `spring.vision.djl.enabled`).
 - Integration tests (`*IntegrationTest.java`, `*IT.java`) are handled by Failsafe; unit tests by Surefire.
+- MCP end-to-end tests live in `mcp/src/test/java/.../mcp/e2e/`: Streamable HTTP in-process against a local OIDC issuer (`TestOidcIssuer`, real RS256 tokens) and stdio as a child process (`StdioMcpProcess`), both with a stub backend (`StubBackendConfiguration`) so they load no model. `McpStdioRealBackendIntegrationTest` runs the real models over stdio and is tagged `memory-intensive`.
 - Tests run with real model inference when models are present; no synthetic fallback results in production code paths.
 - The `download-models` Maven profile downloads the bundled models (face feature, emotion, NSFW, …) into the JAR during build; skip it with `-P!download-models` if models are already present.
 - GPU support is opt-in via `-P gpu` profile (requires NVIDIA CUDA).

@@ -13,9 +13,10 @@
   <!--
     Anchor log files in ~/.springvision/ regardless of where Claude/Cursor/Gemini
     launches the MCP server from. Without this, files land in whatever cwd the
-    parent process happens to be in (often the workspace root).
+    parent process happens to be in (often the workspace root). SPRING_VISION_LOG_HOME
+    (system property or environment variable) moves them elsewhere.
   -->
-  <property name="LOG_HOME" value="${user.home}/.springvision"/>
+  <property name="LOG_HOME" value="${SPRING_VISION_LOG_HOME:-${user.home}/.springvision}"/>
 
   <springProfile name="default | stdio">
     <!-- Console Appender - JSON format to STDERR -->
