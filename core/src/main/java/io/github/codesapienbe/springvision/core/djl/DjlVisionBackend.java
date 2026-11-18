@@ -178,7 +178,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     public static final String BACKEND_ID = "djl";
     public static final String DISPLAY_NAME = "DJL Vision Backend";
-    public static final String VERSION = "0.0.1-DJL-0.33.0";
+    public static final String VERSION = "0.0.1-DJL-0.40.0";
 
     // Models
     private volatile HaarFaceDetector haarFaceDetector;

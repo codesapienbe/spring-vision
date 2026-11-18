@@ -263,13 +263,6 @@
       <artifactId>pytorch-model-zoo</artifactId>
     </dependency>
 
-    <!-- DJL PyTorch Native Auto (auto-selects platform) -->
-    <dependency>
-      <groupId>ai.djl.pytorch</groupId>
-      <artifactId>pytorch-native-auto</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-
     <!-- Add an explicit platform-specific PyTorch native library to avoid runtime JNI download in containers.
          Classifier is auto-selected by the OS-detection profiles in the root pom; the artifact
          itself (CPU vs CUDA build) switches via the root pom's pytorch.native.artifact
@@ -279,6 +272,14 @@
       <artifactId>${pytorch.native.artifact}</artifactId>
       <version>${pytorch.version}</version>
       <classifier>${pytorch.classifier}</classifier>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- DJL's JNI glue for this PyTorch version, bundled so nothing is downloaded at runtime -->
+    <dependency>
+      <groupId>ai.djl.pytorch</groupId>
+      <artifactId>pytorch-jni</artifactId>
+      <version>${pytorch.version}-${djl.version}</version>
       <scope>runtime</scope>
     </dependency>
 
