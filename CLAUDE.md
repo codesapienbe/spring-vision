@@ -23,9 +23,12 @@ Version is controlled by the `VERSION` file at the root.
 # Full build (includes model download, skips tests and GPG)
 make install
 
-# Run only core + mcp tests (integration tests need network for DJL model zoo)
+# Staged tests, all modules: unit (everything not *IntegrationTest/*IT), then integration
+# (integration tests need network for DJL model zoo).
 make test
-# Equivalent: mvn -pl core,mcp -am test
+make unit-tests          # or unit-<module>, e.g. make unit-core
+make integration-tests   # or integration-<module>
+make memory-tests        # tests tagged memory-intensive, not part of make test
 
 # Run a single test class
 mvn -pl core test -Dtest=DjlVisionBackendIntegrationTest
@@ -43,8 +46,14 @@ make format
 # Check formatting + Checkstyle
 make verify
 
-# Build only the MCP module and copy JAR for local MCP client testing
+# Merge origin/CSNET into the current branch
 make sync
+
+# Show the JDK (pinned in .sdkmanrc) and build tuning make resolved
+make jdk
+
+# Build only the MCP module and copy JAR for local MCP client testing
+make mcp-sync
 
 # Start local Keycloak (see keycloak/README.md), then run the MCP server via jbang run.java
 make run

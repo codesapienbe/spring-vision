@@ -1,0 +1,10 @@
+# SDKMAN per-project SDK pin.
+# The root pom.xml compiles with --release 25 and the enforcer requires [25,), so an older JDK fails to build.
+#
+# How it applies:
+#   - With `sdkman_auto_env=true` in ~/.sdkman/etc/config, the JDK switches
+#     automatically when you cd into this directory.
+#   - Otherwise, run `sdk env` once after cd'ing in (and `sdk env install` if
+#     the version below is not yet installed).
+#   - `make` reads it directly, so make targets use this JDK either way.
+java=25.0.1-tem

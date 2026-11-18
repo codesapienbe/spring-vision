@@ -185,4 +185,4 @@ After all images are processed, report:
 - How many were rejected
 - How many were skipped
 - Current training image count: `ls datasets/vehicle-damage/images/train/ | wc -l`
-- Remind the user to run `make sync` to deploy the updated model to their local MCP client.
+- Remind the user to run `make mcp-sync` to deploy the updated model to their local MCP client.
