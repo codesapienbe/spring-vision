@@ -92,7 +92,7 @@ public class SpringVisionMcpServerApplication {
         }
 
         // Fallback: try known zip names (best-effort)
-        String[] known = {"retinaface.zip", "object_detection.zip", "pose_estimation.zip", "action_recognition.zip", "semantic_segmentation.zip", "instance_segmentation.zip", "face_recognition.zip", "face_detection_yunet_2023mar.onnx"};
+        String[] known = {"object_detection.zip", "pose_estimation.zip", "action_recognition.zip", "semantic_segmentation.zip", "instance_segmentation.zip", "face_recognition.zip", "face_detection_yunet_2023mar.onnx"};
         for (String k : known) {
             extractResourceToCache("models/" + k, cachePath);
         }

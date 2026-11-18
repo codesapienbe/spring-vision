@@ -92,17 +92,8 @@ public class DjlProperties {
     private OnlineClassifier onlineClassifier = new OnlineClassifier();
     // Nested configuration classes
     public static class FaceDetection {
-        private String model = "retinaface"; // or "lightface"
         private float confidenceThreshold = 0.7f;
         private int maxFaces = 100;
-
-        public String getModel() {
-            return model;
-        }
-
-        public void setModel(String model) {
-            this.model = model;
-        }
 
         public float getConfidenceThreshold() {
             return confidenceThreshold;

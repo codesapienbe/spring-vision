@@ -109,7 +109,6 @@ import io.github.codesapienbe.springvision.core.capabilities.PoseEstimationCapab
 import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapability;
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
-import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
 import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocessor;
 import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
 import io.github.codesapienbe.springvision.core.document.ParsedDocument;
@@ -117,6 +116,9 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
+import io.github.codesapienbe.springvision.core.opencv.HaarFaceDetector;
+import io.github.codesapienbe.springvision.core.opencv.OpenCvImages;
+import io.github.codesapienbe.springvision.core.opencv.PixelRegion;
 import jakarta.annotation.PreDestroy;
 
 /**
@@ -178,7 +180,7 @@ public class DjlVisionBackend implements VisionBackend,
     public static final String VERSION = "0.0.1-DJL-0.33.0";
 
     // Models
-    private ZooModel<Image, DetectedObjects> faceDetectionModel;
+    private volatile HaarFaceDetector haarFaceDetector;
     private ZooModel<Image, float[]> faceRecognitionModel;
     private ZooModel<Image, float[]> emotionModel;
     private ZooModel<Image, float[]> ageModel;
@@ -450,7 +452,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public boolean isFaceDetectionModelAvailable() {
-        return faceDetectionModel != null || ClasspathModels.isModelAvailable("retinaface/retinaface.pt");
+        return getOrInitHaarFaceDetector() != null;
     }
 
     @Override
@@ -575,15 +577,6 @@ public class DjlVisionBackend implements VisionBackend,
         // Register ImageIO plugins (TwelveMonkeys WebP etc.) — needed for Spring Boot nested JARs
         javax.imageio.ImageIO.scanForPlugins();
         try {
-            // Load face detector first for accurate face counts
-            try {
-                loadWithGpuFallback("face detection model", this::loadFaceDetectionModel);
-            } catch (Exception e) {
-                logger.warn(
-                    "Failed to load dedicated face detection model: {}. Falling back to generic object detection.",
-                    e.getMessage());
-            }
-
 
             String actionModel = properties.getActionRecognition() != null
                 ? properties.getActionRecognition().getModel()
@@ -709,10 +702,10 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private void loadFaceRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading face recognition model with DJL - pipeline approach with RetinaFace detection");
+        logger.info("Loading face recognition model with DJL - pipeline approach with OpenCV face detection");
 
         // Face recognition uses a pipeline approach:
-        // 1. Use RetinaFace (already loaded) to detect faces
+        // 1. Detect faces with the OpenCV Haar cascades
         // 2. Crop detected faces with padding
         // 3. Extract embeddings from cropped faces only
 
@@ -746,7 +739,7 @@ public class DjlVisionBackend implements VisionBackend,
 
         modelCache.put("face_recognition", faceRecognitionModel);
         logger.info(
-            "Face recognition model loaded: {} - pipeline approach (RetinaFace detection + FaceFeatureNet embeddings)",
+            "Face recognition model loaded: {} - pipeline approach (OpenCV face detection + FaceFeatureNet embeddings)",
             faceRecognitionModel.getName());
     }
 
@@ -865,69 +858,6 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("Deepfake detection model loaded: {}", deepfakeModel.getName());
     }
 
-    private void loadFaceDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading RetinaFace face detection model with DJL - high accuracy face detector");
-
-        // Use RetinaFace - production-ready face detection model
-        // Based on the working DJL example with optimized parameters
-        try {
-            // RetinaFace configuration parameters (from working DJL example)
-            double confThresh = 0.85f;
-            double nmsThresh = 0.45f;
-            double[] variance = {0.1f, 0.2f};
-            int topK = 5000;
-            int[][] scales = {{16, 32}, {64, 128}, {256, 512}};
-            int[] steps = {8, 16, 32};
-
-            // Check if RetinaFace model is available locally (downloaded and extracted
-            // during build)
-            String retinaFaceUrl = "https://resources.djl.ai/test-models/pytorch/retinaface.zip"; // Fallback
-            String localRetinaFaceUrl = ClasspathModels.getModelUrl("retinaface/retinaface.pt");
-            if (localRetinaFaceUrl != null) {
-                retinaFaceUrl = localRetinaFaceUrl;
-                logger.info("Using locally downloaded and extracted RetinaFace model");
-            } else {
-                logger.warn("RetinaFace model not found in classpath, downloading from DJL Model Zoo");
-            }
-
-            Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-                .setTypes(Image.class, DetectedObjects.class)
-                .optModelUrls(retinaFaceUrl)
-                .optModelName("retinaface")
-                .optTranslator(new FaceDetectionTranslator(confThresh, nmsThresh, variance, topK, scales, steps))
-                .optEngine("PyTorch")
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
-
-            faceDetectionModel = criteria.loadModel();
-            modelCache.put("face_detection", faceDetectionModel);
-            logger.info("RetinaFace face detection model loaded: {} - high accuracy with landmark detection",
-                faceDetectionModel.getName());
-        } catch (Exception e) {
-            logger.warn("Failed to load RetinaFace model: {}. Falling back to object detection.", e.getMessage());
-
-            // Fallback to generic object detection
-            try {
-                Criteria<Image, DetectedObjects> criteria = Criteria.builder()
-                    .setTypes(Image.class, DetectedObjects.class)
-                    .optApplication(Application.CV.OBJECT_DETECTION)
-                    .optEngine(properties.getEngine())
-                    .optDevice(device)
-                    .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                    .build();
-
-                faceDetectionModel = criteria.loadModel();
-                modelCache.put("face_detection", faceDetectionModel);
-                logger.info("Face detection model loaded: {} - fallback to generic object detection",
-                    faceDetectionModel.getName());
-            } catch (Exception fallbackEx) {
-                logger.error("Failed to load face detection model: {}", fallbackEx.getMessage());
-                throw new ModelNotFoundException("Face detection model not available", fallbackEx);
-            }
-        }
-    }
-
     private void loadActionRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading action recognition model (ViT fp16 ONNX, 15-class human actions)");
         String url = ClasspathModels.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
@@ -1009,50 +939,96 @@ public class DjlVisionBackend implements VisionBackend,
         String correlationId = generateCorrelationId();
 
         try {
-            logger.debug("DJL face detection requested: correlationId={}, backend=djl", correlationId);
+            logger.debug("OpenCV face detection requested: correlationId={}, backend=djl", correlationId);
 
-            // Convert ImageData to DJL Image
-            Image djlImage = ImageFactory.getInstance()
-                .fromInputStream(new ByteArrayInputStream(imageData.data()));
+            List<Detection> faceDetections = haarFaces(imageData, query);
 
-            if (faceDetectionModel == null) {
-                throw new VisionBackendException(
-                    "RetinaFace model not initialized. Run 'mvn clean install -Pdownload-models' to download it.",
-                    "model_not_initialized",
-                    null);
-            }
-
-            List<Detection> faceDetections = withPredictor(faceDetectionModel, predictor -> {
-                DetectedObjects detections = predictor.predict(djlImage);
-                return convertDetections(detections, query);
-            });
-
-            logger.info("DJL face detection completed: {} faces detected, correlationId={}, backend=djl",
+            logger.info("OpenCV face detection completed: {} faces detected, correlationId={}, backend=djl",
                 faceDetections.size(), correlationId);
 
             return faceDetections;
 
-        } catch (IOException e) {
-            throw new VisionProcessingException(
-                "Failed to load image",
-                "image_load_failed",
-                DetectionType.FACE.name(),
-                e);
-        } catch (TranslateException e) {
-            throw new VisionProcessingException(
-                "Failed to process image",
-                "inference_failed",
-                DetectionType.FACE.name(),
-                e);
-        } catch (VisionBackendException e) {
+        } catch (BaseVisionException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             throw new VisionBackendException(
                 "Face detection failed",
                 "detection_failed",
                 null,
                 e);
         }
+    }
+
+    private static final String HAAR_MODEL_NAME = "opencv-haar-cascade";
+
+    /** Margin added around a face before pixelating it, so hairline, ears and chin are covered. */
+    private static final double OBSCURE_MARGIN = 0.15;
+
+    /** Approximate pixel block size used when pixelating a region. */
+    private static final int PIXEL_BLOCK = 12;
+
+    private HaarFaceDetector getOrInitHaarFaceDetector() {
+        HaarFaceDetector detector = this.haarFaceDetector;
+        if (detector != null) {
+            return detector;
+        }
+        synchronized (this) {
+            if (this.haarFaceDetector == null) {
+                this.haarFaceDetector = new HaarFaceDetector();
+            }
+            return this.haarFaceDetector;
+        }
+    }
+
+    /** Haar cascade faces as detections with bounding boxes normalised to the image size. */
+    private List<Detection> haarFaces(ImageData imageData, DetectionQuery query) {
+        try (org.bytedeco.opencv.opencv_core.Mat image = OpenCvImages.decode(imageData.data())) {
+            int width = image.cols();
+            int height = image.rows();
+            List<Detection> detections = new ArrayList<>();
+            for (HaarFaceDetector.Face face : getOrInitHaarFaceDetector().detect(image)) {
+                if (query.getMaxDetections() > 0 && detections.size() >= query.getMaxDetections()) {
+                    break;
+                }
+                PixelRegion r = face.region();
+                Map<String, Object> attributes = new HashMap<>();
+                attributes.put("backend", BACKEND_ID);
+                attributes.put("model", HAAR_MODEL_NAME);
+                attributes.put("view", face.view().name());
+                attributes.put("pixelBox", List.of(r.x(), r.y(), r.width(), r.height()));
+                // A cascade accepts or rejects a region and has no probability to report.
+                attributes.put("confidenceKind", "binary");
+                detections.add(new Detection("face", 1.0,
+                    new io.github.codesapienbe.springvision.core.BoundingBox(
+                        (double) r.x() / width, (double) r.y() / height,
+                        (double) r.width() / width, (double) r.height() / height),
+                    attributes));
+            }
+            return detections;
+        }
+    }
+
+    /** {@code imageData} with the given face detections pixelated, re-encoded in its own format. */
+    private ImageData withFacesPixelated(ImageData imageData, List<Detection> faces) {
+        try (org.bytedeco.opencv.opencv_core.Mat image = OpenCvImages.decode(imageData.data())) {
+            int width = image.cols();
+            int height = image.rows();
+            List<PixelRegion> regions = faces.stream()
+                .map(face -> pixelRegionOf(face, width, height).expandedWithin(OBSCURE_MARGIN, width, height))
+                .toList();
+            try (org.bytedeco.opencv.opencv_core.Mat pixelated = OpenCvImages.pixelated(image, regions, PIXEL_BLOCK)) {
+                return ImageData.fromBytes(OpenCvImages.encode(pixelated, imageData.format()), imageData.mimeType());
+            }
+        }
+    }
+
+    private static PixelRegion pixelRegionOf(Detection detection, int width, int height) {
+        io.github.codesapienbe.springvision.core.BoundingBox box = detection.boundingBox();
+        int x = (int) Math.floor(box.x() * width);
+        int y = (int) Math.floor(box.y() * height);
+        int w = Math.max(1, (int) Math.ceil(box.width() * width));
+        int h = Math.max(1, (int) Math.ceil(box.height() * height));
+        return new PixelRegion(x, y, Math.min(w, width - x), Math.min(h, height - y));
     }
 
     // ==========================
@@ -1591,12 +1567,10 @@ public class DjlVisionBackend implements VisionBackend,
             List<float[]> embeddings = new ArrayList<>();
 
             if (faceDetections.isEmpty()) {
-                // No faces detected -- as last resort run recognition on full image
-                float[] fullEmbedding = withPredictor(faceRecognitionModel, predictor -> predictor.predict(djlImage));
-                embeddings.add(l2Normalize(fullEmbedding));
-                logger.info("No face boxes found - extracted embedding from full image, correlationId={}",
-                    correlationId);
-                return embeddings;
+                // No face, no face embedding: an embedding of the whole frame would describe
+                // something that is not a face and still look like a valid result.
+                logger.info("No face found - returning no embeddings, correlationId={}", correlationId);
+                return List.of();
             }
 
             // Convert DJL Image to BufferedImage for cropping. DJL's getWrappedImage() may
@@ -1682,12 +1656,6 @@ public class DjlVisionBackend implements VisionBackend,
             throw new VisionProcessingException(
                 "Failed to load image for embedding extraction",
                 "image_load_failed",
-                "EMBEDDING",
-                e);
-        } catch (TranslateException e) {
-            throw new VisionProcessingException(
-                "Failed to extract embeddings",
-                "inference_failed",
                 "EMBEDDING",
                 e);
         } catch (RuntimeException e) {
@@ -2325,7 +2293,6 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
             attributes.put("backend", BACKEND_ID);
             String modelName = switch (query.getType()) {
                 case OBJECT -> (objectDetectionModel != null ? objectDetectionModel.getName() : "unknown");
-                case FACE -> (faceDetectionModel != null ? faceDetectionModel.getName() : "unknown");
                 case VEHICLE_DAMAGE -> (vehicleDamageModel != null ? vehicleDamageModel.getName() : "unknown");
                 default -> "unknown";
             };
@@ -2731,34 +2698,10 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         Objects.requireNonNull(imageData, "ImageData cannot be null");
         Objects.requireNonNull(filter, "Filter cannot be null");
 
-        logger.debug("Starting image obscuring");
-
-        try {
-            // Read image
-            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData.data()));
-            if (image == null) {
-                throw new VisionProcessingException("Failed to decode image data");
-            }
-
-            // Create graphics context
-            Graphics2D g2d = image.createGraphics();
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-            // Note: This is a simplified implementation. In a full implementation,
-            // you would first detect objects, then apply obscuring to matching detections.
-            // For now, this returns the original image as-is.
-
-            g2d.dispose();
-
-            // Convert back to ImageData
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            ImageIO.write(image, imageData.format(), baos);
-
-            return ImageData.fromBytes(baos.toByteArray(), imageData.mimeType());
-
-        } catch (IOException e) {
-            throw new VisionProcessingException("Failed to obscure image", e);
-        }
+        // Faces are the only detections obscure() draws from today; plates follow with plate detection.
+        List<Detection> targets = detectFaces(imageData).stream().filter(filter).toList();
+        logger.debug("Obscuring {} face region(s)", targets.size());
+        return withFacesPixelated(imageData, targets);
     }
 
     /**
@@ -2784,6 +2727,10 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
             g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
             switch (request.getAction()) {
+                case OBSCURE -> {
+                    g2d.dispose();
+                    return obscureCategories(imageData, request.getCategories());
+                }
                 case TAG -> drawTags(g2d, image.getWidth(), image.getHeight(), request.getLabel());
                 default -> {
                     g2d.dispose();
@@ -2806,6 +2753,16 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         } catch (IOException e) {
             throw new VisionProcessingException("Failed to annotate image", e);
         }
+    }
+
+    private ImageData obscureCategories(ImageData imageData, java.util.Set<DetectionCategory> categories) {
+        if (!categories.equals(java.util.Set.of(DetectionCategory.FACE))) {
+            throw new VisionUnsupportedException(
+                "Obscuring is supported for the FACE category only; requested " + categories,
+                "annotate",
+                null);
+        }
+        return obscure(imageData, detection -> true);
     }
 
     /**
@@ -4388,6 +4345,11 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         });
 
         modelCache.clear();
+        HaarFaceDetector detector = this.haarFaceDetector;
+        if (detector != null) {
+            detector.close();
+            this.haarFaceDetector = null;
+        }
         initialized = false;
         healthStatus = BackendHealthInfo.HealthStatus.UNKNOWN;
         logger.info("DJL vision backend cleanup completed");

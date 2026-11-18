@@ -39,8 +39,6 @@ spring:
 
       # Face Detection Configuration
       face-detection:
-        # Use an object-detection-style model that prefetch works with
-        model: ssd_300_resnet50
         confidence-threshold: 0.35
         max-faces: 200
 

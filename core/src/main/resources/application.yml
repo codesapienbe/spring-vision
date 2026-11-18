@@ -27,9 +27,6 @@ spring:
 
       # Face Detection Configuration
       face-detection:
-        # Model options: retinaface (default), mtcnn, lightface
-        # Try mtcnn for improved multi-face detection in crowded/low-res photos
-        model: mtcnn
         confidence-threshold: 0.35
         max-faces: 200
 

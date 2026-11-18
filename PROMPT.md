@@ -360,7 +360,7 @@ When prompting, just give a URL or file path. The model will pick the right tool
 
 ## Caveat — current platform state
 
-The local jar runs on macOS arm64, but the bundled PyTorch native library is `linux-x86_64`. Tools that rely on PyTorch models (object detection, segmentation, pose, RetinaFace) currently fall back to synthetic results or generic detectors. The following are not affected and work fully:
+The local jar runs on macOS arm64, but the bundled PyTorch native library is `linux-x86_64`. Tools that rely on PyTorch models (object detection, segmentation, pose) currently fall back to synthetic results or generic detectors. The following are not affected and work fully:
 
 - OCR (`extract_text`)
 - Barcode (`scan_barcode`)

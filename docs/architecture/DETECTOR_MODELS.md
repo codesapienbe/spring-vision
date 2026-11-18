@@ -1,36 +1,19 @@
 # Face Detection Models
 
-Spring Vision uses RetinaFace for high-accuracy face detection, bundled directly in the JAR.
+Spring Vision detects faces with the Haar cascades that ship with OpenCV 4.14
+(`haarcascade_frontalface_default.xml` and `haarcascade_profileface.xml`, the latter also run
+on the mirrored image for the other side). They come inside the bytedeco OpenCV natives, under
+the Intel License Agreement for the Open Source Computer Vision Library, which permits
+commercial use, so no model file is downloaded.
 
-## Current Face Detection
+Neural face detectors such as RetinaFace and YuNet are not used: they are trained on WIDER FACE,
+whose terms (CC BY-NC-ND 4.0 per its dataset card) do not permit commercial use. A cascade
+accepts or rejects a region and reports no probability, so detections carry confidence 1.0 and
+`confidenceKind=binary`.
 
-### RetinaFace (Production Ready - Bundled in JAR)
+`obscure()` / `obscureFaces()` pixelate every detected face with a 15 % margin.
 
-**Model:** `retinaface.pt` (110MB PyTorch model)
-**Location:** `classpath:/models/retinaface/retinaface.pt`
-
-**Features:**
-- ✅ **Bundled in JAR** - No downloads required
-- ✅ **High accuracy** - State-of-the-art face detection
-- ✅ **5-point landmarks** - Facial feature detection
-- ✅ **Multi-scale** - Works with various face sizes
-- ✅ **Robust** - Handles occlusions and angles
-- ✅ **Production ready** - Optimized for performance
-
-**Configuration:**
-```yaml
-spring:
-  vision:
-    djl:
-      face-detection:
-        confidence-threshold: 0.7
-        max-faces: 200
-```
-
-**Automatic Fallback:**
-If RetinaFace model is unavailable, Spring Vision falls back to:
-1. Generic object detection (person/face class)
-2. OpenCV Haar cascades (if available)
+The sections below describe earlier detector backends and are kept for reference only.
 
 ## Legacy Face Detection (Deprecated)
 

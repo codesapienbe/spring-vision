@@ -13,19 +13,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 import io.github.codesapienbe.springvision.core.*;
-import io.github.codesapienbe.springvision.core.djl.ClasspathModels;
 import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
+import io.github.codesapienbe.springvision.core.opencv.HaarFaceDetector;
 
 /**
- * Comprehensive integration test for FaceDetectionCapability using real RetinaFace models offline.
+ * Comprehensive integration test for FaceDetectionCapability using OpenCV's Haar cascades offline.
  * <p>
  * This test focuses on the essential face detection functions and ensures they work
  * with actual PyTorch models without synthetic fallbacks.
  * <p>
  * Key requirements:
- * - Uses actual RetinaFace model offline (no network downloads)
+ * - Uses the Haar cascades shipped with OpenCV (no network downloads)
  * - Tests core face detection functionality
  * - Validates model loading and inference
  * - Ensures consistent PyTorch engine usage
@@ -34,15 +34,19 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 public class FaceDetectionCapabilityIntegrationTest {
 
     private static DjlVisionBackend backend;
-    private static boolean retinaFaceModelAvailable = false;
+    private static boolean faceDetectorAvailable = false;
 
     @BeforeAll
     static void setup() throws Exception {
-        // Check if RetinaFace model is available offline
-        retinaFaceModelAvailable = ClasspathModels.isModelAvailable("retinaface/retinaface.pt");
+        // The face detector needs only the OpenCV natives; skip if they cannot load on this host
+        try (HaarFaceDetector probe = new HaarFaceDetector()) {
+            faceDetectorAvailable = true;
+        } catch (RuntimeException e) {
+            faceDetectorAvailable = false;
+        }
 
-        if (!retinaFaceModelAvailable) {
-            System.out.println("RetinaFace model not available offline - skipping real model tests");
+        if (!faceDetectorAvailable) {
+            System.out.println("OpenCV face detector not available - skipping real model tests");
             return;
         }
 
@@ -61,7 +65,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
         backend = new DjlVisionBackend(properties);
 
-        // Initialize backend - should load RetinaFace model offline
+        // Initialize backend offline
         backend.initialize();
 
         // Verify backend health and model availability
@@ -70,7 +74,7 @@ public class FaceDetectionCapabilityIntegrationTest {
             .isTrue();
 
         assertThat(backend.isFaceDetectionModelAvailable())
-            .withFailMessage("RetinaFace model should be available offline")
+            .withFailMessage("OpenCV face detector should be available offline")
             .isTrue();
 
         System.out.println("Face Detection Capability integration test initialized successfully");
@@ -89,16 +93,16 @@ public class FaceDetectionCapabilityIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should skip all tests when RetinaFace model not available offline")
-    @EnabledIf("retinaFaceModelNotAvailable")
+    @DisplayName("Should skip all tests when the OpenCV face detector is not available")
+    @EnabledIf("faceDetectorNotAvailable")
     void shouldSkipWhenModelNotAvailable() {
-        System.out.println("RetinaFace model not available offline - tests properly skipped");
+        System.out.println("OpenCV face detector not available - tests properly skipped");
     }
 
     @Test
-    @DisplayName("Should initialize backend with RetinaFace model offline")
-    @EnabledIf("retinaFaceModelAvailable")
-    void shouldInitializeWithRetinaFaceModelOffline() {
+    @DisplayName("Should initialize backend with the OpenCV face detector offline")
+    @EnabledIf("faceDetectorAvailable")
+    void shouldInitializeWithFaceDetectorOffline() {
         // Verify backend metadata
         assertThat(backend.getBackendId()).isEqualTo("djl");
         assertThat(backend.getDisplayName()).isEqualTo("DJL Vision Backend");
@@ -117,7 +121,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should perform face detection with default parameters")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldPerformFaceDetectionWithDefaults() throws IOException {
         // Given: A test image with face-like features
         ImageData testImage = TestImageUtils.createSimpleFaceImage(640, 480);
@@ -129,7 +133,7 @@ public class FaceDetectionCapabilityIntegrationTest {
         assertThat(detections).isNotNull();
         assertThat(detections).isInstanceOf(List.class);
 
-        // With real RetinaFace model, we should get actual detection results
+        // With the real cascades, we should get actual detection results
         // (may be empty if no faces detected, but should not be null)
         for (Detection detection : detections) {
             assertThat(detection.label()).isNotNull();
@@ -140,7 +144,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should perform face detection with custom query parameters")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldPerformFaceDetectionWithCustomQuery() throws IOException {
         // Given: A test image and custom detection query
         ImageData testImage = TestImageUtils.createSimpleFaceImage(640, 480);
@@ -170,7 +174,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should handle various image formats and sizes")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldHandleVariousImageFormatsAndSizes() throws IOException {
         // Test different image sizes
         int[][] testSizes = {{320, 240}, {640, 480}, {800, 600}, {1024, 768}};
@@ -188,7 +192,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should validate input parameters")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldValidateInputParameters() {
         // Test null image data
         assertThatThrownBy(() -> backend.detectFaces(null))
@@ -205,7 +209,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should provide consistent results across multiple calls")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldProvideConsistentResults() throws IOException {
         // Given: Same test image
         ImageData testImage = TestImageUtils.createSimpleFaceImage(640, 480);
@@ -225,7 +229,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should handle backend health checks")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldHandleBackendHealthChecks() {
         // Backend should report healthy status
         assertThat(backend.isHealthy()).isTrue();
@@ -245,7 +249,7 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     @Test
     @DisplayName("Should properly handle backend lifecycle")
-    @EnabledIf("retinaFaceModelAvailable")
+    @EnabledIf("faceDetectorAvailable")
     void shouldHandleBackendLifecycle() throws Exception {
         // Backend should be healthy after initialization
         assertThat(backend.isHealthy()).isTrue();
@@ -266,11 +270,11 @@ public class FaceDetectionCapabilityIntegrationTest {
 
     // Helper methods for conditional test execution
 
-    static boolean retinaFaceModelAvailable() {
-        return retinaFaceModelAvailable;
+    static boolean faceDetectorAvailable() {
+        return faceDetectorAvailable;
     }
 
-    static boolean retinaFaceModelNotAvailable() {
-        return !retinaFaceModelAvailable;
+    static boolean faceDetectorNotAvailable() {
+        return !faceDetectorAvailable;
     }
 }
