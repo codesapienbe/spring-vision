@@ -54,16 +54,11 @@ If you want to make your own Spring Boot application "see", follow these steps.
 ### Step 1: The Magic Dependency 📦
 Just like adding a database driver, we add the Spring Vision Starter. 
 
-First, tell Maven where to find it (we use GitHub Packages) in your `pom.xml`:
+First, build it into your local Maven repository (Spring Vision publishes no artifacts; a fork
+that needs them in CI adds its own release workflow):
 
-```xml
-<repositories>
-    <repository>
-        <id>github</id>
-        <name>GitHub Packages</name>
-        <url>https://maven.pkg.github.com/codesapienbe/spring-vision</url>
-    </repository>
-</repositories>
+```bash
+make install
 ```
 
 Next, add the dependency:

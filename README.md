@@ -7,12 +7,6 @@
     <strong>The Ultimate Computer Vision Framework for Spring Boot Applications</strong>
     <br />
     <br />
-    <a href="https://github.com/codesapienbe/spring-vision/actions/workflows/auto-release.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/codesapienbe/spring-vision/auto-release.yml?branch=CSNET&style=for-the-badge&logo=github" alt="Build Status">
-    </a>
-    <a href="https://github.com/codesapienbe/spring-vision/packages">
-      <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Frepos%2Fcodesapienbe%2Fspring-vision%2Freleases%2Flatest&query=%24.tag_name&label=GitHub%20Packages&style=for-the-badge&logo=apache-maven" alt="GitHub Packages">
-    </a>
     <a href="https://github.com/codesapienbe/spring-vision/blob/CSNET/LICENSE">
       <img src="https://img.shields.io/github/license/codesapienbe/spring-vision?style=for-the-badge" alt="License">
     </a>
@@ -81,45 +75,21 @@ make run      # Starts local Keycloak and runs the server
 
 ### Using as a Library
 
-#### 1. Authenticate to GitHub Packages
+#### 1. Build and install locally
 
-Spring Vision artifacts are published to [GitHub Packages](https://github.com/codesapienbe/spring-vision/packages). **GitHub Packages requires authentication to download Maven artifacts, even though this repository and its packages are public** — there is no anonymous/unauthenticated pull, unlike Maven Central. This applies to every consumer, including a private company project depending on `spring-vision-core`.
-
-You need a GitHub [personal access token (classic)](https://github.com/settings/tokens) with at least the `read:packages` scope. Add a matching `<server>` entry to `~/.m2/settings.xml` (or your CI's Maven settings):
-
-```xml
-<settings>
-  <servers>
-    <server>
-      <id>github</id>
-      <username>YOUR_GITHUB_USERNAME</username>
-      <password>${env.GITHUB_TOKEN}</password> <!-- PAT with read:packages -->
-    </server>
-  </servers>
-</settings>
-```
+This repository ships no release pipeline and publishes no artifacts. Build it into your local
+Maven repository:
 
 ```bash
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+make install   # or: mvn clean install -DskipTests -Dgpg.skip=true -Pdownload-models
 ```
 
-In a consuming CI pipeline (e.g. your private company repo's build), store the token as a secret and export it the same way before `mvn` runs — the token just needs read access to this repo's packages, which any authenticated GitHub user already has since the repo is public.
+To consume it from another project's CI, fork the repository and add your own release workflow
+there. The POM has no `distributionManagement`, so the fork passes its target at deploy time
+(`mvn deploy -DaltDeploymentRepository=<id>::<url>`) and keeps its POM identical to upstream,
+which keeps syncing the fork conflict-free.
 
-#### 2. Add Repository
-
-Add the repository to your POM:
-
-```xml
-<repositories>
-    <repository>
-        <id>github</id>
-        <name>GitHub Packages</name>
-        <url>https://maven.pkg.github.com/codesapienbe/spring-vision</url>
-    </repository>
-</repositories>
-```
-
-#### 3. Add Dependency
+#### 2. Add Dependency
 
 ```xml
 <dependency>
