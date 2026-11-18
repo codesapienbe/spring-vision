@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.core.djl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -104,10 +105,11 @@ public class DjlVisionBackendIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should fail OCR extraction when models are unavailable in offline mode")
-    void shouldFailOcrExtractionWhenModelsUnavailable() {
+    @DisplayName("OCR runs offline on the bundled Tesseract and finds no text in a blank image")
+    void ocrRunsOfflineAndFindsNoTextInBlankImage() {
+        assumeTrue(new TesseractRunner(null, null).isAvailable(), "bundled tessdata not present");
         ImageData testImage = createTestImage();
-        assertThrows(BaseVisionException.class, () -> backend.extractText(testImage));
+        assertThat(backend.extractText(testImage)).isEmpty();
     }
 
     @Test

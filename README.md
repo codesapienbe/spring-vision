@@ -220,7 +220,7 @@ Spring Vision 0.0.6 provides these computer vision capabilities (all models incl
 
 ### 🤖 **AI-Powered (Runtime Download)**
 
-- **Text Recognition (OCR)** - DJL OCR models
+- **Text Recognition (OCR)** - Tesseract 5 (bundled natives and eng/nld/fra/deu language data), one result per text line with its box and confidence
 - **Image Classification** - ResNet/Inception models
 - **Segmentation** - Instance/Semantic segmentation
 - **Action Recognition** - Activity detection models

@@ -21,6 +21,7 @@ core/models/**/*.pt
 core/models/**/*.bin
 core/models/**/*.pb
 core/models/**/*.zip
+core/models/**/*.traineddata
 
 # OS files
 .DS_Store

@@ -1,64 +1,85 @@
 package io.github.codesapienbe.springvision.core.djl;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import static org.bytedeco.leptonica.global.leptonica.pixDestroy;
+import static org.bytedeco.leptonica.global.leptonica.pixGetHeight;
+import static org.bytedeco.leptonica.global.leptonica.pixGetWidth;
+import static org.bytedeco.leptonica.global.leptonica.pixReadMem;
+import static org.bytedeco.tesseract.global.tesseract.RIL_TEXTLINE;
+
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiFunction;
 
-import javax.imageio.ImageIO;
-
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.leptonica.PIX;
+import org.bytedeco.tesseract.ResultIterator;
+import org.bytedeco.tesseract.TessBaseAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
 
 /**
- * Direct wrapper around Tess4J. Tess4J is a mandatory dependency of
- * {@code spring-vision-core}; OCR and identity-document recognition fail loudly
- * if the native Tesseract library or {@code tessdata} directory is missing.
+ * Tesseract 5 OCR through the bytedeco JavaCPP preset. The natives ship with the jar, and the
+ * language data ({@code eng}, {@code nld}, {@code fra}, {@code deu} from tessdata_fast) is
+ * bundled under {@code /models/tessdata} by the {@code download-models} profile, so no host
+ * install is needed.
  *
- * <p>For identity documents the language combo must include the document's
- * printed languages. For Belgium that is {@code fra+nld+deu+eng}; for the
- * Netherlands {@code nld+eng}. Default language ({@code eng}) is used when
- * callers don't override it.</p>
+ * <p>For identity documents the language combo must include the document's printed languages.
+ * For Belgium that is {@code fra+nld+deu+eng}; for the Netherlands {@code nld+eng}. The default
+ * language ({@code eng}) is used when callers don't override it.</p>
  *
- * <p>The runner resolves the Tesseract {@code datapath} in this order:
- * explicit constructor argument, {@code TESSDATA_PREFIX} env var, common
- * platform locations ({@code /opt/homebrew/share/tessdata},
- * {@code /usr/local/share/tessdata}, {@code /usr/share/tesseract-ocr/&#42;/tessdata},
- * {@code /usr/share/tessdata}).</p>
+ * <p>The tessdata directory is resolved in this order: explicit constructor argument (for
+ * example {@code TESSDATA_PREFIX} via {@link #fromEnvironment()}), then the bundled data.</p>
  */
 public final class TesseractRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(TesseractRunner.class);
 
-    private static final List<String> CANDIDATE_DATAPATHS = List.of(
-        "/opt/homebrew/share/tessdata",
-        "/usr/local/share/tessdata",
-        "/usr/share/tesseract-ocr/5/tessdata",
-        "/usr/share/tesseract-ocr/4.00/tessdata",
-        "/usr/share/tessdata"
-    );
+    private static final String DEFAULT_LANGUAGES = "eng";
+    private static final List<String> BUNDLED_LANGUAGES = List.of("eng", "nld", "fra", "deu");
 
-    private static final List<String> CANDIDATE_NATIVE_LIB_PATHS = List.of(
-        "/opt/homebrew/lib",
-        "/usr/local/lib",
-        "/usr/lib/x86_64-linux-gnu",
-        "/usr/lib"
-    );
+    /**
+     * One recognised text line.
+     *
+     * @param text       the line's text, trimmed
+     * @param confidence Tesseract's own confidence for the line, scaled from 0-100 to 0-1
+     * @param x          left edge in pixels
+     * @param y          top edge in pixels
+     * @param width      width in pixels
+     * @param height     height in pixels
+     */
+    public record TextLine(String text, double confidence, int x, int y, int width, int height) {
+    }
+
+    /**
+     * The lines recognised on one image, with the image's size so callers can normalise boxes.
+     *
+     * @param width  image width in pixels
+     * @param height image height in pixels
+     * @param lines  recognised lines, top to bottom
+     */
+    public record PageText(int width, int height, List<TextLine> lines) {
+
+        public PageText {
+            lines = List.copyOf(lines);
+        }
+    }
 
     private final String defaultLanguages;
     private final String datapath;
 
     public TesseractRunner(String defaultLanguages, String datapath) {
-        this.defaultLanguages = blankToNull(defaultLanguages);
+        String languages = blankToNull(defaultLanguages);
+        this.defaultLanguages = languages == null ? DEFAULT_LANGUAGES : languages;
         this.datapath = resolveDatapath(blankToNull(datapath));
-        ensureNativeLibraryPath();
     }
 
     /**
@@ -66,7 +87,7 @@ public final class TesseractRunner {
      *
      * <ul>
      *   <li>{@code SPRING_VISION_OCR_TESSERACT_LANGUAGES} — language combo (e.g. {@code fra+nld+deu+eng})</li>
-     *   <li>{@code TESSDATA_PREFIX} — directory containing trained data files (falls back to common platform locations)</li>
+     *   <li>{@code TESSDATA_PREFIX} — directory with {@code .traineddata} files, overriding the bundled data</li>
      * </ul>
      */
     public static TesseractRunner fromEnvironment() {
@@ -75,13 +96,9 @@ public final class TesseractRunner {
         return new TesseractRunner(langs, datapath);
     }
 
-    /**
-     * Always {@code true}: Tess4J is a mandatory compile-time dependency.
-     * Retained for binary compatibility with earlier callers that probed for
-     * the optional binding.
-     */
+    /** Whether language data for the default languages is available. */
     public boolean isAvailable() {
-        return true;
+        return missingLanguages(defaultLanguages).isEmpty();
     }
 
     /** Runs OCR using the default language combo. */
@@ -97,38 +114,100 @@ public final class TesseractRunner {
      *                         to use the default
      */
     public String extractText(byte[] imageBytes, String languageOverride) {
+        return withTesseract(imageBytes, languageOverride, (api, pix) -> {
+            BytePointer text = api.GetUTF8Text();
+            if (text == null) {
+                return "";
+            }
+            try {
+                return text.getString(StandardCharsets.UTF_8);
+            } finally {
+                text.deallocate();
+            }
+        });
+    }
+
+    /**
+     * Recognises text line by line, each with its box and Tesseract's confidence. Empty lines are
+     * left out.
+     */
+    public PageText recognizeLines(byte[] imageBytes, String languageOverride) {
+        return withTesseract(imageBytes, languageOverride, (api, pix) -> {
+            if (api.Recognize(null) != 0) {
+                throw new VisionProcessingException("Tesseract recognition failed", "tesseract_failed", "OCR", null);
+            }
+            int width = pixGetWidth(pix);
+            int height = pixGetHeight(pix);
+            ResultIterator lines = api.GetIterator();
+            if (lines == null) {
+                return new PageText(width, height, List.of());
+            }
+            List<TextLine> result = new ArrayList<>();
+            try (IntPointer left = new IntPointer(1);
+                IntPointer top = new IntPointer(1);
+                IntPointer right = new IntPointer(1);
+                IntPointer bottom = new IntPointer(1)) {
+                do {
+                    BytePointer raw = lines.GetUTF8Text(RIL_TEXTLINE);
+                    if (raw == null) {
+                        continue;
+                    }
+                    String text = raw.getString(StandardCharsets.UTF_8).strip();
+                    raw.deallocate();
+                    if (text.isEmpty() || !lines.BoundingBox(RIL_TEXTLINE, left, top, right, bottom)) {
+                        continue;
+                    }
+                    double confidence = Math.max(0.0, Math.min(1.0, lines.Confidence(RIL_TEXTLINE) / 100.0));
+                    result.add(new TextLine(text, confidence,
+                        left.get(), top.get(), right.get() - left.get(), bottom.get() - top.get()));
+                } while (lines.Next(RIL_TEXTLINE));
+            }
+            return new PageText(width, height, result);
+        });
+    }
+
+    private <T> T withTesseract(byte[] imageBytes, String languageOverride, BiFunction<TessBaseAPI, PIX, T> work) {
         if (imageBytes == null || imageBytes.length == 0) {
             throw new VisionProcessingException(
                 "Image bytes are required", "tesseract_invalid_input", "OCR", null);
         }
-        Tesseract tess = new Tesseract();
-        if (datapath != null) {
-            tess.setDatapath(datapath);
-        }
-        String languages = languageOverride != null ? languageOverride : defaultLanguages;
-        if (languages != null) {
-            tess.setLanguage(languages.toLowerCase(Locale.ROOT));
-        }
-        BufferedImage img;
-        try {
-            img = ImageIO.read(new ByteArrayInputStream(imageBytes));
-        } catch (IOException ex) {
+        String languages = (languageOverride != null ? languageOverride : defaultLanguages).toLowerCase(Locale.ROOT);
+        List<String> missing = missingLanguages(languages);
+        if (!missing.isEmpty()) {
             throw new VisionProcessingException(
-                "OCR image decode failed: " + ex.getMessage(),
-                "tesseract_decode_failed", "OCR", ex);
+                "No Tesseract language data for " + missing + " (looked in " + datapath
+                    + "); build with -Pdownload-models or set TESSDATA_PREFIX",
+                "tesseract_language_missing", "OCR", null);
         }
-        if (img == null) {
-            throw new VisionProcessingException(
-                "Could not decode image for OCR", "tesseract_decode_failed", "OCR", null);
+        // TessBaseAPI is not thread-safe, so each call gets its own instance
+        try (TessBaseAPI api = new TessBaseAPI(); BytePointer data = new BytePointer(imageBytes)) {
+            if (api.Init(datapath, languages) != 0) {
+                throw new VisionProcessingException(
+                    "Tesseract could not initialise languages " + languages, "tesseract_init_failed", "OCR", null);
+            }
+            PIX pix = pixReadMem(data, imageBytes.length);
+            if (pix == null) {
+                api.End();
+                throw new VisionProcessingException(
+                    "Could not decode image for OCR", "tesseract_decode_failed", "OCR", null);
+            }
+            try {
+                api.SetImage(pix);
+                return work.apply(api, pix);
+            } finally {
+                pixDestroy(pix);
+                api.End();
+            }
         }
-        try {
-            String result = tess.doOCR(img);
-            return result == null ? "" : result;
-        } catch (TesseractException ex) {
-            throw new VisionProcessingException(
-                "Tesseract OCR failed: " + ex.getMessage(),
-                "tesseract_failed", "OCR", ex);
+    }
+
+    private List<String> missingLanguages(String languages) {
+        if (datapath == null) {
+            return Arrays.asList(languages.split("\\+"));
         }
+        return Arrays.stream(languages.split("\\+"))
+            .filter(lang -> !Files.isRegularFile(Path.of(datapath, lang + ".traineddata")))
+            .toList();
     }
 
     String defaultLanguages() {
@@ -139,44 +218,21 @@ public final class TesseractRunner {
         return datapath;
     }
 
-    /**
-     * Ensure {@code jna.library.path} contains the directory holding
-     * {@code libtesseract.dylib} / {@code libtesseract.so}. Tess4J relies on
-     * JNA to discover the native library, and JNA does not search Homebrew's
-     * default install locations on macOS.
-     */
-    private static void ensureNativeLibraryPath() {
-        String existing = System.getProperty("jna.library.path");
-        for (String candidate : CANDIDATE_NATIVE_LIB_PATHS) {
-            if (!Files.isDirectory(Path.of(candidate))) {
-                continue;
-            }
-            if (existing == null || existing.isBlank()) {
-                System.setProperty("jna.library.path", candidate);
-                logger.debug("Set jna.library.path={}", candidate);
-                return;
-            }
-            if (!existing.contains(candidate)) {
-                String updated = existing + java.io.File.pathSeparator + candidate;
-                System.setProperty("jna.library.path", updated);
-                logger.debug("Extended jna.library.path with {}", candidate);
-            }
-            return;
-        }
-    }
-
     private static String resolveDatapath(String explicit) {
         if (explicit != null && Files.isDirectory(Path.of(explicit))) {
             return explicit;
         }
-        for (String candidate : CANDIDATE_DATAPATHS) {
-            if (Files.isDirectory(Path.of(candidate))) {
-                logger.debug("Tesseract datapath resolved to {}", candidate);
-                return candidate;
+        String bundled = null;
+        for (String lang : BUNDLED_LANGUAGES) {
+            String url = ClasspathModels.getModelUrl("tessdata/" + lang + ".traineddata");
+            if (url != null) {
+                bundled = Paths.get(java.net.URI.create(url)).getParent().toString();
             }
         }
-        logger.debug("No tessdata directory found; relying on Tess4J built-in default");
-        return null;
+        if (bundled == null) {
+            logger.warn("No bundled Tesseract language data found; build with -Pdownload-models or set TESSDATA_PREFIX");
+        }
+        return bundled;
     }
 
     private static String blankToNull(String s) {

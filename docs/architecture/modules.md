@@ -58,7 +58,7 @@ Spring Vision provides these built-in detection capabilities:
 - **Image Annotation** - Drawing utilities (`annotate()`)
 
 ### 🤖 **AI-Powered (Runtime Download)**
-- **Text Detection (OCR)** - DJL OCR models (`extractText()`)
+- **Text Detection (OCR)** - Tesseract 5 (bundled natives and eng/nld/fra/deu language data), one result per text line with its box and confidence (`extractText()`)
 - **Image Classification** - ResNet/Inception (`classifyImage()`)
 - **Segmentation** - Instance/Semantic models (`segmentImage()`)
 - **Action Recognition** - Activity detection (`recognizeActions()`)

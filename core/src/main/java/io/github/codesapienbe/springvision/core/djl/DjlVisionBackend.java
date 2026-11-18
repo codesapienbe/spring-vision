@@ -468,8 +468,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public boolean isOcrModelAvailable() {
-        // OCR doesn't use DJL models - it uses external libraries
-        return true; // OCR is always available since it uses ZXing/Tesseract
+        return getOrInitTesseractRunner().isAvailable();
     }
 
     @Override
@@ -2085,93 +2084,35 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
                 "not_initialized",
                 null);
         }
+        if (imageData == null) {
+            throw new VisionProcessingException("ImageData cannot be null", "null_image_data", "OCR");
+        }
 
         String correlationId = generateCorrelationId();
+        logger.debug("Tesseract OCR requested: correlationId={}", correlationId);
 
-        if (djlOffline || !properties.isAutoDownload()) {
-            throw new VisionBackendException("OCR model not initialized", "not_initialized", "OCR");
+        TesseractRunner.PageText page = getOrInitTesseractRunner().recognizeLines(imageData.data(), null);
+        List<OcrCapability.TextDetection> detections = new ArrayList<>(page.lines().size());
+        for (TesseractRunner.TextLine line : page.lines()) {
+            // normalised to the image size, like every other bounding box in spring-vision
+            Map<String, Object> bbox = new HashMap<>();
+            bbox.put("x", (double) line.x() / page.width());
+            bbox.put("y", (double) line.y() / page.height());
+            bbox.put("width", (double) line.width() / page.width());
+            bbox.put("height", (double) line.height() / page.height());
+
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("backend", BACKEND_ID);
+            attributes.put("model", "tesseract");
+            attributes.put("level", "line");
+            attributes.put("pixelBox", List.of(line.x(), line.y(), line.width(), line.height()));
+            attributes.put("correlationId", correlationId);
+
+            detections.add(new OcrCapability.TextDetection(line.text(), line.confidence(), bbox, attributes));
         }
 
-        try {
-            logger.debug("DJL OCR requested: correlationId={}", correlationId);
-
-            Image djlImage = ImageFactory.getInstance()
-                .fromInputStream(new ByteArrayInputStream(imageData.data()));
-
-            // Load OCR model on demand
-            Criteria<Image, String> criteria = Criteria.builder()
-                .optApplication(Application.CV.WORD_RECOGNITION)
-                .setTypes(Image.class, String.class)
-                .optEngine(properties.getEngine())
-                .optDevice(device)
-                .optProgress(properties.isShowProgress() ? new ProgressBar() : null)
-                .build();
-
-            // Use try-with-resources for the model so it is closed when done
-            try (ZooModel<Image, String> ocrModel = criteria.loadModel()) {
-                String extractedText = withPredictor(ocrModel, predictor -> predictor.predict(djlImage));
-
-                Map<String, Object> attributes = new HashMap<>();
-                attributes.put("backend", BACKEND_ID);
-                attributes.put("model", ocrModel.getName());
-                attributes.put("correlationId", correlationId);
-
-                Map<String, Object> bbox = new HashMap<>();
-                bbox.put("x", 0);
-                bbox.put("y", 0);
-                bbox.put("width", djlImage.getWidth());
-                bbox.put("height", djlImage.getHeight());
-
-                OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
-                    extractedText,
-                    1.0, // High confidence for full image OCR
-                    bbox,
-                    attributes);
-
-                logger.info("DJL OCR completed: {} characters extracted, correlationId={}",
-                    extractedText.length(), correlationId);
-
-                return List.of(textDetection);
-            }
-
-        } catch (Exception e) {
-            // Fall back to Tess4J for any DJL failure (missing model, decode error,
-            // translate error, etc.). Tess4J is a mandatory dependency.
-            logger.warn("DJL OCR failed, attempting Tess4J fallback: {}", e.getMessage());
-            TesseractRunner runner = getOrInitTesseractRunner();
-            try {
-                String tessText = runner.extractText(imageData.data());
-                BufferedImage buf = ImageIO.read(new ByteArrayInputStream(imageData.data()));
-
-                Map<String, Object> attributes = new HashMap<>();
-                attributes.put("backend", BACKEND_ID);
-                attributes.put("model", "tess4j");
-                attributes.put("correlationId", correlationId);
-
-                Map<String, Object> bbox = new HashMap<>();
-                bbox.put("x", 0);
-                bbox.put("y", 0);
-                bbox.put("width", buf != null ? buf.getWidth() : 0);
-                bbox.put("height", buf != null ? buf.getHeight() : 0);
-
-                OcrCapability.TextDetection textDetection = new OcrCapability.TextDetection(
-                    tessText,
-                    1.0,
-                    bbox,
-                    attributes);
-
-                logger.info("Tess4J OCR completed: {} characters extracted, correlationId={}",
-                    tessText.length(), correlationId);
-
-                return List.of(textDetection);
-            } catch (Exception ex) {
-                throw new VisionProcessingException(
-                    "OCR failed via DJL and Tess4J fallback",
-                    "ocr_failed",
-                    "OCR",
-                    ex);
-            }
-        }
+        logger.info("Tesseract OCR completed: {} lines, correlationId={}", detections.size(), correlationId);
+        return detections;
     }
 
     // ==========================
@@ -4593,7 +4534,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         TesseractRunner runner = getOrInitTesseractRunner();
         if (!runner.isAvailable()) {
             throw new VisionProcessingException(
-                "Document recognition requires Tess4J on the classpath",
+                "Document recognition needs Tesseract language data; build with -Pdownload-models or set TESSDATA_PREFIX",
                 "tesseract_unavailable",
                 driverLicense ? "DRIVER_LICENSE" : "IDENTITY_CARD", null);
         }
@@ -4628,7 +4569,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
             attrs.put("validationErrors", pd.validationErrors());
             attrs.put("rawText", rawText);
             attrs.put("backend", BACKEND_ID);
-            attrs.put("model", "tess4j");
+            attrs.put("model", "tesseract");
             attrs.put("languages", languages);
             attrs.put("correlationId", correlationId);
 
