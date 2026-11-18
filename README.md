@@ -19,12 +19,12 @@
   </p>
 </div>
 
-**Spring Vision** is a computer vision framework that brings AI capabilities to your Spring Boot applications. Built on the Deep Java Library (DJL), it provides a simple API for common computer vision tasks. **Core models (YOLO, RetinaFace) are bundled in the JAR** - no downloads required for production use!
+**Spring Vision** is a computer vision framework that brings AI capabilities to your Spring Boot applications. Built on the Deep Java Library (DJL), it provides a simple API for common computer vision tasks. **Core models (RetinaFace and friends) are bundled in the JAR** - no downloads required for production use! Every bundled model must carry a licence that allows commercial use; Ultralytics YOLO weights (AGPL-3.0) are deliberately not used.
 
 ## ✨ Features
 
 - **🚀 Easy Setup**: Get started quickly with auto-configuration and sensible defaults.
-- **📦 Self-Contained JARs**: Core AI models (YOLO, RetinaFace) bundled - no downloads needed!
+- **📦 Self-Contained JARs**: Core AI models (RetinaFace and friends) bundled - no downloads needed!
 - **🤖 DJL-Powered**: Built on Deep Java Library for modern AI model management.
 - **🔌 Multiple Engines**: Support for PyTorch, ONNX Runtime, TensorFlow backends.
 - **🌐 Cross-Platform**: Works on Linux, macOS, and Windows.
@@ -59,7 +59,7 @@ Spring Vision includes an MCP (Model Context Protocol) server with bundled AI mo
 git clone https://github.com/codesapienbe/spring-vision.git
 cd spring-vision
 
-# Build with models (downloads YOLO/RetinaFace during build)
+# Build with models (downloads the bundled models during build)
 mvn clean install -Pdownload-models
 
 # Run the MCP server with JBang
@@ -199,7 +199,7 @@ spring:
 
 ## 🚀 DJL Backend Features
 
-- **📦 Bundled Core Models**: YOLOv8 and RetinaFace models included in JAR (no downloads needed)
+- **📦 Bundled Core Models**: RetinaFace and friends included in JAR (no downloads needed)
 - **🔄 Runtime Downloads**: Advanced AI models download on-demand from DJL Model Zoo
 - **⚙️ Multi-Engine Support**: PyTorch, ONNX Runtime, TensorFlow backends
 - **🚀 GPU Acceleration**: CUDA support for faster inference (optional)
@@ -212,8 +212,8 @@ Spring Vision 0.0.6 provides these computer vision capabilities (all models incl
 ### ✅ **Production Ready**
 
 - **Face Detection** - High-accuracy RetinaFace model (included)
-- **Object Detection** - YOLOv8 models (included)
-- **Pose Estimation** - YOLOv8 pose models (included)
+- **Object Detection** - not available until a licence-clean detector is bundled (fails with `VisionUnsupportedException`)
+- **Pose Estimation** - not available until a licence-clean model is bundled (fails with `VisionUnsupportedException`)
 - **Barcode/QR Scanning** - ZXing library (included)
 - **Metadata Extraction** - EXIF/GPS/camera data (included)
 - **Image Annotation** - Drawing utilities (included)
@@ -242,8 +242,8 @@ Spring Vision 0.0.6 provides these computer vision capabilities (all models incl
 
 ### 🚗 **Vehicle Analytics**
 
-- **Vehicle Detection** - Identify cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes
-- **Vehicle Damage Detection** - Per-vehicle damage type & severity (scratch, dent, crack, broken glass, flat tire) via bundled YOLOv11n ONNX model
+- **Vehicle Detection** - Identify cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes - needs object detection, so not available until a licence-clean detector is bundled
+- **Vehicle Damage Detection** - Per-vehicle damage type & severity (scratch, dent, crack, broken glass, flat tire) - not available until a licence-clean damage model is bundled (fails with `VisionUnsupportedException`)
 
 ## Architecture
 
@@ -265,7 +265,7 @@ Spring Vision uses a modern, capability-based architecture built on the Deep Jav
 ### Key Features
 
 - **Single Dependency**: One starter brings all computer vision capabilities
-- **Model Bundling**: Core models (YOLO, RetinaFace) included in JAR
+- **Model Bundling**: Core models (RetinaFace and friends) included in JAR
 - **Auto-Configuration**: Zero-configuration setup with intelligent defaults
 - **Runtime Downloads**: Advanced models download on-demand
 

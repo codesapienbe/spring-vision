@@ -18,7 +18,7 @@
  *
  * <p>This package follows the Spring template pattern and provides a
  * consistent, extensible API for computer vision operations regardless
- * of the underlying implementation (OpenCV, MediaPipe, YOLO, etc.).</p>
+ * of the underlying implementation (OpenCV, MediaPipe, DJL, etc.).</p>
  *
  * <p>Example usage:</p>
  * <pre>{@code

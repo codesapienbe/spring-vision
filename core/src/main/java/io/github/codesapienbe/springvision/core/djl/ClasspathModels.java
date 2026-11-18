@@ -9,42 +9,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.output.DetectedObjects;
-import ai.djl.modality.cv.output.Joints;
-import ai.djl.repository.zoo.Criteria;
+/**
+ * Resolves model files bundled on the classpath under {@code /models/} into URLs DJL can load.
+ */
+public final class ClasspathModels {
 
-public class YoloModelLoader {
+    private ClasspathModels() {
+    }
 
     private static final ConcurrentHashMap<String, String> EXTRACTED_URLS = new ConcurrentHashMap<>();
 
-    public static Criteria<Image, DetectedObjects> createDetectionCriteria() {
-        return Criteria.builder()
-            .setTypes(Image.class, DetectedObjects.class)
-            .optModelUrls("classpath:/models/yolov8/yolov8n.pt")
-            .optEngine("PyTorch")
-            .optOption("mapLocation", "true")  // Load to CPU
-            .build();
-    }
-
-    public static Criteria<Image, Image> createSegmentationCriteria() {
-        return Criteria.builder()
-            .setTypes(Image.class, Image.class)
-            .optModelUrls("classpath:/models/yolov8-seg/yolov8n-seg.pt")
-            .optEngine("PyTorch")
-            .build();
-    }
-
-    public static Criteria<Image, Joints> createPoseCriteria() {
-        return Criteria.builder()
-            .setTypes(Image.class, Joints.class)
-            .optModelUrls("classpath:/models/yolov8-pose/yolov8n-pose.pt")
-            .optEngine("PyTorch")
-            .build();
-    }
-
     public static boolean isModelAvailable(String modelPath) {
-        URL resource = YoloModelLoader.class.getResource("/models/" + modelPath);
+        URL resource = ClasspathModels.class.getResource("/models/" + modelPath);
         return resource != null;
     }
 
@@ -54,7 +30,7 @@ public class YoloModelLoader {
      * the on-disk path is returned. file:-URL resources are returned as-is.
      */
     public static String getModelUrl(String modelPath) {
-        URL resource = YoloModelLoader.class.getResource("/models/" + modelPath);
+        URL resource = ClasspathModels.class.getResource("/models/" + modelPath);
         if (resource == null) {
             return null;
         }

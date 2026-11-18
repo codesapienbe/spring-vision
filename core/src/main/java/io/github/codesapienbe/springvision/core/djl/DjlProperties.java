@@ -122,18 +122,9 @@ public class DjlProperties {
     }
 
     public static class ObjectDetection {
-        private String model = "ssd";
         private String backbone = "resnet50";
         private float confidenceThreshold = 0.5f;
         private int topK = 10;
-
-        public String getModel() {
-            return model;
-        }
-
-        public void setModel(String model) {
-            this.model = model;
-        }
 
         public String getBackbone() {
             return backbone;
@@ -161,17 +152,8 @@ public class DjlProperties {
     }
 
     public static class PoseEstimation {
-        private String model = "yolo";
         private int joints = 17;
         private float confidenceThreshold = 0.5f;
-
-        public String getModel() {
-            return model;
-        }
-
-        public void setModel(String model) {
-            this.model = model;
-        }
 
         public int getJoints() {
             return joints;

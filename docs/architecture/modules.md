@@ -34,7 +34,7 @@ This gives you:
 - ✅ Auto-configuration
 - ✅ All detection capabilities
 - ✅ DJL backend integration
-- ✅ **Bundled Models**: YOLO, RetinaFace, and utility libraries included in JAR
+- ✅ **Bundled Models**: RetinaFace, other licence-clean models and utility libraries included in JAR
 
 ### Configuration
 
@@ -53,8 +53,6 @@ Spring Vision provides these built-in detection capabilities:
 
 ### ✅ **Production Ready (Models Included in JAR)**
 - **Face Detection** - High-accuracy RetinaFace model (`detectFaces()`)
-- **Object Detection** - YOLOv8 models (`detectObjects()`)
-- **Pose Estimation** - YOLOv8 pose models (`detectPoses()`)
 - **Barcode Scanning** - ZXing library (`scanBarcodes()`)
 - **Metadata Extraction** - EXIF/GPS data (`extractMetadata()`)
 - **Image Annotation** - Drawing utilities (`annotate()`)
@@ -79,8 +77,7 @@ Spring Vision provides these built-in detection capabilities:
 - **Demographics** - Age/gender estimation (`detectDemographics()`)
 
 ### 🚗 **Vehicle Analytics**
-- **Vehicle Detection** - YOLO vehicle classes (`detectVehicles()`)
-- **Vehicle Damage Detection** - Per-vehicle damage type & severity via bundled `yolov11n-car-damage` ONNX model (`detectVehicleDamages()`)
+- **Object Detection** (`detectObjects()`), **Pose Estimation** (`detectPoses()`), **Vehicle Detection** (`detectVehicles()`) and **Vehicle Damage Detection** (`detectVehicleDamages()`) - not available until a licence-clean model is bundled; they throw `VisionUnsupportedException` (Ultralytics YOLO weights are AGPL-3.0 and are not used)
 
 ### 🚧 **Placeholder Implementations**
 - **Hand Detection** - Uses object detection (`detectHands()`)
@@ -137,7 +134,6 @@ spring:
 
       # Object detection settings
       object-detection:
-        model: ssd  # ssd, yolo
         backbone: resnet50
         confidence-threshold: 0.6
         top-k: 10
@@ -240,7 +236,7 @@ public class FaceController {
 
 ### Category 2: Computer Vision Modules
 
-**Modules:** mediapipe, yolo, tesseract
+**Modules:** mediapipe, tesseract
 
 **Standard Configuration Pattern:**
 

@@ -44,7 +44,7 @@ public enum DetectionType {
      *
      * <p>This detection type can identify multiple object classes (people, cars,
      * animals, etc.) and returns bounding boxes with class labels and confidence scores.
-     * Requires more sophisticated backends like YOLO or MediaPipe.</p>
+     * Requires more sophisticated backends like MediaPipe.</p>
      */
     OBJECT("object", "Object Detection", false, "Detects various object classes in images"),
 
@@ -250,7 +250,7 @@ public enum DetectionType {
     /**
      * Vehicle detection - identifies vehicles and classifies their type.
      *
-     * <p>This detection type uses the COCO-trained YOLO model to locate vehicles
+     * <p>This detection type uses a COCO-trained object detection model to locate vehicles
      * (cars, trucks, buses, motorcycles, bicycles, trains, boats, airplanes) and
      * enriches each detection with vehicle category metadata.</p>
      */
@@ -270,10 +270,9 @@ public enum DetectionType {
     /**
      * License plate recognition - detects vehicle number plates and reads their text.
      *
-     * <p>A dedicated YOLO single-class detector locates plate regions; each crop is
-     * then passed through the OCR pipeline to recover the plate string. Requires the
-     * license-plate detection ONNX model to be bundled at
-     * {@code classpath:/models/license-plate/yolov8n-license-plate.onnx}.</p>
+     * <p>A dedicated plate detector locates plate regions; each crop is then passed
+     * through the OCR pipeline to recover the plate string. Requires a licence-clean
+     * plate detection model to be bundled.</p>
      */
     LICENSE_PLATE("license-plate", "License Plate Recognition", false,
         "Detects vehicle license plates and extracts the plate text");

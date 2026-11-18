@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.core.djl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.Color;
@@ -24,17 +25,13 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 
 /**
  * Integration tests for vehicle detection and vehicle damage detection.
  *
- * <p>Vehicle detection runs against the bundled YOLOv8n model and is always active.<br>
- * Vehicle damage detection requires {@code yolov11n-car-damage.onnx} to be present in
- * {@code core/models/vehicle-damage/} and is skipped when absent.</p>
- *
- * <p>To export the damage model:<br>
- * {@code yolo export model=best.pt format=onnx imgsz=640 simplify=True}<br>
- * (source: huggingface.co/vineetsarpal/yolov11n-car-damage)</p>
+ * <p>No licence-clean object detection or damage model is bundled yet: the model-bound
+ * tests are skipped while the models are absent, and the unavailable path is asserted.</p>
  */
 @DisplayName("Vehicle detection + damage detection integration tests")
 @Tag("memory-intensive")
@@ -60,12 +57,23 @@ class VehicleDamageDetectionIntegrationTest {
     }
 
     // -----------------------------------------------------------------------
-    // Vehicle detection — runs against bundled YOLO (no extra model needed)
+    // Vehicle detection — needs an object detection model
     // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("detectVehicles throws VisionUnsupportedException while no object detection model is bundled")
+    void detectVehiclesFailsLoudlyWithoutModel() {
+        assumeTrue(!backend.isVehicleDetectionModelAvailable(),
+            "object detection model is bundled — this test verifies the absent-model path");
+        assertThatThrownBy(() -> visionTemplate.detectVehicles(solidColorImage(640, 480, Color.WHITE)))
+            .isInstanceOf(VisionUnsupportedException.class)
+            .hasMessageContaining("licence-clean");
+    }
 
     @Test
     @DisplayName("detectVehicles returns empty list for a blank image")
     void detectVehiclesReturnsEmptyForBlankImage() {
+        assumeTrue(backend.isVehicleDetectionModelAvailable(), "object detection model not bundled");
         ImageData image = solidColorImage(640, 480, Color.WHITE);
         VisionResult result = visionTemplate.detectVehicles(image);
 
@@ -76,6 +84,7 @@ class VehicleDamageDetectionIntegrationTest {
     @Test
     @DisplayName("detectVehicles result detections carry vehicleType attribute")
     void vehicleDetectionsHaveVehicleTypeAttribute() {
+        assumeTrue(backend.isVehicleDetectionModelAvailable(), "object detection model not bundled");
         ImageData image = solidColorImage(640, 480, Color.GRAY);
         VisionResult result = visionTemplate.detectVehicles(image);
 
@@ -110,7 +119,7 @@ class VehicleDamageDetectionIntegrationTest {
     @DisplayName("detectVehicleDamages returns non-null result when model is loaded")
     void detectVehicleDamagesReturnsResult() {
         assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
-            "yolov11n-car-damage.onnx not bundled");
+            "vehicle damage model not bundled");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.detectVehicleDamages(image);
 
@@ -122,7 +131,7 @@ class VehicleDamageDetectionIntegrationTest {
     @DisplayName("damage detections carry required metadata attributes")
     void damageDetectionsHaveMetadata() {
         assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
-            "yolov11n-car-damage.onnx not bundled");
+            "vehicle damage model not bundled");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.detectVehicleDamages(image);
 
@@ -141,7 +150,7 @@ class VehicleDamageDetectionIntegrationTest {
     @DisplayName("isVehicleDamageDetectionModelAvailable returns true when model loaded")
     void modelAvailableWhenBundled() {
         assumeTrue(backend.isVehicleDamageDetectionModelAvailable(),
-            "yolov11n-car-damage.onnx not bundled");
+            "vehicle damage model not bundled");
         assertThat(backend.isVehicleDamageDetectionModelAvailable()).isTrue();
     }
 

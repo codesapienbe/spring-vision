@@ -3,8 +3,8 @@
 # GPU Acceleration
 
 This describes the actual mechanism Spring Vision uses to run its DJL-backed models
-(YOLO object detection, face detection/recognition, pose estimation, emotion,
-demographics, NSFW, vehicle damage, license plate, hand detection, deepfake, and more)
+(face detection/recognition, emotion, demographics, NSFW, hand detection, deepfake,
+and more)
 on an NVIDIA GPU instead of CPU, and how to switch between the two.
 
 There are **two independent knobs**, and both need to point the same direction for GPU
@@ -61,14 +61,8 @@ engine. The `ai.djl.tensorflow:tensorflow-engine` dependency also exists in
 `core/pom.xml` but isn't actually used by any model-loading code today, so its GPU story
 is out of scope.
 
-**Every live model-loading path honors the device — including YOLOv8s.** The YOLOv8n
-object-detection path resolves through the DJL model zoo (`.optDevice(device)` set
-directly). The YOLOv8s path used to go through `YoloLoader.createDetectionCriteria`,
-which built its `Criteria` without setting a device at all — meaning it silently used
-DJL's own auto-detection instead of `spring.vision.djl.device`, so an explicit
-`device: cpu` could still end up running YOLOv8s on GPU (or vice versa) depending on
-what DJL detected. Fixed: `YoloLoader`'s factory methods now take a `Device` parameter
-and every call site passes the configured device through.
+**Every live model-loading path honors the device**: each `Criteria` is built with
+`.optDevice(device)` from `spring.vision.djl.device`.
 
 ## Runtime: one property switches every model
 

@@ -15,7 +15,7 @@ import io.github.codesapienbe.springvision.core.ImageData;
  * the trained head survives restarts.</p>
  *
  * <p><b>Class taxonomy (indices 0-21):</b><br>
- * 0-13: original vineetsarpal/yolov11n-car-damage classes<br>
+ * 0-13: original car-damage taxonomy<br>
  * 14-21: extended classes — scratch, paint-damage, broken-component, missing-panel,
  * flood-damage, burn-damage, flat-tire, cracked-bumper</p>
  */

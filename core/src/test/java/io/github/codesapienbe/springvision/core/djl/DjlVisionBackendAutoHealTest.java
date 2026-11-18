@@ -284,7 +284,7 @@ class DjlVisionBackendAutoHealTest {
     }
 
     static boolean faceFeatureModelAvailable() {
-        return YoloModelLoader.isModelAvailable("face_feature/face_feature.pt");
+        return ClasspathModels.isModelAvailable("face_feature/face_feature.pt");
     }
 
     static boolean faceFeatureModelNotAvailable() {

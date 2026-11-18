@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 import io.github.codesapienbe.springvision.core.*;
+import io.github.codesapienbe.springvision.core.djl.ClasspathModels;
 import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
-import io.github.codesapienbe.springvision.core.djl.YoloLoader;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 
 /**
@@ -39,7 +39,7 @@ public class FaceDetectionCapabilityIntegrationTest {
     @BeforeAll
     static void setup() throws Exception {
         // Check if RetinaFace model is available offline
-        retinaFaceModelAvailable = YoloLoader.isModelAvailable("retinaface/retinaface.pt");
+        retinaFaceModelAvailable = ClasspathModels.isModelAvailable("retinaface/retinaface.pt");
 
         if (!retinaFaceModelAvailable) {
             System.out.println("RetinaFace model not available offline - skipping real model tests");

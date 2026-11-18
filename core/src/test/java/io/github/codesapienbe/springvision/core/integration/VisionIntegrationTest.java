@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.core.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
@@ -19,6 +20,7 @@ import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 
 /**
  * Central Integration Test for all Vision capabilities.
@@ -51,10 +53,11 @@ public class VisionIntegrationTest {
     class ObjectDetectionTests {
 
         @Test
-        void shouldSucceedWhenModelsPresent() {
+        void failsLoudlyWhileNoLicenceCleanModelIsBundled() {
             ImageData image = createPlaceholderImage(640, 480);
-            VisionResult result = visionTemplate.detectObjects(image);
-            assertThat(result).isNotNull();
+            assertThatThrownBy(() -> visionTemplate.detectObjects(image))
+                .isInstanceOf(VisionUnsupportedException.class)
+                .hasMessageContaining("licence-clean");
         }
     }
 

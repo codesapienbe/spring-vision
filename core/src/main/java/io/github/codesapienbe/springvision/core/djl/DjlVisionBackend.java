@@ -110,7 +110,6 @@ import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapabil
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
 import io.github.codesapienbe.springvision.core.djl.translator.FaceDetectionTranslator;
-import io.github.codesapienbe.springvision.core.djl.translator.YoloLicensePlateTranslator;
 import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocessor;
 import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
 import io.github.codesapienbe.springvision.core.document.ParsedDocument;
@@ -198,9 +197,9 @@ public class DjlVisionBackend implements VisionBackend,
     private static final Set<String> VEHICLE_CLASSES = Set.of(
         "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat");
 
-    // Classes 0-13: vineetsarpal/yolov11n-car-damage original taxonomy
+    // Classes 0-13: original car-damage taxonomy
     // Classes 14-21: spring-vision extended taxonomy
-    // Classes 22-27: lplenka/coco-car-damage-detection-dataset (Kaggle, fine-tuned yolov8n)
+    // Classes 22-27: lplenka/coco-car-damage-detection-dataset (Kaggle)
     static final String[] VEHICLE_DAMAGE_CLASSES = {
         "Front-windscreen-damage", "Headlight-damage", "Rear-windscreen-Damage",
         "Runningboard-Damage", "Sidemirror-Damage", "Taillight-Damage",
@@ -446,27 +445,23 @@ public class DjlVisionBackend implements VisionBackend,
 
     @Override
     public boolean isObjectDetectionModelAvailable() {
-        // Consider model available if loaded into memory or if model file exists on
-        // classpath
-        return objectDetectionModel != null || YoloModelLoader.isModelAvailable("yolov8/yolov8n.pt");
+        return objectDetectionModel != null;
     }
 
     @Override
     public boolean isFaceDetectionModelAvailable() {
-        return faceDetectionModel != null || YoloModelLoader.isModelAvailable("retinaface/retinaface.pt");
+        return faceDetectionModel != null || ClasspathModels.isModelAvailable("retinaface/retinaface.pt");
     }
 
     @Override
     public boolean isPoseEstimationModelAvailable() {
-        return poseEstimationModel != null || YoloModelLoader.isModelAvailable("yolov8-pose/yolov8n-pose.pt");
+        return poseEstimationModel != null;
     }
 
     @Override
     public boolean isImageClassificationModelAvailable() {
-        // Image classification loads models on demand; consider available if model file
-        // exists or loading will succeed
-        return YoloModelLoader.isModelAvailable("yolov8-cls/yolov8n-cls.pt")
-            || YoloModelLoader.isModelAvailable("yolov8-cls/yolov8s-cls.pt") || true;
+        // Image classification loads its DJL zoo model on demand
+        return true;
     }
 
     @Override
@@ -589,25 +584,6 @@ public class DjlVisionBackend implements VisionBackend,
                     e.getMessage());
             }
 
-            // Load core models
-            try {
-                loadWithGpuFallback("object detection model", this::loadObjectDetectionModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load object detection model: {}. Proceeding without object model.", e.getMessage(), e);
-            }
-
-            // Only load optional models if configured
-            String poseModel = properties.getPoseEstimation() != null ? properties.getPoseEstimation().getModel()
-                : null;
-            if (poseModel != null && !poseModel.isBlank()) {
-                try {
-                    loadWithGpuFallback("pose estimation model", this::loadPoseEstimationModel);
-                } catch (Exception e) {
-                    logger.warn("Failed to load pose estimation model: {}", e.getMessage());
-                }
-            } else {
-                logger.info("Pose estimation model not configured or blank; skipping pose model load.");
-            }
 
             String actionModel = properties.getActionRecognition() != null
                 ? properties.getActionRecognition().getModel()
@@ -673,19 +649,7 @@ public class DjlVisionBackend implements VisionBackend,
                     e.getMessage(), e);
             }
 
-            try {
-                loadWithGpuFallback("vehicle damage detection model", this::loadVehicleDamageModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load vehicle damage detection model: {}. Vehicle damage detection will be unavailable.",
-                    e.getMessage(), e);
-            }
 
-            try {
-                loadWithGpuFallback("license plate detection model", this::loadLicensePlateModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load license plate detection model: {}. License plate recognition will be unavailable.",
-                    e.getMessage(), e);
-            }
 
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
@@ -756,7 +720,7 @@ public class DjlVisionBackend implements VisionBackend,
         // copy when available so production deployments do not depend on outbound
         // network access; fall back to the public DJL test-models URL otherwise.
         String faceFeatureUrl = "https://resources.djl.ai/test-models/pytorch/face_feature.zip";
-        String localFaceFeatureUrl = YoloModelLoader.getModelUrl("face_feature/face_feature.pt");
+        String localFaceFeatureUrl = ClasspathModels.getModelUrl("face_feature/face_feature.pt");
         if (localFaceFeatureUrl != null) {
             faceFeatureUrl = localFaceFeatureUrl;
             logger.info("Using locally bundled FaceFeatureNet model");
@@ -788,7 +752,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadEmotionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading FER+ emotion detection model (OnnxRuntime, 8-class)");
-        String localUrl = YoloModelLoader.getModelUrl("emotion-ferplus/emotion-ferplus-8.onnx");
+        String localUrl = ClasspathModels.getModelUrl("emotion-ferplus/emotion-ferplus-8.onnx");
         String modelUrl = (localUrl != null) ? localUrl
             : "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx";
 
@@ -810,7 +774,7 @@ public class DjlVisionBackend implements VisionBackend,
     private void loadDemographicsModels(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading age/gender demographics models (OnnxRuntime, GoogLeNet-based)");
 
-        String ageUrl = YoloModelLoader.getModelUrl("age-gender/age_googlenet.onnx");
+        String ageUrl = ClasspathModels.getModelUrl("age-gender/age_googlenet.onnx");
         if (ageUrl == null) {
             ageUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/age_googlenet.onnx";
         }
@@ -826,7 +790,7 @@ public class DjlVisionBackend implements VisionBackend,
         modelCache.put("age", ageModel);
         logger.info("Age model loaded: {}", ageModel.getName());
 
-        String genderUrl = YoloModelLoader.getModelUrl("age-gender/gender_googlenet.onnx");
+        String genderUrl = ClasspathModels.getModelUrl("age-gender/gender_googlenet.onnx");
         if (genderUrl == null) {
             genderUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/gender_googlenet.onnx";
         }
@@ -845,7 +809,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadNsfwModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading NSFW detection model (Falconsai ViT fp16 ONNX)");
-        String url = YoloModelLoader.getModelUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
+        String url = ClasspathModels.getModelUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -863,53 +827,9 @@ public class DjlVisionBackend implements VisionBackend,
         logger.info("NSFW detection model loaded: {}", nsfwModel.getName());
     }
 
-    private void loadVehicleDamageModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading vehicle damage detection model (yolov8n fine-tuned, 28 classes)");
-        String url = YoloModelLoader.getModelUrl("vehicle-damage/yolov11n-car-damage.onnx");
-        if (url == null) {
-            logger.warn("Vehicle damage detection model not found at classpath '/models/vehicle-damage/yolov11n-car-damage.onnx'. "
-                + "Export it with: yolo export model=best.pt format=onnx imgsz=640 simplify=True");
-            return;
-        }
-        vehicleDamageModel = Criteria.builder()
-            .setTypes(Image.class, DetectedObjects.class)
-            .optModelUrls(url)
-            .optModelName("yolov11n-car-damage")
-            .optTranslator(new YoloDamageDetectionTranslator((float) properties.getVehicleDamage().getMinConfidence()))
-            .optEngine("OnnxRuntime")
-            .optDevice(device)
-            .build()
-            .loadModel();
-        modelCache.put("vehicle_damage", vehicleDamageModel);
-        logger.info("Vehicle damage detection model loaded: {}", vehicleDamageModel.getName());
-    }
-
-    private void loadLicensePlateModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading license plate detection model (YOLOv8 single-class)");
-        String url = YoloModelLoader.getModelUrl("license-plate/yolov8n-license-plate.onnx");
-        if (url == null) {
-            logger.warn("License plate detection model not found at classpath '/models/license-plate/yolov8n-license-plate.onnx'. "
-                + "Source it from huggingface.co/keremberke/yolov8n-license-plate, export to ONNX "
-                + "('yolo export model=best.pt format=onnx imgsz=640 simplify=True'), and place it under "
-                + "core/models/license-plate/ before rebuilding.");
-            return;
-        }
-        licensePlateModel = Criteria.builder()
-            .setTypes(Image.class, DetectedObjects.class)
-            .optModelUrls(url)
-            .optModelName("yolov8n-license-plate")
-            .optTranslator(new YoloLicensePlateTranslator())
-            .optEngine("OnnxRuntime")
-            .optDevice(device)
-            .build()
-            .loadModel();
-        modelCache.put("license_plate", licensePlateModel);
-        logger.info("License plate detection model loaded: {}", licensePlateModel.getName());
-    }
-
     private void loadHandDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading hand detection model (MediaPipe palm detector ONNX)");
-        String url = YoloModelLoader.getModelUrl("palm-detection/palm_detection_mediapipe.onnx");
+        String url = ClasspathModels.getModelUrl("palm-detection/palm_detection_mediapipe.onnx");
         if (url == null) {
             url = "https://huggingface.co/opencv/palm_detection_mediapipe/resolve/main/palm_detection_mediapipe_2023feb.onnx";
         }
@@ -928,7 +848,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadDeepfakeModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading deepfake detection model (ViT fp16 ONNX)");
-        String url = YoloModelLoader.getModelUrl("deepfake-detector/deepfake-detector-fp16.onnx");
+        String url = ClasspathModels.getModelUrl("deepfake-detector/deepfake-detector-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/Deep-Fake-Detector-v2-Model-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -962,7 +882,7 @@ public class DjlVisionBackend implements VisionBackend,
             // Check if RetinaFace model is available locally (downloaded and extracted
             // during build)
             String retinaFaceUrl = "https://resources.djl.ai/test-models/pytorch/retinaface.zip"; // Fallback
-            String localRetinaFaceUrl = YoloModelLoader.getModelUrl("retinaface/retinaface.pt");
+            String localRetinaFaceUrl = ClasspathModels.getModelUrl("retinaface/retinaface.pt");
             if (localRetinaFaceUrl != null) {
                 retinaFaceUrl = localRetinaFaceUrl;
                 logger.info("Using locally downloaded and extracted RetinaFace model");
@@ -1008,61 +928,9 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
-    private void loadObjectDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        logger.info("Loading object detection model with DJL");
-
-        Criteria<Image, DetectedObjects> criteria;
-        String modelType = properties.getObjectDetection().getModel();
-
-        if ("ssd".equalsIgnoreCase(modelType)) {
-            // DJL mlrepo ships YOLOv8n via OnnxRuntime. We resolve it through the
-            // zoo by group/artifact so DJL reads metadata.json and applies the
-            // bundled YoloV8TranslatorFactory automatically.
-            logger.info("Using YOLOv8n object detection model (DJL zoo, OnnxRuntime)");
-            criteria = Criteria.builder()
-                .setTypes(Image.class, DetectedObjects.class)
-                .optApplication(Application.CV.OBJECT_DETECTION)
-                .optGroupId("ai.djl.onnxruntime")
-                .optArtifactId("yolov8n")
-                .optEngine("OnnxRuntime")
-                .optDevice(device)
-                .build();
-        } else {
-            // YOLOv8s with YoloDetectionTranslator — resizes to 640x640 before inference
-            logger.info("Using YOLOv8s object detection model");
-            if (!YoloLoader.isModelAvailable("yolov8/yolov8s.pt")) {
-                throw new ModelNotFoundException(
-                    "YOLOv8s model not available. Run 'mvn clean install -Pdownload-models' to download models.");
-            }
-            criteria = YoloLoader.createDetectionCriteria("s", device);
-        }
-
-        objectDetectionModel = criteria.loadModel();
-        modelCache.put("object_detection", objectDetectionModel);
-        logger.info("Object detection model loaded: {} ({})", objectDetectionModel.getName(), modelType);
-    }
-
-    private void loadPoseEstimationModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
-        // DJL mlrepo ships YOLOv8n-pose as ONNX (~11.5 MB) with YoloPoseTranslatorFactory
-        // pre-wired. Same pattern as object detection — the bundled .pt files are
-        // pickle checkpoints that DJL cannot load directly.
-        logger.info("Loading YOLOv8n-pose estimation model (DJL zoo, OnnxRuntime)");
-        Criteria<Image, Joints[]> criteria = Criteria.builder()
-            .setTypes(Image.class, Joints[].class)
-            .optApplication(Application.CV.POSE_ESTIMATION)
-            .optGroupId("ai.djl.onnxruntime")
-            .optArtifactId("yolov8n-pose")
-            .optEngine("OnnxRuntime")
-            .optDevice(device)
-            .build();
-        poseEstimationModel = criteria.loadModel();
-        modelCache.put("pose_estimation", poseEstimationModel);
-        logger.info("Pose estimation model loaded: {}", poseEstimationModel.getName());
-    }
-
     private void loadActionRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading action recognition model (ViT fp16 ONNX, 15-class human actions)");
-        String url = YoloModelLoader.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
+        String url = ClasspathModels.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -1199,6 +1067,8 @@ public class DjlVisionBackend implements VisionBackend,
             .build();
         try {
             return detectObjects(imageData, query);
+        } catch (VisionUnsupportedException e) {
+            throw e; // "no model" must reach the caller as unsupported, not as a backend failure
         } catch (BaseVisionException e) {
             throw new io.github.codesapienbe.springvision.core.exception.VisionBackendException(
                 "Object detection failed: " + e.getMessage(),
@@ -1229,10 +1099,9 @@ public class DjlVisionBackend implements VisionBackend,
                 .fromInputStream(new ByteArrayInputStream(imageData.data()));
 
             if (objectDetectionModel == null) {
-                throw new VisionBackendException(
-                    "Object detection model not initialized",
-                    "model_not_initialized",
-                    null);
+                throw new VisionUnsupportedException(
+                    "No licence-clean object detection model is bundled yet; the former YOLO "
+                    + "(Ultralytics, AGPL-3.0) model was removed.");
             }
 
             List<Detection> results = withPredictor(objectDetectionModel, predictor -> {
@@ -1281,10 +1150,9 @@ public class DjlVisionBackend implements VisionBackend,
         }
 
         if (poseEstimationModel == null) {
-            throw new VisionBackendException(
-                "Pose estimation model not initialized",
-                "model_not_initialized",
-                null);
+            throw new VisionUnsupportedException(
+                "No licence-clean pose estimation model is bundled; the former YOLOv8-pose "
+                + "(Ultralytics, AGPL-3.0) model was removed.");
         }
 
         String correlationId = generateCorrelationId();
@@ -2219,138 +2087,7 @@ public class DjlVisionBackend implements VisionBackend,
         }
     }
 
-    /**
-     * Translator for YOLOv11n-car-damage ONNX (vineetsarpal/yolov11n-car-damage).
-     *
-     * <p>Input: letterboxed 640×640 RGB image, normalized [0,1], NCHW layout, tensor named "images".<br>
-     * Output: "output0" shaped [1, 18, 8400] — 4 bbox coords + 14 damage class scores × 8400 anchors.<br>
-     * Post-processing applies a confidence threshold of 0.25 and returns {@link DetectedObjects}.</p>
-     */
-    private static final class YoloDamageDetectionTranslator implements Translator<Image, DetectedObjects> {
-        private static final int INPUT_SIZE = 640;
-        private static final float IOU_THRESHOLD = 0.45f;
-        private static final int NUM_CLASSES = VEHICLE_DAMAGE_CLASSES.length; // 14
-
-        private final float confThreshold;
-
-        YoloDamageDetectionTranslator(float confThreshold) {
-            this.confThreshold = confThreshold;
-        }
-
-        @Override
-        public NDList processInput(TranslatorContext ctx, Image input) throws Exception {
-            // Letterbox-pad to 640×640 preserving aspect ratio
-            int origW = input.getWidth();
-            int origH = input.getHeight();
-            double ratio = Math.min(INPUT_SIZE / (double) origW, INPUT_SIZE / (double) origH);
-            int newW = (int) Math.round(origW * ratio);
-            int newH = (int) Math.round(origH * ratio);
-            int padLeft = (INPUT_SIZE - newW) / 2;
-            int padTop = (INPUT_SIZE - newH) / 2;
-
-            ctx.setAttachment("ratio", ratio);
-            ctx.setAttachment("padLeft", padLeft);
-            ctx.setAttachment("padTop", padTop);
-
-            Image resized = input.resize(newW, newH, false);
-            float[] hwcRgb = resized.toNDArray(ctx.getNDManager(), Image.Flag.COLOR)
-                .toType(DataType.FLOAT32, false).toFloatArray();
-
-            // Place into 640×640 canvas (grey 114 padding, NCHW, normalised 0-1)
-            float[] nchw = new float[3 * INPUT_SIZE * INPUT_SIZE];
-            Arrays.fill(nchw, 114f / 255f);
-            for (int py = 0; py < newH; py++) {
-                for (int px = 0; px < newW; px++) {
-                    int srcIdx = (py * newW + px) * 3;
-                    int dstY = py + padTop;
-                    int dstX = px + padLeft;
-                    int base = dstY * INPUT_SIZE + dstX;
-                    nchw[base] = hwcRgb[srcIdx] / 255f;
-                    nchw[INPUT_SIZE * INPUT_SIZE + base] = hwcRgb[srcIdx + 1] / 255f;
-                    nchw[2 * INPUT_SIZE * INPUT_SIZE + base] = hwcRgb[srcIdx + 2] / 255f;
-                }
-            }
-            NDArray tensor = ctx.getNDManager()
-                .create(nchw, new Shape(1, 3, INPUT_SIZE, INPUT_SIZE));
-            tensor.setName("images");
-            return new NDList(tensor);
-        }
-
-        @Override
-        public DetectedObjects processOutput(TranslatorContext ctx, NDList list) {
-            double ratio = (double) ctx.getAttachment("ratio");
-            int padLeft = (int) ctx.getAttachment("padLeft");
-            int padTop = (int) ctx.getAttachment("padTop");
-
-            // output0: [1, 4+NUM_CLASSES, 8400] — squeeze batch dim, normalise layout
-            ai.djl.ndarray.NDArray outTensor = list.getFirst();
-            if (outTensor.getShape().dimension() == 3) {
-                outTensor = outTensor.squeeze(0);  // [4+NUM_CLASSES, 8400] or [8400, 4+NUM_CLASSES]
-            }
-            // If anchors are in dim-0 (transposed layout from DJL ONNX), fix orientation
-            long dim0 = outTensor.getShape().get(0);
-            long dim1 = outTensor.getShape().get(1);
-            if (dim0 > dim1) {
-                // [8400, 32] — transpose to [32, 8400]
-                outTensor = outTensor.transpose();
-            }
-            float[] raw = outTensor.toFloatArray();
-            int numAnchors = (int) outTensor.getShape().get(1);
-
-            List<String> classNames = new ArrayList<>();
-            List<Double> probabilities = new ArrayList<>();
-            List<ai.djl.modality.cv.output.BoundingBox> boxes = new ArrayList<>();
-
-            for (int a = 0; a < numAnchors; a++) {
-                // Find highest class score
-                int bestClass = -1;
-                float bestScore = confThreshold;
-                for (int c = 0; c < NUM_CLASSES; c++) {
-                    float score = raw[(4 + c) * numAnchors + a];
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestClass = c;
-                    }
-                }
-                if (bestClass < 0) {
-                    continue;
-                }
-
-                // cx, cy, w, h in 640×640 space
-                float cx = raw[a];
-                float cy = raw[numAnchors + a];
-                float bw = raw[2 * numAnchors + a];
-                float bh = raw[3 * numAnchors + a];
-
-                // Map from 640×640 letterbox space → normalised [0,1] image coords.
-                // newW = INPUT_SIZE - 2*padLeft, newH = INPUT_SIZE - 2*padTop (content area).
-                // x_norm = (x_640 - padLeft) / newW; no extra ratio factor needed.
-                float contentW = INPUT_SIZE - 2 * padLeft;
-                float contentH = INPUT_SIZE - 2 * padTop;
-                float x1 = (cx - bw / 2f - padLeft) / contentW;
-                float y1 = (cy - bh / 2f - padTop) / contentH;
-                float w = bw / contentW;
-                float h = bh / contentH;
-
-                x1 = Math.max(0f, x1);
-                y1 = Math.max(0f, y1);
-                w = Math.min(w, 1f - x1);
-                h = Math.min(h, 1f - y1);
-
-                classNames.add(VEHICLE_DAMAGE_CLASSES[bestClass]);
-                probabilities.add((double) bestScore);
-                boxes.add(new ai.djl.modality.cv.output.Rectangle(x1, y1, w, h));
-            }
-            return new DetectedObjects(classNames, probabilities, boxes);
-        }
-
-        @Override
-        public Batchifier getBatchifier() {
-            return null;
-        }
-    }
-
-    private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
+private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         BufferedImage gray = new BufferedImage(64, 64, BufferedImage.TYPE_BYTE_GRAY);
         Graphics2D g = gray.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -4280,8 +4017,7 @@ public class DjlVisionBackend implements VisionBackend,
      * <p>
      * Current Implementation uses existing object detection with threat
      * classification.
-     * Future enhancement: Load dedicated weapon detection model (e.g.,
-     * YOLOv8-weapon).
+     * Future enhancement: Load a dedicated, licence-clean weapon detection model.
      * </p>
      *
      * @param imageDataList list of images to analyze for threats
@@ -4667,9 +4403,9 @@ public class DjlVisionBackend implements VisionBackend,
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
         if (objectDetectionModel == null) {
-            throw new VisionBackendException(
-                "Object detection model not initialized — vehicle detection requires it",
-                "model_not_initialized", null);
+            throw new VisionUnsupportedException(
+                "Vehicle detection needs an object detection model, and no licence-clean one is "
+                + "bundled yet; the former YOLO (Ultralytics, AGPL-3.0) model was removed.");
         }
 
         List<Detection> allObjects = detectObjects(imageData);
@@ -4716,11 +4452,9 @@ public class DjlVisionBackend implements VisionBackend,
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
         if (vehicleDamageModel == null) {
-            throw new io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException(
-                "Vehicle damage detection model not available. "
-                + "Export yolov11n-car-damage (huggingface.co/vineetsarpal/yolov11n-car-damage) to ONNX "
-                + "('yolo export model=best.pt format=onnx imgsz=640 simplify=True'), "
-                + "place it at '/models/vehicle-damage/yolov11n-car-damage.onnx' and rebuild.");
+            throw new VisionUnsupportedException(
+                "No licence-clean vehicle damage detection model is bundled yet; the former "
+                + "YOLO11-based (Ultralytics, AGPL-3.0) model was removed.");
         }
 
         String correlationId = generateCorrelationId();
@@ -4976,10 +4710,8 @@ public class DjlVisionBackend implements VisionBackend,
         }
         if (licensePlateModel == null) {
             throw new VisionUnsupportedException(
-                "License plate detection model not available. Source it from "
-                + "huggingface.co/keremberke/yolov8n-license-plate, export to ONNX "
-                + "('yolo export model=best.pt format=onnx imgsz=640 simplify=True'), "
-                + "place it at '/models/license-plate/yolov8n-license-plate.onnx' and rebuild.");
+                "No licence-clean licence-plate detection model is bundled yet; YOLO-based "
+                + "(Ultralytics, AGPL-3.0) plate detectors are not used.");
         }
         TesseractRunner ocr = getOrInitTesseractRunner();
         if (!ocr.isAvailable()) {

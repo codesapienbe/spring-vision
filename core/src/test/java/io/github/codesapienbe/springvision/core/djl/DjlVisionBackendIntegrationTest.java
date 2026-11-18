@@ -1,6 +1,7 @@
 package io.github.codesapienbe.springvision.core.djl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.image.BufferedImage;
@@ -20,6 +21,7 @@ import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 
 /**
  * Integration test for DjlVisionBackend initialization and basic functionality.
@@ -85,11 +87,12 @@ public class DjlVisionBackendIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should succeed at object detection when bundled models are present")
-    void shouldSucceedForObjectDetectionWhenModelsPresent() throws Exception {
+    @DisplayName("Object detection fails loudly while no licence-clean model is bundled")
+    void objectDetectionIsUnsupportedWithoutLicenceCleanModel() throws Exception {
         ImageData testImage = createTestImage();
-        List<Detection> results = backend.detectObjects(testImage);
-        assertThat(results).isNotNull();
+        assertThatThrownBy(() -> backend.detectObjects(testImage))
+            .isInstanceOf(VisionUnsupportedException.class)
+            .hasMessageContaining("licence-clean");
     }
 
     @Test

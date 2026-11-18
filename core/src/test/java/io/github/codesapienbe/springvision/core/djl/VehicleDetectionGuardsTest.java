@@ -45,15 +45,14 @@ class VehicleDetectionGuardsTest {
         }
 
         @Test
-        @DisplayName("throws VisionBackendException when object detection model missing")
+        @DisplayName("throws VisionUnsupportedException when object detection model missing")
         void throwsWhenObjectModelMissing() throws Exception {
             setInitialized(backend, true);
             // objectDetectionModel stays null
 
             assertThatThrownBy(() -> backend.detectVehicles(dummyImage))
-                .isInstanceOf(VisionBackendException.class)
-                .extracting(ex -> ((VisionBackendException) ex).getOperation())
-                .isEqualTo("model_not_initialized");
+                .isInstanceOf(VisionUnsupportedException.class)
+                .hasMessageContaining("licence-clean");
         }
 
         @Test
@@ -84,7 +83,7 @@ class VehicleDetectionGuardsTest {
 
             assertThatThrownBy(() -> backend.detectVehicleDamages(dummyImage))
                 .isInstanceOf(VisionUnsupportedException.class)
-                .hasMessageContaining("yolov11n-car-damage");
+                .hasMessageContaining("licence-clean");
         }
 
         @Test
@@ -99,7 +98,7 @@ class VehicleDetectionGuardsTest {
     class DamageClassesContract {
 
         @Test
-        @DisplayName("contains exactly 14 classes matching vineetsarpal/yolov11n-car-damage")
+        @DisplayName("contains exactly 14 classes of the original car-damage taxonomy")
         void has14Classes() {
             assertThat(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES).hasSize(14);
         }

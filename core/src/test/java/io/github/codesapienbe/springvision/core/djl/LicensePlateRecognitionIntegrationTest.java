@@ -31,15 +31,10 @@ import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedExcep
 /**
  * Integration tests for license-plate recognition.
  *
- * <p>The detector model {@code yolov8n-license-plate.onnx} must be placed under
- * {@code core/models/license-plate/} for the model-bound tests to run. When the
- * model is absent the tests assert the documented unavailable-path behaviour
- * (a {@link VisionUnsupportedException} with a clear sourcing message) so the
- * contract is still exercised in CI.</p>
- *
- * <p>To source the model: download from huggingface.co/keremberke/yolov8n-license-plate
- * and export to ONNX with
- * {@code yolo export model=best.pt format=onnx imgsz=640 simplify=True}.</p>
+ * <p>No licence-clean plate detector is bundled yet, so the model-bound tests are
+ * skipped and the unavailable path is asserted instead (a
+ * {@link VisionUnsupportedException} with a clear message), keeping the contract
+ * exercised.</p>
  */
 @DisplayName("License plate recognition integration tests")
 @Tag("memory-intensive")
@@ -72,14 +67,14 @@ class LicensePlateRecognitionIntegrationTest {
         ImageData image = solidColorImage(640, 480, Color.WHITE);
         assertThatThrownBy(() -> visionTemplate.recognizeLicensePlates(image))
             .isInstanceOf(VisionUnsupportedException.class)
-            .hasMessageContaining("yolov8n-license-plate");
+            .hasMessageContaining("licence-clean");
     }
 
     @Test
     @DisplayName("recognizeLicensePlates returns non-null result when the detector model is loaded")
     void recognizeLicensePlatesReturnsResultWhenModelAvailable() {
         assumeTrue(backend.isLicensePlateRecognitionAvailable(),
-            "yolov8n-license-plate.onnx not bundled or OCR unavailable");
+            "plate detector not bundled or OCR unavailable");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.recognizeLicensePlates(image);
 
@@ -96,7 +91,7 @@ class LicensePlateRecognitionIntegrationTest {
     @DisplayName("recognizeLicensePlates reads a real-world UK plate from /tmp/damaged-car.jpg when available")
     void recognizeRealWorldPlate() throws Exception {
         assumeTrue(backend.isLicensePlateRecognitionAvailable(),
-            "yolov8n-license-plate.onnx not bundled or OCR unavailable");
+            "plate detector not bundled or OCR unavailable");
         Path sample = Path.of("/tmp/damaged-car.jpg");
         assumeTrue(Files.exists(sample),
             "sample image /tmp/damaged-car.jpg not present; skip");

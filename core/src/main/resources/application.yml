@@ -42,8 +42,6 @@ spring:
 
       # Object Detection Configuration
       object-detection:
-        # Model: ssd (default), yolo
-        model: ssd
         # Backbone: resnet50, mobilenet, etc.
         backbone: resnet50
         confidence-threshold: 0.5
@@ -51,7 +49,6 @@ spring:
 
       # Pose Estimation Configuration
       pose-estimation:
-        model: simple_pose
         joints: 17  # COCO 17 keypoints
         confidence-threshold: 0.5
 
