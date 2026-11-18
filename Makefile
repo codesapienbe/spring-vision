@@ -111,7 +111,7 @@ integration-%:
 
 memory-tests:
 	@echo "🧠 Running memory-intensive tests..."
-	@mvn test -Dgroups=memory-intensive -DexcludedGroups= $(TEST_FLAGS)
+	@mvn test -Dgroups=memory-intensive -Dsurefire.excludedGroups= $(TEST_FLAGS)
 
 # ─── format ───────────────────────────────────────────────────────────────────
 

@@ -30,6 +30,18 @@ public record PixelRegion(int x, int y, int width, int height) {
         return intersection / union;
     }
 
+    /** The share of this region's area that lies inside {@code other}, from 0 to 1. */
+    public double fractionInside(PixelRegion other) {
+        int left = Math.max(x, other.x);
+        int top = Math.max(y, other.y);
+        int right = Math.min(x + width, other.x + other.width);
+        int bottom = Math.min(y + height, other.y + other.height);
+        if (right <= left || bottom <= top) {
+            return 0.0;
+        }
+        return (double) (right - left) * (bottom - top) / ((double) width * height);
+    }
+
     /**
      * This region grown by {@code fraction} of its size on every side, clipped to an image of
      * {@code imageWidth} x {@code imageHeight}.

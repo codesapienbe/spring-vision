@@ -4,6 +4,8 @@ import static org.bytedeco.leptonica.global.leptonica.pixDestroy;
 import static org.bytedeco.leptonica.global.leptonica.pixGetHeight;
 import static org.bytedeco.leptonica.global.leptonica.pixGetWidth;
 import static org.bytedeco.leptonica.global.leptonica.pixReadMem;
+import static org.bytedeco.tesseract.global.tesseract.PSM_SINGLE_LINE;
+import static org.bytedeco.tesseract.global.tesseract.RIL_SYMBOL;
 import static org.bytedeco.tesseract.global.tesseract.RIL_TEXTLINE;
 
 import java.nio.charset.StandardCharsets;
@@ -163,6 +165,48 @@ public final class TesseractRunner {
                 } while (lines.Next(RIL_TEXTLINE));
             }
             return new PageText(width, height, result);
+        });
+    }
+
+    /**
+     * Reads {@code imageBytes} as a single line of text restricted to {@code allowedCharacters}
+     * (for example a licence-plate crop). The returned box covers the whole image, and the
+     * confidence is that of the weakest recognised character.
+     */
+    public TextLine readLine(byte[] imageBytes, String languageOverride, String allowedCharacters) {
+        return withTesseract(imageBytes, languageOverride, (api, pix) -> {
+            api.SetPageSegMode(PSM_SINGLE_LINE);
+            api.SetVariable("tessedit_char_whitelist", allowedCharacters);
+            if (api.Recognize(null) != 0) {
+                throw new VisionProcessingException("Tesseract recognition failed", "tesseract_failed", "OCR", null);
+            }
+            BytePointer raw = api.GetUTF8Text();
+            String text = "";
+            if (raw != null) {
+                text = raw.getString(StandardCharsets.UTF_8).strip();
+                raw.deallocate();
+            }
+            // The weakest character's confidence: one wrong character makes a whole plate wrong, and
+            // Tesseract's word/line confidence can drop to 0 on a blurred crop it read correctly.
+            double weakest = 1.0;
+            boolean anySymbol = false;
+            ResultIterator symbols = api.GetIterator();
+            if (symbols != null) {
+                do {
+                    BytePointer symbol = symbols.GetUTF8Text(RIL_SYMBOL);
+                    if (symbol == null) {
+                        continue;
+                    }
+                    boolean blank = symbol.getString(StandardCharsets.UTF_8).isBlank();
+                    symbol.deallocate();
+                    if (!blank) {
+                        weakest = Math.min(weakest, symbols.Confidence(RIL_SYMBOL) / 100.0);
+                        anySymbol = true;
+                    }
+                } while (symbols.Next(RIL_SYMBOL));
+            }
+            double confidence = anySymbol ? Math.max(0.0, weakest) : 0.0;
+            return new TextLine(text, confidence, 0, 0, pixGetWidth(pix), pixGetHeight(pix));
         });
     }
 

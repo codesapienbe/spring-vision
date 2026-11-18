@@ -3641,10 +3641,10 @@ public class VisionTool {
 
     @Tool(name = "recognize_license_plate_b",
         description = "Detect vehicle license plates in uploaded image bytes and read each plate's text. "
-            + "Runs a dedicated plate detector, crops each plate region, and OCRs the crop. "
-            + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
-            + "and the plate's normalised bounding box. Fails with an unsupported error while no "
-            + "licence-clean plate detection model is bundled.")
+            + "Locates plates with classical OpenCV (red-on-white Belgian plates and dark-on-light plates), "
+            + "reads each with Tesseract and validates Belgian formats. Returns one entry per plate with the "
+            + "plate text, OCR confidence (weakest character), raw OCR output, whether the format is valid, "
+            + "and the plate's normalised bounding box.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlateB(String imageBase64) {
         requireAdminRole();
@@ -3665,10 +3665,10 @@ public class VisionTool {
 
     @Tool(name = "recognize_license_plate_u",
         description = "Detect vehicle license plates in an image URL and read each plate's text. "
-            + "Runs a dedicated plate detector, crops each plate region, and OCRs the crop. "
-            + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
-            + "and the plate's normalised bounding box. Fails with an unsupported error while no "
-            + "licence-clean plate detection model is bundled.")
+            + "Locates plates with classical OpenCV (red-on-white Belgian plates and dark-on-light plates), "
+            + "reads each with Tesseract and validates Belgian formats. Returns one entry per plate with the "
+            + "plate text, OCR confidence (weakest character), raw OCR output, whether the format is valid, "
+            + "and the plate's normalised bounding box.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlate(String imageUrl) {
         requireAdminRole();
@@ -3725,6 +3725,10 @@ public class VisionTool {
                 p.put("boundingBox", bbox);
             }
             p.put("rawOcrText", detection.attributes().get("rawOcrText"));
+            p.put("formatValid", detection.attributes().get("formatValid"));
+            if (detection.attributes().get("country") != null) {
+                p.put("country", detection.attributes().get("country"));
+            }
             plates.add(p);
         }
         Map<String, Object> response = new HashMap<>();

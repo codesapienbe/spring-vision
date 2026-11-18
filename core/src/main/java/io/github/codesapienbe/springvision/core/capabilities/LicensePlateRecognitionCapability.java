@@ -9,27 +9,24 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 /**
  * Capability for detecting vehicle license plates and reading their text.
  *
- * <p>Implementations run a dedicated plate-detection model (typically a
- * single-class detector) to locate plate regions, then run OCR on each crop to
- * recover the plate string. Returning the bounding box and the raw OCR output
- * lets callers correlate the plate text with its location in the source frame.</p>
+ * <p>Implementations locate plate regions, run OCR on each crop and validate the text against
+ * known plate formats. Returning the bounding box and the raw OCR output lets callers correlate
+ * the plate text with its location in the source frame.</p>
  *
  * <p>Each returned Detection carries:</p>
  * <ul>
- *   <li>{@code label} — the recognised plate text (whitespace-collapsed), or an
- *       empty string if OCR returned nothing for that crop.</li>
- *   <li>{@code confidence} — the detector's confidence in the bounding box.</li>
+ *   <li>{@code label} — the plate in canonical form when it matches a known format, otherwise
+ *       the cleaned OCR text. A read is never corrected into a format.</li>
+ *   <li>{@code confidence} — the OCR engine's confidence for the read.</li>
  *   <li>{@code boundingBox} — normalised plate coordinates in the source image.</li>
- *   <li>{@code attributes} — contains {@code "plateText"} (same as label),
- *       {@code "rawOcrText"} (Tesseract output before normalisation), and
- *       {@code "ocrConfidence"} (the OCR engine's per-crop confidence, when
- *       available).</li>
+ *   <li>{@code attributes} — {@code "plateText"} (canonical plate, or empty when the format
+ *       did not match), {@code "rawOcrText"}, {@code "formatValid"}, and {@code "country"}
+ *       when the format identifies one.</li>
  * </ul>
  *
- * <p>Per the project's "no data is better than wrong data" rule, implementations
- * MUST throw {@link io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException}
- * when the plate-detection model is not bundled, rather than silently falling
- * back to whole-image OCR.</p>
+ * <p>Per the project's "no data is better than wrong data" rule, implementations MUST throw
+ * {@link io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException} when they
+ * cannot read plates (for example missing OCR data), rather than return guesses.</p>
  */
 public interface LicensePlateRecognitionCapability {
 
@@ -37,19 +34,15 @@ public interface LicensePlateRecognitionCapability {
      * Detects license plates in the given image and extracts the plate text.
      *
      * @param imageData the image to process
-     * @return a list of Detection records, one per plate located by the detector
-     *         (may be empty if no plate is found above the model's confidence
-     *         threshold); never {@code null}
-     * @throws BaseVisionException if the detector or OCR pipeline fails
+     * @return a list of Detection records, one per plate read (may be empty); never {@code null}
+     * @throws BaseVisionException if locating or reading plates fails
      */
     List<Detection> recognizeLicensePlates(ImageData imageData) throws BaseVisionException;
 
     /**
-     * Reports whether license-plate recognition is fully operational on this
-     * backend (detection model loaded AND OCR engine available).
+     * Reports whether license-plate recognition is operational on this backend.
      *
-     * @return true if both the plate-detection model and the OCR runtime are
-     *         ready to serve requests
+     * @return true if plates can be located and read
      */
     boolean isLicensePlateRecognitionAvailable();
 }

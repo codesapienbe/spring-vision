@@ -31,10 +31,9 @@ import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedExcep
 /**
  * Integration tests for license-plate recognition.
  *
- * <p>No licence-clean plate detector is bundled yet, so the model-bound tests are
- * skipped and the unavailable path is asserted instead (a
- * {@link VisionUnsupportedException} with a clear message), keeping the contract
- * exercised.</p>
+ * <p>Plates are located with classical OpenCV and read with the bundled Tesseract. Without
+ * the Tesseract language data the unavailable path is asserted instead (a
+ * {@link VisionUnsupportedException} with a clear message).</p>
  */
 @DisplayName("License plate recognition integration tests")
 @Tag("memory-intensive")
@@ -67,14 +66,14 @@ class LicensePlateRecognitionIntegrationTest {
         ImageData image = solidColorImage(640, 480, Color.WHITE);
         assertThatThrownBy(() -> visionTemplate.recognizeLicensePlates(image))
             .isInstanceOf(VisionUnsupportedException.class)
-            .hasMessageContaining("licence-clean");
+            .hasMessageContaining("Tesseract language data");
     }
 
     @Test
     @DisplayName("recognizeLicensePlates returns non-null result when the detector model is loaded")
     void recognizeLicensePlatesReturnsResultWhenModelAvailable() {
         assumeTrue(backend.isLicensePlateRecognitionAvailable(),
-            "plate detector not bundled or OCR unavailable");
+            "Tesseract language data not bundled");
         ImageData image = solidColorImage(640, 480, Color.DARK_GRAY);
         VisionResult result = visionTemplate.recognizeLicensePlates(image);
 
@@ -83,7 +82,7 @@ class LicensePlateRecognitionIntegrationTest {
         for (Detection d : result.detections()) {
             assertThat(d.confidence()).isBetween(0.0, 1.0);
             assertThat(d.boundingBox()).isNotNull();
-            assertThat(d.attributes()).containsKeys("plateText", "rawOcrText", "detectionConfidence");
+            assertThat(d.attributes()).containsKeys("plateText", "rawOcrText", "formatValid", "cue");
         }
     }
 
@@ -91,7 +90,7 @@ class LicensePlateRecognitionIntegrationTest {
     @DisplayName("recognizeLicensePlates reads a real-world UK plate from /tmp/damaged-car.jpg when available")
     void recognizeRealWorldPlate() throws Exception {
         assumeTrue(backend.isLicensePlateRecognitionAvailable(),
-            "plate detector not bundled or OCR unavailable");
+            "Tesseract language data not bundled");
         Path sample = Path.of("/tmp/damaged-car.jpg");
         assumeTrue(Files.exists(sample),
             "sample image /tmp/damaged-car.jpg not present; skip");
