@@ -127,7 +127,7 @@ Place your models in the expected directory structure:
 
 ### Self-Contained JARs
 ```dockerfile
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:25-jre
 COPY target/spring-vision-app.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
@@ -138,7 +138,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ### External Models
 ```dockerfile
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:25-jre
 VOLUME /opt/models
 ENV SPRING_VISION_MODELS=/opt/models
 COPY target/spring-vision-app.jar app.jar

@@ -48,7 +48,7 @@ If you want to make your own Spring Boot application "see", follow these steps.
 
 ### Prerequisites
 - **Java 25+** (We use the latest Java features for top performance!)
-- **Spring Boot 3.2+**
+- **Spring Boot 3.5+**
 - A sense of adventure!
 
 ### Step 1: The Magic Dependency 📦

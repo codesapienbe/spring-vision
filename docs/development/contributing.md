@@ -14,7 +14,7 @@ We welcome contributions! This guide outlines how to propose changes and add mod
 
 ## Code Standards
 
-- Java 21+, Spring Boot 3.2+
+- Java 25+, Spring Boot 3.5+
 - Follow module property conventions in [Modules Overview](./modules.md)
 - Prefer VisionTemplate in examples over direct backend wiring
 - Clean resource and thread management (see [Runtime](./runtime.md))

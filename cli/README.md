@@ -19,7 +19,7 @@ This CLI tool replaces the old `build.sh` script with a comprehensive, elegant c
 
 ## Prerequisites
 
-- **Java 21+**: Required for running the CLI tool
+- **Java 25+**: Required for running the CLI tool
 - **JBang**: Required for running the downloaded MCP server JAR
 - **Internet Connection**: Required for downloading the JAR file
 
