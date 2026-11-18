@@ -53,9 +53,11 @@
 
     <!-- Additional shared versions -->
     <commons-math3.version>3.6.1</commons-math3.version>
-    <onnxruntime.version>1.19.0</onnxruntime.version>
-    <djl.version>0.33.0</djl.version>
-    <pytorch.version>2.5.1</pytorch.version>
+    <!-- 1.21.1 is the ONNX Runtime DJL 0.40's onnxruntime-engine is built and tested against -->
+    <onnxruntime.version>1.21.1</onnxruntime.version>
+    <djl.version>0.40.0</djl.version>
+    <!-- DJL 0.40's default; 2.7.1 is the first PyTorch with a linux-aarch64 native build -->
+    <pytorch.version>2.7.1</pytorch.version>
     <picocli.version>4.7.6</picocli.version>
     <spring-ai.version>1.1.0</spring-ai.version>
 
@@ -152,13 +154,6 @@
         <version>${djl.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- PyTorch native auto (not in BOM, needs an explicit version) -->
-      <dependency>
-        <groupId>ai.djl.pytorch</groupId>
-        <artifactId>pytorch-native-auto</artifactId>
-        <version>1.9.1</version>
       </dependency>
 
       <!-- Micrometer for Metrics -->
@@ -529,6 +524,9 @@
              ARM64 CUDA builds, so combining -Pgpu with a macOS or aarch64 host fails
              dependency resolution loudly instead of silently falling back to CPU. -->
         <pytorch.native.artifact>pytorch-native-cu124</pytorch.native.artifact>
+        <!-- No CUDA build of PyTorch 2.7.1 is published; cu124 exists up to 2.5.1, which DJL 0.40
+             still supports through pytorch-jni 2.5.1-0.40.0. -->
+        <pytorch.version>2.5.1</pytorch.version>
         <onnxruntime.artifact>onnxruntime_gpu</onnxruntime.artifact>
       </properties>
     </profile>
