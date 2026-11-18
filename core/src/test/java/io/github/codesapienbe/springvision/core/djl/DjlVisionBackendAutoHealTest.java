@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Field;
@@ -211,6 +212,9 @@ class DjlVisionBackendAutoHealTest {
         @DisplayName("auto-heal fails (offline load) → throws VisionBackendException with 'model_not_initialized'")
         @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelAvailable")
         void throwsWhenOfflineLoadFails() throws Exception {
+            // DJL may have cached FaceFeatureNet from an earlier run; this test needs a load that fails
+            assumeFalse(new DjlVisionBackend().ensureEmbeddingModelLoaded(),
+                "FaceFeatureNet can be loaded on this host (DJL cache) — the failing-load path cannot be exercised");
             setInitialized(backend, true);
             // cooldown not active — auto-heal will attempt a (failing) load
 

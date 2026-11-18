@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Spring Vision** is a computer vision framework for Spring Boot, built on Deep Java Library (DJL). Core models (RetinaFace and friends) are bundled in the JAR. No Ultralytics YOLO weights (AGPL-3.0): a capability without a licence-clean model throws `VisionUnsupportedException`. It also ships as an MCP server so LLM clients can call vision capabilities as tools.
+**Spring Vision** is a computer vision framework for Spring Boot, built on Deep Java Library (DJL). Core models are bundled in the JAR; face detection uses the Haar cascades shipped with OpenCV. No Ultralytics YOLO weights (AGPL-3.0): a capability without a licence-clean model throws `VisionUnsupportedException`. It also ships as an MCP server so LLM clients can call vision capabilities as tools.
 
 ## Modules
 
@@ -120,5 +120,5 @@ VisionTemplate
 - All configuration properties use prefix `spring.vision.*` (e.g., `spring.vision.djl.enabled`).
 - Integration tests (`*IntegrationTest.java`, `*IT.java`) are handled by Failsafe; unit tests by Surefire.
 - Tests run with real model inference when models are present; no synthetic fallback results in production code paths.
-- The `download-models` Maven profile downloads the bundled models (RetinaFace, emotion, NSFW, …) into the JAR during build; skip it with `-P!download-models` if models are already present.
+- The `download-models` Maven profile downloads the bundled models (face feature, emotion, NSFW, …) into the JAR during build; skip it with `-P!download-models` if models are already present.
 - GPU support is opt-in via `-P gpu` profile (requires NVIDIA CUDA).

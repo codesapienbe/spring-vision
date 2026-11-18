@@ -392,19 +392,6 @@
               <artifactId>download-maven-plugin</artifactId>
               <version>2.0.0</version>
               <executions>
-                  <!-- RetinaFace Face Detection Model -->
-                  <execution>
-                      <id>download-retinaface</id>
-                      <phase>generate-resources</phase>
-                      <goals>
-                          <goal>wget</goal>
-                      </goals>
-                      <configuration>
-                          <url>https://github.com/codesapienbe/spring-vision/releases/download/v0.0.4/retinaface.zip</url>
-                          <outputDirectory>${models.directory}/retinaface</outputDirectory>
-                          <outputFileName>retinaface.zip</outputFileName>
-                      </configuration>
-                  </execution>
                   <execution>
                       <id>download-face-feature</id>
                       <phase>generate-resources</phase>
@@ -525,19 +512,6 @@
               <artifactId>maven-antrun-plugin</artifactId>
               <version>3.1.0</version>
               <executions>
-                  <execution>
-                      <id>extract-retinaface</id>
-                      <phase>generate-resources</phase>
-                      <goals>
-                          <goal>run</goal>
-                      </goals>
-                      <configuration>
-                          <target>
-                              <unzip src="${models.directory}/retinaface/retinaface.zip"
-                                     dest="${models.directory}/retinaface" />
-                          </target>
-                      </configuration>
-                  </execution>
                   <execution>
                       <id>extract-face-feature</id>
                       <phase>generate-resources</phase>

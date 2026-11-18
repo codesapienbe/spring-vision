@@ -34,7 +34,7 @@ This gives you:
 - ✅ Auto-configuration
 - ✅ All detection capabilities
 - ✅ DJL backend integration
-- ✅ **Bundled Models**: RetinaFace, other licence-clean models and utility libraries included in JAR
+- ✅ **Bundled Models**: licence-clean models and utility libraries included in JAR
 
 ### Configuration
 
@@ -52,7 +52,7 @@ spring:
 Spring Vision provides these built-in detection capabilities:
 
 ### ✅ **Production Ready (Models Included in JAR)**
-- **Face Detection** - High-accuracy RetinaFace model (`detectFaces()`)
+- **Face Detection** - OpenCV Haar cascades, frontal + profile (`detectFaces()`)
 - **Barcode Scanning** - ZXing library (`scanBarcodes()`)
 - **Metadata Extraction** - EXIF/GPS data (`extractMetadata()`)
 - **Image Annotation** - Drawing utilities (`annotate()`)
@@ -128,7 +128,6 @@ spring:
 
       # Face detection settings
       face-detection:
-        model: mtcnn  # retinaface, mtcnn, lightface
         confidence-threshold: 0.7
         max-faces: 200
 

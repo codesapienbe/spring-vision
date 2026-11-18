@@ -14,7 +14,7 @@ This guide describes how Spring Vision handles model files today: where they liv
 
 Models are loaded with this priority:
 
-1) **Classpath resources** (bundled RetinaFace and other models)
+1) **Classpath resources** (bundled models)
 2) **DJL Model Zoo** (runtime download for advanced AI models)
 3) **External paths** (configured via properties)
 4) **User cache** (`~/.spring-vision/models/`)
@@ -22,7 +22,7 @@ Models are loaded with this priority:
 ## Bundled Models (Included in JAR)
 
 ### ✅ **Core Production Models**
-- **RetinaFace**: `retinaface.pt` (high-accuracy face detection)
+- **Face detection**: OpenCV Haar cascades (frontal + profile), shipped inside the OpenCV natives - no model file
 - **FaceFeatureNet**, **FER+ emotion**, **age/gender**, **NSFW**, **action recognition**, **palm detection**, **deepfake detection** (see the `download-models` profile in `core/pom.xml`)
 
 Every bundled model must carry a licence that allows commercial use. Ultralytics YOLO weights
@@ -60,7 +60,7 @@ spring:
         confidence-threshold: 0.5
 
       face-detection:
-        confidence-threshold: 0.7     # RetinaFace bundled
+        confidence-threshold: 0.7
         max-faces: 200
 ```
 
@@ -97,7 +97,6 @@ make install
 ```
 
 This includes:
-- RetinaFace model (face detection)
 - The other bundled models listed above
 
 ## Adding Custom Models
@@ -114,7 +113,7 @@ spring:
 Place your models in the expected directory structure:
 ```
 /path/to/custom/models/
-└── retinaface/retinaface.pt    # Custom face detection
+└── face_feature/face_feature.pt # Custom face embeddings
 ```
 
 ## Docker and Cloud Deployment

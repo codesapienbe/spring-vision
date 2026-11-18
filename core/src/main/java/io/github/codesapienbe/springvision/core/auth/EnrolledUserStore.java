@@ -8,7 +8,7 @@ import java.util.Optional;
  * {@code AccessAuthenticationCapability.authenticateAccess}.
  *
  * <p>Embeddings are stored as the raw float vector emitted by the face
- * embedding model (RetinaFace + face-feature). Matching is performed via
+ * embedding model (OpenCV face detection + face-feature). Matching is performed via
  * cosine similarity inside {@link #findBestMatch(float[], double)}.</p>
  */
 public interface EnrolledUserStore {
