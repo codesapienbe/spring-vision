@@ -18,8 +18,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        SPRING_VISION_VERSION: ${SPRING_VISION_VERSION}
     depends_on:
       - keycloak
     environment:

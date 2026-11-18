@@ -71,7 +71,12 @@ Or use the Makefile (includes model download):
 ```bash
 make install  # Downloads and bundles models
 make run      # Starts local Keycloak and runs the server
+make bundle   # Docker image; the jar is built inside it, so natives match the image's platform
 ```
+
+**Linux runtime requirement:** face detection uses OpenCV's objdetect module, which loads its
+highgui module; on Linux that links GTK2. Install `libgtk2.0-0` (Debian/Ubuntu; `libgtk2.0-0t64` on Ubuntu 24.04+) in any image or
+host that runs Spring Vision - the bundled `Dockerfile` does.
 
 ### Using as a Library
 

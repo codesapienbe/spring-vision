@@ -113,10 +113,9 @@ classifier and the OpenCV/OpenBLAS classifier (bytedeco's own naming, `linux-arm
 differs from DJL's `linux-aarch64` — both are set correctly by that one profile). This
 means:
 
-- **Build directly on the ARM64 instance** (or via
-  `docker buildx build --platform linux/arm64` with QEMU) — don't cross-compile the JAR
-  on an x86_64 Mac or CI runner and copy it over, or the wrong native libraries get
-  bundled and the app will fail with `UnsatisfiedLinkError` at model-load time.
+- **Build the image for the target platform** — `make bundle PLATFORM=linux/arm64`. The
+  `Dockerfile` builds the jar inside the image, so the native libraries always match the
+  image's platform; never copy a jar built on another platform into an image.
 - The `com.microsoft.onnxruntime:onnxruntime` jar bundles natives for multiple platforms
   in one artifact, so it's lower-risk, but hasn't been independently verified against
   aarch64 in this repo's pinned version.

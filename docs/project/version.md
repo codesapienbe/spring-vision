@@ -73,8 +73,9 @@ When you run `make install`:
 2. Runs `mvn versions:set -DnewVersion=1.0.2` to sync all POMs
 3. Runs `mvn clean install` which builds all modules with version 1.0.2
 
-Running `make bundle` additionally runs `make install`, then builds a Docker image
-tagged `spring-vision-mcp:1.0.2` from the root `Dockerfile`.
+Running `make bundle` builds a Docker image tagged `spring-vision-mcp:1.0.2` from the root
+`Dockerfile`. The jar is built inside the image, so its native libraries match the image's
+platform; `make bundle PLATFORM=linux/amd64` picks one explicitly.
 
 ## Release Process
 

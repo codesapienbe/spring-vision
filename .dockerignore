@@ -1,0 +1,11 @@
+# The image builds from sources; host build output and downloaded models must not leak in
+# (they carry the host's native libraries).
+**/target
+core/models/**/*.onnx
+core/models/**/*.pt
+core/models/**/*.zip
+core/models/**/*.traineddata
+.git
+graphify-out
+web
+datasets
