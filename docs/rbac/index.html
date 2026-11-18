@@ -555,6 +555,11 @@
       <span class="glyph">→</span>
       <span><strong>Design intent:</strong> mobile's token lives 24× longer than desktop's because the app has no refresh flow — so it deliberately does <em>not</em> get <code>mcp-admin</code>. If it ever leaked, the blast radius stays capped to general-purpose tools; biometric enrollment, threat detection, and PII-document recognition stay off it.</span>
     </div>
+
+    <div class="callout">
+      <span class="glyph">→</span>
+      <span><strong>Local stdio mode:</strong> with <code>--spring.profiles.active=stdio</code> the MCP client launches the server and talks to it over stdin/stdout. There is no web server, so <code>SecurityConfig</code> is skipped and no JWT is read; <code>requireAdminRole()</code> passes because <code>spring.ai.mcp.server.stdio=true</code>. The only caller is the local process that started the JVM, as the same OS user, which gets the same tools as <code>spring-vision-mcp-desktop</code> (<code>mcp-user</code> + <code>mcp-admin</code>).</span>
+    </div>
   </section>
 
   <section id="matrix">

@@ -72,6 +72,14 @@ class VisionToolRbacTest {
                 new TestingAuthenticationToken("admin-user", "n/a", ADMIN_AUTHORITY));
             assertThatCode(() -> visionTool.requireAdminRole()).doesNotThrowAnyException();
         }
+
+        @Test
+        @DisplayName("Allows the local caller over stdio, which carries no token")
+        void allowsOverStdioWithoutAuthentication() {
+            SecurityContextHolder.clearContext();
+            visionTool.stdioTransport = true;
+            assertThatCode(() -> visionTool.requireAdminRole()).doesNotThrowAnyException();
+        }
     }
 
     @Nested

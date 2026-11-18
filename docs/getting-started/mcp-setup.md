@@ -42,9 +42,34 @@ make install
 mvn clean install -Pdownload-models
 ```
 
-## 🔑 Authentication (Keycloak)
+## 💻 Local use: Claude Code over stdio (no Keycloak)
 
-The MCP server runs over Streamable-HTTP and requires a Keycloak-issued bearer token on
+On your own machine, let the MCP client launch the server itself. The `stdio` profile runs
+no web server and opens no port, so there is no token and no Keycloak:
+
+```bash
+make mcp-sync   # builds the jar with bundled models into ~/.springvision and registers it
+```
+
+or register a jar you already built:
+
+```bash
+claude mcp add --scope user spring-vision -- \
+  java -jar ~/.springvision/mcp-0.0.6.jar --spring.profiles.active=stdio
+```
+
+`java` must be 25 or newer; `make mcp-sync` writes the absolute path of the JDK pinned in
+`.sdkmanrc`, so the client's `PATH` doesn't matter. `claude mcp list` should show
+`spring-vision ✔ Connected` (start-up takes about 10 seconds).
+
+Over stdio the only caller is the process that launched the server, as the same OS user, so
+it gets every tool, including the `mcp-admin` tier — the same access as the desktop
+Keycloak client. Logs go to stderr and `~/.springvision/mcp.log`; stdout carries only MCP
+messages. For a shared or remote server, use Streamable-HTTP with Keycloak, below.
+
+## 🔑 Authentication (Keycloak, Streamable-HTTP)
+
+The default (HTTP) MCP server runs over Streamable-HTTP and requires a Keycloak-issued bearer token on
 every request to `/mcp` — there's no unauthenticated access, by design (see
 `keycloak/README.md`). For local dev:
 
@@ -73,11 +98,11 @@ of those tools without `mcp-admin` returns an access-denied error, not tool outp
 
 ## ⚙️ MCP Client Configuration
 
-The server must already be running (`make run`) and reachable at its `/mcp` endpoint —
-unlike the old stdio setup, MCP clients connect to it over HTTP rather than launching it
-themselves.
+For the HTTP server: it must already be running (`make run`) and reachable at its `/mcp`
+endpoint, and clients connect to it rather than launching it. For local use without
+Keycloak, see the stdio section above.
 
-### Claude Code
+### Claude Code (HTTP)
 
 ```bash
 claude mcp add --scope user --transport http \

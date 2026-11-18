@@ -92,7 +92,7 @@ VisionTemplate
 
 ### MCP Layer (`mcp` module)
 
-`VisionTool` is a Spring `@Component` annotated with Spring AI `@Tool` methods. `ToolCallbackConfiguration` registers these as MCP callbacks. The server runs as a standalone Spring Boot app (`SpringVisionMcpServerApplication`), communicating over stdio (MCP transport).
+`VisionTool` is a Spring `@Component` annotated with Spring AI `@Tool` methods. `ToolCallbackConfiguration` registers these as MCP callbacks. The server runs as a standalone Spring Boot app (`SpringVisionMcpServerApplication`). By default it serves Streamable-HTTP at `/mcp` and requires a Keycloak-issued JWT (`SecurityConfig`); with the `stdio` profile (`application-stdio.yml`) the MCP client launches it and talks over stdin/stdout, with no web server, no JWT, and every tool allowed for that local caller. `make mcp-sync` builds it and registers the stdio entry.
 
 ### REST Layer (`starter` module)
 

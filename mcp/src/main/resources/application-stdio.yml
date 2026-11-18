@@ -1,0 +1,11 @@
+# Local, single-user mode (`--spring.profiles.active=stdio`): the MCP client, e.g. Claude Code,
+# launches this JAR and talks to it over stdin/stdout. No HTTP port and no Keycloak; the caller
+# is the local process, so admin-tier tools are allowed (see VisionTool.requireAdminRole()).
+# See docs/getting-started/mcp-setup.md.
+spring:
+  main:
+    web-application-type: none
+  ai:
+    mcp:
+      server:
+        stdio: true

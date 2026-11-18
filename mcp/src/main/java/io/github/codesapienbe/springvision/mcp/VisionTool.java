@@ -116,6 +116,11 @@ public class VisionTool {
 
     private static final String ROLE_MCP_ADMIN = "ROLE_mcp-admin";
 
+    // Over stdio the only caller is the process that launched this JVM, running as the same OS
+    // user, so it is trusted like the desktop client (which holds mcp-admin). See requireAdminRole().
+    @Value("${spring.ai.mcp.server.stdio:false}")
+    boolean stdioTransport = false; // default for direct construction (tests)
+
     /**
      * Guards tools that touch biometric templates, identity/PII documents, or security-threat
      * decisions. Reads the caller's authorities directly from {@link SecurityContextHolder}
@@ -123,9 +128,15 @@ public class VisionTool {
      * invokes {@code @Tool} methods via reflection in a way that does not reliably go through
      * Spring Security's AOP method-security interceptor (see spring-projects/spring-ai#2356,
      * #3272), so a manual check here is the mechanism actually verified to work.
+     *
+     * <p>Over the stdio transport there is no token to read: the caller is the local process
+     * that launched this server, so the check passes.</p>
      * @throws AccessDeniedException if the caller lacks the {@code mcp-admin} role.
      */
     void requireAdminRole() {
+        if (stdioTransport) {
+            return;
+        }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean hasAdminRole = authentication != null && authentication.getAuthorities().stream()
             .anyMatch(authority -> ROLE_MCP_ADMIN.equals(authority.getAuthority()));

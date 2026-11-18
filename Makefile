@@ -161,7 +161,11 @@ endif
 
 SPRINGVISION_DIR ?= $(HOME)/.springvision
 MCP_JAR         := $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
-MCP_ENTRY       := {"command":"java","args":["-jar","$(MCP_JAR)"]}
+# The client launches the server itself, over stdio (no Keycloak, no port); the pinned JDK is
+# named explicitly because the client's PATH may hold an older java.
+MCP_JAVA        := $(if $(wildcard $(PINNED_JAVA_HOME)/bin/java),$(PINNED_JAVA_HOME)/bin/java,java)
+CLAUDE_CLI      := $(shell command -v claude 2>/dev/null)
+MCP_ENTRY       := {"type":"stdio","command":"$(MCP_JAVA)","args":["-jar","$(MCP_JAR)","--spring.profiles.active=stdio"]}
 
 # Helper: upsert spring-vision entry into any JSON file that has a top-level mcpServers object
 define upsert-mcp
@@ -177,12 +181,18 @@ endef
 # Was `make sync`; `sync` now means "merge the trunk into this branch".
 mcp-sync:
 	@echo "Building and syncing MCP jar for local testing..."
-	mvn -pl core,mcp -am clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -q
+	mvn -pl core,mcp -am clean install -DskipTests -Dgpg.skip=$(GPG_SKIP) -Pdownload-models -q
 	mkdir -p $(SPRINGVISION_DIR)
 	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCP_JAR)
 	@echo "Jar → $(MCP_JAR)"
 	@echo "Registering spring-vision MCP server in agent configs:"
+# Through the claude CLI when present, so a custom CLAUDE_CONFIG_DIR is respected.
+ifneq ($(CLAUDE_CLI),)
+	@claude mcp remove --scope user spring-vision >/dev/null 2>&1 || true
+	@claude mcp add-json --scope user spring-vision '$(MCP_ENTRY)' >/dev/null && echo "  ✓ claude (user scope)"
+else
 	$(call upsert-mcp,$(HOME)/.claude.json)
+endif
 	$(call upsert-mcp,$(HOME)/.cursor/mcp.json)
 	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
 

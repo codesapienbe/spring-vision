@@ -1,5 +1,6 @@
 package io.github.codesapienbe.springvision.mcp.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,8 +14,12 @@ import org.springframework.security.web.SecurityFilterChain;
  * {@code /mcp} must carry a valid JWT issued by the configured Keycloak realm (see
  * {@code spring.security.oauth2.resourceserver.jwt.issuer-uri} and {@code keycloak/README.md}).
  * Actuator health checks stay open so infrastructure can probe liveness without a token.
+ *
+ * <p>Applies only to the servlet (Streamable-HTTP) server. The {@code stdio} profile runs no web
+ * server, so there is no request to authenticate and this configuration is skipped.</p>
  */
 @Configuration
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableWebSecurity
 public class SecurityConfig {
 
