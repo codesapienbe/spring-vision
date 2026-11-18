@@ -22,7 +22,7 @@ tail -f ~/.springvision/mcp.error.log
 After making changes to the MCP server, the typical loop is:
 
 1. `mvn -pl core install -DskipTests -P'!download-models' -q` (only if `core` changed)
-2. `make sync` — repackages `mcp` and copies the jar to `~/.springvision/mcp-<version>.jar`
+2. `make mcp-sync` — repackages `mcp` and copies the jar to `~/.springvision/mcp-<version>.jar`
 3. The user runs `/mcp` to reconnect — that starts a fresh server process with the new jar.
 4. Old MCP processes do NOT auto-shut down. If logs look stale, check `ps aux | grep mcp-0.0.5.jar` — the newest PID is the one Claude is talking to.
 
@@ -34,7 +34,7 @@ keeps them findable regardless of where the agent was started.
 
 | Path                          | Purpose                                          |
 | ----------------------------- | ------------------------------------------------ |
-| `~/.springvision/mcp-*.jar`   | The MCP server jar installed by `make sync`      |
+| `~/.springvision/mcp-*.jar`   | The MCP server jar installed by `make mcp-sync`  |
 | `~/.springvision/mcp.log`     | All MCP server activity (rolled daily, 50 MB)    |
 | `~/.springvision/mcp.error.log` | Errors only (rolled daily, kept 90 days)        |
 | `~/.springvision/db/auth.db`  | SQLite store for enrolled face identities       |
