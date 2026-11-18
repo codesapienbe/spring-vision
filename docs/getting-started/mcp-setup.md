@@ -42,10 +42,10 @@ make install
 mvn clean install -Pdownload-models
 ```
 
-## 💻 Local use: Claude Code over stdio (no Keycloak)
+## 💻 Local use: Claude Code over stdio (no token)
 
 On your own machine, let the MCP client launch the server itself. The `stdio` profile runs
-no web server and opens no port, so there is no token and no Keycloak:
+no web server and opens no port, so there is no token and no identity provider:
 
 ```bash
 make mcp-sync   # builds the jar with bundled models into ~/.springvision and registers it
@@ -62,51 +62,66 @@ claude mcp add --scope user spring-vision -- \
 `.sdkmanrc`, so the client's `PATH` doesn't matter. `claude mcp list` should show
 `spring-vision ✔ Connected` (start-up takes about 10 seconds).
 
-Over stdio the only caller is the process that launched the server, as the same OS user, so
-it gets every tool, including the `mcp-admin` tier — the same access as the desktop
-Keycloak client. Logs go to stderr and `~/.springvision/mcp.log`; stdout carries only MCP
-messages. For a shared or remote server, use Streamable-HTTP with Keycloak, below.
+Over stdio the only caller is the process that launched the server, as the same OS user. It
+has the roles in `spring.vision.mcp.security.stdio-roles` (by default `mcp-admin`, so every
+tool; see below). Logs go to stderr and `~/.springvision/mcp.log`; stdout carries only MCP
+messages. For a shared or remote server, use Streamable-HTTP with a token, below.
 
-## 🔑 Authentication (Keycloak, Streamable-HTTP)
+## 🔑 Authentication and tool access (Streamable-HTTP)
 
-The default (HTTP) MCP server runs over Streamable-HTTP and requires a Keycloak-issued bearer token on
-every request to `/mcp` — there's no unauthenticated access, by design (see
-`keycloak/README.md`). For local dev:
+The HTTP server runs no identity provider of its own. It is an OAuth2 resource server: every
+request to `/mcp` needs a bearer JWT from the OIDC issuer you point it at (Keycloak, Auth0,
+Entra ID, …), and start-up fails if none is configured:
 
 ```bash
-# 1. Start local Keycloak (imports the spring-vision realm automatically) — `make run` does this too
-docker compose up -d keycloak
-
-# 2. Fetch a token for your client (client_credentials grant, no user password involved)
-curl -s -X POST http://localhost:8180/realms/spring-vision/protocol/openid-connect/token \
-  -d grant_type=client_credentials \
-  -d client_id=spring-vision-mcp-desktop \
-  -d client_secret=desktop-dev-secret-change-me \
-  | jq -r .access_token
+export OAUTH2_ISSUER_URI=https://idp.example.com/realms/your-realm
+make run
 ```
 
-The desktop client's tokens expire in 1 hour — re-run the curl command to get a fresh one
-when your MCP client reports authentication failures. See `keycloak/README.md` for the
-mobile client (longer-lived tokens) and how to rotate the dev secrets.
+Which tools a caller may use is decided in `mcp/src/main/resources/application.yml`, under
+`spring.vision.mcp.security`, from the roles in the token:
 
-**Tool tiers**: a valid token from either client unlocks general-purpose tools
-(`mcp-user` role). Sensitive tools — biometric auth/enrollment, threat detection,
-deepfake detection, face verification/1:N search, raw embeddings, and ID/driver-license/
-license-plate recognition — additionally require the `mcp-admin` role, which only the
-desktop client's service account has by default (see `keycloak/README.md`). Calling one
-of those tools without `mcp-admin` returns an access-denied error, not tool output.
+```yaml
+spring:
+  vision:
+    mcp:
+      security:
+        roles-claim-path: [realm_access, roles]   # where the token keeps its role list
+        tool-access:
+          - role: mcp-admin
+            tools: ["*"]                          # every tool
+          - role: mcp-user
+            tools: [count_faces_b, extract_text_b, ...]
+        stdio-roles: [mcp-admin]                  # the local caller over stdio
+```
+
+- **Roles claim**: one element per nesting level. Keycloak realm roles are
+  `[realm_access, roles]`, client roles `[resource_access, <client-id>, roles]` (a client id
+  with dots is fine), a flat claim is `[roles]`.
+- **Deny by default**: a tool runs only if one of the caller's roles is granted it. A token
+  with none of the configured roles can connect but cannot run any tool.
+- **Typos fail fast**: a granted name that matches no tool stops start-up with the unknown
+  names listed.
+- Override per deployment like any Spring property, for example with an extra
+  `--spring.config.additional-location=file:/etc/spring-vision/access.yml`.
+
+The shipped defaults give `mcp-admin` every tool and `mcp-user` everything except the
+sensitive set: biometric templates and identification (embeddings, face verification and
+1:N search, the identity store, access authentication), identity and driving-licence
+documents, licence plates, NSFW, deepfake and threat detection. Calling a tool the caller is
+not granted returns an access-denied error, not tool output.
 
 ## ⚙️ MCP Client Configuration
 
 For the HTTP server: it must already be running (`make run`) and reachable at its `/mcp`
-endpoint, and clients connect to it rather than launching it. For local use without
-Keycloak, see the stdio section above.
+endpoint, and clients connect to it rather than launching it, with a token from your
+issuer. For local use without a token, see the stdio section above.
 
 ### Claude Code (HTTP)
 
 ```bash
 claude mcp add --scope user --transport http \
-  --header "Authorization: Bearer <token-from-above>" \
+  --header "Authorization: Bearer <token-from-your-issuer>" \
   spring-vision http://localhost:8080/mcp
 ```
 
@@ -123,7 +138,7 @@ the community `mcp-remote` stdio proxy:
   "mcpServers": {
     "spring-vision": {
       "command": "npx",
-      "args": ["mcp-remote", "http://localhost:8080/mcp", "--header", "Authorization: Bearer <token-from-above>"]
+      "args": ["mcp-remote", "http://localhost:8080/mcp", "--header", "Authorization: Bearer <token-from-your-issuer>"]
     }
   }
 }
@@ -171,19 +186,18 @@ The server is a long-running HTTP process now, not something the MCP client laun
 per-session — start it once and leave it running:
 
 ```bash
-# Starts local Keycloak too, then runs the server
+# Builds and runs the server (needs OAUTH2_ISSUER_URI, see above)
 make run
 
-# Or run the JAR directly (Keycloak must already be running — see keycloak/README.md)
-java -jar mcp/target/mcp-0.0.5.jar
+# Or run the JAR directly
+OAUTH2_ISSUER_URI=https://idp.example.com/realms/your-realm java -jar mcp/target/mcp-0.0.6.jar
 ```
 
 ### 3. Point clients at a custom URL
 
 If the server is running elsewhere (a different port, or a remote deployment), update
 your MCP client's URL/header configuration accordingly — see the Claude Code/Desktop
-examples above, substituting the correct host and a token issued by that deployment's
-Keycloak realm.
+examples above, substituting the correct host and a token from that deployment's issuer.
 
 ## 🔧 Advanced Configuration
 
@@ -204,8 +218,8 @@ export SPRING_VISION_DJL_DEVICE=gpu
 # Set confidence thresholds
 export SPRING_VISION_DJL_CONFIDENCE_THRESHOLD=0.7
 
-# Point at a non-default Keycloak realm
-export KEYCLOAK_ISSUER_URI=https://keycloak.example.com/realms/spring-vision
+# The OIDC issuer whose JWTs the HTTP server accepts (required)
+export OAUTH2_ISSUER_URI=https://idp.example.com/realms/your-realm
 
 make run
 ```
@@ -228,9 +242,13 @@ source ~/.bashrc  # or restart your terminal
 4. Check logs: `jbang run.java 2>&1 | head -20`
 
 #### "401 Unauthorized"
-1. Your token likely expired — the desktop client's tokens last 1 hour. Re-fetch one (see **Authentication (Keycloak)** above) and update your client's `Authorization: Bearer` header.
-2. Confirm Keycloak is actually running: `curl http://localhost:8180/realms/spring-vision/.well-known/openid-configuration`
-3. Confirm `KEYCLOAK_ISSUER_URI` (if overridden) matches the realm your token was issued from.
+1. Your token likely expired. Fetch a new one from your issuer and update your client's `Authorization: Bearer` header.
+2. Confirm the token's `iss` claim equals `OAUTH2_ISSUER_URI` exactly, and that the issuer's `/.well-known/openid-configuration` is reachable from the server.
+
+#### "Access denied" on a tool
+The token is valid but none of its roles is granted that tool. Check the roles at
+`spring.vision.mcp.security.roles-claim-path` in the token, and the grants in
+`spring.vision.mcp.security.tool-access`.
 
 #### "Permission denied"
 ```bash

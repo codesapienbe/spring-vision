@@ -46,13 +46,13 @@ import okhttp3.mockwebserver.RecordedRequest;
  * a real JWKS over HTTP, and verifies a real RS256-signed JWT — as opposed to {@link
  * SecurityConfigTest}, which stubs the {@code JwtDecoder} bean directly and never exercises
  * that discovery/verification path. This is the closest verification achievable without a
- * real Keycloak instance (unavailable in sandboxed CI: pulling its container image is blocked
+ * real identity provider (unavailable in sandboxed CI: pulling its container image is blocked
  * by network egress policy).
  */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     classes = {SecurityConfigIntegrationTest.TestAutoConfig.class, SecurityConfig.class,
-        KeycloakRealmRoleConverter.class, SecurityConfigIntegrationTest.ProbeController.class})
+        SecurityConfigIntegrationTest.ProbeController.class})
 class SecurityConfigIntegrationTest {
 
     /**

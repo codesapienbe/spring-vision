@@ -3,13 +3,16 @@ package io.github.codesapienbe.springvision.mcp.config;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallbackProvider;
-import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
 import io.github.codesapienbe.springvision.core.VectorService;
+import io.github.codesapienbe.springvision.core.VisionBackend;
+import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.mcp.VisionTool;
 
 /**
@@ -18,7 +21,14 @@ import io.github.codesapienbe.springvision.mcp.VisionTool;
  */
 class ToolCallbackConfigurationTest {
 
+    private static final McpSecurityProperties ADMIN_ONLY = new McpSecurityProperties(null,
+            List.of(new McpSecurityProperties.ToolGrant("mcp-admin", List.of(ToolAccessPolicy.ALL_TOOLS))), null);
+
     private ToolCallbackConfiguration configuration;
+
+    private static VisionTool visionTool() {
+        return new VisionTool(new VisionTemplate(mock(VisionBackend.class)));
+    }
 
     public ToolCallbackConfigurationTest() {
         configuration = new ToolCallbackConfiguration();
@@ -47,36 +57,73 @@ class ToolCallbackConfigurationTest {
         @Test
         @DisplayName("Should create ToolCallbackProvider with VisionTool")
         void shouldCreateToolCallbackProviderWithVisionTool() {
-            // Given: Mock VisionTool
-            VisionTool visionTool = mock(VisionTool.class);
+            // Given: a VisionTool
+            VisionTool visionTool = visionTool();
 
             // When: Creating tools bean with VisionTool
-            ToolCallbackProvider provider = configuration.tools(visionTool);
+            ToolCallbackProvider provider = configuration.tools(visionTool, ADMIN_ONLY, false);
 
-            // Then: Should return a MethodToolCallbackProvider
-            assertThat(provider).isNotNull();
-            assertThat(provider).isInstanceOf(MethodToolCallbackProvider.class);
+            // Then: Every tool is registered, each behind the access guard
+            assertThat(provider.getToolCallbacks()).isNotEmpty()
+                    .allSatisfy(callback -> assertThat(callback).isInstanceOf(GuardedToolCallback.class));
         }
 
         @Test
         @DisplayName("Should create ToolCallbackProvider without VisionTool")
         void shouldCreateToolCallbackProviderWithoutVisionTool() {
             // When: Creating tools bean with null VisionTool
-            ToolCallbackProvider provider = configuration.tools(null);
+            ToolCallbackProvider provider = configuration.tools(null, ADMIN_ONLY, false);
 
-            // Then: Should return a MethodToolCallbackProvider (empty)
-            assertThat(provider).isNotNull();
-            assertThat(provider).isInstanceOf(MethodToolCallbackProvider.class);
+            // Then: Should return an empty provider
+            assertThat(provider.getToolCallbacks()).isEmpty();
         }
 
         @Test
         @DisplayName("Should handle null VisionTool gracefully")
         void shouldHandleNullVisionToolGracefully() {
             // When: Creating tools bean with null
-            ToolCallbackProvider provider = configuration.tools(null);
+            ToolCallbackProvider provider = configuration.tools(null, ADMIN_ONLY, false);
 
             // Then: Should create provider without throwing exception
             assertThat(provider).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("Tool access")
+    class ToolAccess {
+
+        @Test
+        @DisplayName("Fails start-up when a grant names a tool that does not exist")
+        void failsOnUnknownToolName() {
+            McpSecurityProperties typo = new McpSecurityProperties(null,
+                    List.of(new McpSecurityProperties.ToolGrant("mcp-user", List.of("count_face_b"))), null);
+
+            assertThatThrownBy(() -> configuration.tools(visionTool(), typo, false))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("count_face_b");
+        }
+
+        @Test
+        @DisplayName("Over stdio the caller has the configured stdio roles, without a token")
+        void stdioCallerHasStdioRoles() {
+            McpSecurityProperties stdioUser = new McpSecurityProperties(null,
+                    List.of(new McpSecurityProperties.ToolGrant("local", List.of("list_identities"))), List.of("local"));
+            ToolCallbackProvider provider = configuration.tools(visionTool(), stdioUser, true);
+
+            // The mock backend has no identity store, so getting that far proves the guard let it through.
+            assertThatThrownBy(() -> callback(provider, "list_identities").call("{}"))
+                    .isNotInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                    .hasMessageContaining("enrolled-user store");
+            assertThatThrownBy(() -> callback(provider, "count_faces_b").call("{}"))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        }
+
+        private org.springframework.ai.tool.ToolCallback callback(ToolCallbackProvider provider, String name) {
+            return java.util.Arrays.stream(provider.getToolCallbacks())
+                    .filter(callback -> callback.getToolDefinition().name().equals(name))
+                    .findFirst()
+                    .orElseThrow();
         }
     }
 
@@ -152,7 +199,7 @@ class ToolCallbackConfigurationTest {
         void shouldHaveToolsMethodWithBeanAnnotation() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class);
+                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
 
             // Then: Method should exist and have Bean annotation
             assertThat(method).isNotNull();
@@ -177,7 +224,7 @@ class ToolCallbackConfigurationTest {
         void shouldHaveNullableAnnotationOnVisionToolParameter() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class);
+                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
             java.lang.reflect.Parameter[] parameters = method.getParameters();
 
             // Then: First parameter should have Nullable annotation
@@ -201,7 +248,7 @@ class ToolCallbackConfigurationTest {
 
             // When: Creating beans
             VectorService vectorService = config.inMemoryVectorService();
-            ToolCallbackProvider toolProvider = config.tools(mock(VisionTool.class));
+            ToolCallbackProvider toolProvider = config.tools(visionTool(), ADMIN_ONLY, false);
 
             // Then: Should create valid beans
             assertThat(vectorService).isNotNull();
@@ -211,11 +258,11 @@ class ToolCallbackConfigurationTest {
         @Test
         @DisplayName("Should handle VisionTool lifecycle correctly")
         void shouldHandleVisionToolLifecycleCorrectly() {
-            // Given: Mock VisionTool
-            VisionTool visionTool = mock(VisionTool.class);
+            // Given: a VisionTool
+            VisionTool visionTool = visionTool();
 
             // When: Creating tool provider with VisionTool
-            ToolCallbackProvider provider = configuration.tools(visionTool);
+            ToolCallbackProvider provider = configuration.tools(visionTool, ADMIN_ONLY, false);
 
             // Then: Provider should be created successfully
             assertThat(provider).isNotNull();
@@ -232,11 +279,11 @@ class ToolCallbackConfigurationTest {
         void shouldHaveCorrectToolsMethodSignature() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class);
+                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
 
             // Then: Should have correct return type and parameters
             assertThat(method.getReturnType()).isEqualTo(ToolCallbackProvider.class);
-            assertThat(method.getParameterTypes()).hasSize(1);
+            assertThat(method.getParameterTypes()).hasSize(3);
             assertThat(method.getParameterTypes()[0]).isEqualTo(VisionTool.class);
         }
 

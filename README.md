@@ -70,7 +70,7 @@ Or use the Makefile (includes model download):
 
 ```bash
 make install  # Downloads and bundles models
-make run      # Starts local Keycloak and runs the server
+make run      # Runs the HTTP server (needs OAUTH2_ISSUER_URI); make mcp-sync for local stdio
 make bundle   # Docker image; the jar is built inside it, so natives match the image's platform
 ```
 

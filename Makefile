@@ -58,15 +58,15 @@ install:
 
 # The one runnable service here is the MCP server, so there is no SERVICE variable, and it
 # has no Spring profiles, so there is no ENV/PROFILE either.
-# `run` brings up the local Keycloak it authenticates against (keycloak/README.md),
-# builds, and starts the server in the foreground with JBang.
+# `run` builds and starts the HTTP server in the foreground with JBang. It validates JWTs from
+# your own OIDC issuer (OAUTH2_ISSUER_URI); for a local stdio client use `make mcp-sync`.
 run:
-	docker compose up -d keycloak
+	@test -n "$$OAUTH2_ISSUER_URI" || { echo "Set OAUTH2_ISSUER_URI to your OIDC issuer (or use 'make mcp-sync' for local stdio)."; exit 1; }
 	@$(MAKE) install GPU=$(GPU)
 	jbang run.java
 
 stop:
-	docker compose stop keycloak
+	-pkill -f 'mcp/target/mcp-[0-9][^ ]*\.jar'
 
 restart:
 	@$(MAKE) stop
@@ -153,15 +153,15 @@ bundle:
 		-t $(IMAGE_TAG) .
 	@echo "Built image: $(IMAGE_TAG)"
 ifeq ($(GPU),true)
-	@echo "Run it with: docker run --rm --gpus all -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> $(IMAGE_TAG)"
+	@echo "Run it with: docker run --rm --gpus all -p 8080:8080 -e OAUTH2_ISSUER_URI=<issuer> $(IMAGE_TAG)"
 	@echo "(requires the NVIDIA driver + NVIDIA Container Toolkit on the host — see docs/configuration/gpu.md)"
 else
-	@echo "Run it with: docker run --rm -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> $(IMAGE_TAG)"
+	@echo "Run it with: docker run --rm -p 8080:8080 -e OAUTH2_ISSUER_URI=<issuer> $(IMAGE_TAG)"
 endif
 
 SPRINGVISION_DIR ?= $(HOME)/.springvision
 MCP_JAR         := $(SPRINGVISION_DIR)/mcp-$(SPRING_VISION_VERSION).jar
-# The client launches the server itself, over stdio (no Keycloak, no port); the pinned JDK is
+# The client launches the server itself, over stdio (no token, no port); the pinned JDK is
 # named explicitly because the client's PATH may hold an older java.
 MCP_JAVA        := $(if $(wildcard $(PINNED_JAVA_HOME)/bin/java),$(PINNED_JAVA_HOME)/bin/java,java)
 CLAUDE_CLI      := $(shell command -v claude 2>/dev/null)
@@ -203,8 +203,8 @@ help:
 	@echo "Usage: make <target> [GPU=false]"
 	@echo ""
 	@echo "  install           versions:set from VERSION + mvn clean install -DskipTests -T$(MVN_THREADS) -Pdownload-models"
-	@echo "  run               Start local Keycloak, build, run the MCP server with JBang"
-	@echo "  stop              Stop the local Keycloak"
+	@echo "  run               Build and run the HTTP MCP server with JBang (needs OAUTH2_ISSUER_URI)"
+	@echo "  stop              Stop the MCP server started by run"
 	@echo "  restart           stop + run"
 	@echo "  test              Staged tests (Unit -> Integration)"
 	@echo "  unit-tests        Unit tests, all modules (unit-<module> for one: $(MODULES))"

@@ -41,7 +41,7 @@ Setup, configuration, and operational guides
 - **[Logging Guide](./configuration/logging.md)** - Logging configuration and monitoring
 - **[Runtime Operations](./configuration/runtime.md)** - Production deployment and operations
 - **[Deploying for Free](./configuration/deploy-free.md)** - Self-host on amd64 hardware you own (e.g. an Intel Mac mini) with zero code changes, or run on Oracle Cloud's Always Free ARM tier
-- **[RBAC & Token Reference](./rbac/index.html)** - What the Keycloak-issued JWT contains and the full mcp-user/mcp-admin tool access matrix
+- **[Tool access](./getting-started/mcp-setup.md#-authentication-and-tool-access-streamable-http)** - Which roles may call which MCP tools, configured in `application.yml`
 
 ### 💻 [Development](./development/)
 Developer resources and API documentation

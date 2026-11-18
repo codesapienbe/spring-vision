@@ -122,7 +122,7 @@ the driver through to the container via `--gpus all` / the compose device reserv
 A plain `docker run` equivalent:
 
 ```bash
-docker run --rm --gpus all -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> spring-vision-mcp:<version>-gpu
+docker run --rm --gpus all -p 8080:8080 -e OAUTH2_ISSUER_URI=<issuer> spring-vision-mcp:<version>-gpu
 ```
 
 This is my understanding of how DJL's `pytorch-native-cu124` and ONNX Runtime's

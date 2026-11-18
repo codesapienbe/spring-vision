@@ -2,8 +2,7 @@
 
 # Deploying the MCP Server Without Paying for Hosting
 
-This guide covers running the `mcp` server (plus its mandatory Keycloak dependency)
-somewhere other than your own laptop, at no recurring hosting cost. There are two
+This guide covers running the `mcp` server somewhere other than your own laptop, at no recurring hosting cost. There are two
 routes, and **which one needs zero code changes depends entirely on CPU architecture**
 — pick the hardware first, then follow the matching section below.
 
@@ -56,12 +55,12 @@ cd spring-vision
 
 export SPRING_VISION_VERSION=$(cat VERSION)
 export SPRING_VISION_DOMAIN=your-domain.example.com
+export OAUTH2_ISSUER_URI=https://idp.example.com/realms/your-realm
 
 docker compose up -d --build
 ```
 
-Same three services as any other deployment (`keycloak`, `mcp`, `caddy` — see
-`docker-compose.yml`); on amd64 hardware the `mcp` image builds with the repo's default
+Same two services as any other deployment (`mcp`, `caddy` — see `docker-compose.yml`); on amd64 hardware the `mcp` image builds with the repo's default
 native-library classifiers, no OS-detection profile needs to activate.
 
 ### 3. Networking — the part that's different from a cloud VM
@@ -83,8 +82,9 @@ cloud instance running — the cost here is electricity, not a monthly bill.
 
 ## Option B: Oracle Cloud Always Free Ampere A1 (ARM64)
 
-The app eagerly loads 8+ DJL models at startup (~500MB of bundled weights) plus a
-mandatory Keycloak sidecar — realistically **~2.5–3GB RAM** for both processes combined.
+The app eagerly loads 8+ DJL models at startup (~500MB of bundled weights) — budget
+**~2.5–3GB RAM** (an estimate made when a Keycloak sidecar ran on the same box; the app
+alone needs less).
 Most free cloud tiers don't fit this, which is why Oracle is the cloud option here at
 all:
 
@@ -157,45 +157,30 @@ cd spring-vision
 
 export SPRING_VISION_VERSION=$(cat VERSION)
 export SPRING_VISION_DOMAIN=your-domain.example.com
+export OAUTH2_ISSUER_URI=https://idp.example.com/realms/your-realm
 
 docker compose up -d --build
 ```
 
-This brings up all three services defined in `docker-compose.yml`:
+This brings up both services defined in `docker-compose.yml`:
 
-- `keycloak` — issues the JWTs the app validates (see `keycloak/README.md`).
 - `mcp` — built from the root `Dockerfile` on this ARM64 box, so the `linux-aarch64`
   Maven profile activates and the correct native libraries get bundled.
 - `caddy` — reverse-proxies `SPRING_VISION_DOMAIN` to the `mcp` service over HTTPS,
   auto-provisioning and renewing its Let's Encrypt certificate.
 
-`make run`'s local-dev flow (`docker compose up -d keycloak` + `jbang run.java`) is
-unaffected — it only ever targets the `keycloak` service by name.
+## Tokens and client wiring (both options)
 
-## Mint tokens and wire up clients (both options)
-
-Same as local dev, but against your server's public hostname instead of `localhost`:
-
-```bash
-curl -s -X POST https://your-domain.example.com:8180/realms/spring-vision/protocol/openid-connect/token \
-  -d grant_type=client_credentials \
-  -d client_id=spring-vision-mcp-desktop \
-  -d client_secret=<rotated-secret-see-keycloak-readme> \
-  | jq -r .access_token
-```
-
-Then follow the client-wiring instructions in
-[MCP Setup](../getting-started/mcp-setup.md#%EF%B8%8F-mcp-client-configuration),
-substituting `https://your-domain.example.com/mcp` for `http://localhost:8080/mcp`.
-
-**Before going beyond your own testing**: rotate the placeholder Keycloak client
-secrets in `keycloak/realm-spring-vision.json` (see `keycloak/README.md`) and consider
-putting Keycloak's own admin console behind the same reverse proxy (or tunnel) or a
-separate allowlist — this guide exposes it at port `8180` by default.
+Tokens come from your own OIDC issuer (`OAUTH2_ISSUER_URI`); the server only validates
+them. The roles in a token decide which tools it unlocks — see
+[MCP Setup](../getting-started/mcp-setup.md#-authentication-and-tool-access-streamable-http)
+for `spring.vision.mcp.security` in `application.yml`. Then follow the client-wiring
+instructions there, substituting `https://your-domain.example.com/mcp` for
+`http://localhost:8080/mcp`.
 
 ## Verify
 
-- `docker compose ps` — all three services report `running`/`healthy`.
+- `docker compose ps` — both services report `running`/`healthy`.
 - `docker compose logs mcp | grep -i unsatisfiedlink` — should return nothing on ARM64;
   any hit means a native library didn't resolve and the ARM64 approach needs revisiting
   (see "The ARM64 catch" above) before relying on that deployment. Not a concern on
@@ -203,8 +188,6 @@ separate allowlist — this guide exposes it at port `8180` by default.
 - `curl -i https://your-domain.example.com/mcp` — returns `401` (not a connection error
   or `502`), confirming the reverse proxy/tunnel → the `mcp` container → Spring
   Security's JWT check are all wired up correctly end to end.
-- `curl https://your-domain.example.com:8180/realms/spring-vision/.well-known/openid-configuration`
-  — returns valid OIDC metadata, confirming Keycloak's realm import worked on this box.
 
 ## Not yet verified against a real box
 

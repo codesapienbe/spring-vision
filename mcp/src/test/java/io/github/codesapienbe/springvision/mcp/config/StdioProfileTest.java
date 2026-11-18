@@ -34,7 +34,7 @@ class StdioProfileTest {
     @DisplayName("SecurityConfig is skipped outside a servlet web application")
     void securityConfigSkippedWithoutWebApplication() {
         new ApplicationContextRunner()
-                .withUserConfiguration(SecurityConfig.class, KeycloakRealmRoleConverter.class)
+                .withUserConfiguration(SecurityConfig.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(SecurityConfig.class);
