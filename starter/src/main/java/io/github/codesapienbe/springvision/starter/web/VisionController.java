@@ -7,9 +7,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -19,11 +16,11 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,6 +35,7 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
+import io.github.codesapienbe.springvision.starter.web.config.VisionWebProperties;
 import net.logstash.logback.argument.StructuredArguments;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -64,12 +62,12 @@ import reactor.core.scheduler.Schedulers;
  */
 @RestController
 @RequestMapping("/api/vision")
-@CrossOrigin(origins = "*")
 public class VisionController {
 
     private static final Logger log = LoggerFactory.getLogger(VisionController.class);
 
     private final VisionTemplate visionTemplate;
+    private final VisionWebProperties webProperties;
     private final HttpClient httpClient;
 
     private static final int MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
@@ -78,11 +76,19 @@ public class VisionController {
     @Value("${spring.vision.djl.face-recognition.similarity-threshold:0.6}")
     private double configuredSimilarityThreshold = 0.6;
 
+    /** Defaults: no fetching of remote image URLs. */
     public VisionController(VisionTemplate visionTemplate) {
+        this(visionTemplate, new VisionWebProperties(false, false));
+    }
+
+    @Autowired
+    public VisionController(VisionTemplate visionTemplate, VisionWebProperties webProperties) {
         this.visionTemplate = visionTemplate;
+        this.webProperties = webProperties;
+        // never follow redirects: a redirect could send an allowed URL to an internal host
         this.httpClient = HttpClient.newBuilder()
             .connectTimeout(REQUEST_TIMEOUT)
-            .followRedirects(HttpClient.Redirect.NORMAL)
+            .followRedirects(HttpClient.Redirect.NEVER)
             .build();
 
         log.info("VisionController initialized",
@@ -819,25 +825,28 @@ public class VisionController {
             }
         }
 
-        // Handle file paths and HTTP(S) URLs
+        // Only http(s) beyond data: URIs, and only when enabled. Server-side file paths and other
+        // schemes are never read: they would let a request read the server's own files. These
+        // checks sit outside the try below, which turns IllegalArgumentException into IOException.
+        URI requested;
         try {
-            URI uri = URI.create(trimmed);
-            String scheme = uri.getScheme();
+            requested = URI.create(trimmed);
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Invalid URL format", e);
+        }
+        String requestedScheme = requested.getScheme();
+        if (requestedScheme == null
+            || !(requestedScheme.equalsIgnoreCase("http") || requestedScheme.equalsIgnoreCase("https"))) {
+            throw new IllegalArgumentException("Only data: and http(s) image URLs are accepted");
+        }
+        if (!webProperties.remoteImageUrls()) {
+            throw new IllegalArgumentException("Fetching images from URLs is disabled; upload the file "
+                + "or set spring.vision.web.remote-image-urls=true");
+        }
 
-            if (scheme == null || scheme.isEmpty() || "file".equalsIgnoreCase(scheme)) {
-                Path path = "file".equalsIgnoreCase(scheme) ? Paths.get(uri) : Paths.get(trimmed);
-
-                if (!Files.exists(path)) {
-                    throw new IOException("File not found: " + path);
-                }
-
-                long size = Files.size(path);
-                if (size > MAX_IMAGE_SIZE_BYTES) {
-                    throw new IOException("Image size exceeds maximum allowed size");
-                }
-
-                return Files.readAllBytes(path);
-            }
+        try {
+            URI uri = requested;
+            String scheme = requestedScheme;
 
             if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
                 HttpRequest request = HttpRequest.newBuilder()

@@ -46,12 +46,6 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- Spring WebFlux for reactive HTTP client -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
-    </dependency>
-
     <!-- SLF4J API -->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -249,12 +243,6 @@
     <dependency>
       <groupId>ai.djl.pytorch</groupId>
       <artifactId>pytorch-engine</artifactId>
-    </dependency>
-
-    <!-- DJL TensorFlow Engine (for object detection models) -->
-    <dependency>
-      <groupId>ai.djl.tensorflow</groupId>
-      <artifactId>tensorflow-engine</artifactId>
     </dependency>
 
     <!-- DJL PyTorch Model Zoo -->

@@ -30,6 +30,13 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
+    <!-- Reactor for the controller's Mono return values (Spring MVC adapts them); version from
+         the Spring Boot BOM. core no longer drags in all of WebFlux for this. -->
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+    </dependency>
+
     <!-- Spring Boot Validation -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -67,22 +74,6 @@
 
   <build>
     <plugins>
-      <!-- Spring Boot Maven Plugin -->
-      <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>${spring-boot.version}</version>
-        <configuration>
-          <mainClass>io.github.codesapienbe.springvision.starter.SampleVisionApplication</mainClass>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
 
     </plugins>
   </build>
