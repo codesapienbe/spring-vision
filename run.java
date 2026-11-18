@@ -1,5 +1,5 @@
 ///usr/bin/env jbang "$0" "$@" ; exit $?
-//JAVA 21
+//JAVA 25
 
 import java.io.File;
 import java.nio.file.Files;

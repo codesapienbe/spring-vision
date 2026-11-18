@@ -416,8 +416,8 @@ public class ExampleController {
 
 ## Requirements
 
-- Java 21+
-- Spring Boot 3.2+
+- Java 25+
+- Spring Boot 3.5+
 - Module-specific requirements
 
 ## Troubleshooting

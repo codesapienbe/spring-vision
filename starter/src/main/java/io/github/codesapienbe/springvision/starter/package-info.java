@@ -138,8 +138,8 @@
  *
  * <p>The starter requires:</p>
  * <ul>
- *   <li>Spring Boot 3.0+</li>
- *   <li>Java 21+</li>
+ *   <li>Spring Boot 3.5+</li>
+ *   <li>Java 25+</li>
  *   <li>Maven or Gradle</li>
  * </ul>
  *

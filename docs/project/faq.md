@@ -4,7 +4,7 @@
 
 ## What Java and Spring versions are required?
 
-Java 21+ and Spring Boot 3.2+.
+Java 25+ and Spring Boot 3.5+.
 
 ## How do I enable GPU acceleration?
 

@@ -16,8 +16,6 @@
   <description>Command-line interface for Spring Vision MCP Server setup</description>
 
   <properties>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
     <main.class>io.github.codesapienbe.springvision.cli.SpringVisionCliApplication</main.class>
   </properties>
 
