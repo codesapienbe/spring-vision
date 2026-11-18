@@ -1,7 +1,7 @@
 package io.github.codesapienbe.springvision.core.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -17,15 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
+import io.github.codesapienbe.springvision.core.Detection;
 import io.github.codesapienbe.springvision.core.ImageData;
+import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
-import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
-import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
+import io.github.codesapienbe.springvision.core.djl.TesseractRunner;
 
 /**
- * Integration test for OCR functionality.
- * In offline mode (no models loaded), OCR must fail with a meaningful exception.
+ * Integration test for OCR functionality. OCR runs on the bundled Tesseract natives and language
+ * data, so it works offline; it is skipped when the build did not fetch the language data.
  */
 public class OcrIntegrationTest {
 
@@ -51,20 +52,25 @@ public class OcrIntegrationTest {
     }
 
     @Test
-    void shouldFailWithMeaningfulErrorInOfflineMode() {
+    void readsTextOfflineWithNormalisedLineBoxes() {
+        assumeTrue(new TesseractRunner(null, null).isAvailable(), "bundled tessdata not present");
         ImageData documentImage = createDocumentImageWithText("Hello World");
 
-        VisionBackendException ex = assertThrows(
-            VisionBackendException.class,
-            () -> visionTemplate.extractText(documentImage));
+        VisionResult result = visionTemplate.extractText(documentImage);
 
-        assertThat(ex.getOperation()).isEqualTo("not_initialized");
+        assertThat(result.detections()).isNotEmpty();
+        Detection line = result.detections().get(0);
+        assertThat(line.label()).containsIgnoringCase("hello");
+        assertThat(line.confidence()).isBetween(0.0, 1.0);
+        assertThat(line.boundingBox().width()).isPositive().isLessThanOrEqualTo(1.0);
     }
 
     @Test
-    void shouldFailForAnyImageWhenModelsUnavailable() {
-        ImageData image = createDocumentImageWithText("Sample Text");
-        assertThrows(BaseVisionException.class, () -> visionTemplate.extractText(image));
+    void returnsNoTextForAnImageWithoutText() {
+        assumeTrue(new TesseractRunner(null, null).isAvailable(), "bundled tessdata not present");
+        ImageData blank = createDocumentImageWithText("");
+
+        assertThat(visionTemplate.extractText(blank).detections()).isEmpty();
     }
 
     private ImageData createDocumentImageWithText(String text) {

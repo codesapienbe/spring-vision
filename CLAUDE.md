@@ -85,6 +85,7 @@ VisionTemplate
             └── DjlVisionBackend (implements VisionBackend + all capabilities)
                     ├── ClasspathModels — resolves bundled models under /models/ into loadable URLs
                     ├── DJL Predictor<Image, DetectedObjects> — face/object detection
+                    ├── Tesseract 5 (bytedeco) — OCR, eID / driving-licence text; tessdata bundled by -Pdownload-models
                     ├── ZXing — barcode scanning
                     └── metadata-extractor — EXIF/GPS extraction
 ```

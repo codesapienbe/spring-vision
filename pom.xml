@@ -63,6 +63,9 @@
          Native classifier defaults to linux-x86_64; the OS-detection profiles below override it. -->
     <opencv.version>4.14.0-${javacpp.version}</opencv.version>
     <openblas.version>0.3.34-${javacpp.version}</openblas.version>
+    <!-- Tesseract OCR and Leptonica (bytedeco JavaCPP presets, used under Apache-2.0). -->
+    <tesseract.version>5.5.3-${javacpp.version}</tesseract.version>
+    <leptonica.version>1.87.0-${javacpp.version}</leptonica.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
 
     <!-- DJL PyTorch native classifier: default to linux-x86_64. Overridden by OS-detection profiles below. -->

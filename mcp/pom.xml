@@ -215,6 +215,7 @@
                                   <include>**/*.pt</include>
                                   <include>**/*.onnx</include>
                                   <include>**/*.torchscript</include>
+                                  <include>**/*.traineddata</include>
                                   <include>**/*.json</include>
                               </includes>
                           </resource>

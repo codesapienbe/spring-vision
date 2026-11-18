@@ -3,6 +3,7 @@ package io.github.codesapienbe.springvision.core.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +20,7 @@ import io.github.codesapienbe.springvision.core.ImageData;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
+import io.github.codesapienbe.springvision.core.djl.TesseractRunner;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 
@@ -86,9 +88,10 @@ public class VisionIntegrationTest {
     class OcrTests {
 
         @Test
-        void shouldFailWhenModelsUnavailable() {
+        void returnsNoTextForAPlainImage() {
+            assumeTrue(new TesseractRunner(null, null).isAvailable(), "bundled tessdata not present");
             ImageData image = createPlaceholderImage(640, 480);
-            assertThrows(BaseVisionException.class, () -> visionTemplate.extractText(image));
+            assertThat(visionTemplate.extractText(image).detections()).isEmpty();
         }
     }
 
