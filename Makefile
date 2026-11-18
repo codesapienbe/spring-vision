@@ -45,6 +45,7 @@ GPG_SKIP ?= true
 # ONNX Runtime publish macOS or ARM64 CUDA builds.
 GPU ?= false
 GPU_PROFILE := $(if $(filter true,$(GPU)),-Pgpu,)
+comma := ,
 IMAGE_TAG := spring-vision-mcp:$(SPRING_VISION_VERSION)$(if $(filter true,$(GPU)),-gpu,)
 
 # ─── install ──────────────────────────────────────────────────────────────────
@@ -143,9 +144,13 @@ jdk:
 verify:
 	mvn spotless:check checkstyle:check -q
 
+# The jar is built inside the image (see Dockerfile), so its native libraries match the image's
+# platform. PLATFORM picks it, e.g. `make bundle PLATFORM=linux/amd64`; empty = Docker's default.
+PLATFORM ?=
 bundle:
-	@$(MAKE) install GPU=$(GPU)
-	docker build --build-arg SPRING_VISION_VERSION=$(SPRING_VISION_VERSION) -t $(IMAGE_TAG) .
+	docker build $(if $(PLATFORM),--platform $(PLATFORM),) \
+		--build-arg MAVEN_PROFILES=download-models$(if $(filter true,$(GPU)),$(comma)gpu,) \
+		-t $(IMAGE_TAG) .
 	@echo "Built image: $(IMAGE_TAG)"
 ifeq ($(GPU),true)
 	@echo "Run it with: docker run --rm --gpus all -p 8080:8080 -e KEYCLOAK_ISSUER_URI=<issuer> $(IMAGE_TAG)"
@@ -202,7 +207,7 @@ help:
 	@echo "spring-vision only:"
 	@echo "  verify            Spotless + Checkstyle check"
 	@echo "  memory-tests      Tests tagged memory-intensive — not part of 'make test'"
-	@echo "  bundle            install + Docker image $(IMAGE_TAG)"
+	@echo "  bundle            Docker image $(IMAGE_TAG), jar built inside it (PLATFORM=linux/amd64 to pick one)"
 	@echo "  mcp-sync          Build the MCP jar into ~/.springvision and register it in agent configs"
 	@echo ""
 	@echo "Build tuning (override on the command line):"
