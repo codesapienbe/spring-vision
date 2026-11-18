@@ -17,7 +17,6 @@ Most are bundled or auto-downloaded during build. See the [Models Guide](./model
 ## Which backend should I choose?
 
 - OpenCV: fast classical + DNN face models
-- YOLO: real-time object detection
 - MediaPipe: face/hand/pose
 - FaceBytes/DeepFace/InsightFace: recognition and embeddings
 

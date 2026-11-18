@@ -22,7 +22,6 @@
     <!-- Models are now loaded automatically from HuggingFace via DJL's Criteria API -->
     <!-- Directory where build-time downloaded models are stored -->
     <models.directory>${project.basedir}/models</models.directory>
-    <yolo.version>v8.3.0</yolo.version>
   </properties>
 
   <pluginRepositories>

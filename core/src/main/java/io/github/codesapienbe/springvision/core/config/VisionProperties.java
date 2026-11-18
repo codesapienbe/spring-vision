@@ -42,7 +42,7 @@ public class VisionProperties {
 
     /**
      * The vision backend to use.
-     * Supported backends: opencv (default), mediapipe, yolo, deepface.
+     * Supported backends: opencv (default), mediapipe, deepface.
      * If not specified, defaults to 'opencv'.
      */
     private String backend = "opencv";

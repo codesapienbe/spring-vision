@@ -1,6 +1,6 @@
 package io.github.codesapienbe.springvision.core.integration;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -13,13 +13,13 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.env.MapPropertySource;
 
 import io.github.codesapienbe.springvision.core.ImageData;
-import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.config.VisionAutoConfiguration;
+import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
 
 /**
  * Integration test for object detection.
- * Verifies that detection succeeds when bundled models are present (loaded from classpath).
+ * Verifies that object detection fails loudly while no licence-clean model is bundled.
  */
 public class ObjectDetectionIntegrationTest {
 
@@ -45,10 +45,11 @@ public class ObjectDetectionIntegrationTest {
     }
 
     @Test
-    void shouldSucceedForObjectDetectionWhenModelsPresent() {
+    void objectDetectionIsUnsupportedWithoutLicenceCleanModel() {
         ImageData image = createPlaceholderImage(640, 480);
-        VisionResult result = visionTemplate.detectObjects(image);
-        assertThat(result).isNotNull();
+        assertThatThrownBy(() -> visionTemplate.detectObjects(image))
+            .isInstanceOf(VisionUnsupportedException.class)
+            .hasMessageContaining("licence-clean");
     }
 
     private ImageData createPlaceholderImage(int width, int height) {

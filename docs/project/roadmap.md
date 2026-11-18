@@ -4,7 +4,7 @@
 
 ## 1.1 (Released)
 
-- MediaPipe and YOLO backends
+- MediaPipe backend
 - Performance optimizations
 - Security enhancements
 

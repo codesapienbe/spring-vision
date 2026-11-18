@@ -23,8 +23,6 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
  *
  * <h2>Verified Models</h2>
  * <ul>
- *   <li><b>DamarJati/face-hand-YOLOv5</b> - Detects both faces and hands with YOLO</li>
- *   <li><b>lewiswatson/yolov8x-tuned-hand-gestures</b> - Hand gesture recognition</li>
  *   <li><b>dima806/hand_gestures_image_detection</b> - 18 gesture classes with 96% accuracy</li>
  * </ul>
  *

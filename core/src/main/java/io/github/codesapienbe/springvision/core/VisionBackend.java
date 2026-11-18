@@ -46,7 +46,7 @@ public interface VisionBackend {
      * <p>This identifier should be unique across all backend implementations
      * and is used for configuration, logging, and backend selection.</p>
      *
-     * @return the backend identifier (e.g., "opencv", "mediapipe", "yolo")
+     * @return the backend identifier (e.g., "opencv", "mediapipe", "djl")
      */
     String getBackendId();
 

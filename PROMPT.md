@@ -211,7 +211,7 @@ When prompting, just give a URL or file path. The model will pick the right tool
 - Close-up of a single damaged panel (one clear defect)
 - Multi-damage shot (front-end collision)
 - Pristine vehicle (control — should return no damage or low-confidence)
-- ⚠️ Requires the bundled `yolov11n-car-damage` ONNX model; without it the tool fails loudly
+- ⚠️ No licence-clean damage model is bundled yet; the tool fails loudly until one is
 
 **Verified URLs:**
 - Crashed front-end: https://images.unsplash.com/photo-1597007030739-6d2e7172ee6c?w=1000
@@ -365,6 +365,5 @@ The local jar runs on macOS arm64, but the bundled PyTorch native library is `li
 - OCR (`extract_text`)
 - Barcode (`scan_barcode`)
 - EXIF/GPS metadata (`extract_image_metadata`)
-- ONNX-based YOLO detectors where bundled models are used
 
 If a tool consistently returns suspiciously generic output, suspect the PyTorch native fallback rather than the input image.

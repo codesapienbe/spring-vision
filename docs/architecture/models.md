@@ -14,7 +14,7 @@ This guide describes how Spring Vision handles model files today: where they liv
 
 Models are loaded with this priority:
 
-1) **Classpath resources** (bundled YOLO, RetinaFace models)
+1) **Classpath resources** (bundled RetinaFace and other models)
 2) **DJL Model Zoo** (runtime download for advanced AI models)
 3) **External paths** (configured via properties)
 4) **User cache** (`~/.spring-vision/models/`)
@@ -22,14 +22,13 @@ Models are loaded with this priority:
 ## Bundled Models (Included in JAR)
 
 ### ✅ **Core Production Models**
-- **YOLOv8 Object Detection**: `yolov8n.pt`, `yolov8s.pt`, `yolov8m.pt`, `yolov8l.pt`, `yolov8x.pt`
-- **YOLOv8 Pose Estimation**: `yolov8n-pose.pt`, `yolov8s-pose.pt`, `yolov8m-pose.pt`
-- **YOLOv8 Segmentation**: `yolov8n-seg.pt`, `yolov8s-seg.pt`, `yolov8m-seg.pt`
 - **RetinaFace**: `retinaface.pt` (high-accuracy face detection)
-- **Classification**: `yolov8n-cls.pt` (image classification)
-- **OBB Detection**: `yolov8n-obb.pt` (oriented bounding boxes)
+- **FaceFeatureNet**, **FER+ emotion**, **age/gender**, **NSFW**, **action recognition**, **palm detection**, **deepfake detection** (see the `download-models` profile in `core/pom.xml`)
 
-**Total bundled size**: ~500MB (all variants included)
+Every bundled model must carry a licence that allows commercial use. Ultralytics YOLO weights
+(AGPL-3.0, including models fine-tuned with Ultralytics) are not bundled; object detection,
+pose estimation and vehicle damage detection fail with `VisionUnsupportedException` until a
+licence-clean model replaces them.
 
 ### 📚 **Runtime Download Models**
 Advanced AI models downloaded on-demand:
@@ -55,11 +54,9 @@ spring:
 
       # Model-specific settings
       object-detection:
-        model: yolo                   # yolo (bundled) or ssd (runtime)
         confidence-threshold: 0.5
 
       pose-estimation:
-        model: yolo                   # yolo (bundled) or simple_pose (runtime)
         confidence-threshold: 0.5
 
       face-detection:
@@ -100,9 +97,8 @@ make install
 ```
 
 This includes:
-- YOLOv8 models (object detection, pose, segmentation)
 - RetinaFace model (face detection)
-- All model variants (n, s, m, l, x sizes)
+- The other bundled models listed above
 
 ## Adding Custom Models
 
@@ -118,8 +114,6 @@ spring:
 Place your models in the expected directory structure:
 ```
 /path/to/custom/models/
-├── yolov8/yolov8n.pt          # Custom object detection
-├── yolov8-pose/yolov8n-pose.pt # Custom pose estimation
 └── retinaface/retinaface.pt    # Custom face detection
 ```
 

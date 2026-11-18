@@ -9,7 +9,7 @@ import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 /**
  * Capability for detecting vehicle license plates and reading their text.
  *
- * <p>Implementations run a dedicated plate-detection model (typically a YOLO
+ * <p>Implementations run a dedicated plate-detection model (typically a
  * single-class detector) to locate plate regions, then run OCR on each crop to
  * recover the plate string. Returning the bounding box and the raw OCR output
  * lets callers correlate the plate text with its location in the source frame.</p>

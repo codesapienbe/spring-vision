@@ -42,7 +42,7 @@ import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedExcep
 
 /**
  * Template for computer vision operations providing a unified interface
- * across different vision backends (OpenCV, MediaPipe, YOLO, etc.).
+ * across different vision backends (OpenCV, MediaPipe, DJL, etc.).
  *
  * <p>This template follows the Spring template pattern, providing a
  * consistent API regardless of the underlying vision backend implementation.

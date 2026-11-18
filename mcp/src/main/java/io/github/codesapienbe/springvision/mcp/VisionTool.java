@@ -3605,7 +3605,7 @@ public class VisionTool {
             }
             response.put("extendedTaxonomy", EXTENDED_DAMAGE_CLASSES);
 
-            // Auxiliary classifier enrichment when YOLO is uncertain
+            // Auxiliary classifier enrichment when the detector is uncertain
             if (!"NONE".equals(review.flag()) && visionTemplate.isAuxiliaryClassifierReady()) {
                 try {
                     ImageData imgForAux = resolveImage(imageUrl.trim());
@@ -3641,10 +3641,10 @@ public class VisionTool {
 
     @Tool(name = "recognize_license_plate_b",
         description = "Detect vehicle license plates in uploaded image bytes and read each plate's text. "
-            + "Runs a dedicated YOLO plate detector, crops each plate region, and OCRs the crop. "
+            + "Runs a dedicated plate detector, crops each plate region, and OCRs the crop. "
             + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
-            + "and the plate's normalised bounding box. Requires the license-plate detection ONNX model "
-            + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
+            + "and the plate's normalised bounding box. Fails with an unsupported error while no "
+            + "licence-clean plate detection model is bundled.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlateB(String imageBase64) {
         requireAdminRole();
@@ -3665,10 +3665,10 @@ public class VisionTool {
 
     @Tool(name = "recognize_license_plate_u",
         description = "Detect vehicle license plates in an image URL and read each plate's text. "
-            + "Runs a dedicated YOLO plate detector, crops each plate region, and OCRs the crop. "
+            + "Runs a dedicated plate detector, crops each plate region, and OCRs the crop. "
             + "Returns one entry per plate with the recognised text, detector confidence, raw OCR output, "
-            + "and the plate's normalised bounding box. Requires the license-plate detection ONNX model "
-            + "to be bundled at /models/license-plate/yolov8n-license-plate.onnx.")
+            + "and the plate's normalised bounding box. Fails with an unsupported error while no "
+            + "licence-clean plate detection model is bundled.")
     @SuppressWarnings("unused")
     public Map<String, Object> recognizeLicensePlate(String imageUrl) {
         requireAdminRole();

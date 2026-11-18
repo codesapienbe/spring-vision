@@ -242,7 +242,7 @@ Once configured, your AI assistant will have access to these Spring Vision tools
 
 ### Core Detection Tools
 - **Face Detection** - Detect and count faces in images
-- **Object Detection** - Identify objects using YOLO models
+- **Object Detection** - not available until a licence-clean model is bundled (fails with `VisionUnsupportedException`)
 - **Text Recognition** - Extract text via OCR
 - **Barcode Scanning** - Read QR codes and barcodes
 
