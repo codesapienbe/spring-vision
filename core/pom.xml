@@ -181,12 +181,33 @@
       <version>5.9.0</version>
     </dependency>
 
-    <!-- OpenPnP OpenCV -->
+    <!-- OpenCV 4.14 (bytedeco JavaCPP presets, used under Apache-2.0). The Java API jars
+         plus the natives for the build host's platform (opencv.classifier, root pom). -->
     <dependency>
-      <groupId>org.openpnp</groupId>
+      <groupId>org.bytedeco</groupId>
       <artifactId>opencv</artifactId>
-      <version>4.9.0-0</version>
-      <optional>true</optional>
+      <version>${opencv.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>opencv</artifactId>
+      <version>${opencv.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>openblas</artifactId>
+      <version>${openblas.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
+      <artifactId>javacpp</artifactId>
+      <version>${javacpp.version}</version>
+      <classifier>${opencv.classifier}</classifier>
+      <scope>runtime</scope>
     </dependency>
 
     <!-- Apache Commons Math3 for mathematical operations -->
@@ -243,12 +264,6 @@
       <version>${pytorch.version}</version>
       <classifier>${pytorch.classifier}</classifier>
       <scope>runtime</scope>
-    </dependency>
-
-    <!-- DJL OpenCV support -->
-    <dependency>
-      <groupId>ai.djl.opencv</groupId>
-      <artifactId>opencv</artifactId>
     </dependency>
 
     <!-- DJL ONNX Runtime Engine (for ONNX models, e.g. emotion-ferplus). Excludes its own
@@ -361,42 +376,6 @@
        libraries on the classpath at once; that's removed now that the artifactId itself
        is switched by a property instead. -->
   <profiles>
-    <!-- Legacy/backends profile: opt-in profile for legacy JavaCV/OpenCV native artifacts.
-         Activate with -Plegacy-backends to include JavaCV/OpenCV/OpenBLAS artifacts when you
-         need to run the old OpenCV-based backends. Kept opt-in to avoid accidental native blobs
-         in standard builds.
-    -->
-    <profile>
-      <id>legacy-backends</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.bytedeco</groupId>
-          <artifactId>javacv</artifactId>
-          <version>${javacv.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.bytedeco</groupId>
-          <artifactId>opencv</artifactId>
-          <version>${opencv.version}</version>
-          <classifier>${opencv.classifier}</classifier>
-          <scope>runtime</scope>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.bytedeco</groupId>
-          <artifactId>openblas</artifactId>
-          <version>0.3.26-1.5.10</version>
-          <classifier>${opencv.classifier}</classifier>
-          <scope>runtime</scope>
-          <optional>true</optional>
-        </dependency>
-      </dependencies>
-    </profile>
-
     <!-- Optional profile to download bundled models at build time. Activate with -DdownloadModels=true or -Pdownload-models -->
     <profile>
       <id>download-models</id>

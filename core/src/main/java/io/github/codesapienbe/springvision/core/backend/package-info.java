@@ -11,9 +11,9 @@
  * <p>DJL is the default runtime for model loading and inference. The
  * codebase includes a DJL-backed implementation which handles model
  * lifecycle, translators, and loading from the DJL ModelZoo.
- * Optional/legacy backend implementations (historical OpenCV-based code)
- * have been removed from the main branch and are available only via the
- * opt-in {@code legacy-backends} Maven profile or archived documentation.</p>
+ * The historical OpenCV-based backend implementation was removed; OpenCV 4.14
+ * (bytedeco JavaCPP presets) is a regular dependency for OpenCV DNN-based
+ * capabilities.</p>
  *
  * <h2>Usage</h2>
  *
@@ -31,16 +31,13 @@
  * <h2>Configuration</h2>
  *
  * <p>Configure the active backend via application properties. DJL is used by
- * default; legacy backends are opt-in through the Maven profile
- * {@code -Plegacy-backends}.</p>
+ * default.</p>
  *
  * <h2>Notes</h2>
  *
  * <ul>
  *   <li>The old OpenCV-specific backend implementation and its configuration
  *       properties were removed to reduce native dependency complexity.</li>
- *   <li>If you need OpenCV/native artifacts for an older workflow, enable
- *       the {@code legacy-backends} profile during your build.</li>
  * </ul>
  *
  * @author Spring Vision Team

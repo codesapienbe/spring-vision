@@ -324,13 +324,12 @@ The starter includes:
 - **Spring Boot Starter** - Spring Boot integration
 - **Spring Boot Actuator** - Health monitoring and metrics
 - **Micrometer Core** - Metrics collection
-- **OpenCV** - Computer vision library (4.8.1)
-- **JavaCV** - Java bindings for OpenCV (1.5.9)
+- **OpenCV** - Computer vision library (4.14, via bytedeco JavaCPP presets, used under Apache-2.0)
 
 ## Requirements
 
-- **Java**: 21 or later
-- **Spring Boot**: 3.0 or later
+- **Java**: 25 or later
+- **Spring Boot**: 3.5 or later
 - **Maven**: 3.6 or later (or Gradle 7.0+)
 
 ## Troubleshooting
@@ -402,6 +401,6 @@ For issues and questions:
 
 ## Version Compatibility
 
-| Spring Vision | Spring Boot | Java | OpenCV | JavaCV |
-|---------------|-------------|------|--------|--------|
-| 1.0           | 3.0+        | 21+  | 4.8.1  | 1.5.9  |
+| Spring Vision | Spring Boot | Java | OpenCV | JavaCPP |
+|---------------|-------------|------|--------|---------|
+| 0.0.6         | 3.5+        | 25+  | 4.14.0 | 1.5.14  |

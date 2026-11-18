@@ -48,7 +48,7 @@
     <spring-cloud.version>2024.0.0</spring-cloud.version>
 
     <!-- Dependencies -->
-    <javacv.version>1.5.10</javacv.version>
+    <javacpp.version>1.5.14</javacpp.version>
     <micrometer.version>1.14.0</micrometer.version>
 
     <!-- Additional shared versions -->
@@ -59,8 +59,10 @@
     <picocli.version>4.7.6</picocli.version>
     <spring-ai.version>1.1.0</spring-ai.version>
 
-    <!-- OpenCV platform selection: default to Linux x86_64. Overridden by the linux-aarch64 OS-detection profile below. -->
-    <opencv.version>4.9.0-${javacv.version}</opencv.version>
+    <!-- OpenCV (bytedeco JavaCPP presets, used under Apache-2.0) and its OpenBLAS dependency.
+         Native classifier defaults to linux-x86_64; the OS-detection profiles below override it. -->
+    <opencv.version>4.14.0-${javacpp.version}</opencv.version>
+    <openblas.version>0.3.34-${javacpp.version}</openblas.version>
     <opencv.classifier>linux-x86_64</opencv.classifier>
 
     <!-- DJL PyTorch native classifier: default to linux-x86_64. Overridden by OS-detection profiles below. -->
@@ -526,9 +528,9 @@
       </properties>
     </profile>
 
-    <!-- OS-detection profiles to select the right DJL PyTorch (and, on Linux aarch64,
-         OpenCV/OpenBLAS) native classifier. Defaults (linux-x86_64) are set in
-         <properties>; profiles below override per host. -->
+    <!-- OS-detection profiles to select the right DJL PyTorch and OpenCV/OpenBLAS native
+         classifiers. Defaults (linux-x86_64) are set in <properties>; profiles below override
+         per host. DJL and bytedeco name the same platforms differently. -->
     <profile>
       <id>pytorch-osx-aarch64</id>
       <activation>
@@ -539,6 +541,7 @@
       </activation>
       <properties>
         <pytorch.classifier>osx-aarch64</pytorch.classifier>
+        <opencv.classifier>macosx-arm64</opencv.classifier>
       </properties>
     </profile>
 
@@ -552,6 +555,7 @@
       </activation>
       <properties>
         <pytorch.classifier>osx-x86_64</pytorch.classifier>
+        <opencv.classifier>macosx-x86_64</opencv.classifier>
       </properties>
     </profile>
 
@@ -566,9 +570,6 @@
       </activation>
       <properties>
         <pytorch.classifier>linux-aarch64</pytorch.classifier>
-        <!-- Bytedeco's own classifier naming for this arch differs from DJL's ("linux-arm64",
-             not "linux-aarch64") — confirmed against the pinned opencv/openblas versions on
-             Maven Central before writing this. -->
         <opencv.classifier>linux-arm64</opencv.classifier>
       </properties>
     </profile>
@@ -583,6 +584,7 @@
       </activation>
       <properties>
         <pytorch.classifier>win-x86_64</pytorch.classifier>
+        <opencv.classifier>windows-x86_64</opencv.classifier>
       </properties>
     </profile>
 
