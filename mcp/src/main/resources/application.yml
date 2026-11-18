@@ -82,6 +82,70 @@ spring:
         model: instance_segmentation
         instance-level: true
 
+    # MCP tool access. The server runs no identity provider of its own: over HTTP it trusts the
+    # issuer below (spring.security.oauth2.resourceserver.jwt.issuer-uri), reads the caller's
+    # roles from roles-claim-path, and runs a tool only if one of those roles is granted it here.
+    # A tool not granted to any of the caller's roles is denied. "*" grants every tool. Names
+    # that match no tool fail start-up. Over stdio there is no token: the caller has stdio-roles.
+    mcp:
+      security:
+        # Claim path to the role list, one element per level: Keycloak realm roles are
+        # [realm_access, roles]; client roles are [resource_access, <client-id>, roles].
+        roles-claim-path: [realm_access, roles]
+        tool-access:
+          - role: mcp-admin
+            tools: ["*"]
+          # Everything except biometric templates and identification (embeddings, face
+          # verification and search, identity store, access authentication), identity and
+          # driving-licence documents, licence plates, NSFW, deepfake and threat detection.
+          - role: mcp-user
+            tools:
+              - count_faces_b
+              - count_faces_u
+              - count_faces_b_validated
+              - preview_faces_u
+              - extract_text_b
+              - extract_text_u
+              - classify_image_b
+              - classify_image_u
+              - detect_objects_b
+              - detect_objects_u
+              - detect_poses_b
+              - detect_poses_u
+              - recognize_actions_b
+              - recognize_actions_u
+              - detect_emotions_b
+              - detect_emotions_u
+              - detect_hands_b
+              - detect_hands_u
+              - detect_demographics_b
+              - detect_demographics_u
+              - detect_fall_b
+              - detect_fall_u
+              - analyze_stress_b
+              - analyze_stress_u
+              - estimate_heart_rate_f
+              - estimate_heart_rate_u
+              - extract_image_metadata_b
+              - extract_image_metadata_u
+              - scan_barcode_b
+              - scan_barcode_u
+              - detect_vehicle_b
+              - detect_vehicle_u
+              - detect_vehicle_damages_b
+              - detect_vehicle_damages_u
+              - submit_damage_label_b
+              - submit_damage_label_u
+              - export_damage_classifier
+              - annotate_bounding_boxes_b
+              - annotate_bounding_boxes_u
+              - obscure_regions_b
+              - obscure_regions_u
+              - normalize_image_b
+              - normalize_image_u
+              - delete_temp_image
+        stdio-roles: [mcp-admin]
+
   # MCP Server Configuration (Spring AI 1.1.0 - Streamable-HTTP transport)
   ai:
     mcp:
@@ -92,14 +156,14 @@ spring:
         version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
 
-  # MCP auth: OAuth2 Resource Server validating Keycloak-issued JWTs (see keycloak/README.md).
-  # Defaults to the local dev Keycloak started via `make run`; override KEYCLOAK_ISSUER_URI
-  # to point at a different realm (e.g. a future production Keycloak).
+  # MCP auth over HTTP: OAuth2 Resource Server validating JWTs from this OIDC issuer (any
+  # provider: Keycloak, Auth0, Entra ID, ...). Required for the HTTP server; start-up fails
+  # without it. Not used by the stdio profile. Tool access: spring.vision.mcp.security above.
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/spring-vision}
+          issuer-uri: ${OAUTH2_ISSUER_URI}
 
 server:
   port: 8080  # Internal port; a reverse proxy (e.g. Caddy) should terminate TLS in front of this

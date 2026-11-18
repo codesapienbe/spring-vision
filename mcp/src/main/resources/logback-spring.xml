@@ -4,20 +4,21 @@
   <!--
     Spring Vision MCP Server Logging Configuration
 
-    This MCP server uses Streamable-HTTP transport (MCP messages travel over HTTP, not stdio).
-    Console logging still targets stderr for consistency with prior deployments and to keep
-    stdout free in case a client ever launches this process directly.
+    By default this MCP server uses Streamable-HTTP transport. With the `stdio` profile the
+    client launches the process and MCP messages travel over stdin/stdout, so console logging
+    must target stderr: anything else on stdout corrupts the protocol.
     All logs use JSON format to prevent any parsing issues.
   -->
 
   <!--
     Anchor log files in ~/.springvision/ regardless of where Claude/Cursor/Gemini
     launches the MCP server from. Without this, files land in whatever cwd the
-    parent process happens to be in (often the workspace root).
+    parent process happens to be in (often the workspace root). SPRING_VISION_LOG_HOME
+    (system property or environment variable) moves them elsewhere.
   -->
-  <property name="LOG_HOME" value="${user.home}/.springvision"/>
+  <property name="LOG_HOME" value="${SPRING_VISION_LOG_HOME:-${user.home}/.springvision}"/>
 
-  <springProfile name="default">
+  <springProfile name="default | stdio">
     <!-- Console Appender - JSON format to STDERR -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
       <target>System.err</target>

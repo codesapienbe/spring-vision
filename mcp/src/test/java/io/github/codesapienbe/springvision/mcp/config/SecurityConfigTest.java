@@ -19,12 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Verifies {@link SecurityConfig}'s authorization rules in isolation, without needing a
- * running Keycloak instance: a stubbed {@link JwtDecoder} bean stands in for the real one,
+ * running identity provider: a stubbed {@link JwtDecoder} bean stands in for the real one,
  * since the {@code jwt()} test post-processor pre-seeds an authenticated security context
  * and never actually invokes the decoder.
  */
 @WebMvcTest(controllers = SecurityConfigTest.ProbeController.class)
-@Import({SecurityConfig.class, KeycloakRealmRoleConverter.class, SecurityConfigTest.ProbeController.class,
+@Import({SecurityConfig.class, SecurityConfigTest.ProbeController.class,
         SecurityConfigTest.StubJwtDecoderConfig.class})
 class SecurityConfigTest {
 

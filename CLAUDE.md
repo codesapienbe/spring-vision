@@ -55,7 +55,7 @@ make jdk
 # Build only the MCP module and copy JAR for local MCP client testing
 make mcp-sync
 
-# Start local Keycloak (see keycloak/README.md), then run the MCP server via jbang run.java
+# Build and run the HTTP MCP server via jbang run.java (needs OAUTH2_ISSUER_URI)
 make run
 
 # Build a Docker image of the MCP server (spring-vision-mcp:<version>)
@@ -92,7 +92,7 @@ VisionTemplate
 
 ### MCP Layer (`mcp` module)
 
-`VisionTool` is a Spring `@Component` annotated with Spring AI `@Tool` methods. `ToolCallbackConfiguration` registers these as MCP callbacks. The server runs as a standalone Spring Boot app (`SpringVisionMcpServerApplication`), communicating over stdio (MCP transport).
+`VisionTool` is a Spring `@Component` annotated with Spring AI `@Tool` methods. `ToolCallbackConfiguration` registers these as MCP callbacks. The server runs as a standalone Spring Boot app (`SpringVisionMcpServerApplication`). By default it serves Streamable-HTTP at `/mcp` and requires a JWT from the OIDC issuer in `OAUTH2_ISSUER_URI` (`SecurityConfig`; there is no bundled identity provider). With the `stdio` profile (`application-stdio.yml`) the MCP client launches it and talks over stdin/stdout, with no web server and no JWT; that caller has `spring.vision.mcp.security.stdio-roles`. `make mcp-sync` builds it and registers the stdio entry.
 
 ### REST Layer (`starter` module)
 
@@ -111,17 +111,13 @@ VisionTemplate
 ## Agent Rules
 
 - **No data is better than wrong data.** If a tool, model, or capability is non-functional, incomplete, or returning placeholder/synthetic values, it must fail loudly with an exception rather than silently returning fabricated results. A `VisionProcessingException` or `VisionUnsupportedException` with a clear message is always preferable to a response that looks successful but contains invented data. This applies everywhere: backend methods, MCP tool handlers, REST controllers, and capability stubs.
-- **Keep `docs/rbac/index.html` in sync with security config.** That page is a hand-maintained snapshot of the mcp-user/mcp-admin tool matrix and the JWT claims the server reads — it does not regenerate automatically. Whenever a change touches any of the following, update the page's claims table, client cards, and/or the JS `categories` array driving the tool matrix in the same commit:
-  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/VisionTool.java` — any `requireAdminRole()` call added/removed changes which tools are admin-tier.
-  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/SecurityConfig.java` — authorization rules (public vs. authenticated paths).
-  - `mcp/src/main/java/io/github/codesapienbe/springvision/mcp/config/KeycloakRealmRoleConverter.java` — which JWT claims get mapped to authorities.
-  - `keycloak/realm-spring-vision.json` — realm roles, client role assignments, or token lifespans.
-  - the `spring.security.oauth2.resourceserver` block in `mcp/src/main/resources/application.yml`.
+- **Tool access lives in `application.yml`.** `spring.vision.mcp.security.tool-access` in `mcp/src/main/resources/application.yml` grants tools to roles; `GuardedToolCallback` enforces it for every tool, so `@Tool` methods carry no role checks of their own. A new `@Tool` is reachable only through a role granted `"*"` until it is listed for other roles; a granted name that matches no tool fails start-up. `DefaultToolAccessTest` pins the shipped split — update it together with the yml.
 
 ## Key Conventions
 
 - All configuration properties use prefix `spring.vision.*` (e.g., `spring.vision.djl.enabled`).
 - Integration tests (`*IntegrationTest.java`, `*IT.java`) are handled by Failsafe; unit tests by Surefire.
+- MCP end-to-end tests live in `mcp/src/test/java/.../mcp/e2e/`: Streamable HTTP in-process against a local OIDC issuer (`TestOidcIssuer`, real RS256 tokens) and stdio as a child process (`StdioMcpProcess`), both with a stub backend (`StubBackendConfiguration`) so they load no model. `McpStdioRealBackendIntegrationTest` runs the real models over stdio and is tagged `memory-intensive`.
 - Tests run with real model inference when models are present; no synthetic fallback results in production code paths.
 - The `download-models` Maven profile downloads the bundled models (face feature, emotion, NSFW, …) into the JAR during build; skip it with `-P!download-models` if models are already present.
 - GPU support is opt-in via `-P gpu` profile (requires NVIDIA CUDA).

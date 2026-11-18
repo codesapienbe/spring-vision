@@ -1,0 +1,10 @@
+# Local, single-user mode (`--spring.profiles.active=stdio`): the MCP client, e.g. Claude Code,
+# launches this JAR and talks to it over stdin/stdout. No HTTP port, no token and no issuer; the
+# caller has spring.vision.mcp.security.stdio-roles. See docs/getting-started/mcp-setup.md.
+spring:
+  main:
+    web-application-type: none
+  ai:
+    mcp:
+      server:
+        stdio: true

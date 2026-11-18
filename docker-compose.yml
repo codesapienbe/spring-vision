@@ -1,28 +1,14 @@
-# `make run` only ever starts the `keycloak` service (local dev runs the app itself
-# outside Docker via jbang, for fast iteration). The `mcp` and `caddy` services below
-# exist for a real remote deployment, where `docker compose up -d` brings up all three
-# together — see docs/configuration/deploy-free.md.
+# A remote deployment: `docker compose up -d` brings up the MCP server and Caddy in front of
+# it (see docs/configuration/deploy-free.md). The server validates JWTs from your own OIDC
+# issuer, so OAUTH2_ISSUER_URI must be set; local dev runs the app outside Docker (`make run`,
+# or `make mcp-sync` for a local stdio client).
 services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.0
-    command: start-dev --import-realm
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin # dev only - never use in production
-    ports:
-      - "8180:8080" # offset from the mcp server's own 8080
-    volumes:
-      - ./keycloak/realm-spring-vision.json:/opt/keycloak/data/import/realm-spring-vision.json:ro
-
   mcp:
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on:
-      - keycloak
     environment:
-      # Internal compose network address, not the host-published 8180 used by local dev.
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/spring-vision
+      OAUTH2_ISSUER_URI: ${OAUTH2_ISSUER_URI:?set OAUTH2_ISSUER_URI to your OIDC issuer}
 
   caddy:
     image: caddy:2-alpine

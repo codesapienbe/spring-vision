@@ -26,7 +26,7 @@ WORKDIR /app
 COPY --from=build /app.jar app.jar
 
 # Cap the heap as a fraction of the container's memory limit instead of the JVM's
-# uncapped default, so a constrained host (e.g. a free-tier VM shared with Keycloak)
+# uncapped default, so a constrained host (e.g. a free-tier VM shared with other services)
 # gets a predictable OOM-kill boundary instead of the JVM over-committing.
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
 

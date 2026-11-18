@@ -104,7 +104,7 @@
       <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
     </dependency>
 
-    <!-- OAuth2 Resource Server: validates Keycloak-issued JWTs on /mcp (see keycloak/README.md) -->
+    <!-- OAuth2 Resource Server: validates JWTs from the configured OIDC issuer on /mcp -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
