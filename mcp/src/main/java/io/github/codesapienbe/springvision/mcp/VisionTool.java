@@ -111,6 +111,40 @@ public class VisionTool {
             StructuredArguments.keyValue("request_timeout_seconds", REQUEST_TIMEOUT.getSeconds()));
     }
 
+    /**
+     * The local file {@code location} names, or {@code null} when it is not a local path: a
+     * {@code file:} URI, {@code ~} or {@code ~/…}, an absolute path, a Windows drive path
+     * ({@code C:\…}, {@code C:/…}) or a UNC path ({@code \\server\…}). Recognised before any
+     * URI parsing, so a name with spaces (every macOS screenshot) needs no escaping.
+     */
+    static Path localPath(String location) {
+        if (location.regionMatches(true, 0, "file:", 0, 5)) {
+            try {
+                return Paths.get(URI.create(location));
+            } catch (IllegalArgumentException e) {
+                // raw spaces or other characters a URI must escape: read the rest as the path
+                return Paths.get(location.substring(5).replaceFirst("^//", ""));
+            }
+        }
+        if (location.equals("~") || location.startsWith("~/") || location.startsWith("~\\")) {
+            return Paths.get(System.getProperty("user.home") + location.substring(1));
+        }
+        if (location.startsWith("/") || location.startsWith("\\\\") || location.matches("[A-Za-z]:[\\\\/].*")) {
+            return Paths.get(location);
+        }
+        return null;
+    }
+
+    private static byte[] readLocalImage(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            throw new IOException("File not found: " + path);
+        }
+        if (Files.size(path) > MAX_IMAGE_SIZE_BYTES) {
+            throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
+        }
+        return Files.readAllBytes(path);
+    }
+
     protected byte[] downloadImageFromUrl(String imageUrl) throws IOException {
         log.debug("Attempting to download image",
             StructuredArguments.keyValue("event", "image_download_start"),
@@ -121,6 +155,12 @@ public class VisionTool {
         }
 
         String trimmed = imageUrl.trim();
+
+        // A local path first, before any base64 or URI parsing: spaces and backslashes are legal there
+        Path local = localPath(trimmed);
+        if (local != null) {
+            return readLocalImage(local);
+        }
 
         // Plain base64 string (no URL/path scheme) — decode directly
         if (!trimmed.startsWith("http") && !trimmed.startsWith("file") && !trimmed.startsWith("data:")) {
@@ -165,24 +205,8 @@ public class VisionTool {
             String scheme = uri.getScheme();
 
             // Local file path (no scheme) or file://
-            if (scheme == null || scheme.isEmpty() || "file".equalsIgnoreCase(scheme)) {
-                Path path;
-                if ("file".equalsIgnoreCase(scheme)) {
-                    path = Paths.get(uri);
-                } else {
-                    path = Paths.get(trimmed);
-                }
-
-                if (!Files.exists(path)) {
-                    throw new IOException("File not found: " + path);
-                }
-
-                long size = Files.size(path);
-                if (size > MAX_IMAGE_SIZE_BYTES) {
-                    throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
-                }
-
-                return Files.readAllBytes(path);
+            if (scheme == null || scheme.isEmpty()) {
+                return readLocalImage(Paths.get(trimmed));
             }
 
             // HTTP/HTTPS download
