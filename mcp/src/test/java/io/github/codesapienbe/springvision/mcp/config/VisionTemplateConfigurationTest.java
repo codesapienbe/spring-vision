@@ -278,9 +278,10 @@ class VisionTemplateConfigurationTest {
             assertThat(method.getReturnType()).isEqualTo(VisionTemplate.class);
 
             // Should have correct parameter types
-            assertThat(method.getParameterTypes()).hasSize(2);
+            assertThat(method.getParameterTypes()).hasSize(3);
             assertThat(method.getParameterTypes()[0]).isEqualTo(VectorService.class);
             assertThat(method.getParameterTypes()[1]).isEqualTo(List.class);
+            assertThat(method.getParameterTypes()[2]).isEqualTo(DjlProperties.class);
         }
 
         @Test

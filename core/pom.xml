@@ -107,13 +107,6 @@
       <version>1.12.0</version>
     </dependency>
 
-    <!-- Javax annotation API -->
-    <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
-      <version>1.3.2</version>
-    </dependency>
-
     <!-- Logback JSON encoder for structured logging -->
     <dependency>
       <groupId>net.logstash.logback</groupId>
@@ -121,27 +114,6 @@
       <version>7.4</version>
     </dependency>
 
-    <!-- HNSW library via JNA - correct Maven coordinates -->
-    <dependency>
-      <groupId>com.stepstone.search.hnswlib.jna</groupId>
-      <artifactId>hnswlib-jna</artifactId>
-      <version>1.4.2</version>
-    </dependency>
-
-    <!-- Chronicle Map for high-performance key-value storage -->
-    <dependency>
-      <groupId>net.openhft</groupId>
-      <artifactId>chronicle-map</artifactId>
-      <version>3.24ea4</version>
-    </dependency>
-
-    <!-- LZ4 compression - yawkat fork contains security patches not yet in upstream org.lz4:lz4-java.
-         Document the specific CVE fixed here before upgrading or reverting to upstream. -->
-    <dependency>
-      <groupId>at.yawk.lz4</groupId>
-      <artifactId>lz4-java</artifactId>
-      <version>1.11.1</version>
-    </dependency>
     <!-- ZXing barcode detection -->
     <dependency>
       <groupId>com.google.zxing</groupId>
@@ -220,13 +192,6 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Apache Commons Math3 for mathematical operations -->
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-math3</artifactId>
-      <optional>true</optional>
-    </dependency>
-
     <!-- DJL API (default backend) -->
     <dependency>
       <groupId>ai.djl</groupId>
@@ -286,12 +251,6 @@
       </exclusions>
     </dependency>
 
-    <!-- DJL HuggingFace Tokenizers (for HuggingFace model support) -->
-    <dependency>
-      <groupId>ai.djl.huggingface</groupId>
-      <artifactId>tokenizers</artifactId>
-      <version>${djl.version}</version>
-    </dependency>
 
     <!-- WebP decoding via TwelveMonkeys ImageIO -->
     <dependency>
@@ -340,7 +299,6 @@
                                   <include>**/*.torchscript</include>
                                   <include>**/*.traineddata</include>
                                   <include>**/*.json</include>
-                                  <include>**/*.zip</include>
                               </includes>
                           </resource>
                       </resources>

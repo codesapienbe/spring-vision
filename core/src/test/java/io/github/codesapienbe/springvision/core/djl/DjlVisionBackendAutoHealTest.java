@@ -227,15 +227,14 @@ class DjlVisionBackendAutoHealTest {
         }
 
         @Test
-        @DisplayName("when face feature model available, extraction failure on empty image throws VisionBackendException")
+        @DisplayName("when face feature model available, an image without a face yields no embeddings")
         @DisabledIf("io.github.codesapienbe.springvision.core.djl.DjlVisionBackendAutoHealTest#faceFeatureModelNotAvailable")
-        void throwsExtractionExceptionWhenModelAvailableButImageInvalid() throws Exception {
+        void returnsNoEmbeddingsWhenModelAvailableButNoFace() throws Exception {
             setInitialized(backend, true);
 
             ImageData imageData = TestImageUtils.createEmptyImage(64, 64);
 
-            assertThatThrownBy(() -> backend.extractEmbeddings(imageData, DetectionCategory.FACE))
-                .isInstanceOf(VisionBackendException.class);
+            assertThat(backend.extractEmbeddings(imageData, DetectionCategory.FACE)).isEmpty();
         }
 
         @Test

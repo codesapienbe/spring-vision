@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -98,9 +99,16 @@ class VehicleDetectionGuardsTest {
     class DamageClassesContract {
 
         @Test
-        @DisplayName("contains exactly 14 classes of the original car-damage taxonomy")
-        void has14Classes() {
-            assertThat(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES).hasSize(14);
+        @DisplayName("holds 28 classes: 14 original, 8 extended at 14-21, 6 from the Kaggle dataset")
+        void has28ClassesInThreeGroups() {
+            assertThat(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES).hasSize(28);
+        }
+
+        @Test
+        @DisplayName("keeps the extended taxonomy at indices 14-21, where the online classifier reads it")
+        void extendedClassesSitAtIndices14To21() {
+            assertThat(Arrays.copyOfRange(DjlVisionBackend.VEHICLE_DAMAGE_CLASSES, 14, 22))
+                .containsExactly(DjlVisionBackend.EXTENDED_DAMAGE_CLASSES);
         }
 
         @Test

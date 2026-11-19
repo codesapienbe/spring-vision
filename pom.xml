@@ -52,7 +52,6 @@
     <micrometer.version>1.14.0</micrometer.version>
 
     <!-- Additional shared versions -->
-    <commons-math3.version>3.6.1</commons-math3.version>
     <!-- 1.21.1 is the ONNX Runtime DJL 0.40's onnxruntime-engine is built and tested against -->
     <onnxruntime.version>1.21.1</onnxruntime.version>
     <djl.version>0.40.0</djl.version>
@@ -163,13 +162,6 @@
         <version>${micrometer.version}</version>
       </dependency>
 
-      <!-- Managed versions for legacy modules -->
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-math3</artifactId>
-        <version>${commons-math3.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>com.microsoft.onnxruntime</groupId>
         <artifactId>onnxruntime</artifactId>
@@ -203,16 +195,10 @@
         <version>1.14.12</version>
       </dependency>
 
-      <!-- JNA pinned to a version with Apple Silicon (arm64) native libs.
-           hnswlib-jna pulls 5.5.0 transitively, which only ships i386/x86_64. -->
+      <!-- JNA (pulled in by ai.djl:api) pinned to a version with Apple Silicon (arm64) native libs. -->
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>5.14.0</version>
-      </dependency>
-      <dependency>
-        <groupId>net.java.dev.jna</groupId>
-        <artifactId>jna-platform</artifactId>
         <version>5.14.0</version>
       </dependency>
     </dependencies>
