@@ -45,7 +45,8 @@ On the first run the server downloads its models (about 700 MB in total, smalles
 Until a tool's model is in place the tool says spring-vision is still setting up and does nothing;
 the `setup_status` tool shows the progress. Images never leave the machine.
 
-Build the extensions yourself with `make mcpb` (on an Apple Silicon Mac); they land in `dist/`.
+Build the extensions yourself with `make mcpb` (on an Apple Silicon Mac); they land in `dist/`, and
+`dist/spring-vision-latest-macos.mcpb` / `-windows.mcpb` always hold the last build.
 Intel Macs are not supported: PyTorch, which face recognition uses, is no longer built for them.
 
 ### Quick Install (Recommended for End Users)

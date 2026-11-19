@@ -197,7 +197,7 @@ endif
 	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
 
 # Claude Desktop extensions: dist/spring-vision-<version>-macos.mcpb (Apple Silicon) and
-# -windows.mcpb (x64), installed from the file (double-click, or Settings > Extensions). Each holds
+# -windows.mcpb (x64), each also copied to dist/spring-vision-latest-<os>.mcpb, installed from the file (double-click, or Settings > Extensions). Each holds
 # the model-free MCP jar with that platform's natives and the Temurin JRE pinned in
 # mcp/mcpb/runtimes.json; the server downloads its models on the first run. Build on an Apple
 # Silicon Mac: the macOS bundle is started once as a check.
