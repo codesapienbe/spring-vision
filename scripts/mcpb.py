@@ -4,7 +4,8 @@
 usage: mcpb.py VERSION MACOS_JAR WINDOWS_JAR OUT_DIR
 
 Writes OUT_DIR/spring-vision-VERSION-macos.mcpb (Apple Silicon) and
-OUT_DIR/spring-vision-VERSION-windows.mcpb (x64). Each bundle holds the model-free MCP jar built
+OUT_DIR/spring-vision-VERSION-windows.mcpb (x64), each with a copy named
+spring-vision-latest-macos.mcpb / spring-vision-latest-windows.mcpb that always holds the last build. Each bundle holds the model-free MCP jar built
 with that platform's native libraries and the unmodified Eclipse Temurin JRE pinned in
 mcp/mcpb/runtimes.json, so the machine it is installed on needs nothing else. Models are
 downloaded by the server on its first run.
@@ -147,11 +148,12 @@ def manifest(version, name, tools):
     }
 
 
-def pack(folder, target):
-    """Zips the bundle folder with the zip tool, which keeps the executable bits."""
+def pack(folder, target, latest):
+    """Zips the bundle folder with the zip tool, which keeps the executable bits, and copies it to latest."""
     target.unlink(missing_ok=True)
     subprocess.run(["zip", "-qrX", str(target), "manifest.json", "server"], cwd=folder, check=True)
-    print(f"built {target.relative_to(ROOT)} ({target.stat().st_size // 1_048_576} MB)")
+    shutil.copyfile(target, latest)
+    print(f"built {target.relative_to(ROOT)} ({target.stat().st_size // 1_048_576} MB), copied to {latest.name}")
 
 
 def main():
@@ -168,7 +170,7 @@ def main():
     print(f"macOS bundle answered over stdio with {len(tools)} tools")
     for name, folder in (("macos", macos), ("windows", windows)):
         (folder / "manifest.json").write_text(json.dumps(manifest(version, name, tools), indent=2) + "\n")
-        pack(folder, out / f"spring-vision-{version}-{name}.mcpb")
+        pack(folder, out / f"spring-vision-{version}-{name}.mcpb", out / f"spring-vision-latest-{name}.mcpb")
 
 
 if __name__ == "__main__":
