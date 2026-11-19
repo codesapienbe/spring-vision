@@ -1,7 +1,7 @@
 # ADR-002: Use yawkat fork of lz4-java instead of upstream
 
 ## Status
-Accepted — pending CVE documentation (see Consequences)
+Superseded (2026-11-19) — LZ4 and Chronicle Map were removed from `core`. No code referenced either, so the dependency and this decision no longer apply.
 
 ## Date
 2026-05-16

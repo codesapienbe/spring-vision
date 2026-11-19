@@ -23,7 +23,7 @@ New to Spring Vision? Start here!
 Records of significant design choices and the reasoning behind them
 
 - **[ADR-001: Synthetic fallbacks](./decisions/ADR-001-synthetic-fallbacks.md)** — Why the DJL backend returns fake results in offline/test mode
-- **[ADR-002: LZ4 yawkat fork](./decisions/ADR-002-lz4-yawkat-fork.md)** — Why `at.yawk.lz4` is used instead of upstream `org.lz4`
+- **[ADR-002: LZ4 yawkat fork](./decisions/ADR-002-lz4-yawkat-fork.md)** — Superseded: LZ4 and Chronicle Map were removed from `core`
 - **[ADR-003: Java 25 & Spring Boot 3.5](./decisions/ADR-003-java25-spring-boot-35.md)** — Platform upgrade rationale
 
 ### 🏗️ [Architecture](./architecture/)
