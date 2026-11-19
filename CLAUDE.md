@@ -61,6 +61,10 @@ make run
 # Build a Docker image of the MCP server (spring-vision-mcp:<version>)
 make bundle
 
+# Build the Claude Desktop extensions (dist/*.mcpb: macOS Apple Silicon + Windows x64), each with
+# the model-free jar and a bundled Temurin JRE (mcp/mcpb/runtimes.json); run on an Apple Silicon Mac
+make mcpb
+
 # Skip GPG signing during local builds (already default in Makefile)
 mvn clean install -DskipTests -Dgpg.skip=true -Pdownload-models
 ```

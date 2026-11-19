@@ -57,3 +57,6 @@ runs/
 
 # graphify knowledge graphs
 graphify-out/
+
+# Claude Desktop extensions built by `make mcpb`
+/dist/

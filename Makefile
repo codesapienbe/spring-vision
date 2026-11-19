@@ -1,10 +1,10 @@
-.PHONY: install run stop restart test clean format sync help jdk verify bundle mcp-sync
+.PHONY: install run stop restart test clean format sync help jdk verify bundle mcp-sync mcpb
 .PHONY: unit-tests integration-tests memory-tests
 .PHONY: $(addprefix unit-,$(MODULES)) $(addprefix integration-,$(MODULES))
 
 # Target names follow one common vocabulary (install, run, stop, restart, test, unit-tests,
 # integration-tests, format, clean, sync, jdk, help), so none has to be looked up. Targets
-# specific to this project (bundle, verify, memory-tests, mcp-sync) come last in `make help`.
+# specific to this project (bundle, verify, memory-tests, mcp-sync, mcpb) come last in `make help`.
 
 MODULES  := core starter mcp cli
 
@@ -196,6 +196,27 @@ endif
 	$(call upsert-mcp,$(HOME)/.cursor/mcp.json)
 	$(call upsert-mcp,$(HOME)/.gemini/settings.json)
 
+# Claude Desktop extensions: dist/spring-vision-<version>-macos.mcpb (Apple Silicon) and
+# -windows.mcpb (x64), installed from the file (double-click, or Settings > Extensions). Each holds
+# the model-free MCP jar with that platform's natives and the Temurin JRE pinned in
+# mcp/mcpb/runtimes.json; the server downloads its models on the first run. Build on an Apple
+# Silicon Mac: the macOS bundle is started once as a check.
+MCPB_DIR := dist
+mcpb:
+	@mkdir -p $(MCPB_DIR)/build/no-models
+	@echo "Building the macOS (Apple Silicon) jar..."
+	mvn -q -pl core,mcp -am clean package -DskipTests -Dgpg.skip=$(GPG_SKIP) '-P!download-models' \
+		-Dmodels.directory=$(CURDIR)/$(MCPB_DIR)/build/no-models \
+		-Dopencv.classifier=macosx-arm64 -Dpytorch.classifier=osx-aarch64
+	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCPB_DIR)/build/mcp-macos.jar
+	@echo "Building the Windows (x64) jar..."
+	mvn -q -pl core,mcp -am clean package -DskipTests -Dgpg.skip=$(GPG_SKIP) '-P!download-models' \
+		-Dmodels.directory=$(CURDIR)/$(MCPB_DIR)/build/no-models \
+		-Dopencv.classifier=windows-x86_64 -Dpytorch.classifier=win-x86_64
+	cp mcp/target/mcp-$(SPRING_VISION_VERSION).jar $(MCPB_DIR)/build/mcp-windows.jar
+	python3 scripts/mcpb.py $(SPRING_VISION_VERSION) $(MCPB_DIR)/build/mcp-macos.jar \
+		$(MCPB_DIR)/build/mcp-windows.jar $(MCPB_DIR)
+
 # ─── help ─────────────────────────────────────────────────────────────────────
 
 help:
@@ -219,6 +240,7 @@ help:
 	@echo "  memory-tests      Tests tagged memory-intensive — not part of 'make test'"
 	@echo "  bundle            Docker image $(IMAGE_TAG), jar built inside it (PLATFORM=linux/amd64 to pick one)"
 	@echo "  mcp-sync          Build the MCP jar into ~/.springvision and register it in agent configs"
+	@echo "  mcpb              Build the Claude Desktop extensions (dist/*.mcpb, macOS + Windows)"
 	@echo ""
 	@echo "Build tuning (override on the command line):"
 	@echo "  JAVA_OPTS         Maven JVM opts                           ($(JAVA_OPTS))"

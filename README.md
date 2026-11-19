@@ -33,6 +33,21 @@
 
 ## 🚀 Getting Started
 
+### Claude Desktop: install the extension (nothing else needed)
+
+Download `spring-vision-<version>-macos.mcpb` (Mac with Apple Silicon) or
+`spring-vision-<version>-windows.mcpb` (64-bit Windows) and double-click it, or use Claude Desktop's
+**Settings → Extensions → Install from file**. The extension carries its own Java runtime, so there
+is nothing to install first and nothing to configure.
+
+On the first run the server downloads its models (about 700 MB in total, smallest first) into
+`~/.springvision/models`; OCR is ready within seconds, the large models follow in the background.
+Until a tool's model is in place the tool says spring-vision is still setting up and does nothing;
+the `setup_status` tool shows the progress. Images never leave the machine.
+
+Build the extensions yourself with `make mcpb` (on an Apple Silicon Mac); they land in `dist/`.
+Intel Macs are not supported: PyTorch, which face recognition uses, is no longer built for them.
+
 ### Quick Install (Recommended for End Users)
 
 For the easiest installation experience, run our CLI setup tool directly with JBang:
