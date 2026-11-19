@@ -1,0 +1,13 @@
+{
+  "_comment": "Eclipse Temurin 25 JREs bundled into the Claude Desktop extensions, unmodified (GPLv2 with the Classpath Exception). Release, URL and SHA-256 from api.adoptium.net/v3/assets/latest/25/hotspot?image_type=jre. Update all three fields together.",
+  "macos": {
+    "release": "jdk-25.0.5.1+2",
+    "url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5.1%2B2/OpenJDK25U-jre_aarch64_mac_hotspot_25.0.5.1_2.tar.gz",
+    "sha256": "70adbb3ce5cf924c8b60dd84272fdd5fba6d021014aa0c1f5cf66a198bd270c5"
+  },
+  "windows": {
+    "release": "jdk-25.0.5+8",
+    "url": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jre_x64_windows_hotspot_25.0.5_8.zip",
+    "sha256": "da78d54a2fcdbba1e92d5e3f07dd30236f96297891c4a21a781c3f38f5c0beae"
+  }
+}
