@@ -90,6 +90,11 @@ public class DjlProperties {
      * Online damage classifier training settings
      */
     private OnlineClassifier onlineClassifier = new OnlineClassifier();
+
+    /**
+     * Where model files come from when the build did not bundle them, and when they are loaded
+     */
+    private Models models = new Models();
     // Nested configuration classes
     public static class FaceDetection {
         private float confidenceThreshold = 0.7f;
@@ -233,6 +238,28 @@ public class DjlProperties {
         public void setSimilarityThreshold(float similarityThreshold) {
             this.similarityThreshold = similarityThreshold;
         }
+    }
+
+    /**
+     * {@code spring.vision.djl.models.*}. The defaults keep the library and Docker behaviour: models
+     * come from the classpath and are all loaded at start-up.
+     */
+    public static class Models {
+        /** Download models that are not on the classpath into {@code directory}, in the background. */
+        private boolean download = false;
+        /** Where downloaded models are kept. A leading {@code ~} is the user's home. */
+        private String directory = "~/.springvision/models";
+        /** Load each model on its first use instead of at start-up. */
+        private boolean lazy = false;
+
+        public boolean isDownload() { return download; }
+        public void setDownload(boolean download) { this.download = download; }
+
+        public String getDirectory() { return directory; }
+        public void setDirectory(String directory) { this.directory = directory; }
+
+        public boolean isLazy() { return lazy; }
+        public void setLazy(boolean lazy) { this.lazy = lazy; }
     }
 
     public static class OnlineClassifier {
@@ -432,6 +459,14 @@ public class DjlProperties {
 
     public void setOnlineClassifier(OnlineClassifier onlineClassifier) {
         this.onlineClassifier = onlineClassifier;
+    }
+
+    public Models getModels() {
+        return models;
+    }
+
+    public void setModels(Models models) {
+        this.models = models;
     }
 
 }

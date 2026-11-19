@@ -3,16 +3,19 @@ package io.github.codesapienbe.springvision.mcp.config;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.ObjectProvider;
 
 import io.github.codesapienbe.springvision.core.VectorService;
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.mcp.SetupTool;
 import io.github.codesapienbe.springvision.mcp.VisionTool;
 
 /**
@@ -199,7 +202,8 @@ class ToolCallbackConfigurationTest {
         void shouldHaveToolsMethodWithBeanAnnotation() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
+                "tools", VisionTool.class, SetupTool.class, McpSecurityProperties.class, boolean.class,
+                ObjectProvider.class, Duration.class);
 
             // Then: Method should exist and have Bean annotation
             assertThat(method).isNotNull();
@@ -224,11 +228,14 @@ class ToolCallbackConfigurationTest {
         void shouldHaveNullableAnnotationOnVisionToolParameter() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
+                "tools", VisionTool.class, SetupTool.class, McpSecurityProperties.class, boolean.class,
+                ObjectProvider.class, Duration.class);
             java.lang.reflect.Parameter[] parameters = method.getParameters();
 
-            // Then: First parameter should have Nullable annotation
+            // Then: The VisionTool and SetupTool parameters should have the Nullable annotation
             assertThat(parameters[0].isAnnotationPresent(
+                org.springframework.lang.Nullable.class)).isTrue();
+            assertThat(parameters[1].isAnnotationPresent(
                 org.springframework.lang.Nullable.class)).isTrue();
         }
     }
@@ -279,12 +286,14 @@ class ToolCallbackConfigurationTest {
         void shouldHaveCorrectToolsMethodSignature() throws NoSuchMethodException {
             // When: Getting the tools method
             java.lang.reflect.Method method = ToolCallbackConfiguration.class.getMethod(
-                "tools", VisionTool.class, McpSecurityProperties.class, boolean.class);
+                "tools", VisionTool.class, SetupTool.class, McpSecurityProperties.class, boolean.class,
+                ObjectProvider.class, Duration.class);
 
             // Then: Should have correct return type and parameters
             assertThat(method.getReturnType()).isEqualTo(ToolCallbackProvider.class);
-            assertThat(method.getParameterTypes()).hasSize(3);
+            assertThat(method.getParameterTypes()).hasSize(6);
             assertThat(method.getParameterTypes()[0]).isEqualTo(VisionTool.class);
+            assertThat(method.getParameterTypes()[1]).isEqualTo(SetupTool.class);
         }
 
         @Test

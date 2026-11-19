@@ -122,7 +122,7 @@ class McpHttpEndToEndIntegrationTest {
         @Test
         @DisplayName("Every caller sees the whole tool list; access is checked on call")
         void listsEveryTool() {
-            assertThat(client().open(issuer.realmRolesToken("mcp-user")).toolNames()).hasSize(68).contains(USER_TOOL)
+            assertThat(client().open(issuer.realmRolesToken("mcp-user")).toolNames()).hasSize(69).contains(USER_TOOL, "setup_status")
                     .containsAll(ADMIN_TOOLS);
         }
 

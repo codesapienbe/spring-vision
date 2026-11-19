@@ -8,3 +8,11 @@ spring:
     mcp:
       server:
         stdio: true
+  # Local mode is what a desktop install runs: models that are not bundled are downloaded in the
+  # background into ~/.springvision/models, and each model is loaded on its first use, so the
+  # server answers the client at once.
+  vision:
+    djl:
+      models:
+        download: true
+        lazy: true

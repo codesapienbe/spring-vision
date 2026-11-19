@@ -67,6 +67,8 @@ public final class StdioMcpProcess implements AutoCloseable {
         command.add(System.getProperty("surefire.test.class.path", System.getProperty("java.class.path")));
         command.add(mainClass.getName());
         command.add("--spring.profiles.active=stdio");
+        // The stdio profile downloads missing models; a test must never reach the network.
+        command.add("--spring.vision.djl.models.download=false");
         command.addAll(appArgs);
         Process process = new ProcessBuilder(command)
                 .redirectError(stderrLog.toFile())
