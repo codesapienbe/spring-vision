@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Spring Vision** is a computer vision framework for Spring Boot, built on Deep Java Library (DJL). Core models are bundled in the JAR; face detection uses the Haar cascades shipped with OpenCV. No Ultralytics YOLO weights (AGPL-3.0): a capability without a licence-clean model throws `VisionUnsupportedException`. It also ships as an MCP server so LLM clients can call vision capabilities as tools.
+**Spring Vision** is a computer vision framework for Spring Boot, built on Deep Java Library (DJL). Library and Docker builds bundle the models in the JAR; the local MCP server (`stdio` profile) downloads the missing ones at runtime instead. Face detection uses the Haar cascades shipped with OpenCV. No Ultralytics YOLO weights (AGPL-3.0): a capability without a licence-clean model throws `VisionUnsupportedException`. It also ships as an MCP server so LLM clients can call vision capabilities as tools.
 
 ## Modules
 
@@ -83,7 +83,7 @@ mvn clean install -DskipTests -Dgpg.skip=true -Pdownload-models
 VisionTemplate
     └── delegates via capability instanceof checks to:
             └── DjlVisionBackend (implements VisionBackend + all capabilities)
-                    ├── ClasspathModels — resolves bundled models under /models/ into loadable URLs
+                    ├── ModelStore — model files from the classpath, then ~/.springvision/models, downloading when enabled
                     ├── DJL Predictor<Image, DetectedObjects> — face/object detection
                     ├── Tesseract 5 (bytedeco) — OCR, eID / driving-licence text; tessdata bundled by -Pdownload-models
                     ├── ZXing — barcode scanning
@@ -120,4 +120,5 @@ VisionTemplate
 - MCP end-to-end tests live in `mcp/src/test/java/.../mcp/e2e/`: Streamable HTTP in-process against a local OIDC issuer (`TestOidcIssuer`, real RS256 tokens) and stdio as a child process (`StdioMcpProcess`), both with a stub backend (`StubBackendConfiguration`) so they load no model. `McpStdioRealBackendIntegrationTest` runs the real models over stdio and is tagged `memory-intensive`.
 - Tests run with real model inference when models are present; no synthetic fallback results in production code paths.
 - The `download-models` Maven profile downloads the bundled models (face feature, emotion, NSFW, …) into the JAR during build; skip it with `-P!download-models` if models are already present.
+- `ModelStore` / `ModelCatalog` (core): with `spring.vision.djl.models.download=true` missing models are downloaded at runtime (pinned URL + SHA-256), and an operation needing one throws `ModelNotReadyException` until it is in place. Over MCP, `GuardedToolCallback` waits `spring.vision.mcp.model-wait` for the models in `ToolModelRequirements`, then answers "still setting up"; `setup_status` reports progress. A new tool that needs a downloaded model goes into `ToolModelRequirements`.
 - GPU support is opt-in via `-P gpu` profile (requires NVIDIA CUDA).

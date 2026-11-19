@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,8 @@ import org.springframework.core.io.ClassPathResource;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.djl.ModelStore;
+import io.github.codesapienbe.springvision.mcp.SetupTool;
 import io.github.codesapienbe.springvision.mcp.VisionTool;
 
 /**
@@ -51,7 +54,10 @@ class DefaultToolAccessTest {
                 .get();
         VisionTool visionTool = new VisionTool(new VisionTemplate(mock(VisionBackend.class)));
         // Building the provider validates that every granted name is a real tool.
-        toolNames = Arrays.stream(new ToolCallbackConfiguration().tools(visionTool, security, false).getToolCallbacks())
+        SetupTool setupTool = new SetupTool(ModelStore.classpathOnly());
+        toolNames = Arrays.stream(new ToolCallbackConfiguration()
+                .tools(visionTool, setupTool, security, false, ModelStore.classpathOnly(), Duration.ZERO)
+                .getToolCallbacks())
                 .map(callback -> callback.getToolDefinition().name())
                 .collect(Collectors.toUnmodifiableSet());
     }
@@ -60,7 +66,7 @@ class DefaultToolAccessTest {
     @DisplayName("mcp-admin may call every tool")
     void adminMayCallEveryTool() {
         ToolAccessPolicy policy = new ToolAccessPolicy(security.toolAccess());
-        assertThat(toolNames).hasSize(68).allMatch(tool -> policy.allows(Set.of("mcp-admin"), tool));
+        assertThat(toolNames).hasSize(69).contains("setup_status").allMatch(tool -> policy.allows(Set.of("mcp-admin"), tool));
     }
 
     @Test

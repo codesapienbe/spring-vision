@@ -1,5 +1,7 @@
 package io.github.codesapienbe.springvision.core.config;
 
+import java.nio.file.Path;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,8 @@ import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.djl.DjlOnlineDamageClassifier;
 import io.github.codesapienbe.springvision.core.djl.DjlProperties;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
+import io.github.codesapienbe.springvision.core.djl.ModelCatalog;
+import io.github.codesapienbe.springvision.core.djl.ModelStore;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
@@ -98,7 +102,8 @@ public class VisionAutoConfiguration {
     @Primary
     @ConditionalOnMissingBean(VisionBackend.class)
     @ConditionalOnExpression("(${spring.vision.enabled:true} and ${spring.vision.fail-fast:true}) or (${vision.enabled:true} and ${vision.fail-fast:true})")
-    public VisionBackend visionBackendFailFast(VisionProperties properties, DjlProperties djlProperties) {
+    public VisionBackend visionBackendFailFast(VisionProperties properties, DjlProperties djlProperties,
+                                               ModelStore modelStore) {
         logger.info("=== VisionAutoConfiguration: Creating VisionBackend bean (fail-fast mode) ===");
 
         // Determine effective settings, preferring spring.vision.* if provided
@@ -115,7 +120,7 @@ public class VisionAutoConfiguration {
             ? "opencv"
             : configuredBackend.trim().toLowerCase();
 
-        return createBackendByName(backendName, properties, djlProperties);
+        return createBackendByName(backendName, properties, djlProperties, modelStore);
     }
 
     /**
@@ -142,6 +147,30 @@ public class VisionAutoConfiguration {
     /**
      * Online damage classifier, injected into the DJL backend when enabled.
      */
+    /**
+     * Finds model files on the classpath or in {@code spring.vision.djl.models.directory}, and
+     * downloads the missing ones in the background when {@code spring.vision.djl.models.download}
+     * is on.
+     */
+    @Bean(destroyMethod = "close")
+    @ConditionalOnMissingBean
+    public ModelStore modelStore(DjlProperties djlProperties) {
+        DjlProperties.Models models = djlProperties.getModels();
+        ModelStore store = new ModelStore(expandHome(models.getDirectory()), ModelCatalog.all(), models.isDownload());
+        store.startBackgroundDownloads();
+        return store;
+    }
+
+    private static Path expandHome(String directory) {
+        if (directory == null || directory.isBlank()) {
+            return null;
+        }
+        if (directory.equals("~") || directory.startsWith("~/")) {
+            return Path.of(System.getProperty("user.home"), directory.substring(1));
+        }
+        return Path.of(directory);
+    }
+
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "spring.vision.djl.online-classifier", name = "enabled", havingValue = "true")
@@ -209,28 +238,29 @@ public class VisionAutoConfiguration {
      * Create a vision backend by name, using reflection for optional modules to avoid hard dependencies.
      * Falls back to DJL when the requested backend isn't on classpath.
      */
-    private VisionBackend createBackendByName(String backendName, VisionProperties properties, DjlProperties djlProperties) {
+    private VisionBackend createBackendByName(String backendName, VisionProperties properties, DjlProperties djlProperties,
+                                              ModelStore modelStore) {
         return switch (backendName) {
             case "djl" -> {
                 logger.info("Initializing DJL backend (default)");
-                yield createDjlBackend(djlProperties);
+                yield createDjlBackend(djlProperties, modelStore);
             }
             case "opencv" -> {
                 logger.info("OpenCV backend has been replaced by DJL. Using DJL backend instead.");
-                yield createDjlBackend(djlProperties);
+                yield createDjlBackend(djlProperties, modelStore);
             }
             case "cyber" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", djlProperties);
+                reflectInstantiate("io.github.codesapienbe.springvision.cyber.CyberSecurityBackend", djlProperties, modelStore);
             case "robotics" ->
-                reflectInstantiate("io.github.codesapienbe.springvision.robotics.RoboticsBackend", djlProperties);
+                reflectInstantiate("io.github.codesapienbe.springvision.robotics.RoboticsBackend", djlProperties, modelStore);
             default -> {
                 logger.warn("Backend '{}' not supported or not on classpath. Falling back to DJL.", backendName);
-                yield createDjlBackend(djlProperties);
+                yield createDjlBackend(djlProperties, modelStore);
             }
         };
     }
 
-    private VisionBackend reflectInstantiate(String className, DjlProperties djlProperties) {
+    private VisionBackend reflectInstantiate(String className, DjlProperties djlProperties, ModelStore modelStore) {
         try {
             Class<?> clazz = Class.forName(className);
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -242,7 +272,7 @@ public class VisionAutoConfiguration {
             return (VisionBackend) instance;
         } catch (Throwable t) {
             logger.warn("Could not initialize backend '{}': {}. Falling back to DJL.", className, t.toString());
-            return createDjlBackend(djlProperties);
+            return createDjlBackend(djlProperties, modelStore);
         }
     }
 
@@ -282,7 +312,7 @@ public class VisionAutoConfiguration {
      * @return the configured DJL backend
      * @throws IllegalStateException if DJL backend cannot be initialized
      */
-    private VisionBackend createDjlBackend(DjlProperties djlProps) {
+    private VisionBackend createDjlBackend(DjlProperties djlProps, ModelStore modelStore) {
         logger.info("Creating DJL vision backend (default)");
         try {
             if (djlProps.getCacheDir() != null) {
@@ -291,7 +321,7 @@ public class VisionAutoConfiguration {
             if (djlProps.getModelZooLocation() != null) {
                 System.setProperty("ai.djl.repository.zoo.location", djlProps.getModelZooLocation());
             }
-            DjlVisionBackend backend = new DjlVisionBackend(djlProps);
+            DjlVisionBackend backend = new DjlVisionBackend(djlProps, modelStore);
             backend.initialize();
             logger.info("DJL backend initialized successfully");
             return backend;

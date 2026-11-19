@@ -9,6 +9,8 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RasterFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -22,6 +24,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
+import java.util.function.Supplier;
 
 import javax.imageio.ImageIO;
 
@@ -111,6 +114,7 @@ import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocess
 import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
 import io.github.codesapienbe.springvision.core.document.ParsedDocument;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
+import io.github.codesapienbe.springvision.core.exception.ModelNotReadyException;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
@@ -283,6 +287,10 @@ public class DjlVisionBackend implements VisionBackend,
 
     // OCR engine for identity-document recognition. Initialised lazily from environment.
     private volatile TesseractRunner tesseractRunner;
+
+    // Where model files come from: the classpath, then the store directory, downloading when enabled
+    private final ModelStore modelStore;
+    private final Object lazyLoadLock = new Object();
     private final int maxConcurrentInferences;
 
     // Read once at construction; avoids re-reading the system property on every inference call
@@ -335,6 +343,7 @@ public class DjlVisionBackend implements VisionBackend,
     // Constructors
     public DjlVisionBackend() {
         this.properties = new DjlProperties();
+        this.modelStore = ModelStore.classpathOnly();
         this.device = safeCreateDevice(this.properties.getDevice());
 
         // Align concurrency with available hardware unless the user explicitly set a
@@ -353,7 +362,16 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     public DjlVisionBackend(DjlProperties properties) {
+        this(properties, ModelStore.classpathOnly());
+    }
+
+    /**
+     * @param properties DJL settings, including {@code models.lazy}
+     * @param modelStore where model files are looked up and, when enabled, downloaded
+     */
+    public DjlVisionBackend(DjlProperties properties, ModelStore modelStore) {
         this.properties = properties != null ? properties : new DjlProperties();
+        this.modelStore = modelStore != null ? modelStore : ModelStore.classpathOnly();
         this.device = safeCreateDevice(this.properties.getDevice());
 
         int cores = Math.max(1, Runtime.getRuntime().availableProcessors());
@@ -369,6 +387,12 @@ public class DjlVisionBackend implements VisionBackend,
     }
 
     private Device safeCreateDevice(String deviceName) {
+        if (deviceName == null || deviceName.isBlank() || deviceName.equalsIgnoreCase("cpu")) {
+            // Device.fromName calls Engine.getInstance(), which starts PyTorch and unpacks its
+            // natives (seconds on a first run). The CPU device needs no engine, so the start-up
+            // does not pay for an engine that a lazily loaded model may never use.
+            return Device.cpu();
+        }
         try {
             // Device.fromName may trigger engine/native initialization in some DJL
             // versions.
@@ -495,6 +519,8 @@ public class DjlVisionBackend implements VisionBackend,
             logger.info("Auto-healing: loading face recognition (embedding) model on demand");
             try {
                 loadWithGpuFallback("face recognition model", this::loadFaceRecognitionModel);
+            } catch (ModelNotReadyException e) {
+                throw e;
             } catch (Exception e) {
                 logger.warn("Auto-healing: failed to load face recognition model: {}", e.getMessage());
             }
@@ -572,72 +598,11 @@ public class DjlVisionBackend implements VisionBackend,
         // Register ImageIO plugins (TwelveMonkeys WebP etc.) — needed for Spring Boot nested JARs
         javax.imageio.ImageIO.scanForPlugins();
         try {
-
-            String actionModel = properties.getActionRecognition() != null
-                ? properties.getActionRecognition().getModel()
-                : null;
-            if (actionModel != null && !actionModel.isBlank()) {
-                try {
-                    loadWithGpuFallback("action recognition model", this::loadActionRecognitionModel);
-                } catch (Exception e) {
-                    logger.warn("Failed to load action recognition model: {}", e.getMessage());
-                }
+            if (properties.getModels().isLazy()) {
+                logger.info("Lazy model loading: each model is loaded on its first use");
             } else {
-                logger.info(
-                    "Action recognition model not configured or blank; skipping action recognition model load.");
+                loadAllModels();
             }
-
-            if (properties.getSegmentation() != null) {
-                try {
-                    loadWithGpuFallback("segmentation models", this::loadSegmentationModels);
-                } catch (Exception e) {
-                    logger.warn("Failed to load segmentation models: {}", e.getMessage());
-                }
-            }
-
-            if (properties.getFaceRecognition() != null) {
-                try {
-                    loadWithGpuFallback("face recognition model", this::loadFaceRecognitionModel);
-                } catch (Exception e) {
-                    logger.warn("Failed to load face recognition model: {}", e.getMessage());
-                }
-            }
-
-            try {
-                loadWithGpuFallback("emotion model", this::loadEmotionModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load emotion model: {}. Emotion detection will be unavailable.", e.getMessage());
-            }
-
-            try {
-                loadWithGpuFallback("demographics models", this::loadDemographicsModels);
-            } catch (Exception e) {
-                logger.warn("Failed to load demographics models: {}. Demographics detection will be unavailable.",
-                    e.getMessage());
-            }
-
-            try {
-                loadWithGpuFallback("deepfake detection model", this::loadDeepfakeModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load deepfake detection model: {}. Deepfake detection will be unavailable.",
-                    e.getMessage());
-            }
-
-            try {
-                loadWithGpuFallback("hand detection model", this::loadHandDetectionModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load hand detection model: {}. Hand detection will be unavailable.",
-                    e.getMessage(), e);
-            }
-
-            try {
-                loadWithGpuFallback("NSFW detection model", this::loadNsfwModel);
-            } catch (Exception e) {
-                logger.warn("Failed to load NSFW detection model: {}. NSFW detection will be unavailable.",
-                    e.getMessage(), e);
-            }
-
-
 
             initialized = true;
             healthStatus = BackendHealthInfo.HealthStatus.HEALTHY;
@@ -656,6 +621,95 @@ public class DjlVisionBackend implements VisionBackend,
                 "initialization_failed",
                 null,
                 e);
+        }
+    }
+
+    private void loadAllModels() {
+        String actionModel = properties.getActionRecognition() != null
+            ? properties.getActionRecognition().getModel()
+            : null;
+        if (actionModel != null && !actionModel.isBlank()) {
+            try {
+                loadWithGpuFallback("action recognition model", this::loadActionRecognitionModel);
+            } catch (Exception e) {
+                logger.warn("Failed to load action recognition model: {}", e.getMessage());
+            }
+        } else {
+            logger.info(
+                "Action recognition model not configured or blank; skipping action recognition model load.");
+        }
+
+        if (properties.getSegmentation() != null) {
+            try {
+                loadWithGpuFallback("segmentation models", this::loadSegmentationModels);
+            } catch (Exception e) {
+                logger.warn("Failed to load segmentation models: {}", e.getMessage());
+            }
+        }
+
+        if (properties.getFaceRecognition() != null) {
+            try {
+                loadWithGpuFallback("face recognition model", this::loadFaceRecognitionModel);
+            } catch (Exception e) {
+                logger.warn("Failed to load face recognition model: {}", e.getMessage());
+            }
+        }
+
+        try {
+            loadWithGpuFallback("emotion model", this::loadEmotionModel);
+        } catch (Exception e) {
+            logger.warn("Failed to load emotion model: {}. Emotion detection will be unavailable.", e.getMessage());
+        }
+
+        try {
+            loadWithGpuFallback("demographics models", this::loadDemographicsModels);
+        } catch (Exception e) {
+            logger.warn("Failed to load demographics models: {}. Demographics detection will be unavailable.",
+                e.getMessage());
+        }
+
+        try {
+            loadWithGpuFallback("deepfake detection model", this::loadDeepfakeModel);
+        } catch (Exception e) {
+            logger.warn("Failed to load deepfake detection model: {}. Deepfake detection will be unavailable.",
+                e.getMessage());
+        }
+
+        try {
+            loadWithGpuFallback("hand detection model", this::loadHandDetectionModel);
+        } catch (Exception e) {
+            logger.warn("Failed to load hand detection model: {}. Hand detection will be unavailable.",
+                e.getMessage(), e);
+        }
+
+        try {
+            loadWithGpuFallback("NSFW detection model", this::loadNsfwModel);
+        } catch (Exception e) {
+            logger.warn("Failed to load NSFW detection model: {}. NSFW detection will be unavailable.",
+                e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Loads a model the first time a capability needs it, when models load lazily or are
+     * downloaded at runtime. A model still downloading surfaces as {@link ModelNotReadyException};
+     * any other load failure leaves the model unset, and the caller's own check reports it.
+     */
+    private void ensureLoaded(String label, Supplier<Object> current, ModelLoaderFn loader) {
+        if (current.get() != null || !(properties.getModels().isLazy() || modelStore.downloadEnabled())) {
+            return;
+        }
+        synchronized (lazyLoadLock) {
+            if (current.get() != null) {
+                return;
+            }
+            try {
+                loadWithGpuFallback(label, loader);
+            } catch (ModelNotReadyException e) {
+                throw e;
+            } catch (Exception e) {
+                logger.warn("Failed to load {}: {}", label, e.getMessage());
+            }
         }
     }
 
@@ -708,7 +762,7 @@ public class DjlVisionBackend implements VisionBackend,
         // copy when available so production deployments do not depend on outbound
         // network access; fall back to the public DJL test-models URL otherwise.
         String faceFeatureUrl = "https://resources.djl.ai/test-models/pytorch/face_feature.zip";
-        String localFaceFeatureUrl = ClasspathModels.getModelUrl("face_feature/face_feature.pt");
+        String localFaceFeatureUrl = modelStore.resolveUrl("face_feature/face_feature.pt");
         if (localFaceFeatureUrl != null) {
             faceFeatureUrl = localFaceFeatureUrl;
             logger.info("Using locally bundled FaceFeatureNet model");
@@ -740,7 +794,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadEmotionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading FER+ emotion detection model (OnnxRuntime, 8-class)");
-        String localUrl = ClasspathModels.getModelUrl("emotion-ferplus/emotion-ferplus-8.onnx");
+        String localUrl = modelStore.resolveUrl("emotion-ferplus/emotion-ferplus-8.onnx");
         String modelUrl = (localUrl != null) ? localUrl
             : "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/emotion_ferplus/model/emotion-ferplus-8.onnx";
 
@@ -762,7 +816,7 @@ public class DjlVisionBackend implements VisionBackend,
     private void loadDemographicsModels(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading age/gender demographics models (OnnxRuntime, GoogLeNet-based)");
 
-        String ageUrl = ClasspathModels.getModelUrl("age-gender/age_googlenet.onnx");
+        String ageUrl = modelStore.resolveUrl("age-gender/age_googlenet.onnx");
         if (ageUrl == null) {
             ageUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/age_googlenet.onnx";
         }
@@ -778,7 +832,7 @@ public class DjlVisionBackend implements VisionBackend,
         modelCache.put("age", ageModel);
         logger.info("Age model loaded: {}", ageModel.getName());
 
-        String genderUrl = ClasspathModels.getModelUrl("age-gender/gender_googlenet.onnx");
+        String genderUrl = modelStore.resolveUrl("age-gender/gender_googlenet.onnx");
         if (genderUrl == null) {
             genderUrl = "https://media.githubusercontent.com/media/onnx/models/main/validated/vision/body_analysis/age_gender/models/gender_googlenet.onnx";
         }
@@ -797,7 +851,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadNsfwModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading NSFW detection model (Falconsai ViT fp16 ONNX)");
-        String url = ClasspathModels.getModelUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
+        String url = modelStore.resolveUrl("nsfw-detection/nsfw-detection-vit-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/nsfw_image_detection-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -817,7 +871,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadHandDetectionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading hand detection model (MediaPipe palm detector ONNX)");
-        String url = ClasspathModels.getModelUrl("palm-detection/palm_detection_mediapipe.onnx");
+        String url = modelStore.resolveUrl("palm-detection/palm_detection_mediapipe.onnx");
         if (url == null) {
             url = "https://huggingface.co/opencv/palm_detection_mediapipe/resolve/main/palm_detection_mediapipe_2023feb.onnx";
         }
@@ -836,7 +890,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadDeepfakeModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading deepfake detection model (ViT fp16 ONNX)");
-        String url = ClasspathModels.getModelUrl("deepfake-detector/deepfake-detector-fp16.onnx");
+        String url = modelStore.resolveUrl("deepfake-detector/deepfake-detector-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/Deep-Fake-Detector-v2-Model-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -855,7 +909,7 @@ public class DjlVisionBackend implements VisionBackend,
 
     private void loadActionRecognitionModel(Device device) throws ModelNotFoundException, MalformedModelException, IOException {
         logger.info("Loading action recognition model (ViT fp16 ONNX, 15-class human actions)");
-        String url = ClasspathModels.getModelUrl("action-recognition/action-recognition-vit-fp16.onnx");
+        String url = modelStore.resolveUrl("action-recognition/action-recognition-vit-fp16.onnx");
         if (url == null) {
             url = "https://huggingface.co/onnx-community/Human-Action-Recognition-VIT-Base-patch16-224-ONNX/resolve/main/onnx/model_fp16.onnx";
         }
@@ -1260,6 +1314,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
+        ensureLoaded("action recognition model", () -> actionRecognitionModel, this::loadActionRecognitionModel);
         if (actionRecognitionModel == null) {
             throw new VisionBackendException(
                 "Action recognition model not initialized",
@@ -1536,6 +1591,7 @@ public class DjlVisionBackend implements VisionBackend,
                 null);
         }
 
+        ensureLoaded("face recognition model", () -> faceRecognitionModel, this::loadFaceRecognitionModel);
         if (faceRecognitionModel == null) {
             logger.warn("Face recognition model missing — attempting auto-heal before failing");
             if (!ensureEmbeddingModelLoaded() || faceRecognitionModel == null) {
@@ -2733,6 +2789,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         if (!initialized) {
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
+        ensureLoaded("hand detection model", () -> handDetectionModel, this::loadHandDetectionModel);
         if (handDetectionModel == null) {
             throw new VisionBackendException(
                 "Hand detection model not initialized. Run 'mvn clean install -Pdownload-models' to download palm_detection_mediapipe.onnx.",
@@ -2876,6 +2933,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         if (!initialized) {
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
+        ensureLoaded("demographics models", () -> genderModel, this::loadDemographicsModels);
         if (ageModel == null || genderModel == null) {
             throw new VisionBackendException(
                 "Demographics models not available. Run 'mvn clean install -Pdownload-models' to download age_googlenet.onnx and gender_googlenet.onnx.",
@@ -2975,6 +3033,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         if (!initialized) {
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
+        ensureLoaded("NSFW detection model", () -> nsfwModel, this::loadNsfwModel);
         if (nsfwModel == null) {
             throw new VisionBackendException(
                 "NSFW detection model not initialized. Run 'mvn clean install -Pdownload-models' to download nsfw-detection-vit-fp16.onnx.",
@@ -3045,6 +3104,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
                 null);
         }
 
+        ensureLoaded("emotion model", () -> emotionModel, this::loadEmotionModel);
         if (emotionModel == null) {
             throw new VisionBackendException(
                 "Emotion model not available. Run 'mvn clean install -Pdownload-models' to download emotion-ferplus-8.onnx.",
@@ -3071,6 +3131,12 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
 
             // Detect faces to get bounding boxes
             List<Detection> faceDetections = detectFaces(imageData);
+            if (faceDetections.isEmpty()) {
+                // No face, no emotion: FER+ reads facial expressions, and a whole-frame result
+                // would report a face that is not there.
+                logger.info("No face found - returning no emotions, correlationId={}", correlationId);
+                return List.of();
+            }
 
             // Decode full image for cropping
             java.awt.image.BufferedImage fullImage = ImageIO.read(new ByteArrayInputStream(imageData.data()));
@@ -3083,30 +3149,24 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
             List<java.awt.image.BufferedImage> crops = new ArrayList<>();
             List<io.github.codesapienbe.springvision.core.BoundingBox> boxes = new ArrayList<>();
 
-            if (faceDetections.isEmpty()) {
-                // No faces detected — run on full image
-                crops.add(fullImage);
-                boxes.add(new io.github.codesapienbe.springvision.core.BoundingBox(0, 0, 1, 1));
-            } else {
-                for (Detection det : faceDetections) {
-                    io.github.codesapienbe.springvision.core.BoundingBox bbox = det.boundingBox();
-                    if (bbox == null) continue;
-                    int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
-                    int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
-                    int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
-                    int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
-                    int padX = (int) (w * 0.1);
-                    int padY = (int) (h * 0.1);
-                    int sx = Math.max(0, x - padX);
-                    int sy = Math.max(0, y - padY);
-                    int sw = Math.min(imgW - sx, w + padX * 2);
-                    int sh = Math.min(imgH - sy, h + padY * 2);
-                    try {
-                        crops.add(fullImage.getSubimage(sx, sy, sw, sh));
-                        boxes.add(bbox);
-                    } catch (java.awt.image.RasterFormatException rfe) {
-                        logger.warn("Invalid crop for face in emotion detection - skipping: {}", rfe.getMessage());
-                    }
+            for (Detection det : faceDetections) {
+                io.github.codesapienbe.springvision.core.BoundingBox bbox = det.boundingBox();
+                if (bbox == null) continue;
+                int x = Math.max(0, (int) Math.floor(bbox.x() * imgW));
+                int y = Math.max(0, (int) Math.floor(bbox.y() * imgH));
+                int w = Math.max(1, (int) Math.ceil(bbox.width() * imgW));
+                int h = Math.max(1, (int) Math.ceil(bbox.height() * imgH));
+                int padX = (int) (w * 0.1);
+                int padY = (int) (h * 0.1);
+                int sx = Math.max(0, x - padX);
+                int sy = Math.max(0, y - padY);
+                int sw = Math.min(imgW - sx, w + padX * 2);
+                int sh = Math.min(imgH - sy, h + padY * 2);
+                try {
+                    crops.add(fullImage.getSubimage(sx, sy, sw, sh));
+                    boxes.add(bbox);
+                } catch (java.awt.image.RasterFormatException rfe) {
+                    logger.warn("Invalid crop for face in emotion detection - skipping: {}", rfe.getMessage());
                 }
             }
 
@@ -3152,7 +3212,6 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
 
             logger.info("DJL emotion detection completed: faces={}, correlationId={}", results.size(), correlationId);
             return results;
-
         } catch (IOException e) {
             throw new VisionProcessingException(
                 "Image decoding failed during emotion detection: " + e.getMessage(),
@@ -3169,6 +3228,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         if (!initialized) {
             throw new VisionBackendException("Backend not initialized", "not_initialized", null);
         }
+        ensureLoaded("deepfake detection model", () -> deepfakeModel, this::loadDeepfakeModel);
         if (deepfakeModel == null) {
             throw new VisionBackendException(
                 "Deepfake model not available. Run 'mvn clean install -Pdownload-models' to download deepfake-detector-fp16.onnx.",
@@ -3956,6 +4016,7 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
                 }
 
                 // Check for violence/aggression using action recognition if available
+                ensureLoaded("action recognition model", () -> actionRecognitionModel, this::loadActionRecognitionModel);
                 if (actionRecognitionModel != null) {
                     List<Detection> actions = recognizeActions(imageData);
                     for (Detection action : actions) {
@@ -4490,10 +4551,23 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         }
         synchronized (this) {
             if (this.tesseractRunner == null) {
-                this.tesseractRunner = TesseractRunner.fromEnvironment();
+                TesseractRunner fromEnvironment = TesseractRunner.fromEnvironment();
+                this.tesseractRunner = fromEnvironment.isAvailable() || !modelStore.downloadEnabled()
+                    ? fromEnvironment
+                    : new TesseractRunner(System.getenv("SPRING_VISION_OCR_TESSERACT_LANGUAGES"), storedTessdata());
             }
             return this.tesseractRunner;
         }
+    }
+
+    /**
+     * The directory holding every Tesseract language from the model store.
+     *
+     * @throws ModelNotReadyException while a language file is still downloading
+     */
+    private String storedTessdata() {
+        List<String> urls = ModelCatalog.TESSDATA.stream().map(modelStore::resolveUrl).toList();
+        return Paths.get(URI.create(urls.getFirst())).getParent().toString();
     }
 
     /** Allows starter / tests to inject a pre-configured runner with property-driven language packs. */

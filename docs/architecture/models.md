@@ -6,18 +6,25 @@ This guide describes how Spring Vision handles model files today: where they liv
 
 ## Model Locations
 
-- **Primary**: `classpath:/models` (bundled in JAR for portability)
-- **Fallback**: DJL Model Zoo (runtime download for advanced models)
-- **Override**: External paths via configuration (for custom models)
+`ModelStore` resolves each model file in this order:
 
-## Model Loading Strategy
+1) **Classpath** (`classpath:/models`): the library and Docker builds bundle the models with the
+   `download-models` profile, and then nothing is ever downloaded at runtime.
+2) **Model directory** (`spring.vision.djl.models.directory`, default `~/.springvision/models`):
+   models downloaded earlier.
+3) **Runtime download**, only when `spring.vision.djl.models.download=true` (the MCP server's
+   `stdio` profile turns it on). Missing models are fetched in the background, smallest first,
+   from the same pinned URLs as the Maven profile (`ModelCatalog`), checked against their SHA-256,
+   and moved into place only once complete. An interrupted download resumes; a failed one is
+   retried after 30 s, 2 min, then every 10 min.
 
-Models are loaded with this priority:
+While a model is still downloading, an operation that needs it fails with
+`ModelNotReadyException` ("still setting up …"); it never runs on a missing model. Over MCP the
+tool answers with an error naming the model and its progress, and `setup_status` lists every
+model's state.
 
-1) **Classpath resources** (bundled models)
-2) **DJL Model Zoo** (runtime download for advanced AI models)
-3) **External paths** (configured via properties)
-4) **User cache** (`~/.spring-vision/models/`)
+With `spring.vision.djl.models.lazy=true` (also on in the `stdio` profile) each model is loaded on
+its first use instead of at start-up, so the server answers its client within a few seconds.
 
 ## Bundled Models (Included in JAR)
 
