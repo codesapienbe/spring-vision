@@ -8,8 +8,9 @@ Short scenarios to confirm that the spring-vision extension works after installi
 
 - **Give Claude the file's path; don't attach the image.** The tools read the image from disk, and an
   image pasted into the chat does not reach them.
-- **Use a full path without spaces**, for example `/Users/<you>/Downloads/people.jpg`. A path with a
-  space is currently rejected as an invalid URL, and `~` is not expanded.
+- **A full path or one starting with `~` both work**, spaces included: `~/Downloads/people.jpg`,
+  `/Users/<you>/Desktop/Screenshot 2026-11-20 at 00.25.11.png`, or `C:\Users\<you>\Pictures\people.jpg`
+  on Windows.
 - **Keep the image under 10 MB.**
 - **If macOS asks** whether Claude may access the folder (Downloads, Desktop, …), allow it: the server
   runs under Claude Desktop.
@@ -18,7 +19,7 @@ Short scenarios to confirm that the spring-vision extension works after installi
 
 Face detection uses OpenCV's built-in Haar cascades, so it needs no download.
 
-> Use spring-vision to count the faces in /Users/&lt;you&gt;/Downloads/people.jpg, and tell me where each face is.
+> Use spring-vision to count the faces in ~/Downloads/people.jpg, and tell me where each face is.
 
 **Expect** a count and a box per face. The detector finds clear, front-facing faces best; in a large
 group photo it can miss small, turned or partly hidden faces, so the count is close to the real
@@ -34,10 +35,10 @@ recognition) are still downloading. All of them, about 700 MB, go to `~/.springv
 
 ## 3. Read text (a downloaded model)
 
-Take a screenshot of some text and save it as `/Users/<you>/Downloads/text.png` (screenshot names
-contain spaces, so rename it).
+Take a screenshot of some text. On a Mac it lands on the Desktop as `Screenshot <date> at <time>.png`;
+put its exact name in the prompt (Claude cannot list your folders).
 
-> Use spring-vision to read the text in /Users/&lt;you&gt;/Downloads/text.png.
+> Use spring-vision to read the text in ~/Desktop/Screenshot 2026-11-20 at 00.25.11.png
 
 **Expect** the text and a confidence. The OCR language files are the smallest downloads, so this
 works within seconds of the first start.
