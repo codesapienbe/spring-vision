@@ -21,7 +21,9 @@ Until a tool's model is in place the tool says spring-vision is still setting up
 the `setup_status` tool shows the progress. Images never leave the machine.
 
 Build the extensions yourself with `make mcpb` (on an Apple Silicon Mac); they land in `dist/`, and
-`dist/spring-vision-latest-macos.mcpb` / `-windows.mcpb` always hold the last build.
+`dist/spring-vision-latest-macos.mcpb` / `-windows.mcpb` always hold the last build. Claude Desktop only
+replaces an installed extension with a higher version, so bump `VERSION` (`scripts/set-version.sh`) before
+handing out a new build; `make mcpb` refuses a version it already bundled from another commit.
 Intel Macs are not supported: PyTorch, which face recognition uses, is no longer built for them.
 
 ## 🚀 Quick Setup (Recommended)

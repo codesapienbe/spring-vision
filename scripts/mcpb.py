@@ -12,6 +12,10 @@ downloaded by the server on its first run.
 
 On an Apple Silicon Mac the macOS bundle is started once over stdio before it is packed: the
 build fails if it does not answer, and the tool list in both manifests comes from that run.
+
+Claude Desktop only replaces an installed extension with a higher version. So the build refuses to
+bundle a VERSION that OUT_DIR/build-info.json says was already bundled from another commit: bump
+VERSION first (scripts/set-version.sh). MCPB_SAME_VERSION=1 allows it for a local test build.
 Format: https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md
 """
 import hashlib
@@ -167,9 +171,27 @@ def pack(folder, target, latest):
     print(f"built {target.relative_to(ROOT)} ({target.stat().st_size // 1_048_576} MB), copied to {latest.name}")
 
 
+def current_commit():
+    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
+def check_version_is_new(version, out):
+    """Refuses a version already bundled from another commit: Desktop would keep the installed one."""
+    record = out / "build-info.json"
+    if not record.exists() or os.environ.get("MCPB_SAME_VERSION") == "1":
+        return
+    built = json.loads(record.read_text())
+    if built.get("version") == version and built.get("commit") != current_commit():
+        sys.exit(f"VERSION {version} was already bundled from commit {built.get('commit', '?')[:7]}. "
+                 "Claude Desktop keeps an installed extension with the same version, so bump VERSION first "
+                 "(scripts/set-version.sh <new version>), or set MCPB_SAME_VERSION=1 for a local test build.")
+
+
 def main():
     version, macos_jar, windows_jar, out = sys.argv[1], pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3]), \
         pathlib.Path(sys.argv[4]).resolve()
+    check_version_is_new(version, out)
     runtimes = json.loads((MCPB / "runtimes.json").read_text())
     cache = out / "cache"
     cache.mkdir(parents=True, exist_ok=True)
@@ -185,6 +207,7 @@ def main():
     for name, folder in (("macos", macos), ("windows", windows)):
         (folder / "manifest.json").write_text(json.dumps(manifest(version, name, tools), indent=2) + "\n")
         pack(folder, out / f"spring-vision-{version}-{name}.mcpb", out / f"spring-vision-latest-{name}.mcpb")
+    (out / "build-info.json").write_text(json.dumps({"version": version, "commit": current_commit()}) + "\n")
 
 
 if __name__ == "__main__":
