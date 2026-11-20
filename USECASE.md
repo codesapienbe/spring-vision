@@ -47,7 +47,9 @@ works within seconds of the first start.
 
 ## 4. Read a PDF or an Office document
 
-> Use spring-vision to read the text in ~/Downloads/certificate.pdf, page by page.
+> Lees met spring-vision ~/Downloads/certificate.pdf, per pagina.
+
+Claude calls `read_document` with that path (the file name may contain spaces).
 
 **Expect** the text per page, each page marked `pdf-text` (the PDF's own text, exact and instant) or
 `ocr` (a scanned page, read with OCR in well under a second per page). Word, Excel and PowerPoint

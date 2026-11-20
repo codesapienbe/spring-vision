@@ -145,6 +145,7 @@ spring:
               - normalize_image_u
               - delete_temp_image
               - setup_status
+              - read_document
         stdio-roles: [mcp-admin]
       # A tool whose model is still downloading waits this long, then answers "still setting up".
       model-wait: 5s
@@ -159,6 +160,12 @@ spring:
         version: "1.0.5"
         description: "Spring Vision MCP Server - Computer Vision Operations via Model Context Protocol"
         instructions: >-
+          spring-vision reads files on this computer, locally and privately, without sending them
+          anywhere. When the user asks to read, extract or summarise a document or image that is on their
+          computer (PDF, Word, Excel, PowerPoint, PNG, JPEG, WebP), call read_document with its path, for
+          example ~/Downloads/certificate.pdf; it returns the text per page, reading Dutch, English, French
+          and German. A file attached to this chat is not on the computer and spring-vision cannot see it:
+          ask the user for the file's path on their computer instead.
           Some tools need a model that spring-vision downloads on its first run. If a tool answers that
           spring-vision is still setting up, nothing was run: call setup_status, wait until the tool's
           models are ready, then retry the same call. Never present that setup message as the tool's result.

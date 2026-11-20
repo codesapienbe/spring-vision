@@ -39,7 +39,7 @@ class McpStdioEndToEndIntegrationTest {
     @Test
     @DisplayName("Lists every tool, without a token")
     void listsTools() {
-        assertThat(server.toolNames()).hasSize(69).contains("scan_barcode_b", "list_identities", "setup_status");
+        assertThat(server.toolNames()).hasSize(70).contains("scan_barcode_b", "list_identities", "setup_status", "read_document");
     }
 
     @Test
