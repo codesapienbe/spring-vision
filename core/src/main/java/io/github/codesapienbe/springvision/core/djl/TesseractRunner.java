@@ -35,8 +35,13 @@ import io.github.codesapienbe.springvision.core.exception.VisionProcessingExcept
  * install is needed.
  *
  * <p>For identity documents the language combo must include the document's printed languages.
- * For Belgium that is {@code fra+nld+deu+eng}; for the Netherlands {@code nld+eng}. The default
- * language ({@code eng}) is used when callers don't override it.</p>
+ * For Belgium that is {@code fra+nld+deu+eng}; for the Netherlands {@code nld+eng}.</p>
+ *
+ * <p>The default ({@code nld+eng+fra+deu}, Dutch first) is used when callers don't override it, for
+ * example for {@code extract_text} on images and scanned PDF pages. Measured on a scanned Dutch
+ * Certificate of Conformity (4 pages, 300 DPI): English alone misread Dutch words ("opperviak",
+ * "verieend") and left 10 of 191 lines below 0.60 confidence; Dutch first read them correctly with 4
+ * low lines, at 0.5-0.7 s per page. {@code SPRING_VISION_OCR_TESSERACT_LANGUAGES} overrides it.</p>
  *
  * <p>The tessdata directory is resolved in this order: explicit constructor argument (for
  * example {@code TESSDATA_PREFIX} via {@link #fromEnvironment()}), then the bundled data.</p>
@@ -45,7 +50,7 @@ public final class TesseractRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(TesseractRunner.class);
 
-    private static final String DEFAULT_LANGUAGES = "eng";
+    private static final String DEFAULT_LANGUAGES = "nld+eng+fra+deu";
     private static final List<String> BUNDLED_LANGUAGES = List.of("eng", "nld", "fra", "deu");
 
     /**

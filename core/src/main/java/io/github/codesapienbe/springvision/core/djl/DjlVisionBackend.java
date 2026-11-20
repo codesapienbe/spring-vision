@@ -2158,6 +2158,12 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
         String correlationId = generateCorrelationId();
         logger.debug("Tesseract OCR requested: correlationId={}", correlationId);
 
+        if (DocumentReader.isDocument(imageData.data())) {
+            List<OcrCapability.TextDetection> lines = new DocumentReader(getOrInitTesseractRunner()).read(imageData.data());
+            logger.info("Document text read: {} lines, correlationId={}", lines.size(), correlationId);
+            return lines;
+        }
+
         TesseractRunner.PageText page = getOrInitTesseractRunner().recognizeLines(imageData.data(), null);
         List<OcrCapability.TextDetection> detections = new ArrayList<>(page.lines().size());
         for (TesseractRunner.TextLine line : page.lines()) {

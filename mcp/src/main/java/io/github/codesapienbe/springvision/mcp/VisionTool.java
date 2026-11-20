@@ -137,6 +137,14 @@ public class VisionTool {
 
     private static byte[] readLocalImage(Path path) throws IOException {
         if (!Files.exists(path)) {
+            String name = path.toString().replace('\\', '/');
+            if (name.startsWith("/mnt/user-data/") || name.startsWith("/home/claude/")) {
+                // Claude's own sandbox: where a file attached to the chat lands, and where Claude's
+                // skills write. This server runs on the user's computer and cannot see it.
+                throw new IOException("File not found: " + path + " is in Claude's sandbox (a file attached to "
+                    + "the chat), not on this computer. Save the file on this computer, for example in Downloads, "
+                    + "and pass that path, e.g. ~/Downloads/" + path.getFileName());
+            }
             throw new IOException("File not found: " + path);
         }
         if (Files.size(path) > MAX_IMAGE_SIZE_BYTES) {
@@ -369,37 +377,18 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_text_b", description = "Extract text from uploaded image bytes using OCR. Returns detected text with confidence scores.")
+    @Tool(name = "extract_text_b", description = "Extract text from uploaded bytes of an image or a document "
+        + "(PDF, Word, Excel, PowerPoint). A PDF page's own text is used when it has one; scanned pages and images "
+        + "are read with OCR. Returns the text, per-line detections with confidence and, for documents, the text "
+        + "per page.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractTextB(String imageBase64) {
         try {
             ImageData img = resolveImage(imageBase64);
             VisionResult result = visionTemplate.extractText(img);
 
-            List<Map<String, Object>> detections = new ArrayList<>();
-            StringBuilder fullText = new StringBuilder();
-            for (var detection : result.detections()) {
-                Map<String, Object> item = new HashMap<>();
-                String text = (String) detection.attributes().get("text");
-                item.put("text", text);
-                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                item.put("boundingBox", Map.of(
-                    "x", detection.boundingBox().x(),
-                    "y", detection.boundingBox().y(),
-                    "width", detection.boundingBox().width(),
-                    "height", detection.boundingBox().height()
-                ));
-                detections.add(item);
-                if (text != null) fullText.append(text).append(" ");
-            }
-
-            Map<String, Object> response = new HashMap<>();
-            long duration = 0;
-            response.put("status", "success");
-            response.put("text", fullText.toString().trim());
-            response.put("detections", detections);
-            response.put("count", result.detectionCount());
-            response.put("processingTimeMs", duration);
+            Map<String, Object> response = textResponse(result);
+            response.put("processingTimeMs", 0L);
             return response;
         } catch (RuntimeException e) {
             throw e;
@@ -1207,7 +1196,11 @@ public class VisionTool {
         }
     }
 
-    @Tool(name = "extract_text_u", description = "Extract text from an image using OCR. Returns detected text with confidence scores.")
+    @Tool(name = "extract_text_u", description = "Extract text from an image or a document (PDF, Word, Excel, "
+        + "PowerPoint) given by a path on this computer, a file: or http(s) URL. A PDF page's own text is used when it "
+        + "has one; scanned pages and images are read with OCR. Returns the text, per-line detections with confidence "
+        + "and, for documents, the text per page. Files attached to the chat are not on this computer: save them "
+        + "locally first and pass that path.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractText(String imageUrl) {
         log.info("extractText called",
@@ -1230,33 +1223,9 @@ public class VisionTool {
             // Use VisionTemplate high-level API
             VisionResult result = visionTemplate.extractText(imgData);
 
-            List<Map<String, Object>> detections = new ArrayList<>();
-            StringBuilder fullText = new StringBuilder();
-
-            for (var detection : result.detections()) {
-                Map<String, Object> item = new HashMap<>();
-                String text = (String) detection.attributes().get("text");
-                item.put("text", text);
-                item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
-                item.put("boundingBox", Map.of(
-                    "x", detection.boundingBox().x(),
-                    "y", detection.boundingBox().y(),
-                    "width", detection.boundingBox().width(),
-                    "height", detection.boundingBox().height()
-                ));
-                detections.add(item);
-                if (text != null) {
-                    fullText.append(text).append(" ");
-                }
-            }
-
-            long duration = System.currentTimeMillis() - startTime;
-            response.put("status", "success");
-            response.put("text", fullText.toString().trim());
-            response.put("detections", detections);
-            response.put("count", result.detectionCount());
-            response.put("processingTimeMs", duration);
-            return response;
+            Map<String, Object> textResponse = textResponse(result);
+            textResponse.put("processingTimeMs", System.currentTimeMillis() - startTime);
+            return textResponse;
 
         } catch (RuntimeException e) {
             log.error("Failed to extract text from URL: {}", sanitizeUrlForLogging(imageUrl), e);
@@ -2022,6 +1991,69 @@ public class VisionTool {
         if (imageBytes.length > MAX_IMAGE_SIZE_BYTES)
             throw new IOException("Image size exceeds maximum allowed size of " + MAX_IMAGE_SIZE_BYTES + " bytes");
         return ImageData.fromBytes(normalizeToJpeg(imageBytes));
+    }
+
+    /**
+     * The answer of the extract_text tools: the whole text (lines separated by line breaks, pages by a
+     * blank line), the lines with their confidence and box, and for a document each line's page and
+     * source plus the text per page.
+     */
+    static Map<String, Object> textResponse(VisionResult result) {
+        List<Map<String, Object>> detections = new ArrayList<>();
+        Map<Integer, StringBuilder> pages = new java.util.TreeMap<>();
+        Map<Integer, String> pageSources = new HashMap<>();
+        StringBuilder fullText = new StringBuilder();
+        Integer previousPage = null;
+        for (var detection : result.detections()) {
+            String text = (String) detection.attributes().get("text");
+            Map<?, ?> attributes = detection.attributes().get("attributes") instanceof Map<?, ?> map ? map : Map.of();
+            Integer page = attributes.get("page") instanceof Integer number ? number : null;
+            Object source = attributes.get("source");
+
+            Map<String, Object> item = new HashMap<>();
+            item.put("text", text);
+            item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            item.put("boundingBox", Map.of(
+                "x", detection.boundingBox().x(),
+                "y", detection.boundingBox().y(),
+                "width", detection.boundingBox().width(),
+                "height", detection.boundingBox().height()
+            ));
+            if (page != null) {
+                item.put("page", page);
+            }
+            if (source != null) {
+                item.put("source", source);
+            }
+            detections.add(item);
+
+            if (text != null) {
+                if (fullText.length() > 0) {
+                    fullText.append(page != null && !page.equals(previousPage) ? "\n\n" : "\n");
+                }
+                fullText.append(text);
+                if (page != null) {
+                    pages.computeIfAbsent(page, key -> new StringBuilder()).append(text).append('\n');
+                    pageSources.merge(page, String.valueOf(source), (a, b) -> a.equals(b) ? a : "mixed");
+                }
+            }
+            previousPage = page;
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("text", fullText.toString());
+        response.put("detections", detections);
+        response.put("count", result.detectionCount());
+        if (!pages.isEmpty()) {
+            response.put("pages", pages.entrySet().stream()
+                .map(entry -> Map.<String, Object>of(
+                    "page", entry.getKey(),
+                    "source", pageSources.get(entry.getKey()),
+                    "text", entry.getValue().toString().strip()))
+                .toList());
+        }
+        return response;
     }
 
     // Helper: resolve a string reference (http(s)/data/file/local path) into ImageData

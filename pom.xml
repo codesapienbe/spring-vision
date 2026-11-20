@@ -49,6 +49,7 @@
 
     <!-- Dependencies -->
     <javacpp.version>1.5.14</javacpp.version>
+    <tika.version>4.2.0</tika.version>
     <micrometer.version>1.14.0</micrometer.version>
 
     <!-- Additional shared versions -->

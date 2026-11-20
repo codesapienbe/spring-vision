@@ -73,4 +73,15 @@ class VisionToolImageLocationTest {
             .hasMessageContaining("File not found")
             .hasMessageContaining("no such file.png");
     }
+
+    @Test
+    @DisplayName("a path in Claude's sandbox explains that the file is not on this computer")
+    void sandboxPath() {
+        assertThatThrownBy(() -> tool.downloadImageFromUrl("file:///mnt/user-data/uploads/CoC.pdf"))
+            .isInstanceOf(IOException.class)
+            .hasMessageContaining("Claude's sandbox")
+            .hasMessageContaining("~/Downloads/CoC.pdf");
+        assertThatThrownBy(() -> tool.downloadImageFromUrl("/home/claude/coc/p-1.png"))
+            .hasMessageContaining("Claude's sandbox");
+    }
 }
