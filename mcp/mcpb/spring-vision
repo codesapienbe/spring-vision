@@ -1,10 +1,15 @@
 #!/bin/sh
 # Starts the spring-vision MCP server from the Claude Desktop extension: the bundled Java runtime,
-# the bundled jar, stdio mode. Models that are not bundled are downloaded into ~/.springvision/models.
+# the bundled (unpacked) jar, stdio mode. Models that are not bundled are downloaded into
+# ~/.springvision/models. The class-data archive next to this script is created on the first exit
+# and reused afterwards; the JVM rebuilds it by itself when it no longer matches. JVM log output
+# goes to stderr: stdout carries only MCP messages.
 dir="$(cd "$(dirname "$0")" && pwd)"
 if [ "$(uname -m)" != "arm64" ]; then
     echo "spring-vision needs a Mac with Apple Silicon: PyTorch, which face recognition uses, is no longer built for Intel Macs." >&2
     exit 1
 fi
-exec "$dir/runtime/Contents/Home/bin/java" -Djava.awt.headless=true -Dfile.encoding=UTF-8 \
-    -jar "$dir/spring-vision-mcp.jar" --spring.profiles.active=stdio "$@"
+exec "$dir/runtime/Contents/Home/bin/java" -Xlog:disable -Xlog:all=warning:stderr \
+    -XX:+AutoCreateSharedArchive -XX:SharedArchiveFile="$dir/spring-vision.jsa" \
+    -Djava.awt.headless=true -Dfile.encoding=UTF-8 \
+    -jar "$dir/app/spring-vision-mcp.jar" --spring.profiles.active=stdio "$@"

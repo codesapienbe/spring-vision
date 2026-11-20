@@ -30,7 +30,11 @@ import zipfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MCPB = ROOT / "mcp" / "mcpb"
 JAR = "spring-vision-mcp.jar"
-STDIO_ARGS = ["-Djava.awt.headless=true", "-Dfile.encoding=UTF-8"]
+# JVM log output to stderr (stdout carries only MCP messages), and a class-data archive created on
+# the first exit in the extension's own folder, reused afterwards and rebuilt by the JVM when stale.
+JVM_ARGS = ["-Xlog:disable", "-Xlog:all=warning:stderr",
+            "-XX:+AutoCreateSharedArchive", "-XX:SharedArchiveFile=${__dirname}/server/spring-vision.jsa",
+            "-Djava.awt.headless=true", "-Dfile.encoding=UTF-8"]
 
 
 def sha256(path):
@@ -70,15 +74,22 @@ def unpack_without_top_folder(archive, target):
         shutil.copytree(top, target, symlinks=True)
 
 
-def layout(name, jar, runtime_archive, out):
-    """The bundle's folder: server/ with the jar and runtime, plus the macOS launcher."""
+def layout(name, jar, runtime_archive, out, java):
+    """The bundle's folder: server/ with the runtime, the unpacked jar in app/, and the macOS launcher.
+
+    The jar is unpacked (Spring Boot's extract layout: app/spring-vision-mcp.jar plus app/lib/) because
+    the JVM's class-data archive only covers classes loaded from plain jars on the class path.
+    """
     folder = out / "mcpb" / name
     if folder.exists():
         shutil.rmtree(folder)
     server = folder / "server"
     server.mkdir(parents=True)
-    shutil.copyfile(jar, server / JAR)
     unpack_without_top_folder(runtime_archive, server / "runtime")
+    subprocess.run([str(java or server / "runtime" / "Contents" / "Home" / "bin" / "java"), "-Djarmode=tools",
+                    "-jar", str(jar.resolve()), "extract", "--destination", str(server / "app")],
+                   check=True, stdout=subprocess.DEVNULL)
+    (server / "app" / jar.name).rename(server / "app" / JAR)
     if name == "macos":
         launcher = server / "spring-vision"
         shutil.copyfile(MCPB / "spring-vision", launcher)
@@ -123,7 +134,7 @@ def manifest(version, name, tools):
     else:
         mcp_config = {
             "command": "${__dirname}/server/runtime/bin/java.exe",
-            "args": STDIO_ARGS + ["-jar", "${__dirname}/server/" + JAR, "--spring.profiles.active=stdio"],
+            "args": JVM_ARGS + ["-jar", "${__dirname}/server/app/" + JAR, "--spring.profiles.active=stdio"],
         }
         platforms = ["win32"]
     return {
@@ -162,11 +173,14 @@ def main():
     runtimes = json.loads((MCPB / "runtimes.json").read_text())
     cache = out / "cache"
     cache.mkdir(parents=True, exist_ok=True)
-    macos = layout("macos", macos_jar, fetch_runtime(runtimes["macos"], cache), out)
-    windows = layout("windows", windows_jar, fetch_runtime(runtimes["windows"], cache), out)
     if platform.system() != "Darwin" or platform.machine() != "arm64":
         sys.exit("build the extensions on an Apple Silicon Mac: the macOS bundle is started once as a check")
+    macos = layout("macos", macos_jar, fetch_runtime(runtimes["macos"], cache), out, None)
+    macos_java = macos / "server" / "runtime" / "Contents" / "Home" / "bin" / "java"
+    windows = layout("windows", windows_jar, fetch_runtime(runtimes["windows"], cache), out, macos_java)
     tools = tools_of(macos)
+    # the check run wrote a class-data archive for this build folder; each install makes its own
+    (macos / "server" / "spring-vision.jsa").unlink(missing_ok=True)
     print(f"macOS bundle answered over stdio with {len(tools)} tools")
     for name, folder in (("macos", macos), ("windows", windows)):
         (folder / "manifest.json").write_text(json.dumps(manifest(version, name, tools), indent=2) + "\n")

@@ -600,6 +600,7 @@ public class DjlVisionBackend implements VisionBackend,
         try {
             if (properties.getModels().isLazy()) {
                 logger.info("Lazy model loading: each model is loaded on its first use");
+                Thread.ofPlatform().daemon().name("spring-vision-warmup").start(this::warmUpFaceDetector);
             } else {
                 loadAllModels();
             }
@@ -1015,6 +1016,20 @@ public class DjlVisionBackend implements VisionBackend,
 
     /** Approximate pixel block size used when pixelating a region. */
     private static final int PIXEL_BLOCK = 12;
+
+    /**
+     * Unpacks OpenCV's natives and loads the face cascades in the background — seconds on a
+     * machine's first run — so the first face tool call does not wait for them. A failure here is
+     * only logged: the first real call builds the detector itself and reports its own error.
+     */
+    private void warmUpFaceDetector() {
+        try {
+            getOrInitHaarFaceDetector();
+            logger.info("Face detector ready");
+        } catch (RuntimeException | LinkageError e) {
+            logger.warn("Face detector warm-up failed: {}", e.getMessage());
+        }
+    }
 
     private HaarFaceDetector getOrInitHaarFaceDetector() {
         HaarFaceDetector detector = this.haarFaceDetector;
