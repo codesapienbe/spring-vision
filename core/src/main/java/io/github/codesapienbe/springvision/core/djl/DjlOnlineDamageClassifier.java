@@ -103,22 +103,41 @@ public class DjlOnlineDamageClassifier {
         this.properties = properties;
     }
 
+    /**
+     * Only notes whether a checkpoint exists. The PyTorch model is created on first use
+     * ({@link #model()}), so start-up does not start the PyTorch engine — seconds on a first run —
+     * for a classifier that may never be used.
+     */
     @PostConstruct
     public void initialize() {
-        model = Model.newInstance(MODEL_NAME, "PyTorch");
-        model.setBlock(buildBlock());
         Path checkpoint = checkpointPath();
-        if (Files.exists(checkpoint)) {
-            try {
-                model.load(checkpoint.getParent(), MODEL_NAME);
-                classifierReady.set(true);
-                log.info("Loaded damage classifier checkpoint from {}", checkpoint);
-            } catch (Exception e) {
-                log.warn("Could not load checkpoint {}: {} — starting fresh", checkpoint, e.getMessage());
-            }
-        } else {
+        classifierReady.set(Files.exists(checkpoint));
+        if (!classifierReady.get()) {
             log.info("No damage classifier checkpoint found at {} — will train on first batch", checkpoint);
         }
+    }
+
+    /**
+     * The model, created on first use and loaded from the checkpoint when there is one. A checkpoint
+     * that does not load leaves the classifier not ready, to be trained afresh.
+     */
+    private synchronized Model model() {
+        if (model == null) {
+            Model created = Model.newInstance(MODEL_NAME, "PyTorch");
+            created.setBlock(buildBlock());
+            Path checkpoint = checkpointPath();
+            if (Files.exists(checkpoint)) {
+                try {
+                    created.load(checkpoint.getParent(), MODEL_NAME);
+                    log.info("Loaded damage classifier checkpoint from {}", checkpoint);
+                } catch (Exception e) {
+                    classifierReady.set(false);
+                    log.warn("Could not load checkpoint {}: {} — starting fresh", checkpoint, e.getMessage());
+                }
+            }
+            model = created;
+        }
+        return model;
     }
 
     @PreDestroy
@@ -172,10 +191,14 @@ public class DjlOnlineDamageClassifier {
         if (!classifierReady.get()) {
             return null;
         }
+        Model loaded = model();
+        if (!classifierReady.get()) {
+            return null;
+        }
         try (NDManager manager = NDManager.newBaseManager("PyTorch")) {
             float[] pixels = resizeAndNormalize(imageData);
             NDArray input = manager.create(pixels, new Shape(1, 3, INPUT_SIZE, INPUT_SIZE));
-            NDList output = model.getBlock()
+            NDList output = loaded.getBlock()
                 .forward(new ParameterStore(manager, false), new NDList(input), false);
             float[] logits = output.singletonOrThrow().toFloatArray();
             float[] probs = softmax(logits, NUM_CLASSES);
@@ -238,9 +261,13 @@ public class DjlOnlineDamageClassifier {
         if (!classifierReady.get()) {
             throw new IllegalStateException("Classifier has not been trained yet");
         }
+        Model loaded = model();
+        if (!classifierReady.get()) {
+            throw new IllegalStateException("Classifier checkpoint could not be loaded");
+        }
         Path dest = targetDir.resolve(MODEL_NAME);
         Files.createDirectories(dest);
-        model.save(dest, MODEL_NAME);
+        loaded.save(dest, MODEL_NAME);
         log.info("Exported damage classifier artifact to {}", dest);
     }
 
@@ -292,7 +319,7 @@ public class DjlOnlineDamageClassifier {
                             Tracker.fixed((float) properties.getOnlineClassifier().getLearningRate()))
                         .build());
 
-                try (Trainer trainer = model.newTrainer(config)) {
+                try (Trainer trainer = model().newTrainer(config)) {
                     trainer.initialize(new Shape(batchSize, 3, INPUT_SIZE, INPUT_SIZE));
                     EasyTrain.fit(trainer, properties.getOnlineClassifier().getEpochs(), dataset, null);
                 }
@@ -300,7 +327,7 @@ public class DjlOnlineDamageClassifier {
 
             Path checkpointDir = checkpointPath().getParent();
             Files.createDirectories(checkpointDir);
-            model.save(checkpointDir, MODEL_NAME);
+            model().save(checkpointDir, MODEL_NAME);
             classifierReady.set(true);
             log.info("Training complete — checkpoint saved to {}", checkpointPath());
         } catch (Exception e) {
