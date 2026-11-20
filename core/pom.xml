@@ -114,6 +114,32 @@
       <version>7.4</version>
     </dependency>
 
+    <!-- Apache Tika: the text and metadata of PDF and Microsoft Office documents (PDF via PDFBox).
+         Scanned pages still go through Tesseract below. commons-logging is excluded: Spring's
+         spring-jcl provides the same API. -->
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parser-pdf-module</artifactId>
+      <version>${tika.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parser-microsoft-module</artifactId>
+      <version>${tika.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
     <!-- ZXing barcode detection -->
     <dependency>
       <groupId>com.google.zxing</groupId>

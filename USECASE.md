@@ -6,8 +6,10 @@ Short scenarios to confirm that the spring-vision extension works after installi
 
 ## Before you start
 
-- **Give Claude the file's path; don't attach the image.** The tools read the image from disk, and an
-  image pasted into the chat does not reach them.
+- **Give Claude the file's path; don't attach the file.** The tools read the file from this computer. A file
+  attached to the chat lands in Claude's own sandbox (`/mnt/user-data/uploads/…`), which spring-vision
+  cannot see; it answers with "File not found … is in Claude's sandbox". Save the file locally and pass
+  that path.
 - **A full path or one starting with `~` both work**, spaces included: `~/Downloads/people.jpg`,
   `/Users/<you>/Desktop/Screenshot 2026-11-20 at 00.25.11.png`, or `C:\Users\<you>\Pictures\people.jpg`
   on Windows.
@@ -42,6 +44,15 @@ put its exact name in the prompt (Claude cannot list your folders).
 
 **Expect** the text and a confidence. The OCR language files are the smallest downloads, so this
 works within seconds of the first start.
+
+## 4. Read a PDF or an Office document
+
+> Use spring-vision to read the text in ~/Downloads/certificate.pdf, page by page.
+
+**Expect** the text per page, each page marked `pdf-text` (the PDF's own text, exact and instant) or
+`ocr` (a scanned page, read with OCR in well under a second per page). Word, Excel and PowerPoint
+files work the same way (`document-text`). A password-protected PDF, or one over 50 pages, is refused
+with a message saying so.
 
 ## When a tool says "still setting up"
 

@@ -85,4 +85,11 @@ class TesseractRunnerTest {
             .isInstanceOf(VisionProcessingException.class)
             .hasMessageContaining("jpn");
     }
+
+    @Test
+    @DisplayName("reads Dutch first by default, then English, French and German")
+    void readsDutchFirstByDefault() {
+        // Dutch documents are the main use; English alone misreads Dutch words (see the class comment)
+        assertThat(new TesseractRunner(null, null).defaultLanguages()).isEqualTo("nld+eng+fra+deu");
+    }
 }
