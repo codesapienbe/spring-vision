@@ -15,6 +15,7 @@ import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapabilit
 import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DocumentReadingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DriverLicenseRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability;
@@ -36,6 +37,7 @@ import io.github.codesapienbe.springvision.core.capabilities.VehicleDamageDetect
 import io.github.codesapienbe.springvision.core.capabilities.VehicleDamageTrainingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.VehicleDetectionCapability;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
+import io.github.codesapienbe.springvision.core.document.DocumentContent;
 import io.github.codesapienbe.springvision.core.exception.BaseVisionException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
@@ -356,6 +358,25 @@ public record VisionTemplate(VisionBackend backend, VectorService vectorService)
             .toList();
 
         return buildResult(DetectionType.TEXT, detections, startTime);
+    }
+
+    /**
+     * Reads a document (PDF, Word, Excel, PowerPoint) or an image: its text lines, its "Label: value"
+     * fields, and the tables, form fields and properties the file declares. A backend with OCR only
+     * gives the lines and the fields.
+     *
+     * @param imageData the document or image to read
+     * @return what was read
+     * @throws VisionUnsupportedException if the backend can read neither documents nor text
+     */
+    public DocumentContent readDocument(ImageData imageData) {
+        if (backend instanceof DocumentReadingCapability capability) {
+            return capability.readDocument(imageData);
+        }
+        if (backend instanceof OcrCapability capability) {
+            return DocumentContent.ofLines(capability.extractText(imageData));
+        }
+        throw new VisionUnsupportedException("Document reading not supported by backend: " + getBackendId());
     }
 
     /**

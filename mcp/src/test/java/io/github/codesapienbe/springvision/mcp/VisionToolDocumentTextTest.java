@@ -18,9 +18,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
+import io.github.codesapienbe.springvision.core.capabilities.DocumentReadingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.OcrCapability;
+import io.github.codesapienbe.springvision.core.document.DocumentContent;
 
-/** What extract_text_u answers for a document: the text with page breaks, and the text per page. */
+/** What extract_text_u and read_document answer for a document: text per page, fields, tables, form fields, properties. */
 class VisionToolDocumentTextTest {
 
     private static OcrCapability.TextDetection line(String text, int page, String source) {
@@ -56,5 +58,30 @@ class VisionToolDocumentTextTest {
         Map<String, Object> viaReadDocument = new VisionTool(new VisionTemplate(backend)).readDocument(pdf.toString());
         assertThat(viaReadDocument.get("text")).isEqualTo(response.get("text"));
         assertThat(viaReadDocument.get("pages")).isEqualTo(response.get("pages"));
+        assertThat(response.get("fields")).isEqualTo(List.of(Map.of("label", "0.1 Make", "value", "Example Motors",
+            "page", 1, "confidence", 1.0, "lowConfidence", false)));
+        assertThat(response).containsEntry("tables", List.of()).containsEntry("formFields", Map.of())
+            .containsEntry("metadata", Map.of());
+    }
+
+    @Test
+    @DisplayName("a document's tables, form fields and properties come back next to its fields")
+    void structure(@TempDir Path dir) throws IOException {
+        VisionBackend backend = mock(VisionBackend.class, withSettings().extraInterfaces(DocumentReadingCapability.class));
+        when(((DocumentReadingCapability) backend).readDocument(any())).thenReturn(new DocumentContent(
+            List.of(new OcrCapability.TextDetection("Kenteken: 1-ABC-123", 0.42, null, Map.of("page", 1, "source", "ocr"))),
+            List.of(new DocumentContent.Table(2, List.of(List.of("a", "b"))), new DocumentContent.Table(null, List.of())),
+            Map.of("plate", "1-ABC-123"),
+            Map.of("pages", "2")));
+        Path pdf = Files.write(dir.resolve("form.pdf"), "%PDF-1.7 placeholder".getBytes());
+
+        Map<String, Object> response = new VisionTool(new VisionTemplate(backend)).readDocument(pdf.toString());
+
+        assertThat(response.get("fields")).isEqualTo(List.of(Map.of("label", "Kenteken", "value", "1-ABC-123",
+            "page", 1, "confidence", 0.42, "lowConfidence", true)));
+        assertThat(response.get("tables")).isEqualTo(List.of(
+            Map.of("page", 2, "rows", List.of(List.of("a", "b"))), Map.of("rows", List.of())));
+        assertThat(response).containsEntry("formFields", Map.of("plate", "1-ABC-123"))
+            .containsEntry("metadata", Map.of("pages", "2"));
     }
 }

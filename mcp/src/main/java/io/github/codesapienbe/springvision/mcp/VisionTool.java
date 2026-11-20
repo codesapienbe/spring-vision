@@ -46,7 +46,10 @@ import io.github.codesapienbe.springvision.core.VisionBackend;
 import io.github.codesapienbe.springvision.core.VisionResult;
 import io.github.codesapienbe.springvision.core.VisionTemplate;
 import io.github.codesapienbe.springvision.core.auth.EnrolledUserStore;
+import io.github.codesapienbe.springvision.core.capabilities.OcrCapability;
 import io.github.codesapienbe.springvision.core.djl.DjlVisionBackend;
+import io.github.codesapienbe.springvision.core.document.DocumentContent;
+import io.github.codesapienbe.springvision.core.document.LabelValueFields;
 import io.github.codesapienbe.springvision.core.exception.VisionBackendException;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 import io.github.codesapienbe.springvision.core.exception.VisionUnsupportedException;
@@ -1202,9 +1205,12 @@ public class VisionTool {
      */
     @Tool(name = "read_document", description = "Read a PDF, Word, Excel, PowerPoint or image file (PNG, JPEG, "
         + "WebP) on this computer, locally and privately. Returns the text, the text per page for documents, and "
-        + "per-line confidence. A PDF page's own text is used when it has one; scanned pages and images are read "
-        + "with OCR (Dutch first, then English, French, German). The path may start with ~ and contain spaces, e.g. "
-        + "~/Downloads/certificate.pdf. A file attached to the chat is not on this computer: ask for its path.")
+        + "per-line confidence; the 'Label: value' lines as fields (label, value, page, confidence, lowConfidence); "
+        + "the tables of Word, Excel and PowerPoint files as rows; the filled-in fields of a PDF form; and the "
+        + "document's title, author, dates and page count. A PDF page's own text is used when it has one; scanned "
+        + "pages and images are read with OCR (Dutch first, then English, French, German). The path may start with ~ "
+        + "and contain spaces, e.g. ~/Downloads/certificate.pdf. A file attached to the chat is not on this "
+        + "computer: ask for its path.")
     @SuppressWarnings("unused")
     public Map<String, Object> readDocument(String path) {
         return extractText(path);
@@ -1212,9 +1218,9 @@ public class VisionTool {
 
     @Tool(name = "extract_text_u", description = "Extract text from an image or a document (PDF, Word, Excel, "
         + "PowerPoint) given by a path on this computer, a file: or http(s) URL. A PDF page's own text is used when it "
-        + "has one; scanned pages and images are read with OCR. Returns the text, per-line detections with confidence "
-        + "and, for documents, the text per page. Files attached to the chat are not on this computer: save them "
-        + "locally first and pass that path.")
+        + "has one; scanned pages and images are read with OCR. Returns the text, per-line detections with confidence, "
+        + "for documents the text per page, and the same fields, tables, form fields and metadata as read_document. "
+        + "Files attached to the chat are not on this computer: save them locally first and pass that path.")
     @SuppressWarnings("unused")
     public Map<String, Object> extractText(String imageUrl) {
         log.info("extractText called",
@@ -1234,12 +1240,9 @@ public class VisionTool {
 
             ImageData imgData = resolveImage(imageUrl.trim());
 
-            // Use VisionTemplate high-level API
-            VisionResult result = visionTemplate.extractText(imgData);
-
-            Map<String, Object> textResponse = textResponse(result);
-            textResponse.put("processingTimeMs", System.currentTimeMillis() - startTime);
-            return textResponse;
+            Map<String, Object> documentResponse = documentResponse(visionTemplate.readDocument(imgData));
+            documentResponse.put("processingTimeMs", System.currentTimeMillis() - startTime);
+            return documentResponse;
 
         } catch (RuntimeException e) {
             log.error("Failed to extract text from URL: {}", sanitizeUrlForLogging(imageUrl), e);
@@ -2008,30 +2011,85 @@ public class VisionTool {
     }
 
     /**
-     * The answer of the extract_text tools: the whole text (lines separated by line breaks, pages by a
-     * blank line), the lines with their confidence and box, and for a document each line's page and
-     * source plus the text per page.
+     * The answer of the extract_text tools for an image: {@link #textResponse(List)} of the OCR lines.
      */
     static Map<String, Object> textResponse(VisionResult result) {
+        return textResponse(result.detections().stream()
+            .map(detection -> new OcrCapability.TextDetection(
+                (String) detection.attributes().get("text"),
+                detection.confidence(),
+                Map.of("x", detection.boundingBox().x(), "y", detection.boundingBox().y(),
+                    "width", detection.boundingBox().width(), "height", detection.boundingBox().height()),
+                detection.attributes().get("attributes") instanceof Map<?, ?> map ? stringKeyed(map) : Map.of()))
+            .toList());
+    }
+
+    private static Map<String, Object> stringKeyed(Map<?, ?> map) {
+        Map<String, Object> copy = new HashMap<>();
+        map.forEach((key, value) -> copy.put(String.valueOf(key), value));
+        return copy;
+    }
+
+    /**
+     * The answer of read_document and extract_text_u: {@link #textResponse(List)} plus the "Label: value"
+     * fields, and the tables, form fields and properties the file declares.
+     */
+    static Map<String, Object> documentResponse(DocumentContent content) {
+        Map<String, Object> response = textResponse(content.lines());
+        response.put("fields", content.fields().stream().map(VisionTool::fieldResponse).toList());
+        response.put("tables", content.tables().stream()
+            .map(table -> {
+                Map<String, Object> item = new HashMap<>();
+                if (table.page() != null) {
+                    item.put("page", table.page());
+                }
+                item.put("rows", table.rows());
+                return item;
+            })
+            .toList());
+        response.put("formFields", content.formFields());
+        response.put("metadata", content.metadata());
+        return response;
+    }
+
+    private static Map<String, Object> fieldResponse(LabelValueFields.Field field) {
+        Map<String, Object> item = new HashMap<>();
+        item.put("label", field.label());
+        item.put("value", field.value());
+        if (field.page() != null) {
+            item.put("page", field.page());
+        }
+        item.put("confidence", Math.round(field.confidence() * 10000.0) / 10000.0);
+        item.put("lowConfidence", field.lowConfidence());
+        return item;
+    }
+
+    /**
+     * The text part of the extract_text tools' answer: the whole text (lines separated by line breaks,
+     * pages by a blank line), the lines with their confidence and box, and for a document each line's page
+     * and source plus the text per page.
+     */
+    static Map<String, Object> textResponse(List<OcrCapability.TextDetection> lines) {
         List<Map<String, Object>> detections = new ArrayList<>();
         Map<Integer, StringBuilder> pages = new java.util.TreeMap<>();
         Map<Integer, String> pageSources = new HashMap<>();
         StringBuilder fullText = new StringBuilder();
         Integer previousPage = null;
-        for (var detection : result.detections()) {
-            String text = (String) detection.attributes().get("text");
-            Map<?, ?> attributes = detection.attributes().get("attributes") instanceof Map<?, ?> map ? map : Map.of();
+        for (var line : lines) {
+            String text = line.text();
+            Map<String, Object> attributes = line.attributes() == null ? Map.of() : line.attributes();
             Integer page = attributes.get("page") instanceof Integer number ? number : null;
             Object source = attributes.get("source");
+            Map<String, Object> box = line.boundingBox() == null ? Map.of() : line.boundingBox();
 
             Map<String, Object> item = new HashMap<>();
             item.put("text", text);
-            item.put("confidence", Math.round(detection.confidence() * 10000.0) / 10000.0);
+            item.put("confidence", Math.round(line.confidence() * 10000.0) / 10000.0);
             item.put("boundingBox", Map.of(
-                "x", detection.boundingBox().x(),
-                "y", detection.boundingBox().y(),
-                "width", detection.boundingBox().width(),
-                "height", detection.boundingBox().height()
+                "x", box.getOrDefault("x", 0.0),
+                "y", box.getOrDefault("y", 0.0),
+                "width", box.getOrDefault("width", 0.0),
+                "height", box.getOrDefault("height", 0.0)
             ));
             if (page != null) {
                 item.put("page", page);
@@ -2058,7 +2116,7 @@ public class VisionTool {
         response.put("status", "success");
         response.put("text", fullText.toString());
         response.put("detections", detections);
-        response.put("count", result.detectionCount());
+        response.put("count", lines.size());
         if (!pages.isEmpty()) {
             response.put("pages", pages.entrySet().stream()
                 .map(entry -> Map.<String, Object>of(
