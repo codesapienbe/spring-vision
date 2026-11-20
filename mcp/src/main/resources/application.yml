@@ -163,8 +163,9 @@ spring:
           spring-vision reads files on this computer, locally and privately, without sending them
           anywhere. When the user asks to read, extract or summarise a document or image that is on their
           computer (PDF, Word, Excel, PowerPoint, PNG, JPEG, WebP), call read_document with its path, for
-          example ~/Downloads/certificate.pdf; it returns the text per page, reading Dutch, English, French
-          and German. A file attached to this chat is not on the computer and spring-vision cannot see it:
+          example ~/Downloads/certificate.pdf; it returns the text per page, the "Label: value" lines as
+          fields, the tables of Office files and the filled-in fields of a PDF form, reading Dutch, English,
+          French and German. A field marked lowConfidence was hard to read: say so rather than rely on it. A file attached to this chat is not on the computer and spring-vision cannot see it:
           ask the user for the file's path on their computer instead.
           Some tools need a model that spring-vision downloads on its first run. If a tool answers that
           spring-vision is still setting up, nothing was run: call setup_status, wait until the tool's

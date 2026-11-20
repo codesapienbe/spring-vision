@@ -91,6 +91,7 @@ import io.github.codesapienbe.springvision.core.capabilities.AnnotationCapabilit
 import io.github.codesapienbe.springvision.core.capabilities.BarcodeCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DeepfakeDetectionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DemographicsCapability;
+import io.github.codesapienbe.springvision.core.capabilities.DocumentReadingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.DriverLicenseRecognitionCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmbeddingCapability;
 import io.github.codesapienbe.springvision.core.capabilities.EmotionDetectionCapability;
@@ -110,6 +111,7 @@ import io.github.codesapienbe.springvision.core.capabilities.SegmentationCapabil
 import io.github.codesapienbe.springvision.core.capabilities.StressAnalysisCapability;
 import io.github.codesapienbe.springvision.core.capabilities.ThreatDetectionCapability;
 import io.github.codesapienbe.springvision.core.document.BelgianPlateFormat;
+import io.github.codesapienbe.springvision.core.document.DocumentContent;
 import io.github.codesapienbe.springvision.core.document.DocumentImagePreprocessor;
 import io.github.codesapienbe.springvision.core.document.DocumentRegistry;
 import io.github.codesapienbe.springvision.core.document.ParsedDocument;
@@ -153,6 +155,7 @@ public class DjlVisionBackend implements VisionBackend,
     SegmentationCapability,
     EmbeddingCapability,
     OcrCapability,
+    DocumentReadingCapability,
     ImageClassificationCapability,
     BarcodeCapability,
     MetaDataExtractionCapability,
@@ -2186,6 +2189,18 @@ private BufferedImage resizeToGrayscale64x64(BufferedImage src) {
 
         logger.info("Tesseract OCR completed: {} lines, correlationId={}", detections.size(), correlationId);
         return detections;
+    }
+
+    @Override
+    public DocumentContent readDocument(ImageData imageData) throws BaseVisionException {
+        if (!initialized || imageData == null || !DocumentReader.isDocument(imageData.data())) {
+            // an image, or a call extractText refuses with its own error
+            return DocumentContent.ofLines(extractText(imageData));
+        }
+        DocumentContent content = new DocumentReader(getOrInitTesseractRunner()).readContent(imageData.data());
+        logger.info("Document read: {} lines, {} tables, {} form fields",
+            content.lines().size(), content.tables().size(), content.formFields().size());
+        return content;
     }
 
     // ==========================

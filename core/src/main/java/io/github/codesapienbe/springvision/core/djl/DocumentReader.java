@@ -4,32 +4,45 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.imageio.ImageIO;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDPushButton;
+import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTerminalField;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.PagedText;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.BodyContentHandler;
+import org.apache.tika.sax.TeeContentHandler;
 import org.xml.sax.SAXException;
 
 import io.github.codesapienbe.springvision.core.capabilities.OcrCapability;
+import io.github.codesapienbe.springvision.core.document.DocumentContent;
 import io.github.codesapienbe.springvision.core.exception.VisionProcessingException;
 
 /**
@@ -40,6 +53,9 @@ import io.github.codesapienbe.springvision.core.exception.VisionProcessingExcept
  * by Tesseract; scanned pages are read in parallel. Word, Excel and PowerPoint documents go through
  * Apache Tika. Every line says which page it is on and where it came from ({@code pdf-text},
  * {@code ocr} or {@code document-text}).</p>
+ *
+ * <p>{@link #readContent(byte[])} also returns what the file itself declares: the tables of an
+ * Office document, the filled-in fields of a PDF form, and the document's properties.</p>
  */
 final class DocumentReader {
 
@@ -82,6 +98,16 @@ final class DocumentReader {
      *     has more than {@value #MAX_PAGES} pages
      */
     List<OcrCapability.TextDetection> read(byte[] data) {
+        return readContent(data).lines();
+    }
+
+    /**
+     * The document's text lines plus its tables, form fields and properties.
+     *
+     * @throws VisionProcessingException when the document cannot be read, is password-protected, or
+     *     has more than {@value #MAX_PAGES} pages
+     */
+    DocumentContent readContent(byte[] data) {
         try {
             return isPdf(data) ? readPdf(data) : readOffice(data);
         } catch (InvalidPasswordException e) {
@@ -92,7 +118,7 @@ final class DocumentReader {
         }
     }
 
-    private List<OcrCapability.TextDetection> readPdf(byte[] data) throws IOException {
+    private DocumentContent readPdf(byte[] data) throws IOException {
         try (PDDocument document = Loader.loadPDF(data)) {
             int pages = document.getNumberOfPages();
             if (pages > MAX_PAGES) {
@@ -115,8 +141,39 @@ final class DocumentReader {
             }
             lines.addAll(readScannedPages(document, scanned));
             lines.sort(Comparator.comparingInt(line -> (Integer) line.attributes().get("page")));
-            return lines;
+            return new DocumentContent(lines, List.of(), formFields(document), pdfMetadata(document));
         }
+    }
+
+    /** The filled-in fields of the PDF's form, by their full name; buttons, signatures and blanks left out. */
+    private static Map<String, String> formFields(PDDocument document) {
+        PDAcroForm form = document.getDocumentCatalog().getAcroForm();
+        if (form == null) {
+            return Map.of();
+        }
+        return StreamSupport.stream(form.getFieldTree().spliterator(), false)
+            .filter(field -> field instanceof PDTerminalField
+                && !(field instanceof PDPushButton) && !(field instanceof PDSignatureField))
+            .filter(field -> field.getValueAsString() != null && !field.getValueAsString().isBlank()
+                && !"Off".equals(field.getValueAsString()))
+            .collect(Collectors.toMap(field -> field.getFullyQualifiedName(), field -> field.getValueAsString().strip(),
+                (first, second) -> first, LinkedHashMap::new));
+    }
+
+    private static Map<String, String> pdfMetadata(PDDocument document) {
+        PDDocumentInformation info = document.getDocumentInformation();
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("title", info.getTitle());
+        values.put("author", info.getAuthor());
+        values.put("subject", info.getSubject());
+        values.put("created", iso(info.getCreationDate()));
+        values.put("modified", iso(info.getModificationDate()));
+        values.put("pages", String.valueOf(document.getNumberOfPages()));
+        return present(values);
+    }
+
+    private static String iso(Calendar calendar) {
+        return calendar == null ? null : calendar.toInstant().toString();
     }
 
     /** Renders the scanned pages one by one (PDFBox renders a document on one thread) and OCRs them in parallel. */
@@ -173,12 +230,34 @@ final class DocumentReader {
         return lines;
     }
 
-    private static List<OcrCapability.TextDetection> readOffice(byte[] data) throws IOException, TikaException, SAXException {
-        BodyContentHandler handler = new BodyContentHandler(-1);
+    private static DocumentContent readOffice(byte[] data) throws IOException, TikaException, SAXException {
+        BodyContentHandler text = new BodyContentHandler(-1);
+        TableCollector tables = new TableCollector();
+        Metadata metadata = new Metadata();
         try (TikaInputStream stream = TikaInputStream.get(data)) {
-            new AutoDetectParser().parse(stream, handler, new Metadata(), new ParseContext());
+            new AutoDetectParser().parse(stream, new TeeContentHandler(text, tables), metadata, new ParseContext());
         }
-        return textLines(handler.toString(), null, "document-text");
+        return new DocumentContent(textLines(text.toString(), null, "document-text"), tables.tables(), Map.of(),
+            officeMetadata(metadata));
+    }
+
+    private static Map<String, String> officeMetadata(Metadata metadata) {
+        Map<String, String> values = new LinkedHashMap<>();
+        values.put("title", metadata.get(TikaCoreProperties.TITLE));
+        values.put("author", metadata.get(TikaCoreProperties.CREATOR));
+        values.put("subject", metadata.get(TikaCoreProperties.SUBJECT));
+        values.put("created", metadata.get(TikaCoreProperties.CREATED));
+        values.put("modified", metadata.get(TikaCoreProperties.MODIFIED));
+        values.put("pages", metadata.get(PagedText.N_PAGES));
+        return present(values);
+    }
+
+    /** The entries that have a value, stripped, in the same order. */
+    private static Map<String, String> present(Map<String, String> values) {
+        return values.entrySet().stream()
+            .filter(entry -> entry.getValue() != null && !entry.getValue().isBlank())
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().strip(),
+                (first, second) -> first, LinkedHashMap::new));
     }
 
     /**
