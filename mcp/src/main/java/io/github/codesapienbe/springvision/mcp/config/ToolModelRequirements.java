@@ -51,6 +51,7 @@ final class ToolModelRequirements {
         Map.entry("lookup_faces_in_dataset_b", FACE_EMBEDDING),
         Map.entry("authenticate_access_b", FACE_EMBEDDING),
         Map.entry("store_identity_u", FACE_EMBEDDING),
+        Map.entry("read_document", TESSDATA),
         Map.entry("extract_text_b", TESSDATA),
         Map.entry("extract_text_u", TESSDATA),
         Map.entry("recognize_identity_card_b", TESSDATA),

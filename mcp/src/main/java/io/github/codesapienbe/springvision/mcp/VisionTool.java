@@ -1196,6 +1196,20 @@ public class VisionTool {
         }
     }
 
+    /**
+     * Reads a document or image on this computer: the same engine and answer as
+     * {@link #extractText(String)}, under a name and a parameter that say what it is for.
+     */
+    @Tool(name = "read_document", description = "Read a PDF, Word, Excel, PowerPoint or image file (PNG, JPEG, "
+        + "WebP) on this computer, locally and privately. Returns the text, the text per page for documents, and "
+        + "per-line confidence. A PDF page's own text is used when it has one; scanned pages and images are read "
+        + "with OCR (Dutch first, then English, French, German). The path may start with ~ and contain spaces, e.g. "
+        + "~/Downloads/certificate.pdf. A file attached to the chat is not on this computer: ask for its path.")
+    @SuppressWarnings("unused")
+    public Map<String, Object> readDocument(String path) {
+        return extractText(path);
+    }
+
     @Tool(name = "extract_text_u", description = "Extract text from an image or a document (PDF, Word, Excel, "
         + "PowerPoint) given by a path on this computer, a file: or http(s) URL. A PDF page's own text is used when it "
         + "has one; scanned pages and images are read with OCR. Returns the text, per-line detections with confidence "

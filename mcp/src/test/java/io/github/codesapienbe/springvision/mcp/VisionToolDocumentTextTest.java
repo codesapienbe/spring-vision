@@ -52,5 +52,9 @@ class VisionToolDocumentTextTest {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> detections = (List<Map<String, Object>>) response.get("detections");
         assertThat(detections).extracting(item -> item.get("page")).containsExactly(1, 1, 2);
+
+        Map<String, Object> viaReadDocument = new VisionTool(new VisionTemplate(backend)).readDocument(pdf.toString());
+        assertThat(viaReadDocument.get("text")).isEqualTo(response.get("text"));
+        assertThat(viaReadDocument.get("pages")).isEqualTo(response.get("pages"));
     }
 }

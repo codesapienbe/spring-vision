@@ -66,7 +66,7 @@ class DefaultToolAccessTest {
     @DisplayName("mcp-admin may call every tool")
     void adminMayCallEveryTool() {
         ToolAccessPolicy policy = new ToolAccessPolicy(security.toolAccess());
-        assertThat(toolNames).hasSize(69).contains("setup_status").allMatch(tool -> policy.allows(Set.of("mcp-admin"), tool));
+        assertThat(toolNames).hasSize(70).contains("setup_status", "read_document").allMatch(tool -> policy.allows(Set.of("mcp-admin"), tool));
     }
 
     @Test
